@@ -1593,7 +1593,9 @@ function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const page = document.getElementById('page-'+id);
-  if (page) page.classList.add('active');
+  if (!page) { console.error('Page not found: page-'+id); return; }
+  page.classList.add('active');
+  console.log('Showing page:', id, 'visible:', page.offsetParent !== null);
   document.querySelectorAll('.nav-item').forEach(n => { if(n.getAttribute('onclick')?.includes("'"+id+"'")) n.classList.add('active'); });
   const info = pageTitles[id] || [id, ''];
   document.getElementById('page-title').textContent = info[0];
