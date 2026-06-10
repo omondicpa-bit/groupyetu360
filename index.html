@@ -2263,13 +2263,16 @@ async function loadSuperAdmin() {
   const orgs = orgsRes.data || [];
   const members = membersRes.data || [];
   const planRevenue = { starter:0, basic:3000, standard:6000, pro:12000 };
-  const revenue = orgs.reduce((s,o) => s+(planRevenue[o.plan]||0), 0);
-  document.getElementById('sa-orgs').textContent = orgs.length;
-  document.getElementById('sa-members').textContent = members.length;
-  document.getElementById('sa-plans').textContent = orgs.filter(o=>o.plan!=='starter').length + ' paid';
-  document.getElementById('sa-revenue').textContent = 'Ksh '+revenue.toLocaleString();
+  const revenue = (orgs||[]).reduce((s,o) => s+(planRevenue[o.plan||'starter']||0), 0);
+  const setEl = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  setEl('sa-orgs', (orgs||[]).length);
+  setEl('sa-members', (members||[]).length);
+  setEl('sa-plans', (orgs||[]).filter(o=>o.plan&&o.plan!=='starter').length + ' paid');
+  setEl('sa-revenue', 'Ksh '+revenue.toLocaleString());
   const memberCountByOrg = {};
-  members.forEach(m => { memberCountByOrg[m.org_id] = (memberCountByOrg[m.org_id]||0)+1; });
+  (members||[]).forEach(m => { if(m.org_id) memberCountByOrg[m.org_id] = (memberCountByOrg[m.org_id]||0)+1; });
+  console.log('Member count by org:', memberCountByOrg);
+  console.log('Rendering org list with', (orgs||[]).length, 'orgs');
   document.getElementById('sa-org-list').innerHTML = orgs.length ? orgs.map(o => `
     <div class="org-row" style="cursor:pointer" onclick="openOrgDetail('${o.id}')">
       <div>
@@ -2382,12 +2385,13 @@ async function loadSAFinance() {
   const { data: orgs } = await sb.from('organisations').select('*');
   const planRevenue = { starter:0, basic:3000, standard:6000, pro:12000 };
   const counts = { starter:0, basic:0, standard:0, pro:0 };
-  (orgs||[]).forEach(o => { if(counts[o.plan]!==undefined) counts[o.plan]++; });
-  document.getElementById('rev-starter').textContent = counts.starter;
-  document.getElementById('rev-basic').textContent = counts.basic + ' · Ksh ' + (counts.basic*3000).toLocaleString();
-  document.getElementById('rev-standard').textContent = counts.standard + ' · Ksh ' + (counts.standard*6000).toLocaleString();
-  document.getElementById('rev-pro').textContent = counts.pro + ' · Ksh ' + (counts.pro*12000).toLocaleString();
-  const total = (orgs||[]).reduce((s,o)=>s+(planRevenue[o.plan]||0),0);
+  (orgs||[]).forEach(o => { const p = o.plan||'starter'; if(counts[p]!==undefined) counts[p]++; });
+  const setT = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  setT('rev-starter', counts.starter);
+  setT('rev-basic', counts.basic + ' · Ksh ' + (counts.basic*3000).toLocaleString());
+  setT('rev-standard', counts.standard + ' · Ksh ' + (counts.standard*6000).toLocaleString());
+  setT('rev-pro', counts.pro + ' · Ksh ' + (counts.pro*12000).toLocaleString());
+  const total = (orgs||[]).reduce((s,o)=>s+(planRevenue[o.plan||'starter']||0),0);
   document.getElementById('sa-revenue-list').innerHTML = `
     <table>
       <thead><tr><th>Organisation</th><th>Plan</th><th>Status</th><th>Annual Revenue</th><th>Renewal Due</th></tr></thead>
