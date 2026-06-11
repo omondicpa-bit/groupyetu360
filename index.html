@@ -890,6 +890,7 @@ tr:hover td{background:var(--maroon-pale)}
         </div>
       </div>
     </div>
+    </div><!-- end page-settings -->
 
     <!-- SUPERADMIN -->
     <div class="page active" id="page-superadmin">
@@ -1623,13 +1624,15 @@ function showApp() {
   appScreen.classList.add('visible');
   buildNav();
   updateSidebar();
-  // Small delay to ensure DOM is visible before loading pages
-  setTimeout(() => {
-    loadDashboard();
-    prefetchData();
-  }, 50);
   const today = new Date().toISOString().split('T')[0];
   document.querySelectorAll('input[type="date"]').forEach(el => { if(!el.value) el.value = today; });
+  // Wait for browser to paint before loading data
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      loadDashboard();
+      prefetchData();
+    });
+  });
 }
 
 function buildNav() {
@@ -1655,8 +1658,7 @@ function buildNav() {
     <a class="nav-item active" onclick="showPage('superadmin')" href="#"><span class="nav-icon">⊞</span> Platform Overview</a>
     <a class="nav-item" onclick="showPage('sa_members')" href="#"><span class="nav-icon">◉</span> All Members</a>
     <a class="nav-item" onclick="showPage('sa_finance')" href="#"><span class="nav-icon">₭</span> Revenue</a>`;
-    // Force superadmin page visible after DOM settles
-    setTimeout(() => showPage('superadmin'), 100);
+    (delete that line entirely)
   }
   document.getElementById('sidebar-nav').innerHTML = nav;
   const topbar = document.getElementById('topbar-actions');
@@ -1726,7 +1728,6 @@ function showPage(id) {
   const page = document.getElementById('page-'+id);
   if (!page) { console.error('Page not found: page-'+id); return; }
   page.classList.add('active');
-  console.log('Showing page:', id, 'visible:', page.offsetParent !== null);
   document.querySelectorAll('.nav-item').forEach(n => { if(n.getAttribute('onclick')?.includes("'"+id+"'")) n.classList.add('active'); });
   const info = pageTitles[id] || [id, ''];
   document.getElementById('page-title').textContent = info[0];
