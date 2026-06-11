@@ -762,6 +762,7 @@ tr:hover td{background:var(--maroon-pale)}
         </div>
       </div>
     </div>
+    </div><!-- end msg-admin-section -->
 
     <!-- APPROVALS -->
     <div class="page" id="page-approvals">
@@ -790,7 +791,9 @@ tr:hover td{background:var(--maroon-pale)}
 
     <!-- SETTINGS -->
     <div class="page" id="page-settings">
-      <div class="section-header"><div><div class="section-title">Organisation Settings</div></div></div>
+      <div class="section-header"><div><div class="section-title">Organisation Settings</div><div class="section-sub">Configure your organisation</div></div></div>
+
+      <!-- ROW 1: ORG DETAILS + CONTRIBUTION TYPES -->
       <div class="grid-2">
         <div class="card">
           <div class="card-header"><div class="card-title">Organisation Details</div></div>
@@ -810,7 +813,44 @@ tr:hover td{background:var(--maroon-pale)}
           <div id="contrib-types-list"><div class="loading"><div class="spinner"></div>Loading…</div></div>
         </div>
       </div>
-    </div>
+
+      <!-- ROW 2: TEAM MANAGEMENT -->
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">Team &amp; Admin Roles</div><div class="card-sub">Manage who can access and administer this organisation</div></div>
+          <button class="card-action" onclick="showModal('inviteAdmin')">+ Invite Admin</button>
+        </div>
+        <div id="team-members-list"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+      </div>
+
+      <!-- ROW 3: WELFARE SETTINGS -->
+      <div class="card">
+        <div class="card-header"><div><div class="card-title">Welfare Contribution Rates</div><div class="card-sub">Default amounts per event type — edit to match your constitution</div></div></div>
+        <div class="card-body">
+          <div class="form-row cols-3">
+            <div class="form-group"><label class="form-label">Member Death (Ksh)</label><input class="form-input" type="number" id="welfare-rate-member" placeholder="1000"/></div>
+            <div class="form-group"><label class="form-label">Spouse / Parent (Ksh)</label><input class="form-input" type="number" id="welfare-rate-spouse" placeholder="750"/></div>
+            <div class="form-group"><label class="form-label">Child (Ksh)</label><input class="form-input" type="number" id="welfare-rate-child" placeholder="500"/></div>
+          </div>
+          <div class="form-actions"><button class="btn btn-primary" onclick="saveWelfareRates()">Save Rates</button></div>
+        </div>
+      </div>
+
+      <!-- ROW 4: MEETING DEFAULTS -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">Meeting Defaults</div></div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Default Meeting Time</label><input class="form-input" type="time" id="settings-meeting-time" value="20:30"/></div>
+            <div class="form-group"><label class="form-label">Default Venue</label><select class="form-select" id="settings-meeting-venue"><option>Online (Virtual)</option><option>Physical Location</option></select></div>
+          </div>
+          <div class="form-row single">
+            <div class="form-group"><label class="form-label">Standing Agenda Items</label><textarea class="form-textarea" id="settings-agenda" placeholder="1. Opening Prayer&#10;2. Treasurer's Report&#10;3. Farm Progress&#10;4. AOB" style="min-height:80px"></textarea></div>
+          </div>
+          <div class="form-actions"><button class="btn btn-primary" onclick="saveMeetingDefaults()">Save Defaults</button></div>
+        </div>
+      </div>
+
     </div><!-- end page-settings -->
 
     <!-- SUPERADMIN -->
@@ -1144,6 +1184,30 @@ tr:hover td{background:var(--maroon-pale)}
   </div>
 </div>
 
+<!-- INVITE ADMIN MODAL -->
+<div class="modal-overlay" id="modal-inviteAdmin">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header"><div class="modal-title">Invite Admin / Officer</div><button class="modal-close" onclick="closeModal('inviteAdmin')">&#10005;</button></div>
+    <div class="modal-body">
+      <div class="alert alert-info">This person will be able to log in and manage your organisation's records.</div>
+      <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="invite-name" placeholder="Full name"/></div>
+      <div class="form-group"><label class="form-label">Email Address</label><input class="form-input" type="email" id="invite-email" placeholder="their@email.com"/></div>
+      <div class="form-group"><label class="form-label">Temporary Password</label><input class="form-input" type="text" id="invite-password" placeholder="They can change this later"/></div>
+      <div class="form-group"><label class="form-label">Role</label>
+        <select class="form-select" id="invite-role">
+          <option value="admin">Admin — Full access</option>
+          <option value="officer">Officer — Record transactions only</option>
+        </select>
+      </div>
+      <div style="font-size:.72rem;color:var(--ink-faint);line-height:1.6;margin-top:.5rem">
+        <strong>Admin:</strong> Can manage members, finances, meetings, settings<br>
+        <strong>Officer:</strong> Can record payments and attendance only
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('inviteAdmin')">Cancel</button><button class="btn btn-primary" onclick="saveInviteAdmin()">Create Account</button></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-addContribType">
   <div class="modal" style="max-width:440px">
     <div class="modal-header"><div class="modal-title">Add Contribution Type</div><button class="modal-close" onclick="closeModal('addContribType')">✕</button></div>
@@ -1435,6 +1499,30 @@ async function joinOrg() {
   });
   joinSelectedOrgId = null;
   document.getElementById('join-org-selected').style.display = 'none';
+}
+
+async function sendPasswordReset() {
+  const email = document.getElementById('forgot-email')?.value?.trim();
+  const errEl = document.getElementById('forgot-error');
+  const sucEl = document.getElementById('forgot-success');
+  if (errEl) errEl.classList.remove('show');
+  if (sucEl) sucEl.classList.remove('show');
+  if (!email) {
+    if (errEl) { errEl.textContent='Please enter your email'; errEl.classList.add('show'); }
+    return;
+  }
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.href.split('#')[0]
+  });
+  if (error) {
+    if (errEl) { errEl.textContent = error.message; errEl.classList.add('show'); }
+    return;
+  }
+  if (sucEl) { sucEl.textContent = 'Reset link sent to ' + email + '. Check your inbox.'; sucEl.classList.add('show'); }
+}
+
+function showForgotPassword() {
+  switchAuthTab('forgot');
 }
 
 async function signIn() {
@@ -2277,6 +2365,69 @@ async function loadSettings() {
       </div>`;
   }
   populateSelects();
+}
+
+async function loadTeamMembers() {
+  if (!currentOrg?.id) return;
+  const { data: profiles } = await sb.from('profiles').select('*').eq('org_id', currentOrg.id);
+  const teamEl = document.getElementById('team-members-list');
+  if (!teamEl) return;
+  const team = (profiles||[]).filter(p => p.role !== 'member' && p.role !== 'pending' && p.role !== 'declined');
+  teamEl.innerHTML = team.length ? `
+    <table>
+      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Action</th></tr></thead>
+      <tbody>${team.map(p=>`<tr>
+        <td><strong>${p.full_name||'—'}</strong></td>
+        <td>${p.id}</td>
+        <td><span class="badge ${p.role==='admin'?'badge-maroon':p.role==='superadmin'?'badge-gold':'badge-grey'}">${p.role}</span></td>
+        <td>
+          ${p.role !== 'superadmin' && p.id !== currentUser?.id ? `
+          <select class="form-select" style="width:120px;padding:.2rem .5rem;font-size:.72rem" onchange="changeRole('${p.id}',this.value)">
+            <option value="admin" ${p.role==='admin'?'selected':''}>Admin</option>
+            <option value="officer" ${p.role==='officer'?'selected':''}>Officer</option>
+            <option value="member" ${p.role==='member'?'selected':''}>Member</option>
+          </select>` : '<span style="font-size:.72rem;color:var(--ink-faint)">Current user</span>'}
+        </td>
+      </tr>`).join('')}</tbody>
+    </table>` :
+    '<div style="padding:1.25rem;font-size:.82rem;color:var(--ink-faint)">No admin team members yet</div>';
+}
+
+async function changeRole(userId, newRole) {
+  const { error } = await sb.from('profiles').update({ role: newRole }).eq('id', userId);
+  if (error) { toast('Error: '+error.message); return; }
+  toast('Role updated to ' + newRole);
+  loadTeamMembers();
+}
+
+async function saveInviteAdmin() {
+  const name = document.getElementById('invite-name').value.trim();
+  const email = document.getElementById('invite-email').value.trim();
+  const password = document.getElementById('invite-password').value.trim();
+  const role = document.getElementById('invite-role').value;
+  if (!name||!email||!password) { toast('Please fill all fields'); return; }
+  if (password.length < 6) { toast('Password must be at least 6 characters'); return; }
+  const { data: authData, error: authErr } = await sb.auth.signUp({
+    email, password, options: { data: { full_name: name } }
+  });
+  if (authErr) { toast('Error: '+authErr.message); return; }
+  await sb.from('profiles').upsert({
+    id: authData.user.id,
+    org_id: currentOrg.id,
+    role,
+    full_name: name
+  });
+  toast(name + ' added as ' + role);
+  closeModal('inviteAdmin');
+  loadTeamMembers();
+}
+
+async function saveWelfareRates() {
+  toast('Welfare rates saved (feature coming soon)');
+}
+
+async function saveMeetingDefaults() {
+  toast('Meeting defaults saved (feature coming soon)');
 }
 
 async function deleteContribType(id, name) {
