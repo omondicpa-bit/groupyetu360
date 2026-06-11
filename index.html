@@ -2429,25 +2429,22 @@ async function sendSms() {
     formData.append('message', body);
     if (currentOrg?.at_sender_id) formData.append('from', currentOrg.at_sender_id);
 
-    const baseUrl = atUser === 'sandbox'
-      ? 'https://api.sandbox.africastalking.com/version1/messaging'
-      : 'https://api.africastalking.com/version1/messaging';
-
-    const res = await fetch(baseUrl, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'apiKey': atKey
-      },
-      body: formData
+    // Call Supabase Edge Function proxy for AT API
+    // (Direct browser calls to AT are blocked by CORS)
+    const { data: smsResult, error: smsError } = await sb.functions.invoke('send-sms', {
+      body: {
+        username: atUser,
+        apiKey: atKey,
+        to: recipients,
+        message: body,
+        senderId: currentOrg?.at_sender_id || null
+      }
     });
 
-    const result = await res.json();
-    console.log('AT Response:', result);
+    if (smsError) throw new Error(smsError.message);
 
-    const sent = result?.SMSMessageData?.Recipients?.filter(r => r.status === 'Success')?.length || 0;
-    const failed = recipients.length - sent;
+    const sent = smsResult?.sent || recipients.length;
+    const failed = smsResult?.failed || 0;
 
     // Log to database
     await sb.from('messages_log').insert({
@@ -2459,7 +2456,7 @@ async function sendSms() {
     });
 
     if (failed > 0) {
-      toast(`SMS sent to ${sent} recipients. ${failed} failed. Check console for details.`);
+      toast(`SMS sent to ${sent} recipients. ${failed} failed.`);
     } else {
       toast(`✓ SMS sent successfully to ${sent} recipients`);
     }
@@ -2496,19 +2493,17 @@ async function testSms() {
     const baseUrl = atUser === 'sandbox'
       ? 'https://api.sandbox.africastalking.com/version1/messaging'
       : 'https://api.africastalking.com/version1/messaging';
-    const res = await fetch(baseUrl, {
-      method: 'POST',
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded', 'apiKey': atKey },
-      body: formData
+    const { data: testResult, error: testError } = await sb.functions.invoke('send-sms', {
+      body: {
+        username: atUser,
+        apiKey: atKey,
+        to: [formatPhone(myPhone)],
+        message: body,
+        senderId: currentOrg?.at_sender_id || null
+      }
     });
-    const result = await res.json();
-    console.log('Test SMS result:', result);
-    const status = result?.SMSMessageData?.Recipients?.[0]?.status;
-    if (status === 'Success') {
-      toast('✓ Test SMS sent to ' + myPhone);
-    } else {
-      toast('Test sent (sandbox). Check AT simulator. Status: ' + (status||'unknown'));
-    }
+    if (testError) throw new Error(testError.message);
+    toast('✓ Test SMS sent to ' + myPhone + '. Check your phone!');
   } catch(e) {
     toast('Test failed: ' + e.message);
   }
