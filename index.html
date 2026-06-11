@@ -885,6 +885,158 @@ tr:hover td{background:var(--maroon-pale)}
     </div>
 
 
+    <!-- ORG BILLING PAGE -->
+    <div class="page" id="page-billing">
+      <div class="section-header">
+        <div><div class="section-title">Billing & SMS</div><div class="section-sub">Subscription status and SMS usage</div></div>
+      </div>
+
+      <!-- Subscription Status Card -->
+      <div class="grid-2">
+        <div class="card" id="billing-status-card">
+          <div class="card-header"><div class="card-title">Subscription Status</div></div>
+          <div class="card-body">
+            <div id="billing-status-content"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">SMS Usage This Month</div></div>
+          <div class="card-body">
+            <div id="sms-usage-content"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Request -->
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">Make a Payment</div><div class="card-sub">Pay for subscription renewal or SMS top-up</div></div>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-info" id="billing-bank-details">Loading payment details...</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Payment Type</label>
+              <select class="form-select" id="pay-req-type" onchange="updatePaymentAmount()">
+                <option value="subscription_basic">Subscription — Basic (Ksh 3,000/year)</option>
+                <option value="subscription_standard" selected>Subscription — Standard (Ksh 6,000/year)</option>
+                <option value="subscription_pro">Subscription — Pro (Ksh 12,000/year)</option>
+                <option value="sms_bundle_200">SMS Bundle — 200 SMS (Ksh 300)</option>
+                <option value="sms_bundle_500">SMS Bundle — 500 SMS (Ksh 750)</option>
+                <option value="sms_bundle_1000">SMS Bundle — 1,000 SMS (Ksh 1,500)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Amount (Ksh)</label>
+              <input class="form-input" type="number" id="pay-req-amount" value="6000" readonly/>
+            </div>
+          </div>
+          <div class="form-row single">
+            <div class="form-group">
+              <label class="form-label">M-Pesa Transaction Reference</label>
+              <input class="form-input" id="pay-req-ref" placeholder="e.g. QBC4X8YZDE — the code from your M-Pesa message"/>
+            </div>
+          </div>
+          <div class="form-row single">
+            <div class="form-group">
+              <label class="form-label">Notes (optional)</label>
+              <input class="form-input" id="pay-req-notes" placeholder="Any additional information..."/>
+            </div>
+          </div>
+          <div class="alert alert-warn" style="margin-top:.5rem">
+            ⚠ After paying, click the button below. Your payment will be verified and activated within 24 hours.
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="submitPaymentRequest()">✓ I Have Paid — Submit for Verification</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment History -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">Payment History</div></div>
+        <div id="payment-history"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- ORG SUPPORT PAGE -->
+    <div class="page" id="page-support">
+      <div class="section-header"><div><div class="section-title">Support</div><div class="section-sub">Get help with GroupYetu360</div></div></div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Contact Support</div></div>
+          <div class="card-body" id="support-contact-content">
+            <div class="loading"><div class="spinner"></div>Loading...</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Common Questions</div></div>
+          <div class="card-body">
+            <div style="margin-bottom:1rem">
+              <div style="font-size:.85rem;font-weight:600;color:var(--ink);margin-bottom:.25rem">How do I add members?</div>
+              <div style="font-size:.78rem;color:var(--ink-faint)">Go to Members → Add Member. You can set their opening balance and create a portal account for them at the same time.</div>
+            </div>
+            <div style="margin-bottom:1rem">
+              <div style="font-size:.85rem;font-weight:600;color:var(--ink);margin-bottom:.25rem">How do I send SMS to members?</div>
+              <div style="font-size:.78rem;color:var(--ink-faint)">Go to Messages, add your Africa's Talking credentials in Settings first, then compose and send.</div>
+            </div>
+            <div style="margin-bottom:1rem">
+              <div style="font-size:.85rem;font-weight:600;color:var(--ink);margin-bottom:.25rem">How do I renew my subscription?</div>
+              <div style="font-size:.78rem;color:var(--ink-faint)">Go to Billing & SMS, select your plan, pay via M-Pesa to our details shown, then submit your reference number.</div>
+            </div>
+            <div>
+              <div style="font-size:.85rem;font-weight:600;color:var(--ink);margin-bottom:.25rem">How do I record a welfare event?</div>
+              <div style="font-size:.78rem;color:var(--ink-faint)">Go to Welfare → New Welfare Event. This creates a contribution record for all members to pay.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUPERADMIN BILLING PAGE -->
+    <div class="page" id="page-sa_billing">
+      <div class="section-header"><div><div class="section-title">Billing Management</div><div class="section-sub">Review and approve payment requests</div></div></div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card gold"><div class="stat-label">Pending Payments</div><div class="stat-value" id="sa-pending-payments">—</div></div>
+        <div class="stat-card green"><div class="stat-label">Active Subscriptions</div><div class="stat-value" id="sa-active-subs">—</div></div>
+        <div class="stat-card warn"><div class="stat-label">Expiring Soon</div><div class="stat-value" id="sa-expiring">—</div></div>
+        <div class="stat-card"><div class="stat-label">SMS Sent This Month</div><div class="stat-value" id="sa-sms-month">—</div></div>
+      </div>
+
+      <!-- Pending Payment Requests -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">Pending Payment Requests</div></div>
+        <div id="sa-pending-payments-list"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+      </div>
+
+      <!-- All Subscriptions -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">All Subscriptions</div></div>
+        <div id="sa-subscriptions-list"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- SUPERADMIN SUPPORT SETTINGS -->
+    <div class="page" id="page-sa_support">
+      <div class="section-header"><div><div class="section-title">Support Settings</div><div class="section-sub">Configure contact details shown to all organisations</div></div></div>
+      <div class="card" style="max-width:600px">
+        <div class="card-header"><div class="card-title">Platform Contact Details</div></div>
+        <div class="card-body">
+          <div class="alert alert-info">These details are shown to all organisations on the Support page.</div>
+          <div class="form-row single"><div class="form-group"><label class="form-label">Support Phone Number</label><input class="form-input" id="sp-phone" placeholder="e.g. 0792385970"/></div></div>
+          <div class="form-row single"><div class="form-group"><label class="form-label">Support Email</label><input class="form-input" id="sp-email" placeholder="e.g. support@groupyetu360.com"/></div></div>
+          <div style="font-size:.78rem;font-weight:600;color:var(--ink);margin:.75rem 0 .5rem">Payment Details (shown to organisations paying for subscription)</div>
+          <div class="form-row single"><div class="form-group"><label class="form-label">Bank Name</label><input class="form-input" id="sp-bank-name" placeholder="e.g. Equity Bank"/></div></div>
+          <div class="form-row"><div class="form-group"><label class="form-label">Account Number</label><input class="form-input" id="sp-bank-account" placeholder="Account number"/></div><div class="form-group"><label class="form-label">Account Name</label><input class="form-input" id="sp-bank-account-name" placeholder="e.g. EPH Technologies"/></div></div>
+          <div class="form-row single"><div class="form-group"><label class="form-label">M-Pesa Paybill (if any)</label><input class="form-input" id="sp-paybill" placeholder="Optional"/></div></div>
+          <div class="form-row single"><div class="form-group"><label class="form-label">WhatsApp Support Link (optional)</label><input class="form-input" id="sp-whatsapp" placeholder="e.g. https://wa.me/254792385970"/></div></div>
+          <div class="form-actions"><button class="btn btn-primary" onclick="saveSupportSettings()">Save Settings</button></div>
+        </div>
+      </div>
+    </div>
+
     <!-- MY ACCOUNT (all roles) -->
     <div class="page" id="page-my_account">
       <div class="section-header"><div><div class="section-title">My Account</div><div class="section-sub">Update your personal information and password</div></div></div>
@@ -1679,6 +1831,7 @@ function showApp() {
   requestAnimationFrame(() => requestAnimationFrame(() => {
     loadDashboard();
     prefetchData();
+    checkSubscriptionAccess();
   }));
 }
 
@@ -1703,7 +1856,9 @@ function buildNav() {
     nav += `<div class="nav-label">Super Admin</div>
     <a class="nav-item active" onclick="showPage('superadmin')" href="#"><span class="nav-icon">⊞</span> Platform Overview</a>
     <a class="nav-item" onclick="showPage('sa_members')" href="#"><span class="nav-icon">◉</span> All Members</a>
-    <a class="nav-item" onclick="showPage('sa_finance')" href="#"><span class="nav-icon">₭</span> Revenue</a>`;
+    <a class="nav-item" onclick="showPage('sa_finance')" href="#"><span class="nav-icon">₭</span> Revenue</a>
+    <a class="nav-item" onclick="showPage('sa_billing')" href="#"><span class="nav-icon">💳</span> Billing</a>
+    <a class="nav-item" onclick="showPage('sa_support')" href="#"><span class="nav-icon">☎</span> Support Settings</a>`;
   }
   document.getElementById('sidebar-nav').innerHTML = nav;
   const topbar = document.getElementById('topbar-actions');
@@ -1756,6 +1911,10 @@ const pageTitles = {
   sa_finance: ['Revenue', 'Subscription & billing overview'],
   my_profile: ['My Profile', 'Your member details'],
   my_account: ['My Account', 'Personal information & password'],
+  billing: ['Billing & SMS', 'Subscription and usage'],
+  support: ['Support', 'Get help with GroupYetu360'],
+  sa_billing: ['Billing Management', 'Review payments and subscriptions'],
+  sa_support: ['Support Settings', 'Configure contact details'],
   my_contributions: ['My Contributions', 'Your payment history'],
   approvals: ['Member Approvals', 'Review and approve access requests'],
   members: ['Members', 'Member register'],
@@ -1777,7 +1936,7 @@ function showPage(id) {
   const info = pageTitles[id] || [id, ''];
   document.getElementById('page-title').textContent = info[0];
   document.getElementById('page-sub').textContent = info[1] || currentOrg?.name || '';
-  const loaders = { members: loadMembers, finance: loadFinance, meetings: loadMeetings, welfare: loadWelfare, projects: loadProjects, messages: loadMessages, settings: loadSettings, superadmin: loadSuperAdmin, sa_members: loadSAMembers, sa_finance: loadSAFinance, my_profile: loadMyProfile, my_contributions: loadMyContributions, approvals: loadApprovals, my_account: loadMyAccount };
+  const loaders = { members: loadMembers, finance: loadFinance, meetings: loadMeetings, welfare: loadWelfare, projects: loadProjects, messages: loadMessages, settings: loadSettings, superadmin: loadSuperAdmin, sa_members: loadSAMembers, sa_finance: loadSAFinance, my_profile: loadMyProfile, my_contributions: loadMyContributions, approvals: loadApprovals, my_account: loadMyAccount, billing: loadBilling, support: loadSupport, sa_billing: loadSABilling, sa_support: loadSASupport };
   if (loaders[id]) loaders[id]();
 }
 
@@ -2455,6 +2614,9 @@ async function sendSms() {
       sent_by: currentUser.id
     });
 
+    if (smsResult?.sent > 0) {
+      await trackSmsUsage(currentOrg.id, smsResult.sent);
+    }
     if (failed > 0) {
       toast(`SMS sent to ${sent} recipients. ${failed} failed.`);
     } else {
@@ -3377,6 +3539,375 @@ async function updatePassword() {
   sucEl.textContent = 'Password updated! Signing you in…';
   sucEl.classList.add('show');
   setTimeout(() => window.location.href = window.location.pathname, 2000);
+}
+
+// ── BILLING SYSTEM ──
+
+const PLAN_PRICES = { starter: 0, basic: 3000, standard: 6000, pro: 12000 };
+const PLAN_SMS = { starter: 50, basic: 200, standard: 500, pro: 1000 };
+const SMS_RATE = 1.5; // Ksh per SMS charged to org
+const SMS_COST = 0.9; // Ksh per SMS cost to platform
+
+async function loadBilling() {
+  if (!currentOrg?.id) return;
+  const { data: org } = await sb.from('organisations').select('*').eq('id', currentOrg.id).single();
+  if (org) Object.assign(currentOrg, org);
+
+  // Load platform settings for bank details
+  const { data: settings } = await sb.from('platform_settings').select('*').single();
+
+  // Show bank details
+  const bankEl = document.getElementById('billing-bank-details');
+  if (bankEl && settings) {
+    bankEl.innerHTML = `💳 Pay to: <strong>${settings.bank_name||'Equity Bank'}</strong> · 
+      Account: <strong>${settings.bank_account||'—'}</strong> · 
+      Name: <strong>${settings.bank_account_name||'EPH Technologies'}</strong>
+      ${settings.paybill ? ` · M-Pesa Paybill: <strong>${settings.paybill}</strong>` : ''}`;
+  }
+
+  // Subscription status
+  const statusEl = document.getElementById('billing-status-content');
+  if (statusEl) {
+    const expires = org?.subscription_expires;
+    const status = org?.subscription_status || 'active';
+    const plan = org?.plan || 'starter';
+    const daysLeft = expires ? Math.ceil((new Date(expires) - new Date()) / (1000*60*60*24)) : null;
+    const isExpired = daysLeft !== null && daysLeft < 0;
+    const isExpiringSoon = daysLeft !== null && daysLeft <= 30 && daysLeft >= 0;
+
+    statusEl.innerHTML = `
+      <div class="stats-row" style="grid-template-columns:repeat(2,1fr);margin-bottom:1rem">
+        <div class="stat-card ${isExpired?'warn':'green'}">
+          <div class="stat-label">Status</div>
+          <div class="stat-value" style="font-size:1.2rem">${isExpired?'Expired':status.toUpperCase()}</div>
+        </div>
+        <div class="stat-card gold">
+          <div class="stat-label">Current Plan</div>
+          <div class="stat-value" style="font-size:1.2rem">${plan.toUpperCase()}</div>
+        </div>
+      </div>
+      ${expires ? `<div style="font-size:.82rem;color:${isExpired?'var(--danger)':isExpiringSoon?'var(--warning)':'var(--success)'};margin-bottom:.75rem">
+        ${isExpired ? '⚠ Subscription expired on ' + new Date(expires).toDateString() :
+          isExpiringSoon ? `⚠ Expires in ${daysLeft} days (${new Date(expires).toDateString()})` :
+          `✓ Active until ${new Date(expires).toDateString()}`}
+      </div>` : '<div style="font-size:.82rem;color:var(--ink-faint);margin-bottom:.75rem">No expiry date set</div>'}
+      <div style="font-size:.75rem;color:var(--ink-faint);line-height:1.7">
+        <strong>Your plan includes:</strong><br>
+        ✓ Up to ${plan==='starter'?15:plan==='basic'?30:plan==='standard'?75:'unlimited'} members<br>
+        ✓ ${PLAN_SMS[plan]||50} SMS/month included<br>
+        ✓ All GroupYetu360 features
+      </div>`;
+  }
+
+  // SMS usage
+  const month = new Date().toISOString().slice(0,7);
+  const { data: usage } = await sb.from('sms_usage').select('*').eq('org_id', currentOrg.id).eq('month', month).single().catch(()=>({data:null}));
+  const smsUsed = usage?.messages_sent || 0;
+  const smsBundle = org?.sms_bundle || PLAN_SMS[org?.plan||'starter'] || 50;
+  const smsPct = Math.min(100, Math.round((smsUsed/smsBundle)*100));
+  const smsRemaining = Math.max(0, smsBundle - smsUsed);
+
+  const smsEl = document.getElementById('sms-usage-content');
+  if (smsEl) {
+    smsEl.innerHTML = `
+      <div class="stats-row" style="grid-template-columns:repeat(2,1fr);margin-bottom:1rem">
+        <div class="stat-card"><div class="stat-label">SMS Used</div><div class="stat-value" style="font-size:1.3rem">${smsUsed}</div></div>
+        <div class="stat-card green"><div class="stat-label">Remaining</div><div class="stat-value" style="font-size:1.3rem">${smsRemaining}</div></div>
+      </div>
+      <div class="progress-row" style="margin-bottom:.5rem">
+        <div class="progress-label" style="min-width:80px">Monthly Bundle</div>
+        <div class="progress-bar"><div class="progress-fill ${smsPct>80?'':'gold'}" style="width:${smsPct}%"></div></div>
+        <div class="progress-val">${smsUsed}/${smsBundle}</div>
+      </div>
+      <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.5rem">
+        Rate: Ksh ${SMS_RATE}/SMS · Overage: Ksh ${(Math.max(0,smsUsed-smsBundle)*SMS_RATE).toFixed(2)}
+      </div>
+      ${smsRemaining < 50 ? `<div class="alert alert-warn" style="margin-top:.75rem;font-size:.72rem">
+        ⚠ Running low on SMS. Top up via the payment form below.
+      </div>` : ''}`;
+  }
+
+  // Payment history
+  const { data: payments } = await sb.from('payment_requests')
+    .select('*').eq('org_id', currentOrg.id).order('requested_at',{ascending:false}).limit(10);
+  const histEl = document.getElementById('payment-history');
+  if (histEl) {
+    histEl.innerHTML = (payments||[]).length ? `
+      <table>
+        <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Reference</th><th>Status</th></tr></thead>
+        <tbody>${(payments||[]).map(p=>`<tr>
+          <td>${new Date(p.requested_at).toDateString()}</td>
+          <td>${p.payment_type?.replace(/_/g,' ')}</td>
+          <td>Ksh ${Number(p.amount).toLocaleString()}</td>
+          <td>${p.reference||'—'}</td>
+          <td><span class="badge ${p.status==='approved'?'badge-green':p.status==='rejected'?'badge-red':'badge-warn'}">${p.status}</span></td>
+        </tr>`).join('')}</tbody>
+      </table>` :
+      '<div style="padding:1.5rem;text-align:center;color:var(--ink-faint);font-size:.82rem">No payment history yet</div>';
+  }
+}
+
+function updatePaymentAmount() {
+  const type = document.getElementById('pay-req-type')?.value;
+  const amounts = {
+    subscription_basic: 3000,
+    subscription_standard: 6000,
+    subscription_pro: 12000,
+    sms_bundle_200: 300,
+    sms_bundle_500: 750,
+    sms_bundle_1000: 1500
+  };
+  const amtEl = document.getElementById('pay-req-amount');
+  if (amtEl) amtEl.value = amounts[type] || 0;
+}
+
+async function submitPaymentRequest() {
+  const type = document.getElementById('pay-req-type')?.value;
+  const amount = parseFloat(document.getElementById('pay-req-amount')?.value)||0;
+  const ref = document.getElementById('pay-req-ref')?.value?.trim();
+  const notes = document.getElementById('pay-req-notes')?.value?.trim();
+  if (!ref) { toast('Please enter your M-Pesa transaction reference'); return; }
+  const { error } = await sb.from('payment_requests').insert({
+    org_id: currentOrg.id,
+    payment_type: type,
+    amount,
+    reference: ref,
+    notes,
+    status: 'pending'
+  });
+  if (error) { toast('Error: '+error.message); return; }
+  toast('Payment submitted! We will verify and activate within 24 hours.');
+  document.getElementById('pay-req-ref').value = '';
+  document.getElementById('pay-req-notes').value = '';
+  loadBilling();
+}
+
+// ── SUPPORT PAGE ──
+async function loadSupport() {
+  const { data: settings } = await sb.from('platform_settings').select('*').single().catch(()=>({data:null}));
+  const el = document.getElementById('support-contact-content');
+  if (!el) return;
+  const phone = settings?.support_phone || '0792385970';
+  const email = settings?.support_email || 'support@groupyetu360.com';
+  const whatsapp = `https://wa.me/${phone.replace(/^0/, '254').replace(/\s/g,'')}`;
+  el.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:1.25rem">
+      <div style="display:flex;align-items:center;gap:1rem;padding:1rem;background:var(--surface-2);border:1px solid var(--border)">
+        <div style="font-size:1.8rem">📞</div>
+        <div>
+          <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint)">Phone / WhatsApp</div>
+          <div style="font-size:1rem;font-weight:700;color:var(--ink)">${phone}</div>
+          <a href="${whatsapp}" target="_blank" style="font-size:.75rem;color:var(--maroon);font-weight:600">Open in WhatsApp →</a>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:1rem;padding:1rem;background:var(--surface-2);border:1px solid var(--border)">
+        <div style="font-size:1.8rem">✉️</div>
+        <div>
+          <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint)">Email</div>
+          <div style="font-size:1rem;font-weight:700;color:var(--ink)">${email}</div>
+          <a href="mailto:${email}" style="font-size:.75rem;color:var(--maroon);font-weight:600">Send Email →</a>
+        </div>
+      </div>
+      <div style="padding:1rem;background:var(--maroon-pale);border:1px solid var(--maroon-muted)">
+        <div style="font-size:.82rem;color:var(--maroon);font-weight:600;margin-bottom:.25rem">Response Times</div>
+        <div style="font-size:.75rem;color:var(--ink-soft);line-height:1.7">
+          WhatsApp/Phone: Within 2 hours (Mon-Fri 8am-6pm)<br>
+          Email: Within 24 hours
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── SUPERADMIN BILLING ──
+async function loadSABilling() {
+  const today = new Date().toISOString().split('T')[0];
+  const thirtyDaysLater = new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0];
+  const month = new Date().toISOString().slice(0,7);
+
+  const [pendingRes, orgsRes, smsRes] = await Promise.all([
+    sb.from('payment_requests').select('*,organisations(name)').eq('status','pending').order('requested_at',{ascending:false}),
+    sb.from('organisations').select('*').order('name'),
+    sb.from('sms_usage').select('messages_sent').eq('month', month)
+  ]);
+
+  const pending = pendingRes.data||[];
+  const orgs = orgsRes.data||[];
+  const totalSmsMonth = (smsRes.data||[]).reduce((s,r)=>s+(r.messages_sent||0),0);
+
+  const activeSubs = orgs.filter(o=>o.subscription_status==='active'&&o.plan!=='starter').length;
+  const expiringSoon = orgs.filter(o=>o.subscription_expires&&o.subscription_expires<=thirtyDaysLater&&o.subscription_expires>=today).length;
+
+  const setEl = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  setEl('sa-pending-payments', pending.length);
+  setEl('sa-active-subs', activeSubs);
+  setEl('sa-expiring', expiringSoon);
+  setEl('sa-sms-month', totalSmsMonth.toLocaleString());
+
+  // Pending payments
+  const pendEl = document.getElementById('sa-pending-payments-list');
+  if (pendEl) {
+    pendEl.innerHTML = pending.length ? `
+      <table>
+        <thead><tr><th>Organisation</th><th>Type</th><th>Amount</th><th>Reference</th><th>Date</th><th>Action</th></tr></thead>
+        <tbody>${pending.map(p=>`<tr>
+          <td><strong>${p.organisations?.name||'—'}</strong></td>
+          <td>${p.payment_type?.replace(/_/g,' ')}</td>
+          <td><strong>Ksh ${Number(p.amount).toLocaleString()}</strong></td>
+          <td style="font-family:monospace">${p.reference||'—'}</td>
+          <td>${new Date(p.requested_at).toDateString()}</td>
+          <td style="display:flex;gap:.4rem">
+            <button class="btn btn-primary btn-sm" onclick="approvePayment('${p.id}','${p.org_id}','${p.payment_type}',${p.amount})">Approve</button>
+            <button class="btn btn-danger btn-sm" onclick="rejectPayment('${p.id}')">Reject</button>
+          </td>
+        </tr>`).join('')}</tbody>
+      </table>` :
+      '<div style="padding:1.5rem;text-align:center;color:var(--ink-faint);font-size:.82rem">No pending payments</div>';
+  }
+
+  // All subscriptions
+  const subsEl = document.getElementById('sa-subscriptions-list');
+  if (subsEl) {
+    subsEl.innerHTML = `
+      <table>
+        <thead><tr><th>Organisation</th><th>Plan</th><th>Status</th><th>Expires</th><th>SMS Bundle</th><th>Action</th></tr></thead>
+        <tbody>${orgs.map(o=>{
+          const expires = o.subscription_expires;
+          const daysLeft = expires ? Math.ceil((new Date(expires)-new Date())/(1000*60*60*24)) : null;
+          const expClass = daysLeft===null?'':daysLeft<0?'badge-red':daysLeft<30?'badge-warn':'badge-green';
+          return `<tr>
+            <td><strong>${o.name}</strong></td>
+            <td><span class="badge ${o.plan==='pro'?'badge-gold':o.plan==='standard'?'badge-maroon':o.plan==='basic'?'badge-green':'badge-grey'}">${o.plan}</span></td>
+            <td><span class="badge ${o.subscription_status==='active'?'badge-green':'badge-red'}">${o.subscription_status||'active'}</span></td>
+            <td><span class="badge ${expClass}">${expires?new Date(expires).toDateString()+(daysLeft!==null?` (${daysLeft}d)`:''): 'Not set'}</span></td>
+            <td>${o.sms_bundle||50} SMS</td>
+            <td><button class="btn btn-secondary btn-sm" onclick="openOrgDetail('${o.id}')">Edit</button></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>`;
+  }
+}
+
+async function approvePayment(paymentId, orgId, paymentType, amount) {
+  // Determine what to activate
+  const updates = {};
+  const today = new Date();
+  
+  if (paymentType.startsWith('subscription_')) {
+    const plan = paymentType.replace('subscription_', '');
+    const expiry = new Date(today);
+    expiry.setFullYear(expiry.getFullYear() + 1);
+    updates.plan = plan;
+    updates.subscription_status = 'active';
+    updates.subscription_expires = expiry.toISOString().split('T')[0];
+    updates.subscription_paid_date = today.toISOString().split('T')[0];
+    updates.sms_bundle = PLAN_SMS[plan] || 50;
+  } else if (paymentType.startsWith('sms_bundle_')) {
+    const smsCount = parseInt(paymentType.replace('sms_bundle_',''));
+    const { data: org } = await sb.from('organisations').select('sms_bundle').eq('id', orgId).single();
+    updates.sms_bundle = (org?.sms_bundle||0) + smsCount;
+  }
+
+  // Update organisation
+  await sb.from('organisations').update(updates).eq('id', orgId);
+  
+  // Mark payment as approved
+  await sb.from('payment_requests').update({
+    status: 'approved',
+    approved_by: currentUser.id,
+    approved_at: new Date().toISOString()
+  }).eq('id', paymentId);
+
+  toast('Payment approved and subscription activated');
+  loadSABilling();
+}
+
+async function rejectPayment(paymentId) {
+  if (!confirm('Reject this payment request?')) return;
+  await sb.from('payment_requests').update({ status: 'rejected', approved_by: currentUser.id, approved_at: new Date().toISOString() }).eq('id', paymentId);
+  toast('Payment request rejected');
+  loadSABilling();
+}
+
+// ── SUPPORT SETTINGS (superadmin) ──
+async function loadSASupport() {
+  const { data: settings } = await sb.from('platform_settings').select('*').single().catch(()=>({data:{}}));
+  const s = settings||{};
+  const setVal = (id, val) => { const el=document.getElementById(id); if(el) el.value=val||''; };
+  setVal('sp-phone', s.support_phone||'0792385970');
+  setVal('sp-email', s.support_email||'support@groupyetu360.com');
+  setVal('sp-bank-name', s.bank_name||'Equity Bank');
+  setVal('sp-bank-account', s.bank_account||'');
+  setVal('sp-bank-account-name', s.bank_account_name||'EPH Technologies');
+  setVal('sp-paybill', s.paybill||'');
+  setVal('sp-whatsapp', s.whatsapp||'');
+}
+
+async function saveSupportSettings() {
+  const payload = {
+    id: 1,
+    support_phone: document.getElementById('sp-phone')?.value?.trim(),
+    support_email: document.getElementById('sp-email')?.value?.trim(),
+    bank_name: document.getElementById('sp-bank-name')?.value?.trim(),
+    bank_account: document.getElementById('sp-bank-account')?.value?.trim(),
+    bank_account_name: document.getElementById('sp-bank-account-name')?.value?.trim(),
+    paybill: document.getElementById('sp-paybill')?.value?.trim()||null,
+    whatsapp: document.getElementById('sp-whatsapp')?.value?.trim()||null,
+    updated_at: new Date().toISOString()
+  };
+  const { error } = await sb.from('platform_settings').upsert(payload);
+  if (error) { toast('Error: '+error.message); return; }
+  toast('Support settings saved successfully');
+}
+
+// ── SUBSCRIPTION LIMIT ENFORCEMENT ──
+async function checkSubscriptionAccess() {
+  if (!currentOrg?.id || currentProfile?.role === 'superadmin') return true;
+  const { data: org } = await sb.from('organisations').select('subscription_status,subscription_expires,plan').eq('id', currentOrg.id).single();
+  if (!org) return true;
+  const expires = org.subscription_expires;
+  if (expires && new Date(expires) < new Date() && org.plan !== 'starter') {
+    // Show subscription expired warning
+    const warningHtml = `
+      <div style="position:fixed;top:0;left:0;right:0;background:var(--danger);color:#fff;padding:.75rem 2rem;z-index:999;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:.85rem;font-weight:600">⚠ Your subscription has expired. Some features may be limited.</span>
+        <button onclick="showPage('billing')" style="background:#fff;color:var(--danger);border:none;padding:.3rem .75rem;font-size:.75rem;font-weight:700;cursor:pointer">Renew Now</button>
+      </div>`;
+    const warningEl = document.createElement('div');
+    warningEl.innerHTML = warningHtml;
+    document.body.prepend(warningEl.firstChild);
+  }
+  return true;
+}
+
+// ── SMS USAGE TRACKING ──
+async function trackSmsUsage(orgId, messagesSent) {
+  const month = new Date().toISOString().slice(0,7);
+  const costToPlat = messagesSent * SMS_COST;
+  const chargedToOrg = messagesSent * SMS_RATE;
+  
+  const { data: existing } = await sb.from('sms_usage')
+    .select('*').eq('org_id', orgId).eq('month', month).single().catch(()=>({data:null}));
+  
+  if (existing) {
+    await sb.from('sms_usage').update({
+      messages_sent: existing.messages_sent + messagesSent,
+      cost_to_platform: existing.cost_to_platform + costToPlat,
+      charged_to_org: existing.charged_to_org + chargedToOrg
+    }).eq('id', existing.id);
+  } else {
+    await sb.from('sms_usage').insert({
+      org_id: orgId,
+      messages_sent: messagesSent,
+      cost_to_platform: costToPlat,
+      charged_to_org: chargedToOrg,
+      month
+    });
+  }
+  
+  // Also update org's sms_used counter
+  await sb.from('organisations')
+    .update({ sms_used: (existing?.messages_sent||0) + messagesSent })
+    .eq('id', orgId);
 }
 
 // ── START ──
