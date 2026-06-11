@@ -436,6 +436,7 @@ tr:hover td{background:var(--maroon-pale)}
 </div>
 
 <!-- ═══════ APP SCREEN ═══════ -->
+<button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Toggle Sidebar">&#9776;</button>
 <div class="app-screen" id="app-screen">
   <aside class="sidebar">
     <div class="sidebar-brand">
@@ -927,6 +928,13 @@ tr:hover td{background:var(--maroon-pale)}
       <div class="form-row"><div class="form-group"><label class="form-label">Monthly Savings (Ksh)</label><select class="form-select" id="nm-savings"><option value="500">500</option><option value="700">700</option><option value="1000">1,000</option><option value="1200">1,200</option><option value="1500">1,500</option><option value="1700">1,700</option><option value="2000">2,000</option></select></div><div class="form-group"><label class="form-label">Registration Fee</label><select class="form-select" id="nm-reg"><option value="true">Paid (Ksh 1,000)</option><option value="false">Pending</option></select></div></div>
       <div style="font-size:.72rem;font-weight:600;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem">Opening Balances (if transferring existing records)</div>
       <div class="form-row"><div class="form-group"><label class="form-label">Opening Shares Balance (Ksh)</label><input class="form-input" type="number" id="nm-opening-shares" placeholder="0" value="0"/></div><div class="form-group"><label class="form-label">Opening Savings Balance (Ksh)</label><input class="form-input" type="number" id="nm-opening-savings" placeholder="0" value="0"/></div></div>
+    </div>
+      <div style="font-size:.72rem;font-weight:600;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin:.5rem 0">Member Portal Access (Optional)</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Member Email</label><input class="form-input" type="email" id="nm-email" placeholder="member@email.com (for portal access)"/></div>
+        <div class="form-group"><label class="form-label">Temporary Password</label><input class="form-input" type="text" id="nm-password" placeholder="Min 6 chars (member can change)"/></div>
+      </div>
+      <div style="font-size:.68rem;color:var(--ink-faint);margin-bottom:.5rem">Leave blank if member does not need portal access yet</div>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('addMember')">Cancel</button><button class="btn btn-primary" onclick="saveMember()">Add Member</button></div>
   </div>
@@ -1513,10 +1521,14 @@ function toggleSidebar() {
   const sidebar = document.querySelector('.sidebar');
   const main = document.querySelector('.main');
   const toggle = document.getElementById('sidebar-toggle');
+  if (!sidebar) return;
   sidebar.classList.toggle('collapsed');
   main.classList.toggle('expanded');
-  toggle.classList.toggle('collapsed');
-  toggle.innerHTML = sidebar.classList.contains('collapsed') ? '&#9776;' : '&#10005;';
+  if (toggle) {
+    toggle.classList.toggle('collapsed');
+    toggle.innerHTML = sidebar.classList.contains('collapsed') ? '&#9776;' : '&#10005;';
+    toggle.style.left = sidebar.classList.contains('collapsed') ? '8px' : '248px';
+  }
 }
 
 async function signOut() {
@@ -1770,7 +1782,32 @@ async function saveMember() {
   if (!payload.full_name) { toast('Please enter a name'); return; }
   const { error } = await sb.from('members').insert(payload);
   if (error) { toast('Error: ' + error.message); return; }
-  toast('Member added successfully');
+  // Create portal account if email provided
+  const email = document.getElementById('nm-email')?.value?.trim();
+  const password = document.getElementById('nm-password')?.value?.trim();
+  if (email && password && password.length >= 6) {
+    try {
+      const { data: authData, error: authErr } = await sb.auth.admin?.createUser
+        ? await sb.auth.admin.createUser({ email, password, email_confirm: true })
+        : await sb.auth.signUp({ email, password, options: { data: { full_name: payload.full_name } } });
+      if (!authErr && authData?.user) {
+        await sb.from('profiles').upsert({
+          id: authData.user.id,
+          org_id: currentOrg.id,
+          role: 'member',
+          full_name: payload.full_name,
+          phone: payload.phone
+        });
+        toast('Member added with portal access ✓');
+      } else {
+        toast('Member added. Portal account: ' + (authErr?.message || 'check email'));
+      }
+    } catch(e) {
+      toast('Member record saved. Portal account creation failed: ' + e.message);
+    }
+  } else {
+    toast('Member added successfully');
+  }
   closeModal('addMember');
   await loadMembers();
   populateSelects();
@@ -2345,10 +2382,14 @@ async function saveOrg() {
 
 // ── TABS ──
 function switchTab(el, panelId) {
-  el.closest('.page').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  el.closest('.page').querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  const container = el.closest('.page') || el.closest('.modal') || el.closest('.modal-body') || el.parentElement.parentElement;
+  if (container) {
+    container.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    container.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  }
   el.classList.add('active');
-  document.getElementById(panelId).classList.add('active');
+  const panel = document.getElementById(panelId);
+  if (panel) panel.classList.add('active');
   if (panelId==='tab-transactions'||panelId==='tab-expenses') loadFinance();
 }
 
