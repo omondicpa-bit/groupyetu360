@@ -2413,7 +2413,7 @@ async function sendSms() {
       recipient_count: recipients.length,
       sent_by: currentUser.id
     });
-    toast('Message logged. Add Africa\'s Talking credentials in Settings to send live SMS.');
+    toast(`Message logged. Add Africa's Talking credentials in Settings to send live SMS.`);
     document.getElementById('sms-body').value='';
     updateSmsCount('');
     loadMessages();
@@ -2479,12 +2479,12 @@ async function sendSms() {
 }
 
 async function testSms() {
-  const body = document.getElementById('sms-body').value.trim() || 'GroupYetu360 test SMS. Your platform is connected to Africa\'s Talking.';
+  const body = document.getElementById('sms-body').value.trim() || `GroupYetu360 test SMS. Your platform is connected to Africa's Talking.`;
   const myPhone = currentProfile?.phone;
   if (!myPhone) { toast('Add your phone number in My Account first'); return; }
   const atKey = currentOrg?.at_api_key;
   const atUser = currentOrg?.at_username || 'sandbox';
-  if (!atKey) { toast('Add your Africa\'s Talking API key in Settings first'); return; }
+  if (!atKey) { toast(`Add your Africa's Talking API key in Settings first`); return; }
   try {
     const formData = new URLSearchParams();
     formData.append('username', atUser);
