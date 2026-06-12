@@ -4102,7 +4102,7 @@ async function initiateSTKPush() {
     } else {
       throw new Error(result.error || 'STK Push failed');
     }
-  } catch(e: any) {
+  } catch(e) {
     if (statusEl) {
       statusEl.style.display = 'block';
       statusEl.innerHTML = `<div class="alert alert-warn">
