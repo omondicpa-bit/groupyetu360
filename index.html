@@ -950,9 +950,15 @@ tr:hover td{background:var(--maroon-pale)}
           <div class="alert alert-warn" style="margin-top:.5rem">
             ⚠ After paying, click the button below. Your payment will be verified and activated within 24 hours.
           </div>
-          <div class="form-actions">
-            <button class="btn btn-primary" onclick="submitPaymentRequest()">✓ I Have Paid — Submit for Verification</button>
+          <div class="form-actions" style="flex-direction:column;gap:.75rem">
+            <div id="stk-push-wrapper">
+              <!-- STK button shown only if daraja_enabled -->
+            </div>
+            <button class="btn btn-secondary" onclick="submitPaymentRequest()" style="width:100%">
+              ✓ I Have Paid — Submit M-Pesa Reference
+            </button>
           </div>
+          <div id="stk-status" style="display:none;margin-top:.75rem"></div>
         </div>
       </div>
 
@@ -1061,14 +1067,39 @@ tr:hover td{background:var(--maroon-pale)}
           <div class="form-row"><div class="form-group"><label class="form-label">Account Number</label><input class="form-input" id="sp-bank-account" placeholder="Account number"/></div><div class="form-group"><label class="form-label">Account Name</label><input class="form-input" id="sp-bank-account-name" placeholder="e.g. EPH Technologies"/></div></div>
           <div class="form-row single"><div class="form-group"><label class="form-label">M-Pesa Paybill (if any)</label><input class="form-input" id="sp-paybill" placeholder="Optional"/></div></div>
           <div class="form-row single"><div class="form-group"><label class="form-label">WhatsApp Support Link</label><input class="form-input" id="sp-whatsapp" placeholder="e.g. https://wa.me/254792385970?text=Hello%20GroupYetu360"/></div></div>
-          <div style="font-size:.78rem;font-weight:600;color:var(--ink);margin:1rem 0 .5rem;padding-top:.75rem;border-top:1px solid var(--border)">SMS Integration (Africa's Talking — Platform Level)</div>
-          <div class="alert alert-info" style="margin-bottom:.75rem">&#8505; These credentials are used by ALL organisations on the platform. You manage SMS centrally — orgs only see their usage and bundle.</div>
+          <div style="font-size:.78rem;font-weight:600;color:var(--ink);margin:1rem 0 .5rem;padding-top:.75rem;border-top:1px solid var(--border)">SMS Integration (Africa's Talking)</div>
+          <div class="alert alert-info" style="margin-bottom:.75rem">&#8505; All organisations use these credentials. Orgs only see SMS Active/Inactive status.</div>
           <div class="form-row">
             <div class="form-group"><label class="form-label">AT Username</label><input class="form-input" id="sp-at-username" placeholder="Your AT account username"/></div>
-            <div class="form-group"><label class="form-label">AT API Key</label><input class="form-input" type="password" id="sp-at-key" placeholder="Your Africa's Talking API key"/></div>
+            <div class="form-group"><label class="form-label">AT API Key</label><input class="form-input" type="password" id="sp-at-key" placeholder="Your AT API key"/></div>
           </div>
           <div class="form-row single">
             <div class="form-group"><label class="form-label">Sender ID</label><input class="form-input" id="sp-at-sender" placeholder="e.g. GY360 (once approved by AT)"/></div>
+          </div>
+
+          <div style="font-size:.78rem;font-weight:600;color:var(--ink);margin:1rem 0 .5rem;padding-top:.75rem;border-top:1px solid var(--border)">M-Pesa Daraja (Automated Subscription Payments)</div>
+          <div class="alert alert-info" style="margin-bottom:.75rem">&#8505; When configured, orgs can pay subscriptions via STK Push directly from the Billing page — no manual verification needed.</div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Consumer Key</label><input class="form-input" type="password" id="sp-daraja-key" placeholder="From developer.safaricom.co.ke"/></div>
+            <div class="form-group"><label class="form-label">Consumer Secret</label><input class="form-input" type="password" id="sp-daraja-secret" placeholder="From developer.safaricom.co.ke"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Business Short Code</label><input class="form-input" id="sp-daraja-shortcode" placeholder="Your paybill or till number"/></div>
+            <div class="form-group"><label class="form-label">Passkey</label><input class="form-input" type="password" id="sp-daraja-passkey" placeholder="From Daraja portal"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Environment</label>
+              <select class="form-select" id="sp-daraja-env">
+                <option value="sandbox">Sandbox (Testing)</option>
+                <option value="production">Production (Live)</option>
+              </select>
+            </div>
+            <div class="form-group"><label class="form-label">STK Push Status</label>
+              <select class="form-select" id="sp-daraja-enabled">
+                <option value="false">Disabled — Manual payments only</option>
+                <option value="true">Enabled — Show Pay via M-Pesa button</option>
+              </select>
+            </div>
           </div>
           <div class="form-actions"><button class="btn btn-primary" onclick="saveSupportSettings()">Save Settings</button></div>
         </div>
@@ -3873,8 +3904,27 @@ async function loadBilling() {
   const { data: org } = await sb.from('organisations').select('*').eq('id', currentOrg.id).single();
   if (org) Object.assign(currentOrg, org);
 
-  // Load platform settings for bank details
-  const { data: settings } = await sb.from('platform_settings').select('*').single();
+  // Load platform settings for bank details and Daraja toggle
+  let settings = null;
+  try {
+    const { data: s } = await sb.from('platform_settings').select('*').maybeSingle();
+    settings = s;
+  } catch(e) {}
+
+  // Show or hide STK Push button based on daraja_enabled toggle
+  const stkWrapper = document.getElementById('stk-push-wrapper');
+  if (stkWrapper) {
+    if (settings?.daraja_enabled) {
+      stkWrapper.innerHTML = `
+        <button class="btn btn-primary" id="stk-push-btn" onclick="initiateSTKPush()"
+          style="background:var(--success);width:100%;padding:.8rem">
+          📱 Pay Now via M-Pesa (Instant STK Push)
+        </button>
+        <div style="text-align:center;font-size:.72rem;color:var(--ink-faint);margin:.4rem 0">— or pay manually below —</div>`;
+    } else {
+      stkWrapper.innerHTML = '';
+    }
+  }
 
   // Show bank details
   const bankEl = document.getElementById('billing-bank-details');
@@ -3982,6 +4032,83 @@ function updatePaymentAmount() {
   };
   const amtEl = document.getElementById('pay-req-amount');
   if (amtEl) amtEl.value = amounts[type] || 0;
+}
+
+async function initiateSTKPush() {
+  const type = document.getElementById('pay-req-type')?.value;
+  const amount = parseFloat(document.getElementById('pay-req-amount')?.value||'0');
+  const statusEl = document.getElementById('stk-status');
+  const btn = document.getElementById('stk-push-btn');
+
+  if (!amount) { toast('Please select a payment type'); return; }
+
+  // Get admin phone number
+  const phone = currentProfile?.phone;
+  if (!phone) {
+    toast('Please add your phone number in My Account first');
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Sending M-Pesa prompt...'; }
+  if (statusEl) statusEl.style.display = 'none';
+
+  try {
+    const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/daraja-stk', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      },
+      body: JSON.stringify({
+        phone,
+        amount,
+        orgId: currentOrg.id,
+        paymentType: type,
+        accountRef: `GY360-${currentOrg.id?.slice(0,8)}`
+      })
+    });
+
+    const result = await res.json();
+
+    if (result.success) {
+      if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.innerHTML = `<div class="alert alert-success">
+          ✓ M-Pesa prompt sent to <strong>${phone}</strong>.<br>
+          Enter your PIN within 30 seconds to complete payment.<br>
+          <small style="color:var(--ink-faint)">Your subscription will activate automatically once payment is confirmed.</small>
+        </div>`;
+      }
+      if (btn) { btn.textContent = '✓ Prompt Sent — Check Your Phone'; btn.style.background = 'var(--success)'; }
+
+      // Poll for payment confirmation every 5 seconds for 60 seconds
+      let polls = 0;
+      const pollInterval = setInterval(async () => {
+        polls++;
+        if (polls > 12) { clearInterval(pollInterval); return; }
+        const { data: req } = await sb.from('payment_requests')
+          .select('status').eq('reference', result.checkoutRequestId).maybeSingle();
+        if (req?.status === 'approved') {
+          clearInterval(pollInterval);
+          toast('✓ Payment confirmed! Your subscription is now active.');
+          if (statusEl) statusEl.innerHTML = '<div class="alert alert-success">✓ Payment confirmed! Subscription activated.</div>';
+          loadBilling();
+        }
+      }, 5000);
+
+    } else {
+      throw new Error(result.error || 'STK Push failed');
+    }
+  } catch(e: any) {
+    if (statusEl) {
+      statusEl.style.display = 'block';
+      statusEl.innerHTML = `<div class="alert alert-warn">
+        STK Push unavailable: ${e.message}<br>
+        <small>Please use manual payment below.</small>
+      </div>`;
+    }
+    if (btn) { btn.disabled = false; btn.textContent = '📱 Pay Now via M-Pesa (STK Push)'; }
+  }
 }
 
 async function submitPaymentRequest() {
@@ -4178,10 +4305,21 @@ async function loadSASupport() {
   setVal('sp-at-username', s.at_username||'');
   setVal('sp-at-key', s.at_api_key||'');
   setVal('sp-at-sender', s.at_sender_id||'');
+  setVal('sp-daraja-key', s.daraja_consumer_key||'');
+  setVal('sp-daraja-secret', s.daraja_consumer_secret||'');
+  setVal('sp-daraja-shortcode', s.daraja_shortcode||'');
+  setVal('sp-daraja-passkey', s.daraja_passkey||'');
+  const envEl = document.getElementById('sp-daraja-env');
+  if (envEl) envEl.value = s.daraja_env || 'sandbox';
+  const enabledEl = document.getElementById('sp-daraja-enabled');
+  if (enabledEl) enabledEl.value = s.daraja_enabled ? 'true' : 'false';
 }
 
 async function saveSupportSettings() {
   const atKey = document.getElementById('sp-at-key')?.value?.trim();
+  const darajaKey = document.getElementById('sp-daraja-key')?.value?.trim();
+  const darajaSecret = document.getElementById('sp-daraja-secret')?.value?.trim();
+  const darajaPasskey = document.getElementById('sp-daraja-passkey')?.value?.trim();
   const payload = {
     id: 1,
     support_phone: document.getElementById('sp-phone')?.value?.trim(),
@@ -4194,6 +4332,12 @@ async function saveSupportSettings() {
     at_username: document.getElementById('sp-at-username')?.value?.trim()||null,
     at_api_key: atKey || null,
     at_sender_id: document.getElementById('sp-at-sender')?.value?.trim()||null,
+    daraja_consumer_key: darajaKey || null,
+    daraja_consumer_secret: darajaSecret || null,
+    daraja_shortcode: document.getElementById('sp-daraja-shortcode')?.value?.trim()||null,
+    daraja_passkey: darajaPasskey || null,
+    daraja_env: document.getElementById('sp-daraja-env')?.value || 'sandbox',
+    daraja_enabled: document.getElementById('sp-daraja-enabled')?.value === 'true',
     updated_at: new Date().toISOString()
   };
   const { error } = await sb.from('platform_settings').upsert(payload);
