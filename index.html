@@ -2609,25 +2609,27 @@ async function loadMessages() {
   // Show SMS integration status (platform-level)
   const statusEl = document.getElementById('sms-status-body');
   if (statusEl) {
-    let hasAT = false, atUser = 'sandbox', isSandbox = true;
+    // Check platform-level AT status (no credentials shown to org admins)
+    let hasAT = false;
     try {
-      const { data: ps } = await sb.from('platform_settings').select('at_api_key,at_username').maybeSingle();
+      const { data: ps } = await sb.from('platform_settings').select('at_api_key').maybeSingle();
       hasAT = !!ps?.at_api_key;
-      atUser = ps?.at_username || 'sandbox';
-      isSandbox = atUser === 'sandbox';
     } catch(e) {}
-    statusEl.innerHTML = hasAT ? `
-      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">
-        <span style="color:var(--success);font-size:1.2rem">✓</span>
-        <span style="font-size:.85rem;font-weight:600;color:var(--success)">Connected — ${isSandbox ? 'Sandbox Mode' : 'Live Mode'}</span>
-      </div>
-      <div style="font-size:.75rem;color:var(--ink-faint);line-height:1.7">
-        Username: <strong>${atUser}</strong><br>
-        ${isSandbox ? '⚠ Sandbox mode: SMS go to AT simulator, not real phones.' : '✓ Live mode: SMS sent to real phones.'}
-      </div>
-      ${isSandbox ? '<div class="alert alert-warn" style="margin-top:.75rem;font-size:.72rem">To go live: update username to your AT account name in Settings</div>' : ''}` :
-      `<div style="font-size:.82rem;color:var(--ink-faint);margin-bottom:.75rem">Not connected. Messages are logged but not sent.</div>
-      <button class="btn btn-primary btn-sm" onclick="showPage('settings')">Connect Africa\'s Talking →</button>`;
+    statusEl.innerHTML = hasAT ?
+      `<div style="display:flex;align-items:center;gap:.6rem">
+        <span style="color:var(--success);font-size:1.4rem">✓</span>
+        <div>
+          <div style="font-size:.85rem;font-weight:600;color:var(--success)">SMS Active</div>
+          <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.1rem">Messages will be sent to members' phones</div>
+        </div>
+      </div>` :
+      `<div style="display:flex;align-items:center;gap:.6rem">
+        <span style="color:var(--danger);font-size:1.4rem">✗</span>
+        <div>
+          <div style="font-size:.85rem;font-weight:600;color:var(--danger)">SMS Inactive</div>
+          <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.1rem">Messages are being logged. Contact GroupYetu360 support to activate SMS.</div>
+        </div>
+      </div>`;
   }
   const { data } = await sb.from('messages_log').select('*').eq('org_id', currentOrg?.id||'').order('sent_at',{ascending:false}).limit(10);
   const logs = data || [];
@@ -2829,9 +2831,7 @@ async function loadSettings() {
   setVal('settings-account', currentOrg.account_format);
   setVal('settings-bank-balance', currentOrg.bank_balance||0);
   setVal('settings-bank-date', currentOrg.bank_balance_updated);
-  setVal('settings-at-username', currentOrg.at_username||'sandbox');
-  setVal('settings-at-key', currentOrg.at_api_key||'');
-  setVal('settings-at-sender', currentOrg.at_sender_id||'');
+
 
   const { data } = await sb.from('contribution_types').select('*').eq('org_id', currentOrg.id).order('name');
   allContribTypes = data || [];
@@ -2929,7 +2929,6 @@ async function deleteContribType(id, name) {
 
 async function saveSettings() {
   if (!currentOrg?.id) return;
-  const atKey = document.getElementById('settings-at-key')?.value?.trim();
   const updates = {
     name: document.getElementById('settings-name').value.trim(),
     reg_number: document.getElementById('settings-reg').value.trim(),
@@ -2937,9 +2936,7 @@ async function saveSettings() {
     account_format: document.getElementById('settings-account').value.trim(),
     bank_balance: parseFloat(document.getElementById('settings-bank-balance').value)||0,
     bank_balance_updated: document.getElementById('settings-bank-date').value||null,
-    at_username: document.getElementById('settings-at-username')?.value?.trim()||'sandbox',
-    at_api_key: atKey || currentOrg.at_api_key || null,
-    at_sender_id: document.getElementById('settings-at-sender')?.value?.trim()||null
+    // AT credentials managed centrally by superadmin, not per-org
   };
   const { error } = await sb.from('organisations').update(updates).eq('id', currentOrg.id);
   if (error) { toast('Error: '+error.message); return; }
@@ -3946,8 +3943,11 @@ async function loadBilling() {
         Rate: Ksh ${SMS_RATE}/SMS · Overage: Ksh ${(Math.max(0,smsUsed-smsBundle)*SMS_RATE).toFixed(2)}
       </div>
       ${smsRemaining < 50 ? `<div class="alert alert-warn" style="margin-top:.75rem;font-size:.72rem">
-        ⚠ Running low on SMS. Top up via the payment form below.
-      </div>` : ''}`;
+        ⚠ Running low on SMS. Submit a top-up request via the payment form below.
+      </div>` : ''}
+      <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border)">
+        SMS is managed by GroupYetu360. Your bundle is topped up when you submit a payment request and it is approved.
+      </div>`;
   }
 
   // Payment history
