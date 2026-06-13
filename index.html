@@ -2166,8 +2166,8 @@ async function registerOrg() {
   if (authErr) { errEl.textContent = authErr.message; errEl.classList.add('show'); return; }
 
   // Create organisation
-  // Generate unique 6-digit org code
-  const orgCode = String(Math.floor(100000 + Math.random() * 900000));
+  // Generate unique org code: GY + 4 random chars
+  const orgCode = 'GY' + Math.random().toString(36).toUpperCase().slice(2,6);
 
   const { data: org, error: orgErr } = await sb.from('organisations')
     .insert({ name: orgName, plan, status: 'active', org_code: orgCode })
