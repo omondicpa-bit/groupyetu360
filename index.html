@@ -557,6 +557,23 @@ tr:hover td{background:var(--maroon-pale)}
         <div id="pending-approvals-preview" style="padding:0"></div>
       </div>
 
+      <!-- Transaction Summary by Category -->
+      <div class="card" id="txn-summary-card">
+        <div class="card-header">
+          <div><div class="card-title">Contributions Summary</div><div class="card-sub">Totals by contribution type</div></div>
+          <div style="display:flex;align-items:center;gap:.75rem">
+            <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.75rem;color:var(--ink-faint)">
+              <input type="checkbox" id="show-balance-toggle" style="accent-color:var(--maroon)"
+                onchange="toggleMemberBalanceVisibility(this.checked)"/>
+              Members can see balance
+            </label>
+          </div>
+        </div>
+        <div class="card-body" id="txn-summary-content">
+          <div class="loading"><div class="spinner"></div>Loading...</div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-header"><div><div class="card-title">Members — Quick Overview</div></div><button class="card-action" onclick="showPage('members')">View all →</button></div>
         <div class="table-wrap">
@@ -582,6 +599,20 @@ tr:hover td{background:var(--maroon-pale)}
 
     <!-- FINANCE -->
     <div class="page" id="page-finance">
+      <!-- Finance Controls Bar -->
+      <div style="display:flex;gap:.75rem;margin-bottom:1.25rem;flex-wrap:wrap;align-items:center">
+        <div style="flex:1;min-width:200px">
+          <div style="font-size:.7rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em">Finance Controls</div>
+        </div>
+        <button class="btn btn-secondary" onclick="showShareoutModal()" style="font-size:.78rem">
+          💰 Year-End Shareout
+        </button>
+        <div style="display:flex;align-items:center;gap:.5rem;padding:.4rem .75rem;background:var(--surface-2);border:1px solid var(--border)">
+          <span style="font-size:.78rem;color:var(--ink-faint)">Withdraw Window:</span>
+          <span id="withdraw-status-label" style="font-size:.78rem;font-weight:600">Closed</span>
+          <button id="withdraw-toggle-btn" onclick="toggleWithdrawWindow()" class="btn btn-secondary btn-sm" style="font-size:.7rem">Open</button>
+        </div>
+      </div>
       <div class="tabs">
         <div class="tab active" onclick="switchTab(this,'tab-transactions')">Income / Contributions</div>
         <div class="tab" onclick="switchTab(this,'tab-expenses')">Expenses</div>
@@ -697,6 +728,13 @@ tr:hover td{background:var(--maroon-pale)}
             <div class="form-row">
               <div class="form-group"><label class="form-label">M-Pesa Reference</label><input class="form-input" id="exp-ref" placeholder="Optional"/></div>
               <div class="form-group"><label class="form-label">Project</label><select class="form-select" id="exp-project"><option value="">None</option></select></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Transaction Charges (Ksh)</label>
+                <input class="form-input" type="number" id="exp-charges" placeholder="0 — e.g. M-Pesa charges"/>
+                <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">Bank/M-Pesa charges for this transaction. Will be recorded as a separate expense.</div>
+              </div>
             </div>
             <div class="form-actions">
               <button class="btn btn-primary" onclick="saveExpense()">Save Expense</button>
@@ -863,10 +901,80 @@ tr:hover td{background:var(--maroon-pale)}
           <div class="card-body">
             <div class="form-row"><div class="form-group"><label class="form-label">Organisation Name</label><input class="form-input" id="settings-name"/></div>
             <div class="form-group"><label class="form-label">Organisation Code</label><input class="form-input" id="settings-org-code" readonly style="background:var(--surface-3);font-weight:700;letter-spacing:.1em;color:var(--maroon)"/><div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">Share this code with members to let them log in</div></div></div>
-            <div class="form-row"><div class="form-group"><label class="form-label">Registration Number</label><input class="form-input" id="settings-reg"/></div><div class="form-group"><label class="form-label">Paybill Number</label><input class="form-input" id="settings-paybill"/></div></div>
+            <div class="form-row single"><div class="form-group"><label class="form-label">Registration Number</label><input class="form-input" id="settings-reg"/></div></div>
+            <div style="font-size:.78rem;font-weight:600;color:var(--ink);margin:.5rem 0 .25rem">Payment Methods (shown to members)</div>
+            <div style="font-size:.7rem;color:var(--ink-faint);margin-bottom:.75rem">Enable the payment methods your organisation accepts. Members will see these with copy buttons.</div>
+
+            <div style="display:flex;flex-direction:column;gap:.6rem" id="payment-methods-list">
+              <!-- M-Pesa Paybill -->
+              <div style="border:1px solid var(--border);padding:.75rem">
+                <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;margin-bottom:.5rem">
+                  <input type="checkbox" id="pm-paybill-enabled" style="accent-color:var(--maroon)" onchange="togglePaymentMethod('paybill',this.checked)"/>
+                  <span style="font-size:.82rem;font-weight:600">M-Pesa Paybill</span>
+                </label>
+                <div id="pm-paybill-fields" style="display:none">
+                  <div class="form-row">
+                    <div class="form-group"><label class="form-label">Paybill Number</label><input class="form-input" id="settings-paybill" placeholder="e.g. 522533"/></div>
+                    <div class="form-group"><label class="form-label">Account Format</label><input class="form-input" id="settings-account" placeholder="e.g. Your Full Name"/></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- M-Pesa Till -->
+              <div style="border:1px solid var(--border);padding:.75rem">
+                <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;margin-bottom:.5rem">
+                  <input type="checkbox" id="pm-till-enabled" style="accent-color:var(--maroon)" onchange="togglePaymentMethod('till',this.checked)"/>
+                  <span style="font-size:.82rem;font-weight:600">M-Pesa Till Number (Buy Goods)</span>
+                </label>
+                <div id="pm-till-fields" style="display:none">
+                  <div class="form-group"><label class="form-label">Till Number</label><input class="form-input" id="settings-till" placeholder="e.g. 123456"/></div>
+                </div>
+              </div>
+
+              <!-- M-Pesa Send Money -->
+              <div style="border:1px solid var(--border);padding:.75rem">
+                <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;margin-bottom:.5rem">
+                  <input type="checkbox" id="pm-send-enabled" style="accent-color:var(--maroon)" onchange="togglePaymentMethod('send',this.checked)"/>
+                  <span style="font-size:.82rem;font-weight:600">M-Pesa Send Money</span>
+                </label>
+                <div id="pm-send-fields" style="display:none">
+                  <div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" id="settings-send-phone" placeholder="e.g. 0792385970"/></div>
+                </div>
+              </div>
+
+              <!-- Pochi La Biashara -->
+              <div style="border:1px solid var(--border);padding:.75rem">
+                <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;margin-bottom:.5rem">
+                  <input type="checkbox" id="pm-pochi-enabled" style="accent-color:var(--maroon)" onchange="togglePaymentMethod('pochi',this.checked)"/>
+                  <span style="font-size:.82rem;font-weight:600">M-Pesa Pochi La Biashara</span>
+                </label>
+                <div id="pm-pochi-fields" style="display:none">
+                  <div class="form-group"><label class="form-label">Pochi Phone Number</label><input class="form-input" id="settings-pochi" placeholder="e.g. 0792385970"/></div>
+                </div>
+              </div>
+
+              <!-- Bank Transfer -->
+              <div style="border:1px solid var(--border);padding:.75rem">
+                <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;margin-bottom:.5rem">
+                  <input type="checkbox" id="pm-bank-enabled" style="accent-color:var(--maroon)" onchange="togglePaymentMethod('bank',this.checked)"/>
+                  <span style="font-size:.82rem;font-weight:600">Bank Transfer</span>
+                </label>
+                <div id="pm-bank-fields" style="display:none">
+                  <div class="form-row">
+                    <div class="form-group"><label class="form-label">Bank Name</label><input class="form-input" id="settings-bank-name" placeholder="e.g. Equity Bank"/></div>
+                    <div class="form-group"><label class="form-label">Account Number</label><input class="form-input" id="settings-bank-acc" placeholder="Account number"/></div>
+                  </div>
+                  <div class="form-group"><label class="form-label">Account Name</label><input class="form-input" id="settings-bank-acc-name" placeholder="Account holder name"/></div>
+                </div>
+              </div>
+            </div>
             <div class="form-row single"><div class="form-group"><label class="form-label">Account Format</label><input class="form-input" id="settings-account" placeholder="e.g. ADA-[MEMBER NAME]"/></div></div>
             <div class="form-row">
-              <div class="form-group"><label class="form-label">Bank Balance (Ksh)</label><input class="form-input" type="number" id="settings-bank-balance" placeholder="Current bank balance"/></div>
+              <div class="form-group">
+                <label class="form-label">Bank Balance (Ksh)</label>
+                <input class="form-input" type="number" id="settings-bank-balance" placeholder="Opening bank balance"/>
+                <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem" id="bank-balance-note">Once set, balance updates automatically with transactions. Contact support to edit.</div>
+              </div>
               <div class="form-group"><label class="form-label">Balance Date</label><input class="form-input" type="date" id="settings-bank-date"/></div>
             </div>
             <div style="font-size:.78rem;font-weight:600;color:var(--ink);margin:.75rem 0 .5rem">SMS Integration</div>
@@ -1224,9 +1332,23 @@ tr:hover td{background:var(--maroon-pale)}
             <table style="width:100%">
               <tbody id="mp-details"></tbody>
             </table>
+            <!-- Contribution Summary -->
+            <div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--border)">
+              <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.5rem">My Contribution Summary</div>
+              <div id="mp-contrib-summary" style="font-size:.82rem;color:var(--ink-faint)">Loading...</div>
+            </div>
           </div>
         </div>
-        <div class="card">
+        <div class="card" id="org-balance-card" style="display:none">
+          <div class="card-header"><div class="card-title">Organisation Balance</div></div>
+          <div class="card-body">
+            <div class="stats-row" style="grid-template-columns:repeat(2,1fr)">
+              <div class="stat-card"><div class="stat-label">Bank Balance</div><div class="stat-value" id="mp-org-balance" style="font-size:1.2rem;color:var(--maroon)">—</div></div>
+              <div class="stat-card gold"><div class="stat-label">As of</div><div class="stat-value" id="mp-org-balance-date" style="font-size:1rem">—</div></div>
+            </div>
+          </div>
+        </div>
+    <div class="card">
           <div class="card-header"><div class="card-title">Payment Details</div><div class="card-sub">How to make contributions</div></div>
           <div class="card-body">
             <div class="payment-box">
@@ -1696,6 +1818,50 @@ tr:hover td{background:var(--maroon-pale)}
   </div>
 </div>
 
+<!-- SHAREOUT MODAL -->
+<div class="modal-overlay" id="modal-shareout">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Year-End Shareout</div>
+        <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.15rem">Distribute savings to all members at once</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('shareout')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-warn">⚠ This will debit all members' savings balances. This action is logged and cannot be easily reversed.</div>
+      <div class="form-group">
+        <label class="form-label">Shareout Type</label>
+        <select class="form-select" id="shareout-type" onchange="updateShareoutPreview()">
+          <option value="full">Full Shareout — Zero all savings balances</option>
+          <option value="percentage">Partial — Deduct a percentage</option>
+          <option value="fixed">Fixed Amount — Deduct same amount from each</option>
+        </select>
+      </div>
+      <div class="form-group" id="shareout-pct-group" style="display:none">
+        <label class="form-label">Percentage to Deduct (%)</label>
+        <input class="form-input" type="number" id="shareout-pct" placeholder="e.g. 80" max="100" min="1" oninput="updateShareoutPreview()"/>
+      </div>
+      <div class="form-group" id="shareout-fixed-group" style="display:none">
+        <label class="form-label">Amount per Member (Ksh)</label>
+        <input class="form-input" type="number" id="shareout-fixed" placeholder="e.g. 5000" oninput="updateShareoutPreview()"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reason / Notes</label>
+        <input class="form-input" id="shareout-reason" placeholder="e.g. Annual shareout December 2026"/>
+      </div>
+      <div id="shareout-preview" style="background:var(--surface-2);border:1px solid var(--border);padding:1rem;margin-top:.5rem">
+        <div style="font-size:.8rem;font-weight:600;color:var(--ink);margin-bottom:.5rem">Preview</div>
+        <div id="shareout-preview-content" style="font-size:.82rem;color:var(--ink-soft)">Select type above to see preview</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('shareout')">Cancel</button>
+      <button class="btn btn-primary" onclick="executeShareout()" style="background:var(--warning)">Execute Shareout</button>
+    </div>
+  </div>
+</div>
+
 <!-- ORG DETAIL MODAL -->
 <div class="modal-overlay" id="modal-orgDetail">
   <div class="modal" style="max-width:680px">
@@ -1707,10 +1873,11 @@ tr:hover td{background:var(--maroon-pale)}
       <button class="modal-close" onclick="closeModal('orgDetail')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="stats-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:1.25rem">
+      <div class="stats-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:1.25rem">
         <div class="stat-card"><div class="stat-label">Members</div><div class="stat-value" id="od-members" style="font-size:1.4rem">—</div></div>
         <div class="stat-card gold"><div class="stat-label">Plan</div><div class="stat-value" id="od-plan" style="font-size:1.2rem">—</div></div>
         <div class="stat-card green"><div class="stat-label">Status</div><div class="stat-value" id="od-status" style="font-size:1.2rem">—</div></div>
+        <div class="stat-card" style="border-top-color:var(--maroon)"><div class="stat-label">Org Code</div><div class="stat-value" id="od-org-code" style="font-size:1.4rem;color:var(--maroon);letter-spacing:.1em">—</div></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Organisation Name</label><input class="form-input" id="od-name"/></div>
@@ -1989,27 +2156,31 @@ async function signIn() {
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error) { errEl.textContent = error.message; errEl.classList.add('show'); return; }
 
-  // If org code provided, verify it matches and switch to that org
+  // If org code provided, verify and switch to that org
   if (orgCode) {
     const { data: org } = await sb.from('organisations')
       .select('id,name').eq('org_code', orgCode).maybeSingle();
     if (!org) {
       await sb.auth.signOut();
-      errEl.textContent = `Organisation code "${orgCode}" not found. Check the code or leave blank if you are the admin.`;
+      errEl.textContent = `Organisation code "${orgCode}" not found. Check the code from your admin.`;
       errEl.classList.add('show');
       return;
     }
-    // Check if user has a profile in this org
+    // Check if user has an approved profile in this org
     const { data: orgProfile } = await sb.from('profiles')
       .select('*').eq('id', data.user.id).eq('org_id', org.id).maybeSingle();
     if (!orgProfile) {
-      // Create a member profile in this org
-      await sb.from('profiles').insert({
-        id: data.user.id,
-        org_id: org.id,
-        role: 'member',
-        full_name: data.user.user_metadata?.full_name || email.split('@')[0]
-      });
+      // Check if they have a profile in ANY org (admin of another org trying member access)
+      await sb.auth.signOut();
+      errEl.textContent = `You don't have access to ${org.name}. Contact the group admin to be added.`;
+      errEl.classList.add('show');
+      return;
+    }
+    if (orgProfile.role === 'pending') {
+      await sb.auth.signOut();
+      errEl.textContent = `Your access to ${org.name} is pending admin approval.`;
+      errEl.classList.add('show');
+      return;
     }
     // Force this org context
     _pendingOrgId = org.id;
@@ -2465,6 +2636,31 @@ async function loadDashboard() {
     }
   }
 
+  // Load transaction summary by category
+  const { data: allTxns } = await sb.from('transactions')
+    .select('amount,contribution_types(name)').eq('org_id', orgId);
+  const categoryTotals = {};
+  (allTxns||[]).forEach(t => {
+    const cat = t.contribution_types?.name || 'Other';
+    categoryTotals[cat] = (categoryTotals[cat]||0) + Number(t.amount||0);
+  });
+  const summaryEl = document.getElementById('txn-summary-content');
+  if (summaryEl) {
+    const entries = Object.entries(categoryTotals).sort((a,b)=>b[1]-a[1]);
+    summaryEl.innerHTML = entries.length ? `
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.75rem">
+        ${entries.map(([cat,total])=>`
+          <div style="padding:.75rem;background:var(--surface-2);border:1px solid var(--border)">
+            <div style="font-size:.72rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.06em">${cat}</div>
+            <div style="font-size:1.1rem;font-weight:700;color:var(--maroon);margin-top:.25rem">Ksh ${total.toLocaleString()}</div>
+          </div>`).join('')}
+      </div>` :
+      '<div style="color:var(--ink-faint);font-size:.82rem">No transactions recorded yet</div>';
+  }
+  // Load balance visibility toggle state
+  const showBalToggle = document.getElementById('show-balance-toggle');
+  if (showBalToggle) showBalToggle.checked = currentOrg?.show_balance_to_members || false;
+
   document.getElementById('dash-members-table').innerHTML = members.slice(0,8).map(m => `
     <tr>
       <td>${m.member_number||'—'}</td>
@@ -2575,6 +2771,15 @@ async function saveMember() {
 // ── FINANCE ──
 async function loadFinance() {
   if (!currentOrg?.id) return;
+  // Update withdraw window status
+  const wBtn = document.getElementById('withdraw-toggle-btn');
+  const wLabel = document.getElementById('withdraw-status-label');
+  if (wBtn && wLabel) {
+    const isOpen = currentOrg?.withdraw_enabled || false;
+    wBtn.textContent = isOpen ? 'Close' : 'Open';
+    wLabel.textContent = isOpen ? 'OPEN' : 'Closed';
+    wLabel.style.color = isOpen ? 'var(--success)' : 'var(--ink-faint)';
+  }
   // Update income project dropdown
   const incProj = document.getElementById('inc-project');
   if (incProj) {
@@ -2750,7 +2955,20 @@ async function saveExpense() {
   const { error } = await sb.from('expenses').insert(payload);
   if (error) { toast('Error: ' + error.message); return; }
   await logActivity('RECORD EXPENSE', `Recorded expense: ${payload.category} - ${payload.description} Ksh ${payload.amount}`, 'expense');
-  toast('Expense recorded');
+  // Save transaction charges if any
+  const charges = parseFloat(document.getElementById('exp-charges')?.value)||0;
+  if (charges > 0) {
+    await sb.from('expenses').insert({
+      org_id: currentOrg.id,
+      category: 'Bank/Transaction Charges',
+      description: `Charges on: ${payload.description}`,
+      amount: charges,
+      expense_date: payload.expense_date,
+      recorded_by: currentUser.id,
+      entry_type: 'expense'
+    });
+  }
+  toast('Expense recorded' + (charges > 0 ? ` + Ksh ${charges} charges` : ''));
   clearExpForm(); loadFinance();
 }
 
@@ -3307,10 +3525,26 @@ async function loadSettings() {
   const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val||'';}
   setVal('settings-name', currentOrg.name);
   setVal('settings-org-code', currentOrg.org_code || 'Not set — contact support');
+  loadPaymentMethodsSettings(currentOrg);
   setVal('settings-reg', currentOrg.reg_number);
   setVal('settings-paybill', currentOrg.paybill);
   setVal('settings-account', currentOrg.account_format);
-  setVal('settings-bank-balance', currentOrg.bank_balance||0);
+  const bbVal = currentOrg.bank_balance;
+  const bbLocked = currentOrg.bank_balance_locked || (bbVal !== null && bbVal !== undefined && bbVal > 0);
+  const bbInput = document.getElementById('settings-bank-balance');
+  const bbNote = document.getElementById('bank-balance-note');
+  if (bbInput) {
+    bbInput.value = bbVal || 0;
+    bbInput.readOnly = bbLocked;
+    bbInput.style.background = bbLocked ? 'var(--surface-3)' : '';
+    bbInput.style.color = bbLocked ? 'var(--ink-faint)' : '';
+  }
+  if (bbNote) {
+    bbNote.textContent = bbLocked
+      ? 'Balance locked. Updates automatically with transactions. Contact GroupYetu360 to edit.'
+      : 'Set your opening balance. Once saved, it will update automatically with your transactions.';
+    bbNote.style.color = bbLocked ? 'var(--warning)' : 'var(--ink-faint)';
+  }
   setVal('settings-bank-date', currentOrg.bank_balance_updated);
   // Load 2FA setting
   const twoFaEl = document.getElementById('settings-2fa');
@@ -3404,6 +3638,99 @@ async function saveInviteAdmin() {
   loadTeamMembers();
 }
 
+// ── SHAREOUT & WITHDRAW FUNCTIONS ──
+function showShareoutModal() {
+  document.getElementById('shareout-type').value = 'full';
+  document.getElementById('shareout-reason').value = '';
+  document.getElementById('shareout-pct-group').style.display = 'none';
+  document.getElementById('shareout-fixed-group').style.display = 'none';
+  updateShareoutPreview();
+  showModal('shareout');
+}
+
+function updateShareoutPreview() {
+  const type = document.getElementById('shareout-type')?.value;
+  const pctGroup = document.getElementById('shareout-pct-group');
+  const fixedGroup = document.getElementById('shareout-fixed-group');
+  const preview = document.getElementById('shareout-preview-content');
+  if (pctGroup) pctGroup.style.display = type === 'percentage' ? 'block' : 'none';
+  if (fixedGroup) fixedGroup.style.display = type === 'fixed' ? 'block' : 'none';
+  const totalSavings = allMembers.reduce((s,m)=>s+(m.savings_balance||0),0);
+  const memberCount = allMembers.filter(m=>m.savings_balance>0).length;
+  if (!preview) return;
+  if (type === 'full') {
+    preview.innerHTML = `Will zero out savings for <strong>${memberCount} members</strong>.<br>Total distributed: <strong>Ksh ${totalSavings.toLocaleString()}</strong>`;
+  } else if (type === 'percentage') {
+    const pct = parseFloat(document.getElementById('shareout-pct')?.value)||0;
+    const total = totalSavings * pct/100;
+    preview.innerHTML = `Will deduct <strong>${pct}%</strong> from ${memberCount} members.<br>Total distributed: <strong>Ksh ${total.toLocaleString()}</strong>`;
+  } else {
+    const fixed = parseFloat(document.getElementById('shareout-fixed')?.value)||0;
+    preview.innerHTML = `Will deduct <strong>Ksh ${fixed.toLocaleString()}</strong> from ${memberCount} members.<br>Total distributed: <strong>Ksh ${(fixed*memberCount).toLocaleString()}</strong>`;
+  }
+}
+
+async function executeShareout() {
+  const type = document.getElementById('shareout-type')?.value;
+  const reason = document.getElementById('shareout-reason')?.value?.trim();
+  if (!reason) { toast('Please enter a reason for the shareout'); return; }
+  if (!confirm(`Execute shareout for all ${allMembers.length} members? This cannot be undone.`)) return;
+
+  let processed = 0;
+  for (const member of allMembers) {
+    if (!member.savings_balance || member.savings_balance <= 0) continue;
+    let deductAmount = 0;
+    if (type === 'full') {
+      deductAmount = member.savings_balance;
+    } else if (type === 'percentage') {
+      const pct = parseFloat(document.getElementById('shareout-pct')?.value)||0;
+      deductAmount = member.savings_balance * pct/100;
+    } else {
+      deductAmount = parseFloat(document.getElementById('shareout-fixed')?.value)||0;
+      deductAmount = Math.min(deductAmount, member.savings_balance);
+    }
+    if (deductAmount <= 0) continue;
+
+    // Record adjustment
+    await sb.from('balance_adjustments').insert({
+      org_id: currentOrg.id,
+      member_id: member.id,
+      adjustment_type: 'savings',
+      direction: 'debit',
+      amount: deductAmount,
+      reason: `Shareout: ${reason}`,
+      recorded_by: currentUser.id
+    });
+    // Update balance
+    await sb.from('members').update({
+      savings_balance: Math.max(0, member.savings_balance - deductAmount)
+    }).eq('id', member.id);
+    processed++;
+  }
+
+  await logActivity('SHAREOUT', `Year-end shareout: ${reason}. ${processed} members processed.`);
+  toast(`✓ Shareout complete — ${processed} members processed`);
+  closeModal('shareout');
+  loadMembers();
+  prefetchData();
+}
+
+async function toggleWithdrawWindow() {
+  const isOpen = currentOrg?.withdraw_enabled || false;
+  const newState = !isOpen;
+  await sb.from('organisations').update({ withdraw_enabled: newState }).eq('id', currentOrg.id);
+  currentOrg.withdraw_enabled = newState;
+  const btn = document.getElementById('withdraw-toggle-btn');
+  const label = document.getElementById('withdraw-status-label');
+  if (btn) btn.textContent = newState ? 'Close' : 'Open';
+  if (label) {
+    label.textContent = newState ? 'OPEN' : 'Closed';
+    label.style.color = newState ? 'var(--success)' : 'var(--ink-faint)';
+  }
+  toast(`Withdraw window ${newState ? 'opened' : 'closed'}`);
+  await logActivity(newState?'WITHDRAW OPEN':'WITHDRAW CLOSE', `Withdraw window ${newState?'opened':'closed'} by admin`);
+}
+
 async function saveWelfareRates() {
   toast('Welfare rates saved (feature coming soon)');
 }
@@ -3420,18 +3747,79 @@ async function deleteContribType(id, name) {
   loadSettings();
 }
 
+function togglePaymentMethod(method, enabled) {
+  const fields = document.getElementById(`pm-${method}-fields`);
+  if (fields) fields.style.display = enabled ? 'block' : 'none';
+}
+
+function loadPaymentMethodsSettings(org) {
+  const methods = org.payment_methods || {};
+  // Paybill
+  const pbEl = document.getElementById('pm-paybill-enabled');
+  if (pbEl) { pbEl.checked = !!methods.paybill; togglePaymentMethod('paybill', !!methods.paybill); }
+  const pbField = document.getElementById('settings-paybill');
+  if (pbField) pbField.value = org.paybill || methods.paybill_number || '';
+  const accField = document.getElementById('settings-account');
+  if (accField) accField.value = org.account_format || methods.paybill_account || '';
+  // Till
+  const tillEl = document.getElementById('pm-till-enabled');
+  if (tillEl) { tillEl.checked = !!methods.till; togglePaymentMethod('till', !!methods.till); }
+  const tillField = document.getElementById('settings-till');
+  if (tillField) tillField.value = methods.till_number || '';
+  // Send Money
+  const sendEl = document.getElementById('pm-send-enabled');
+  if (sendEl) { sendEl.checked = !!methods.send; togglePaymentMethod('send', !!methods.send); }
+  const sendField = document.getElementById('settings-send-phone');
+  if (sendField) sendField.value = methods.send_phone || '';
+  // Pochi
+  const pochiEl = document.getElementById('pm-pochi-enabled');
+  if (pochiEl) { pochiEl.checked = !!methods.pochi; togglePaymentMethod('pochi', !!methods.pochi); }
+  const pochiField = document.getElementById('settings-pochi');
+  if (pochiField) pochiField.value = methods.pochi_phone || '';
+  // Bank
+  const bankEl = document.getElementById('pm-bank-enabled');
+  if (bankEl) { bankEl.checked = !!methods.bank; togglePaymentMethod('bank', !!methods.bank); }
+  const bankName = document.getElementById('settings-bank-name');
+  if (bankName) bankName.value = methods.bank_name || '';
+  const bankAcc = document.getElementById('settings-bank-acc');
+  if (bankAcc) bankAcc.value = methods.bank_account || '';
+  const bankAccName = document.getElementById('settings-bank-acc-name');
+  if (bankAccName) bankAccName.value = methods.bank_account_name || '';
+}
+
 async function saveSettings() {
   if (!currentOrg?.id) return;
+  // Build payment methods object
+  const paymentMethods = {
+    paybill: document.getElementById('pm-paybill-enabled')?.checked || false,
+    paybill_number: document.getElementById('settings-paybill')?.value?.trim() || '',
+    paybill_account: document.getElementById('settings-account')?.value?.trim() || '',
+    till: document.getElementById('pm-till-enabled')?.checked || false,
+    till_number: document.getElementById('settings-till')?.value?.trim() || '',
+    send: document.getElementById('pm-send-enabled')?.checked || false,
+    send_phone: document.getElementById('settings-send-phone')?.value?.trim() || '',
+    pochi: document.getElementById('pm-pochi-enabled')?.checked || false,
+    pochi_phone: document.getElementById('settings-pochi')?.value?.trim() || '',
+    bank: document.getElementById('pm-bank-enabled')?.checked || false,
+    bank_name: document.getElementById('settings-bank-name')?.value?.trim() || '',
+    bank_account: document.getElementById('settings-bank-acc')?.value?.trim() || '',
+    bank_account_name: document.getElementById('settings-bank-acc-name')?.value?.trim() || '',
+  };
   const updates = {
     name: document.getElementById('settings-name').value.trim(),
     reg_number: document.getElementById('settings-reg').value.trim(),
-    paybill: document.getElementById('settings-paybill').value.trim(),
-    account_format: document.getElementById('settings-account').value.trim(),
+    paybill: document.getElementById('settings-paybill')?.value?.trim() || '',
+    account_format: document.getElementById('settings-account')?.value?.trim() || '',
+    payment_methods: paymentMethods,
     bank_balance: parseFloat(document.getElementById('settings-bank-balance').value)||0,
     bank_balance_updated: document.getElementById('settings-bank-date').value||null,
     two_fa_enabled: document.getElementById('settings-2fa')?.checked || false,
     // AT credentials managed centrally by superadmin, not per-org
   };
+  // Lock bank balance after first save if it has a value
+  if (updates.bank_balance && updates.bank_balance > 0 && !currentOrg.bank_balance_locked) {
+    updates.bank_balance_locked = true;
+  }
   const { error } = await sb.from('organisations').update(updates).eq('id', currentOrg.id);
   if (error) { toast('Error: '+error.message); return; }
   Object.assign(currentOrg, updates);
@@ -3532,7 +3920,7 @@ async function loadSuperAdmin() {
     <div class="org-row" style="cursor:pointer" onclick="openOrgDetail('${o.id}')">
       <div>
         <div class="org-name">${o.name}</div>
-        <div class="org-meta">${o.reg_number||'No reg number'} · ${memberCountByOrg[o.id]||0} members · Founded ${o.date_founded||'Unknown'}</div>
+        <div class="org-meta">${o.reg_number||'No reg number'} · ${memberCountByOrg[o.id]||0} members · Code: <strong style="color:var(--maroon)">${o.org_code||'—'}</strong></div>
       </div>
       <div class="org-actions" onclick="event.stopPropagation()">
         <span class="badge ${o.plan==='pro'?'badge-gold':o.plan==='standard'?'badge-maroon':o.plan==='basic'?'badge-green':'badge-grey'}">${o.plan}</span>
@@ -3677,6 +4065,8 @@ async function openOrgDetail(orgId) {
   document.getElementById('od-members').textContent = (members||[]).length;
   document.getElementById('od-plan').textContent = org.plan?.toUpperCase() || '—';
   document.getElementById('od-status').textContent = org.status?.toUpperCase() || '—';
+  const odCode = document.getElementById('od-org-code');
+  if (odCode) odCode.textContent = org.org_code || '—';
   document.getElementById('od-name').value = org.name || '';
   document.getElementById('od-reg').value = org.reg_number || '';
   document.getElementById('od-paybill').value = org.paybill || '';
@@ -3692,6 +4082,13 @@ async function openOrgDetail(orgId) {
       <td><span class="badge ${m.status==='active'?'badge-green':m.status==='arrears'?'badge-warn':'badge-grey'}">${m.status}</span></td>
     </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;padding:1rem;color:var(--ink-faint)">No members yet</td></tr>';
   showModal('orgDetail');
+}
+
+async function unlockBankBalance() {
+  if (!currentDetailOrgId) return;
+  if (!confirm('Allow this organisation to edit their bank balance once?')) return;
+  await sb.from('organisations').update({ bank_balance_locked: false }).eq('id', currentDetailOrgId);
+  toast('Bank balance unlocked for editing');
 }
 
 async function saveOrgDetail() {
@@ -4155,6 +4552,12 @@ async function declineMember() {
   loadApprovals();
 }
 
+async function toggleMemberBalanceVisibility(enabled) {
+  await sb.from('organisations').update({ show_balance_to_members: enabled }).eq('id', currentOrg.id);
+  currentOrg.show_balance_to_members = enabled;
+  toast(enabled ? 'Members can now see bank balance' : 'Bank balance hidden from members');
+}
+
 async function checkPendingApprovals() {
   if (!currentOrg?.id || currentProfile?.role === 'member' || currentProfile?.role === 'superadmin') return;
   const { data } = await sb.from('pending_members')
@@ -4242,8 +4645,65 @@ async function saveNewPassword() {
 async function loadMyProfile() {
   if (!currentOrg?.id || !currentProfile) return;
   document.getElementById('my-profile-org').textContent = currentOrg.name;
-  document.getElementById('mp-paybill').textContent = currentOrg?.paybill || '—';
+  // Load payment methods
+  const pmEl = document.getElementById('mp-payment-methods');
+  if (pmEl) {
+    const methods = currentOrg?.payment_methods || {};
+    const items = [];
+    if (methods.paybill && methods.paybill_number) {
+      items.push({
+        icon: '📱', label: 'M-Pesa Paybill', 
+        detail: `Paybill: <strong>${methods.paybill_number}</strong>`,
+        sub: `Account: ${methods.paybill_account || 'Your Full Name'}`,
+        copy: methods.paybill_number
+      });
+    } else if (currentOrg?.paybill) {
+      items.push({ icon: '📱', label: 'M-Pesa Paybill',
+        detail: `Paybill: <strong>${currentOrg.paybill}</strong>`,
+        sub: `Account: ${currentOrg.account_format || 'Your Full Name'}`,
+        copy: currentOrg.paybill });
+    }
+    if (methods.till && methods.till_number) {
+      items.push({ icon: '🏪', label: 'Buy Goods (Till)',
+        detail: `Till: <strong>${methods.till_number}</strong>`, sub: '', copy: methods.till_number });
+    }
+    if (methods.send && methods.send_phone) {
+      items.push({ icon: '💸', label: 'M-Pesa Send Money',
+        detail: `Send to: <strong>${methods.send_phone}</strong>`, sub: '', copy: methods.send_phone });
+    }
+    if (methods.pochi && methods.pochi_phone) {
+      items.push({ icon: '🏦', label: 'Pochi La Biashara',
+        detail: `Send to: <strong>${methods.pochi_phone}</strong>`, sub: '', copy: methods.pochi_phone });
+    }
+    if (methods.bank && methods.bank_name) {
+      items.push({ icon: '🏛️', label: 'Bank Transfer',
+        detail: `${methods.bank_name} — Acc: <strong>${methods.bank_account}</strong>`,
+        sub: `Name: ${methods.bank_account_name}`, copy: methods.bank_account });
+    }
+    pmEl.innerHTML = items.length ? items.map(item => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem;border:1px solid var(--border);margin-bottom:.5rem;background:var(--surface-2)">
+        <div>
+          <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${item.icon} ${item.label}</div>
+          <div style="font-size:.85rem;color:var(--maroon);margin:.2rem 0">${item.detail}</div>
+          ${item.sub ? `<div style="font-size:.72rem;color:var(--ink-faint)">${item.sub}</div>` : ''}
+        </div>
+        <button onclick="navigator.clipboard.writeText('${item.copy}').then(()=>toast('Copied: ${item.copy}'))"
+          style="background:var(--maroon);color:#fff;border:none;padding:.3rem .7rem;font-size:.72rem;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;flex-shrink:0">
+          Copy
+        </button>
+      </div>`).join('') :
+      '<div style="color:var(--ink-faint);font-size:.82rem">No payment details set. Contact your group admin.</div>';
+  }
   document.getElementById('mp-shares-amount').textContent = 'Ksh 300';
+  // Show org balance if enabled
+  const balCard = document.getElementById('org-balance-card');
+  if (balCard && currentOrg?.show_balance_to_members && currentOrg?.bank_balance) {
+    balCard.style.display = 'block';
+    const balEl = document.getElementById('mp-org-balance');
+    const dateEl = document.getElementById('mp-org-balance-date');
+    if (balEl) balEl.textContent = 'Ksh ' + Number(currentOrg.bank_balance).toLocaleString();
+    if (dateEl) dateEl.textContent = currentOrg.bank_balance_updated || '—';
+  }
 
   let myRecord = null;
   // Try portal_email match first
@@ -4278,6 +4738,26 @@ async function loadMyProfile() {
     const savingsEl = document.getElementById('mp-savings-bal-display');
     if (sharesEl) sharesEl.textContent = 'Ksh ' + (myRecord.shares_balance||0).toLocaleString();
     if (savingsEl) savingsEl.textContent = 'Ksh ' + (myRecord.savings_balance||0).toLocaleString();
+
+    // Load contribution summary
+    const summaryEl = document.getElementById('mp-contrib-summary');
+    if (summaryEl && myRecord.id) {
+      const { data: myTxns } = await sb.from('transactions')
+        .select('amount,contribution_types(name)').eq('member_id', myRecord.id);
+      const catTotals = {};
+      (myTxns||[]).forEach(t => {
+        const cat = t.contribution_types?.name || 'Other';
+        catTotals[cat] = (catTotals[cat]||0) + Number(t.amount||0);
+      });
+      const entries = Object.entries(catTotals);
+      summaryEl.innerHTML = entries.length ?
+        entries.map(([cat,total])=>`
+          <div style="display:flex;justify-content:space-between;padding:.35rem 0;border-bottom:1px solid var(--border)">
+            <span style="color:var(--ink-soft)">${cat}</span>
+            <strong>Ksh ${total.toLocaleString()}</strong>
+          </div>`).join('') :
+        '<span style="color:var(--ink-faint)">No contributions recorded yet</span>';
+    }
   } else {
     window._myMemberId = null;
     document.getElementById('mp-number').textContent = 'Pending';
