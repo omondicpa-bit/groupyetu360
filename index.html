@@ -524,6 +524,17 @@ tr:hover td{background:var(--maroon-pale)}
           <div class="card-body" id="dash-next-meeting"><div class="loading"><div class="spinner"></div>Loading…</div></div>
         </div>
       </div>
+      <!-- REGISTRATION WARNING CARD -->
+      <div class="card" id="registration-warning-card" style="display:none;border-top:3px solid var(--danger)">
+        <div class="card-header">
+          <div>
+            <div class="card-title">⚠ Registration Issues</div>
+            <div class="card-sub" id="reg-warning-text">Members with registration issues</div>
+          </div>
+          <button class="card-action" onclick="showPage('members')">View Members →</button>
+        </div>
+      </div>
+
       <!-- PENDING APPROVALS CARD — shown only when there are pending requests -->
       <div class="card" id="pending-approvals-card" style="display:none;border-top:3px solid var(--warning)">
         <div class="card-header">
@@ -1313,7 +1324,7 @@ tr:hover td{background:var(--maroon-pale)}
     <div class="modal-body">
       <div class="form-row"><div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="nm-name" placeholder="Full name"/></div><div class="form-group"><label class="form-label">ID Number</label><input class="form-input" id="nm-id" placeholder="National ID"/></div></div>
       <div class="form-row"><div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" id="nm-phone" placeholder="07XXXXXXXX"/></div><div class="form-group"><label class="form-label">Join Date</label><input class="form-input" type="date" id="nm-date"/></div></div>
-      <div class="form-row"><div class="form-group"><label class="form-label">Monthly Savings (Ksh)</label><select class="form-select" id="nm-savings"><option value="500">500</option><option value="700">700</option><option value="1000">1,000</option><option value="1200">1,200</option><option value="1500">1,500</option><option value="1700">1,700</option><option value="2000">2,000</option></select></div><div class="form-group"><label class="form-label">Registration Fee</label><select class="form-select" id="nm-reg"><option value="true">Paid (Ksh 1,000)</option><option value="false">Pending</option></select></div></div>
+      <div class="form-row"><div class="form-group"><label class="form-label">Monthly Savings (Ksh)</label><input class="form-input" type="number" id="nm-savings" placeholder="e.g. 500 — as per org constitution"/><div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">Enter the member's monthly savings contribution</div></div><div class="form-group"><label class="form-label">Registration Status</label><select class="form-select" id="nm-reg"><option value="true">Registered ✓</option><option value="false">Unregistered — Fee Pending</option></select></div></div>
       <div style="font-size:.72rem;font-weight:600;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem">Opening Balances (if transferring existing records)</div>
       <div class="form-row"><div class="form-group"><label class="form-label">Opening Shares Balance (Ksh)</label><input class="form-input" type="number" id="nm-opening-shares" placeholder="0" value="0"/></div><div class="form-group"><label class="form-label">Opening Savings Balance (Ksh)</label><input class="form-input" type="number" id="nm-opening-savings" placeholder="0" value="0"/></div></div>
     </div>
@@ -1425,12 +1436,7 @@ tr:hover td{background:var(--maroon-pale)}
         </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Savings/mo (Ksh)</label>
-            <select class="form-select" id="md-edit-savings">
-              <option value="500">500</option><option value="700">700</option>
-              <option value="1000">1,000</option><option value="1200">1,200</option>
-              <option value="1500">1,500</option><option value="1700">1,700</option>
-              <option value="2000">2,000</option>
-            </select>
+            <input class="form-input" type="number" id="md-edit-savings" placeholder="Monthly savings amount"/>
           </div>
           <div class="form-group"><label class="form-label">Status</label>
             <select class="form-select" id="md-edit-status">
@@ -1465,6 +1471,7 @@ tr:hover td{background:var(--maroon-pale)}
         <div style="font-size:.68rem;color:var(--ink-faint);margin-bottom:.75rem">Set email and password to give this member portal access. Leave password blank to keep existing.</div>
         <div class="form-actions">
           <button class="btn btn-primary" onclick="saveMemberDetail()">Save Changes</button>
+          <button class="btn btn-secondary btn-sm" onclick="promoteToAdmin()" id="promote-btn" style="margin-left:.5rem">👤 Set Portal Role</button>
           <button class="btn btn-danger btn-sm" onclick="deleteMember()" style="margin-left:auto">Delete Member</button>
         </div>
       </div>
@@ -2175,6 +2182,8 @@ function buildNav() {
     <a class="nav-item" onclick="showPage('support')" href="#"><span class="nav-icon">☎</span> Support</a>
     <a class="nav-item" onclick="showPage('my_account')" href="#"><span class="nav-icon">👤</span> My Account</a>`;
   } else {
+    // Remove any stray page-dashboard active class
+    document.querySelectorAll('.page.active').forEach(p => p.classList.remove('active'));
     nav += `<div class="nav-label">Super Admin</div>
     <a class="nav-item active" onclick="showPage('superadmin')" href="#"><span class="nav-icon">⊞</span> Platform Overview</a>
     <a class="nav-item" onclick="showPage('sa_members')" href="#"><span class="nav-icon">◉</span> All Members</a>
@@ -2269,7 +2278,13 @@ function showPage(id) {
 // ── DASHBOARD ──
 async function loadDashboard() {
   if (!currentOrg?.id && currentProfile?.role !== 'superadmin') return;
-  if (currentProfile?.role === 'superadmin') { showPage('superadmin'); return; }
+  if (currentProfile?.role === 'superadmin') {
+    // Remove org dashboard elements for superadmin
+    document.getElementById('page-title').textContent = 'Platform Control';
+    document.getElementById('page-sub').textContent = 'EPH Technologies — Super Admin';
+    showPage('superadmin');
+    return;
+  }
   if (currentProfile?.role === 'member') { showPage('my_profile'); return; }
   const orgId = currentOrg.id;
   document.getElementById('page-sub').textContent = currentOrg.name;
@@ -2322,6 +2337,23 @@ async function loadDashboard() {
   // Check for pending approvals
   await checkPendingApprovals();
 
+  // Check for unregistered members and renewal due
+  const unregistered = members.filter(m => !m.registration_paid);
+  const renewalDue = members.filter(m =>
+    m.registration_renewal && new Date(m.registration_renewal) < new Date()
+  );
+  const regWarningEl = document.getElementById('registration-warning-card');
+  if (regWarningEl) {
+    if (unregistered.length > 0 || renewalDue.length > 0) {
+      regWarningEl.style.display = 'block';
+      document.getElementById('reg-warning-text').textContent =
+        `${unregistered.length} unregistered member${unregistered.length!==1?'s':''}`+
+        (renewalDue.length>0?` · ${renewalDue.length} renewal${renewalDue.length!==1?'s':''} overdue`:'');
+    } else {
+      regWarningEl.style.display = 'none';
+    }
+  }
+
   document.getElementById('dash-members-table').innerHTML = members.slice(0,8).map(m => `
     <tr>
       <td>${m.member_number||'—'}</td>
@@ -2365,7 +2397,7 @@ function renderMemberGrid(list) {
       </div>
       <div style="margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:.68rem;color:var(--ink-faint)">
         <span>Savings/mo: Ksh ${m.savings_tier?.toLocaleString()||'—'}</span>
-        <span>Reg: ${m.registration_paid?'✓ Paid':'Pending'}</span>
+        <span style="color:${m.registration_paid?'var(--success)':'var(--danger)'};font-weight:600">${m.registration_paid?'✓ Registered':'⚠ Unregistered'}${m.registration_renewal&&new Date(m.registration_renewal)<new Date()?' (Renewal Due!)':''}</span>
       </div>
     </div>`).join('') : '<div style="padding:2rem;color:var(--ink-faint);text-align:center">No members yet. Add your first member.</div>';
 }
@@ -2387,6 +2419,7 @@ async function saveMember() {
     join_date: document.getElementById('nm-date').value || null,
     savings_tier: parseInt(document.getElementById('nm-savings').value),
     registration_paid: document.getElementById('nm-reg').value === 'true',
+    registration_date: document.getElementById('nm-reg').value === 'true' ? new Date().toISOString().split('T')[0] : null,
     member_number: String(allMembers.length + 1).padStart(3,'0'),
     status: 'active',
     opening_shares: openingShares,
@@ -3580,6 +3613,10 @@ async function openMemberDetail(memberId) {
   document.getElementById('md-edit-opening-shares').value = m.opening_shares||0;
   document.getElementById('md-edit-opening-savings').value = m.opening_savings||0;
   document.getElementById('md-edit-reg').value = m.registration_paid?'true':'false';
+  const regDateEl = document.getElementById('md-edit-reg-date');
+  const regRenewalEl = document.getElementById('md-edit-reg-renewal');
+  if (regDateEl) regDateEl.value = m.registration_date||'';
+  if (regRenewalEl) regRenewalEl.value = m.registration_renewal||'';
   document.getElementById('md-edit-email').value = m.portal_email||'';
   document.getElementById('md-edit-password').value = '';
   const today = new Date().toISOString().split('T')[0];
@@ -3636,6 +3673,8 @@ async function saveMemberDetail() {
     savings_tier: parseInt(document.getElementById('md-edit-savings').value),
     status: document.getElementById('md-edit-status').value,
     registration_paid: document.getElementById('md-edit-reg').value==='true',
+    registration_date: document.getElementById('md-edit-reg-date')?.value||null,
+    registration_renewal: document.getElementById('md-edit-reg-renewal')?.value||null,
     opening_shares: openingShares,
     opening_savings: openingSavings,
     shares_balance: (current.shares_balance||0) + sharesDiff,
@@ -3682,6 +3721,71 @@ async function saveMemberDetail() {
   await logActivity('UPDATE MEMBER', `Updated member details for ${updates.full_name}${portalEmail?' (portal: '+portalEmail+')':''}`, 'member', currentMemberId);
   closeModal('memberDetail');
   loadMembers();
+}
+
+async function promoteToAdmin() {
+  if (!currentMemberId) return;
+  const { data: m } = await sb.from('members').select('full_name,portal_email,phone').eq('id', currentMemberId).single();
+  if (!m) return;
+
+  // Check if this member already has a portal account
+  let existingProfile = null;
+  if (m.portal_email) {
+    const { data: profiles } = await sb.from('profiles').select('*').eq('org_id', currentOrg.id);
+    existingProfile = profiles?.find(p => p.full_name?.toLowerCase() === m.full_name?.toLowerCase()
+      || p.phone === m.phone);
+  }
+
+  // Show role selection dialog
+  const role = prompt(
+    `Set portal role for ${m.full_name}:
+
+Type one of:
+- admin
+- treasurer
+- officer
+- member
+
+Current: ${existingProfile?.role || 'no portal account'}`
+  );
+
+  if (!role || !['admin','treasurer','officer','member'].includes(role.toLowerCase())) {
+    toast('Invalid role. Choose: admin, treasurer, officer, or member');
+    return;
+  }
+
+  if (existingProfile) {
+    // Update existing profile role
+    await sb.from('profiles').update({ role: role.toLowerCase() }).eq('id', existingProfile.id);
+    toast(`${m.full_name} role updated to ${role}`);
+  } else {
+    // Need email to create portal account
+    const email = m.portal_email || prompt(`Enter ${m.full_name}'s email to create portal account:`);
+    if (!email) { toast('Email required to create portal account'); return; }
+    const password = prompt(`Set a temporary password for ${m.full_name} (min 6 characters):`);
+    if (!password || password.length < 6) { toast('Password must be at least 6 characters'); return; }
+
+    const { data: authData, error: authErr } = await sb.auth.signUp({
+      email, password,
+      options: { data: { full_name: m.full_name } }
+    });
+    if (authErr) { toast('Error: ' + authErr.message); return; }
+
+    await sb.from('profiles').upsert({
+      id: authData.user.id,
+      org_id: currentOrg.id,
+      role: role.toLowerCase(),
+      full_name: m.full_name,
+      phone: m.phone
+    });
+
+    // Link portal email to member record
+    await sb.from('members').update({ portal_email: email }).eq('id', currentMemberId);
+    toast(`${m.full_name} portal account created as ${role}`);
+  }
+
+  await logActivity('SET ROLE', `Set ${m.full_name} portal role to ${role}`, 'member', currentMemberId);
+  loadTeamMembers();
 }
 
 async function saveAdjustment() {
