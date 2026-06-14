@@ -1237,7 +1237,7 @@ tr:hover td{background:var(--maroon-pale)}
         <div class="card-body">
           <div class="alert alert-info">These details are shown to all organisations on their Support page.</div>
           <div class="form-row single"><div class="form-group"><label class="form-label">Support Phone Number</label><input class="form-input" id="sp-phone" placeholder="e.g. 0792385970"/></div></div>
-          <div class="form-row single"><div class="form-group"><label class="form-label">Support Email</label><input class="form-input" id="sp-email" placeholder="e.g. support@groupyetu360.com"/></div></div>
+          <div class="form-row single"><div class="form-group"><label class="form-label">Support Email</label><input class="form-input" id="sp-email" placeholder="e.g. info@groupyetu.org"/></div></div>
           <div style="font-size:.78rem;font-weight:600;color:var(--ink);margin:.75rem 0 .5rem">Payment Details (shown to organisations for subscription payment)</div>
           <div class="form-row single"><div class="form-group"><label class="form-label">Bank Name</label><input class="form-input" id="sp-bank-name" placeholder="e.g. Equity Bank"/></div></div>
           <div class="form-row"><div class="form-group"><label class="form-label">Account Number</label><input class="form-input" id="sp-bank-account" placeholder="Account number"/></div><div class="form-group"><label class="form-label">Account Name</label><input class="form-input" id="sp-bank-account-name" placeholder="e.g. EPH Technologies"/></div></div>
@@ -5197,7 +5197,7 @@ async function loadSupport() {
   if (!el) return;
   // Default values in case platform_settings table doesn't exist yet
   let phone = '0792385970';
-  let email = 'support@groupyetu360.com';
+  let email = 'info@groupyetu.org';
   let whatsapp = 'https://wa.me/254702903544?text=Hello%20GroupYetu360%20Support';
   try {
     const { data: settings } = await sb.from('platform_settings').select('*').maybeSingle();
@@ -5355,7 +5355,7 @@ async function loadSASupport() {
   } catch(e) { console.log('Platform settings not yet created'); }
   const setVal = (id, val) => { const el=document.getElementById(id); if(el) el.value=val||''; };
   setVal('sp-phone', s.support_phone||'0792385970');
-  setVal('sp-email', s.support_email||'support@groupyetu360.com');
+  setVal('sp-email', s.support_email||'info@groupyetu.org');
   setVal('sp-bank-name', s.bank_name||'Equity Bank');
   setVal('sp-bank-account', s.bank_account||'');
   setVal('sp-bank-account-name', s.bank_account_name||'EPH Technologies');
