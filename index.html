@@ -3362,15 +3362,7 @@ function cancel2FA() {
   document.getElementById('auth-step-1').style.display = 'block';
 }
 
-async function signIn() {
-  const email = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value;
-  const errEl = document.getElementById('login-error');
-  errEl.classList.remove('show');
-  if (!email || !password) { errEl.textContent='Please enter email and password'; errEl.classList.add('show'); return; }
-  const { error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) { errEl.textContent = error.message; errEl.classList.add('show'); }
-}
+// signIn defined above
 
 async function registerOrg() {
   const orgName = document.getElementById('reg-org-name').value.trim();
@@ -3945,18 +3937,7 @@ function renderMemberGrid(list) {
   }).join('');
 }
 
-function filterMembers(q) {
-  if (!q) { renderMemberGrid(allMembers); return; }
-  const ql = q.toLowerCase();
-  const f = allMembers.filter(m =>
-    (m.full_name||'').toLowerCase().includes(ql) ||
-    (m.phone||'').includes(q) ||
-    (m.email||'').toLowerCase().includes(ql) ||
-    (m.id_number||'').includes(q) ||
-    (m.member_number?.toString()||'').includes(q)
-  );
-  renderMemberGrid(f);
-}
+// filterMembers defined above
 
 async function saveMember() {
   if (!currentOrg?.id) return;
@@ -5398,14 +5379,7 @@ function filterSAOrgs(q) {
   });
 }
 
-function filterSAOrgs(q) {
-  const rows = document.querySelectorAll('#sa-org-list .org-row');
-  const ql = q.toLowerCase();
-  rows.forEach(row => {
-    const text = row.textContent.toLowerCase();
-    row.style.display = (!q || text.includes(ql)) ? '' : 'none';
-  });
-}
+// filterSAOrgs defined above
 
 function filterSAMembers(q) {
   const map = window._saOrgMap || {};
