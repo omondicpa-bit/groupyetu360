@@ -3905,7 +3905,7 @@ function renderMemberGrid(list) {
     const badgeClass = m.status==='active'?'badge-green':m.status==='arrears'?'badge-warn':'badge-grey';
     const regOk = m.registration_paid;
     const renewalDue = m.registration_renewal && new Date(m.registration_renewal) < new Date();
-    return \`<div class="member-card \${statusClass}" onclick="openMemberDetail('\${m.id}')" style="animation-delay:\${i*0.04}s">
+    return `<div class="member-card ${statusClass}" onclick="openMemberDetail('${m.id}')" style="animation-delay:${i*0.04}s">
       <div class="mc-header">
         <div class="mc-avatar">\${initials}</div>
         <div class="mc-meta">
@@ -3933,7 +3933,7 @@ function renderMemberGrid(list) {
         <span>Ksh \${(m.savings_tier||0).toLocaleString()}/mo</span>
         <span class="\${regOk&&!renewalDue?'mc-reg-ok':'mc-reg-warn'}">\${regOk&&!renewalDue?'✓ Registered':renewalDue?'⚠ Renewal due':'⚠ Unregistered'}</span>
       </div>
-    </div>\`;
+    </div>`;
   }).join('');
 }
 
