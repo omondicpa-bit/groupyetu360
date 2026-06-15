@@ -1500,12 +1500,59 @@ tr:hover td{background:var(--maroon-pale)}
 </div>
 
 <div class="modal-overlay" id="modal-welfareEvent">
-  <div class="modal">
+  <div class="modal" style="max-width:500px">
     <div class="modal-header"><div class="modal-title">Record Welfare Event</div><button class="modal-close" onclick="closeModal('welfareEvent')">✕</button></div>
     <div class="modal-body">
-      <div class="form-row"><div class="form-group"><label class="form-label">Affected Member</label><select class="form-select" id="wel-member"><option value="">Select…</option></select></div><div class="form-group"><label class="form-label">Event Type</label><select class="form-select" id="wel-type" onchange="setWelfareAmt(this.value)"><option value="member">Member Death (Ksh 1,000)</option><option value="spouse">Spouse/Parent Death (Ksh 750)</option><option value="child">Child Death (Ksh 500)</option></select></div></div>
-      <div class="form-row"><div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="wel-date"/></div><div class="form-group"><label class="form-label">Contribution/Member</label><input class="form-input" id="wel-amount" value="1000" readonly/></div></div>
-      <div class="form-row single"><div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="wel-notes" placeholder="Any context…"></textarea></div></div>
+      <!-- Event Category: Member-specific or General -->
+      <div class="form-row single" style="margin-bottom:.75rem">
+        <div class="form-group">
+          <label class="form-label">Event Category</label>
+          <select class="form-select" id="wel-category" onchange="toggleWelfareCategory(this.value)">
+            <option value="member_specific">Member-Specific (affects a particular member)</option>
+            <option value="general">General / Community (no specific member)</option>
+          </select>
+        </div>
+      </div>
+      <!-- Affected member — shown for member_specific only -->
+      <div id="wel-member-row" class="form-row single">
+        <div class="form-group">
+          <label class="form-label">Affected Member</label>
+          <select class="form-select" id="wel-member"><option value="">Select member…</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Event Type</label>
+          <select class="form-select" id="wel-type" onchange="setWelfareAmt(this.value)">
+            <optgroup label="Bereavement" id="wel-opts-member">
+              <option value="member">Member Death (Ksh 1,000)</option>
+              <option value="spouse">Spouse/Parent Death (Ksh 750)</option>
+              <option value="child">Child Death (Ksh 500)</option>
+            </optgroup>
+            <optgroup label="General / Community" id="wel-opts-general" style="display:none">
+              <option value="community">Community Contribution</option>
+              <option value="annual_party">Annual Party / Celebration</option>
+              <option value="emergency_fund">Emergency Fund</option>
+              <option value="custom">Custom / Other</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contribution per Member (Ksh)</label>
+          <input class="form-input" id="wel-amount" placeholder="e.g. 500"/>
+          <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">Type any amount or use preset</div>
+        </div>
+      </div>
+      <!-- Quick amount presets -->
+      <div style="display:flex;gap:.4rem;margin-bottom:.75rem;flex-wrap:wrap" id="wel-presets">
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('wel-amount').value=500">Ksh 500</button>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('wel-amount').value=750">Ksh 750</button>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('wel-amount').value=1000">Ksh 1,000</button>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('wel-amount').value=1500">Ksh 1,500</button>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('wel-amount').value=2000">Ksh 2,000</button>
+      </div>
+      <div class="form-row"><div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="wel-date"/></div></div>
+      <div class="form-row single"><div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="wel-notes" placeholder="Any context about this event…"></textarea></div></div>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('welfareEvent')">Cancel</button><button class="btn btn-primary" onclick="saveWelfareEvent()">Create Event</button></div>
   </div>
@@ -1808,11 +1855,11 @@ tr:hover td{background:var(--maroon-pale)}
 </div>
 
 <div class="modal-overlay" id="modal-addContribType">
-  <div class="modal" style="max-width:440px">
-    <div class="modal-header"><div class="modal-title">Add Contribution Type</div><button class="modal-close" onclick="closeModal('addContribType')">✕</button></div>
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header"><div class="modal-title" id="contrib-modal-title">Add Contribution Type</div><button class="modal-close" onclick="closeModal('addContribType')">✕</button></div>
     <div class="modal-body">
       <div class="alert alert-info">Define the types of contributions your organisation collects. These will appear as options when recording payments.</div>
-      <div class="form-row single"><div class="form-group"><label class="form-label">Contribution Name</label><input class="form-input" id="ct-name" placeholder="e.g. Monthly Shares, Annual Dues, Welfare Levy…"/></div></div>
+      <div class="form-row single"><div class="form-group"><label class="form-label">Contribution Name</label><input class="form-input" id="ct-name" placeholder="e.g. Monthly Shares, Annual Dues, Registration Fee…"/></div></div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Default Amount (Ksh)</label>
@@ -1847,6 +1894,19 @@ tr:hover td{background:var(--maroon-pale)}
             <option value="optional">Optional / Voluntary</option>
           </select>
         </div>
+      </div>
+      <!-- KEY: Admin income vs Member balance -->
+      <div class="form-row single" style="margin-bottom:.25rem">
+        <div class="form-group">
+          <label class="form-label">Income Type</label>
+          <select class="form-select" id="ct-income-type" onchange="updateContribTypeHint(this.value)">
+            <option value="member_income">Member Balance — adds to individual member balances (e.g. Savings, Shares)</option>
+            <option value="admin_income">Admin/Group Income — goes to group funds, not member balances (e.g. Reg Fee, Annual Dues)</option>
+          </select>
+        </div>
+      </div>
+      <div id="ct-income-hint" style="font-size:.72rem;padding:.5rem .75rem;border-radius:3px;margin-bottom:.75rem;background:var(--success-pale);color:var(--success);border-left:3px solid var(--success)">
+        ✓ Payments will be added to each member's personal balance and to the group bank balance.
       </div>
       <div class="form-row single">
         <div class="form-group">
@@ -1905,7 +1965,7 @@ tr:hover td{background:var(--maroon-pale)}
 
 <!-- ORG DETAIL MODAL -->
 <div class="modal-overlay" id="modal-orgDetail">
-  <div class="modal" style="max-width:680px">
+  <div class="modal" style="max-width:720px">
     <div class="modal-header">
       <div>
         <div class="modal-title" id="od-org-name">Organisation Detail</div>
@@ -1913,73 +1973,159 @@ tr:hover td{background:var(--maroon-pale)}
       </div>
       <button class="modal-close" onclick="closeModal('orgDetail')">✕</button>
     </div>
-    <div class="modal-body">
-      <div class="stats-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:1.25rem">
+    <div class="modal-body" style="padding-top:.5rem">
+      <!-- Stats strip -->
+      <div class="stats-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem">
         <div class="stat-card"><div class="stat-label">Members</div><div class="stat-value" id="od-members" style="font-size:1.4rem">—</div></div>
         <div class="stat-card gold"><div class="stat-label">Plan</div><div class="stat-value" id="od-plan" style="font-size:1.2rem">—</div></div>
         <div class="stat-card green"><div class="stat-label">Status</div><div class="stat-value" id="od-status" style="font-size:1.2rem">—</div></div>
         <div class="stat-card" style="border-top-color:var(--maroon)"><div class="stat-label">Org Code</div><div class="stat-value" id="od-org-code" style="font-size:1.4rem;color:var(--maroon);letter-spacing:.1em">—</div></div>
       </div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Organisation Name</label><input class="form-input" id="od-name"/></div>
-        <div class="form-group"><label class="form-label">Reg Number</label><input class="form-input" id="od-reg"/></div>
+      <!-- Tabs -->
+      <div class="tabs" style="margin-bottom:1rem;border-bottom:2px solid var(--border)">
+        <button class="tab active" onclick="switchTab(this,'od-tab-details')">Details</button>
+        <button class="tab" onclick="switchTab(this,'od-tab-features')">Features</button>
+        <button class="tab" onclick="switchTab(this,'od-tab-billing')">Billing</button>
+        <button class="tab" onclick="switchTab(this,'od-tab-members')">Members</button>
       </div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Paybill</label><input class="form-input" id="od-paybill"/></div>
-        <div class="form-group"><label class="form-label">Plan</label>
-          <select class="form-select" id="od-plan-select" onchange="toggleDarajaSection(this.value)">
-            <option value="starter">Starter (Free)</option>
-            <option value="basic">Basic (Ksh 3,000)</option>
-            <option value="standard">Standard (Ksh 6,000)</option>
-            <option value="pro">Pro (Ksh 12,000)</option>
+
+      <!-- TAB: Details -->
+      <div class="tab-panel active" id="od-tab-details">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Organisation Name</label><input class="form-input" id="od-name"/></div>
+          <div class="form-group"><label class="form-label">Reg Number</label><input class="form-input" id="od-reg"/></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Paybill</label><input class="form-input" id="od-paybill"/></div>
+          <div class="form-group"><label class="form-label">Plan</label>
+            <select class="form-select" id="od-plan-select" onchange="toggleDarajaSection(this.value)">
+              <option value="starter">Starter (Free)</option>
+              <option value="basic">Basic (Ksh 3,000)</option>
+              <option value="standard">Standard (Ksh 6,000)</option>
+              <option value="pro">Pro (Ksh 12,000)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Status</label>
+            <select class="form-select" id="od-status-select">
+              <option value="active">Active</option>
+              <option value="suspended">Suspended</option>
+              <option value="trial">Trial</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">Date Founded</label><input class="form-input" type="date" id="od-founded"/></div>
+        </div>
+        <div class="form-row single">
+          <div class="form-group"><label class="form-label">Contact Email</label><input class="form-input" id="od-email" placeholder="Admin email address"/></div>
+        </div>
+      </div>
+
+      <!-- TAB: Features -->
+      <div class="tab-panel" id="od-tab-features">
+        <div style="font-size:.78rem;color:var(--ink-faint);margin-bottom:1rem">Toggle features on or off for this organisation.</div>
+        <!-- M-Pesa Daraja -->
+        <div style="border:1px solid var(--maroon-muted);background:var(--maroon-pale);padding:1rem;margin-bottom:.75rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+            <div>
+              <div style="font-size:.82rem;font-weight:700;color:var(--maroon)">📱 M-Pesa Daraja (STK Push)</div>
+              <div style="font-size:.72rem;color:var(--ink-faint)">Standard & Pro plans only. Members can pay directly via phone prompt.</div>
+            </div>
+            <select class="form-select" id="od-daraja-enabled" style="width:160px">
+              <option value="false">Disabled</option>
+              <option value="true">Enabled</option>
+            </select>
+          </div>
+          <div id="od-daraja-section">
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Consumer Key</label><input class="form-input" type="password" id="od-daraja-key" placeholder="From Daraja portal"/></div>
+              <div class="form-group"><label class="form-label">Consumer Secret</label><input class="form-input" type="password" id="od-daraja-secret" placeholder="From Daraja portal"/></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Business Short Code</label><input class="form-input" id="od-daraja-shortcode" placeholder="Paybill or Till number"/></div>
+              <div class="form-group"><label class="form-label">Passkey</label><input class="form-input" type="password" id="od-daraja-passkey" placeholder="From Daraja portal"/></div>
+            </div>
+            <div class="form-row single">
+              <div class="form-group"><label class="form-label">Environment</label>
+                <select class="form-select" id="od-daraja-env">
+                  <option value="sandbox">Sandbox (Testing)</option>
+                  <option value="production">Production (Live)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- SMS feature -->
+        <div style="border:1px solid var(--border-dk);padding:1rem;margin-bottom:.75rem;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:.82rem;font-weight:600">📨 Bulk SMS (Africa's Talking)</div>
+            <div style="font-size:.72rem;color:var(--ink-faint)">Allows admin to send SMS notices to members.</div>
+          </div>
+          <select class="form-select" id="od-sms-enabled" style="width:160px">
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </select>
+        </div>
+        <!-- 2FA -->
+        <div style="border:1px solid var(--border-dk);padding:1rem;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:.82rem;font-weight:600">🔐 Two-Factor Authentication</div>
+            <div style="font-size:.72rem;color:var(--ink-faint)">Requires OTP on login for all org members.</div>
+          </div>
+          <select class="form-select" id="od-2fa-enabled" style="width:160px">
+            <option value="false">Disabled</option>
+            <option value="true">Enabled</option>
           </select>
         </div>
       </div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Status</label>
-          <select class="form-select" id="od-status-select">
-            <option value="active">Active</option>
-            <option value="suspended">Suspended</option>
-            <option value="trial">Trial</option>
-          </select>
-        </div>
-        <div class="form-group"><label class="form-label">Date Founded</label><input class="form-input" type="date" id="od-founded"/></div>
-      </div>
-      <!-- M-Pesa Daraja — Standard/Pro only -->
-      <div id="od-daraja-section" style="display:none;margin-top:.75rem;border:1px solid var(--maroon-muted);background:var(--maroon-pale);padding:1rem">
-        <div style="font-size:.78rem;font-weight:700;color:var(--maroon);margin-bottom:.75rem;text-transform:uppercase;letter-spacing:.06em">📱 M-Pesa Daraja Integration</div>
-        <div style="font-size:.72rem;color:var(--ink-faint);margin-bottom:.75rem">Enter this organisation's Daraja credentials from <strong>developer.safaricom.co.ke</strong>. Members will see an STK Push option when paying.</div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Consumer Key</label><input class="form-input" type="password" id="od-daraja-key" placeholder="From Daraja portal"/></div>
-          <div class="form-group"><label class="form-label">Consumer Secret</label><input class="form-input" type="password" id="od-daraja-secret" placeholder="From Daraja portal"/></div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Business Short Code</label><input class="form-input" id="od-daraja-shortcode" placeholder="Paybill or Till number"/></div>
-          <div class="form-group"><label class="form-label">Passkey</label><input class="form-input" type="password" id="od-daraja-passkey" placeholder="From Daraja portal"/></div>
-        </div>
+
+      <!-- TAB: Billing -->
+      <div class="tab-panel" id="od-tab-billing">
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Environment</label>
-            <select class="form-select" id="od-daraja-env">
-              <option value="sandbox">Sandbox (Testing)</option>
-              <option value="production">Production (Live)</option>
+            <label class="form-label">Subscription Status</label>
+            <select class="form-select" id="od-sub-status">
+              <option value="active">Active</option>
+              <option value="trial">Trial</option>
+              <option value="expired">Expired</option>
+              <option value="suspended">Suspended</option>
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">STK Push for Members</label>
-            <select class="form-select" id="od-daraja-enabled">
-              <option value="false">Disabled — members pay manually</option>
-              <option value="true">Enabled — members get STK Push</option>
-            </select>
+            <label class="form-label">Subscription Expiry Date</label>
+            <input class="form-input" type="date" id="od-sub-expiry"/>
+            <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">Set or extend subscription expiry directly.</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">SMS Bundle (messages)</label>
+            <input class="form-input" type="number" id="od-sms-bundle" placeholder="e.g. 500"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">SMS Used</label>
+            <input class="form-input" type="number" id="od-sms-used" placeholder="0" readonly style="background:var(--surface-3)"/>
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--border);margin-top:.75rem;padding-top:.75rem">
+          <div style="font-size:.78rem;font-weight:600;margin-bottom:.5rem">Quick Renewal Actions</div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+            <button class="btn btn-secondary btn-sm" onclick="extendSubscription(1)">+1 Month</button>
+            <button class="btn btn-secondary btn-sm" onclick="extendSubscription(2)">+2 Months</button>
+            <button class="btn btn-secondary btn-sm" onclick="extendSubscription(6)">+6 Months</button>
+            <button class="btn btn-secondary btn-sm" onclick="extendSubscription(12)">+1 Year</button>
           </div>
         </div>
       </div>
 
-      <div class="card" style="margin-top:.75rem;margin-bottom:0">
-        <div class="card-header"><div class="card-title">Members</div></div>
-        <div class="table-wrap" style="max-height:220px;overflow-y:auto">
+      <!-- TAB: Members -->
+      <div class="tab-panel" id="od-tab-members">
+        <div style="margin-bottom:.5rem">
+          <input class="form-input" id="od-member-search" placeholder="🔍 Search members by name or phone…" oninput="filterODMembers(this.value)" style="margin-bottom:.5rem"/>
+        </div>
+        <div class="table-wrap" style="max-height:300px;overflow-y:auto">
           <table>
-            <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>Savings/mo</th><th>Status</th></tr></thead>
+            <thead><tr><th>#</th><th>Name</th><th>Email/Phone</th><th>Role</th><th>Status</th></tr></thead>
             <tbody id="od-members-list"><tr><td colspan="5" style="text-align:center;padding:1rem;color:var(--ink-faint)">Loading…</td></tr></tbody>
           </table>
         </div>
@@ -1987,8 +2133,8 @@ tr:hover td{background:var(--maroon-pale)}
     </div>
     <div class="modal-footer" style="justify-content:space-between">
       <div style="display:flex;gap:.5rem">
-        <button class="btn btn-danger btn-sm" onclick="deleteOrg()">🗑 Delete Organisation</button>
-        <button class="btn btn-secondary btn-sm" onclick="unlockBankBalance()">🔓 Unlock Bank Balance</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteOrg()">🗑 Delete Org</button>
+        <button class="btn btn-secondary btn-sm" onclick="unlockBankBalance()">🔓 Unlock Balance</button>
       </div>
       <div style="display:flex;gap:.75rem">
         <button class="btn btn-secondary" onclick="closeModal('orgDetail')">Cancel</button>
@@ -3315,24 +3461,52 @@ async function toggleWelfareActive(id, isCurrentlyActive) {
 
 async function saveWelfareEvent() {
   if (!currentOrg?.id) return;
+  const cat = document.getElementById('wel-category')?.value || 'member_specific';
+  const amount = parseFloat(document.getElementById('wel-amount').value);
+  if (!amount || isNaN(amount)) { toast('Please enter a contribution amount'); return; }
+  const memberId = cat === 'general' ? null : (document.getElementById('wel-member').value || null);
+  if (cat === 'member_specific' && !memberId) { toast('Please select the affected member'); return; }
   const payload = {
     org_id: currentOrg.id,
-    affected_member_id: document.getElementById('wel-member').value || null,
+    affected_member_id: memberId,
     event_type: document.getElementById('wel-type').value,
-    contribution_per_member: parseFloat(document.getElementById('wel-amount').value),
+    contribution_per_member: amount,
     event_date: document.getElementById('wel-date').value || null,
     notes: document.getElementById('wel-notes').value.trim() || null
   };
   const { error } = await sb.from('welfare_events').insert(payload);
   if (error) { toast('Error: ' + error.message); return; }
   toast('Welfare event created');
+  // Reset category to default
+  const catEl = document.getElementById('wel-category');
+  if (catEl) { catEl.value = 'member_specific'; toggleWelfareCategory('member_specific'); }
   closeModal('welfareEvent');
   loadWelfare();
 }
 
 function setWelfareAmt(val) {
   const amounts = { member:1000, spouse:750, child:500 };
-  document.getElementById('wel-amount').value = amounts[val] || 1000;
+  if (amounts[val] !== undefined) document.getElementById('wel-amount').value = amounts[val];
+}
+
+function toggleWelfareCategory(cat) {
+  const memberRow = document.getElementById('wel-member-row');
+  const memberOpts = document.getElementById('wel-opts-member');
+  const generalOpts = document.getElementById('wel-opts-general');
+  const typeSelect = document.getElementById('wel-type');
+  if (cat === 'general') {
+    memberRow.style.display = 'none';
+    if (memberOpts) memberOpts.style.display = 'none';
+    if (generalOpts) generalOpts.style.display = '';
+    typeSelect.value = 'community';
+    document.getElementById('wel-amount').value = '';
+  } else {
+    memberRow.style.display = '';
+    if (memberOpts) memberOpts.style.display = '';
+    if (generalOpts) generalOpts.style.display = 'none';
+    typeSelect.value = 'member';
+    document.getElementById('wel-amount').value = 1000;
+  }
 }
 
 // ── PROJECTS ──
@@ -3669,12 +3843,12 @@ async function loadSettings() {
   if (ctEl) {
     ctEl.innerHTML = allContribTypes.length ? `
       <div class="table-wrap">
-      <table><thead><tr><th>Type</th><th>Default Amount</th><th>Frequency</th><th>Variable?</th><th></th></tr></thead>
+      <table><thead><tr><th>Type</th><th>Default Amt</th><th>Frequency</th><th>Income Type</th><th></th></tr></thead>
       <tbody>${allContribTypes.map(t=>`<tr>
-        <td><strong>${t.name}</strong></td>
+        <td><strong>${t.name}</strong>${t.notes?`<div style='font-size:.68rem;color:var(--ink-faint)'>${t.notes}</div>`:''}</td>
         <td>Ksh ${t.is_variable?'Variable':Number(t.amount||0).toLocaleString()}</td>
         <td><span class="badge badge-grey">${t.frequency}</span></td>
-        <td>${t.is_variable?'<span class="badge badge-maroon">Yes</span>':'No'}</td>
+        <td>${t.is_member_income===false?'<span class="badge badge-maroon" title="Goes to group funds only">Admin</span>':'<span class="badge badge-green" title="Adds to member balances">Member</span>'}</td>
         <td style="display:flex;gap:.4rem">
           <button class="btn btn-secondary btn-sm" onclick="editContribType('${t.id}')">Edit</button>
           <button class="btn btn-danger btn-sm" onclick="deleteContribType('${t.id}','${t.name.replace(/'/g,"&apos;")}')">✕</button>
@@ -3946,6 +4120,8 @@ function editContribType(typeId) {
   document.getElementById('ct-freq').value = type.frequency || 'monthly';
   document.getElementById('ct-variable').value = type.is_variable ? 'true' : 'false';
   document.getElementById('ct-notes').value = type.notes || '';
+  const itEl = document.getElementById('ct-income-type');
+  if (itEl) { itEl.value = (type.is_member_income === false) ? 'admin_income' : 'member_income'; updateContribTypeHint(itEl.value); }
   // Update modal title and button
   const titleEl = document.getElementById('contrib-modal-title');
   const btnEl = document.getElementById('contrib-save-btn');
@@ -3954,25 +4130,38 @@ function editContribType(typeId) {
   showModal('addContribType');
 }
 
+function updateContribTypeHint(val) {
+  const hint = document.getElementById('ct-income-hint');
+  if (!hint) return;
+  if (val === 'admin_income') {
+    hint.style.background = 'var(--warning-pale)'; hint.style.color = 'var(--warning)'; hint.style.borderLeftColor = 'var(--warning)';
+    hint.textContent = '⚠ Payments go to the group bank balance only. Member personal balances are NOT affected (e.g. Registration Fee, Annual Dues, Welfare Levy).';
+  } else {
+    hint.style.background = 'var(--success-pale)'; hint.style.color = 'var(--success)'; hint.style.borderLeftColor = 'var(--success)';
+    hint.textContent = '✓ Payments will be added to each member\'s personal balance AND the group bank balance (e.g. Monthly Savings, Shares).';
+  }
+}
+
 async function saveContribType() {
   if (!currentOrg?.id) return;
+  const incomeType = document.getElementById('ct-income-type')?.value || 'member_income';
   const payload = {
     org_id: currentOrg.id,
     name: document.getElementById('ct-name').value.trim(),
     amount: parseFloat(document.getElementById('ct-amount').value)||0,
     frequency: document.getElementById('ct-freq').value,
-    is_variable: document.getElementById('ct-variable').value === 'true'
+    is_variable: document.getElementById('ct-variable').value === 'true',
+    is_member_income: incomeType === 'member_income',
+    notes: document.getElementById('ct-notes')?.value.trim() || null
   };
   if (!payload.name) { toast('Please enter a type name'); return; }
 
   let error;
   if (_editingContribTypeId) {
-    // Update existing
     const res = await sb.from('contribution_types').update(payload).eq('id', _editingContribTypeId);
     error = res.error;
     if (!error) toast(payload.name + ' updated successfully');
   } else {
-    // Insert new
     const res = await sb.from('contribution_types').insert(payload);
     error = res.error;
     if (!error) toast(payload.name + ' added as contribution type');
@@ -3983,6 +4172,8 @@ async function saveContribType() {
   // Reset
   _editingContribTypeId = null;
   ['ct-name','ct-amount','ct-notes'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  const itEl = document.getElementById('ct-income-type'); if(itEl) itEl.value='member_income';
+  updateContribTypeHint('member_income');
   const titleEl = document.getElementById('contrib-modal-title');
   const btnEl = document.getElementById('contrib-save-btn');
   if (titleEl) titleEl.textContent = 'Add Contribution Type';
@@ -4163,33 +4354,31 @@ async function loadSAFinance() {
 
 // ── ORG DETAIL ──
 let currentDetailOrgId = null;
+// Store all org members for search filtering in od modal
+let _odAllMembers = [];
+
 async function openOrgDetail(orgId) {
   currentDetailOrgId = orgId;
   const { data: org } = await sb.from('organisations').select('*').eq('id', orgId).single();
   const { data: members } = await sb.from('members').select('*').eq('org_id', orgId).order('member_number');
+  const { data: profiles } = await sb.from('profiles').select('id,full_name,role').eq('org_id', orgId);
+  _odAllMembers = members || [];
   document.getElementById('od-org-name').textContent = org.name;
   document.getElementById('od-org-reg').textContent = org.reg_number || 'No registration number';
   document.getElementById('od-members').textContent = (members||[]).length;
   document.getElementById('od-plan').textContent = org.plan?.toUpperCase() || '—';
-  document.getElementById('od-status').textContent = org.status?.toUpperCase() || '—';
+  document.getElementById('od-status').textContent = (org.subscription_status || org.status)?.toUpperCase() || '—';
   const odCode = document.getElementById('od-org-code');
   if (odCode) odCode.textContent = org.org_code || '—';
+  // Details tab
   document.getElementById('od-name').value = org.name || '';
   document.getElementById('od-reg').value = org.reg_number || '';
   document.getElementById('od-paybill').value = org.paybill || '';
   document.getElementById('od-plan-select').value = org.plan || 'starter';
   document.getElementById('od-status-select').value = org.status || 'active';
   document.getElementById('od-founded').value = org.date_founded || '';
-  document.getElementById('od-members-list').innerHTML = (members||[]).length ? (members||[]).map(m=>`
-    <tr>
-      <td>${m.member_number||'—'}</td>
-      <td>${m.full_name}</td>
-      <td>${m.phone||'—'}</td>
-      <td>Ksh ${m.savings_tier?.toLocaleString()||'—'}/mo</td>
-      <td><span class="badge ${m.status==='active'?'badge-green':m.status==='arrears'?'badge-warn':'badge-grey'}">${m.status}</span></td>
-    </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;padding:1rem;color:var(--ink-faint)">No members yet</td></tr>';
-  // Populate & show Daraja section for Standard/Pro
-  toggleDarajaSection(org.plan);
+  const emailEl = document.getElementById('od-email'); if(emailEl) emailEl.value = org.email || '';
+  // Features tab
   const setOdVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
   setOdVal('od-daraja-key', org.daraja_consumer_key || '');
   setOdVal('od-daraja-secret', org.daraja_consumer_secret || '');
@@ -4198,7 +4387,49 @@ async function openOrgDetail(orgId) {
   setOdVal('od-daraja-env', org.daraja_env || 'sandbox');
   const darajaEnabledEl = document.getElementById('od-daraja-enabled');
   if (darajaEnabledEl) darajaEnabledEl.value = org.daraja_enabled ? 'true' : 'false';
+  const smsEl = document.getElementById('od-sms-enabled'); if(smsEl) smsEl.value = org.sms_enabled === false ? 'false' : 'true';
+  const twoFaEl = document.getElementById('od-2fa-enabled'); if(twoFaEl) twoFaEl.value = org.two_fa_enabled ? 'true' : 'false';
+  // Billing tab
+  const subStatusEl = document.getElementById('od-sub-status'); if(subStatusEl) subStatusEl.value = org.subscription_status || 'active';
+  const subExpiryEl = document.getElementById('od-sub-expiry'); if(subExpiryEl) subExpiryEl.value = org.subscription_expires || '';
+  const smsBundleEl = document.getElementById('od-sms-bundle'); if(smsBundleEl) smsBundleEl.value = org.sms_bundle || 0;
+  const smsUsedEl = document.getElementById('od-sms-used'); if(smsUsedEl) smsUsedEl.value = org.sms_used || 0;
+  // Members tab
+  renderODMembers(_odAllMembers);
   showModal('orgDetail');
+}
+
+function renderODMembers(members) {
+  document.getElementById('od-members-list').innerHTML = members.length ? members.map(m=>`
+    <tr>
+      <td>${m.member_number||'—'}</td>
+      <td><strong>${m.full_name}</strong></td>
+      <td style="font-size:.75rem">${m.phone||m.email||'—'}</td>
+      <td><span class="badge badge-grey" style="font-size:.62rem">${m.status}</span></td>
+      <td>Ksh ${(Number(m.shares_balance||0)+Number(m.savings_balance||0)).toLocaleString()}</td>
+    </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;padding:1rem;color:var(--ink-faint)">No members yet</td></tr>';
+}
+
+function filterODMembers(q) {
+  const filtered = q.length < 2 ? _odAllMembers : _odAllMembers.filter(m =>
+    (m.full_name||'').toLowerCase().includes(q.toLowerCase()) ||
+    (m.phone||'').includes(q) || (m.email||'').toLowerCase().includes(q.toLowerCase())
+  );
+  renderODMembers(filtered);
+}
+
+async function extendSubscription(months) {
+  if (!currentDetailOrgId) return;
+  const expiryEl = document.getElementById('od-sub-expiry');
+  const current = expiryEl?.value ? new Date(expiryEl.value) : new Date();
+  if (current < new Date()) current.setTime(new Date().getTime()); // if expired, start from today
+  current.setMonth(current.getMonth() + months);
+  const newExpiry = current.toISOString().split('T')[0];
+  if (expiryEl) expiryEl.value = newExpiry;
+  // Also set status to active
+  const subStatusEl = document.getElementById('od-sub-status');
+  if (subStatusEl) subStatusEl.value = 'active';
+  toast('Expiry extended to ' + newExpiry + ' — click Save Changes to apply');
 }
 
 async function unlockBankBalance() {
@@ -4217,35 +4448,33 @@ function toggleDarajaSection(plan) {
 async function saveOrgDetail() {
   if (!currentDetailOrgId) return;
   const plan = document.getElementById('od-plan-select')?.value;
-  const darajaKey = document.getElementById('od-daraja-key')?.value?.trim();
-  const darajaSecret = document.getElementById('od-daraja-secret')?.value?.trim();
-  const darajaPasskey = document.getElementById('od-daraja-passkey')?.value?.trim();
+  const gv = (id) => document.getElementById(id)?.value?.trim() || null;
   const updates = {
-    name: document.getElementById('od-name').value.trim(),
-    reg_number: document.getElementById('od-reg').value.trim(),
-    paybill: document.getElementById('od-paybill').value.trim(),
+    name: gv('od-name'),
+    reg_number: gv('od-reg'),
+    paybill: gv('od-paybill'),
     plan,
-    status: document.getElementById('od-status-select').value,
-    date_founded: document.getElementById('od-founded').value || null
+    status: document.getElementById('od-status-select')?.value,
+    date_founded: gv('od-founded'),
+    email: gv('od-email'),
+    // Features
+    daraja_enabled: document.getElementById('od-daraja-enabled')?.value === 'true',
+    daraja_env: gv('od-daraja-env') || 'sandbox',
+    sms_enabled: document.getElementById('od-sms-enabled')?.value !== 'false',
+    two_fa_enabled: document.getElementById('od-2fa-enabled')?.value === 'true',
+    // Billing
+    subscription_status: document.getElementById('od-sub-status')?.value || 'active',
+    subscription_expires: gv('od-sub-expiry'),
+    sms_bundle: parseInt(document.getElementById('od-sms-bundle')?.value) || 0
   };
-  // Save Daraja credentials for Standard/Pro orgs
-  if (['standard','pro'].includes(plan)) {
-    const dk = document.getElementById('od-daraja-key')?.value?.trim();
-    const ds = document.getElementById('od-daraja-secret')?.value?.trim();
-    const dp = document.getElementById('od-daraja-passkey')?.value?.trim();
-    const dsc = document.getElementById('od-daraja-shortcode')?.value?.trim();
-    if (dk) updates.daraja_consumer_key = dk;
-    if (ds) updates.daraja_consumer_secret = ds;
-    if (dp) updates.daraja_passkey = dp;
-    if (dsc) updates.daraja_shortcode = dsc;
-    updates.daraja_env = document.getElementById('od-daraja-env')?.value || 'sandbox';
-    updates.daraja_enabled = document.getElementById('od-daraja-enabled')?.value === 'true';
-  } else {
-    updates.daraja_enabled = false;
-  }
+  // Daraja credentials
+  const dk = gv('od-daraja-key'); if(dk) updates.daraja_consumer_key = dk;
+  const ds = gv('od-daraja-secret'); if(ds) updates.daraja_consumer_secret = ds;
+  const dp = gv('od-daraja-passkey'); if(dp) updates.daraja_passkey = dp;
+  const dsc = gv('od-daraja-shortcode'); if(dsc) updates.daraja_shortcode = dsc;
   const { error } = await sb.from('organisations').update(updates).eq('id', currentDetailOrgId);
   if (error) { toast('Error: '+error.message); return; }
-  toast('Organisation updated successfully');
+  toast('✓ Organisation updated successfully');
   closeModal('orgDetail');
   loadSuperAdmin();
 }
@@ -4253,28 +4482,37 @@ async function saveOrgDetail() {
 async function deleteOrg() {
   if (!currentDetailOrgId) return;
   const { data: org } = await sb.from('organisations').select('name').eq('id', currentDetailOrgId).single();
-  if (!confirm('Are you sure you want to delete ' + org.name + '? This will also delete all their members, transactions and data. This cannot be undone.')) return;
-  // Delete related data first
-  await sb.from('transactions').delete().eq('org_id', currentDetailOrgId);
-  await sb.from('expenses').delete().eq('org_id', currentDetailOrgId);
-  await sb.from('contribution_types').delete().eq('org_id', currentDetailOrgId);
-  await sb.from('welfare_events').delete().eq('org_id', currentDetailOrgId);
-  await sb.from('messages_log').delete().eq('org_id', currentDetailOrgId);
-  await sb.from('projects').delete().eq('org_id', currentDetailOrgId);
-  // Delete attendance for meetings
-  const { data: meetings } = await sb.from('meetings').select('id').eq('org_id', currentDetailOrgId);
-  if (meetings?.length) {
-    await sb.from('attendance').delete().in('meeting_id', meetings.map(m=>m.id));
+  if (!org) { toast('Organisation not found'); return; }
+  const typedName = prompt('Type the organisation name to confirm deletion:\n' + org.name);
+  if (!typedName || typedName.trim().toLowerCase() !== org.name.toLowerCase()) {
+    toast('Name did not match. Deletion cancelled.'); return;
   }
-  await sb.from('meetings').delete().eq('org_id', currentDetailOrgId);
-  await sb.from('members').delete().eq('org_id', currentDetailOrgId);
-  await sb.from('profiles').update({ org_id: null }).eq('org_id', currentDetailOrgId);
-  const { error } = await sb.from('organisations').delete().eq('id', currentDetailOrgId);
-  if (error) { toast('Error deleting: '+error.message); return; }
-  toast('Organisation deleted');
-  closeModal('orgDetail');
-  currentDetailOrgId = null;
-  loadSuperAdmin();
+  toast('Deleting ' + org.name + '…');
+  try {
+    // 1. Attendance (FK to meetings + members)
+    const { data: mtgs } = await sb.from('meetings').select('id').eq('org_id', currentDetailOrgId);
+    if (mtgs?.length) await sb.from('attendance').delete().in('meeting_id', mtgs.map(m=>m.id));
+    // 2. Child tables
+    const tables = ['transactions','expenses','contribution_types','welfare_events','messages_log','projects','activity_log','sms_usage','payment_requests'];
+    for (const t of tables) {
+      try { await sb.from(t).delete().eq('org_id', currentDetailOrgId); } catch(e) {}
+    }
+    // 3. Meetings
+    await sb.from('meetings').delete().eq('org_id', currentDetailOrgId);
+    // 4. Members
+    await sb.from('members').delete().eq('org_id', currentDetailOrgId);
+    // 5. Profiles — null out their org_id and demote
+    await sb.from('profiles').update({ org_id: null, role: 'member' }).eq('org_id', currentDetailOrgId);
+    // 6. Finally delete the org
+    const { error } = await sb.from('organisations').delete().eq('id', currentDetailOrgId);
+    if (error) { toast('Error deleting org: ' + error.message); return; }
+    toast('✓ ' + org.name + ' deleted successfully');
+    closeModal('orgDetail');
+    currentDetailOrgId = null;
+    loadSuperAdmin();
+  } catch(e) {
+    toast('Deletion error: ' + e.message);
+  }
 }
 
 // ── MEMBER PORTAL ACCESS ──
@@ -6073,5 +6311,64 @@ window.addEventListener('appinstalled', () => {
   toast('GroupYetu360 installed! Find it on your home screen.');
 });
 </script>
+
+<!-- ── FLOATING SUPPORT BUTTON ── -->
+<div id="support-fab" style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;display:flex;flex-direction:column;align-items:flex-end;gap:.5rem">
+  <!-- Expanded contacts (shown when FAB is open) -->
+  <div id="support-fab-menu" style="display:none;flex-direction:column;gap:.4rem;align-items:flex-end">
+    <a id="fab-whatsapp" href="https://wa.me/254792385970" target="_blank"
+       style="display:flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.5rem .85rem;border-radius:2rem;font-size:.78rem;font-weight:600;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,.2)">
+      <span style="font-size:1rem">💬</span> WhatsApp
+    </a>
+    <a id="fab-call" href="tel:+254792385970"
+       style="display:flex;align-items:center;gap:.5rem;background:var(--maroon,#800020);color:#fff;padding:.5rem .85rem;border-radius:2rem;font-size:.78rem;font-weight:600;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,.2)">
+      <span style="font-size:1rem">📞</span> Call Us
+    </a>
+    <a id="fab-email" href="mailto:support@groupyetu.org"
+       style="display:flex;align-items:center;gap:.5rem;background:var(--gold,#c49a30);color:#fff;padding:.5rem .85rem;border-radius:2rem;font-size:.78rem;font-weight:600;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,.2)">
+      <span style="font-size:1rem">✉️</span> Email
+    </a>
+  </div>
+  <!-- Main FAB button -->
+  <button onclick="toggleSupportFab()" id="support-fab-btn"
+    style="width:52px;height:52px;border-radius:50%;background:var(--maroon,#800020);color:#fff;border:none;cursor:pointer;font-size:1.4rem;box-shadow:0 4px 16px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;transition:transform .2s"
+    title="Support">❓</button>
+</div>
+<script>
+function toggleSupportFab() {
+  const menu = document.getElementById('support-fab-menu');
+  const btn = document.getElementById('support-fab-btn');
+  const open = menu.style.display !== 'none' && menu.style.display !== '';
+  if (open) {
+    menu.style.display = 'none';
+    btn.textContent = '❓';
+    btn.style.transform = 'rotate(0deg)';
+  } else {
+    menu.style.display = 'flex';
+    btn.textContent = '✕';
+    btn.style.transform = 'rotate(90deg)';
+  }
+}
+// Update FAB contacts from platform settings
+(async () => {
+  try {
+    if (typeof sb !== 'undefined') {
+      const { data: ps } = await sb.from('platform_settings').select('support_phone,support_email').maybeSingle();
+      if (ps?.support_phone) {
+        const phone = ps.support_phone.replace(/\D/g,'');
+        const wLink = document.getElementById('fab-whatsapp');
+        const cLink = document.getElementById('fab-call');
+        if (wLink) wLink.href = 'https://wa.me/254' + phone.replace(/^0/,'');
+        if (cLink) cLink.href = 'tel:+254' + phone.replace(/^0/,'');
+      }
+      if (ps?.support_email) {
+        const eLink = document.getElementById('fab-email');
+        if (eLink) eLink.href = 'mailto:' + ps.support_email;
+      }
+    }
+  } catch(e) {}
+})();
+</script>
+
 </body>
 </html>
