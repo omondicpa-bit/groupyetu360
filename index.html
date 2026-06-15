@@ -3263,7 +3263,7 @@ async function signIn() {
     // Check if org has 2FA enabled (or superadmin always has it)
     let twoFAEnabled = profile?.role === 'superadmin';
     if (!twoFAEnabled && profile?.org_id) {
-      const { data: org } = await sb.from('organisations').select('two_fa_enabled').eq('id', profile.org_id).single().catch(()=>({data:null}));
+      const { data: org } = await sb.from('organisations').select('two_fa_enabled').eq('id', profile.org_id).maybeSingle();
       twoFAEnabled = org?.two_fa_enabled || false;
     }
 
@@ -3278,7 +3278,7 @@ async function signIn() {
       _2faCode = otp;
 
       // Send OTP via SMS if phone available, or show in toast for now
-      const { data: fullProfile } = await sb.from('profiles').select('phone').eq('id', data.user.id).single().catch(()=>({data:null}));
+      const { data: fullProfile } = await sb.from('profiles').select('phone').eq('id', data.user.id).maybeSingle();
 
       // Log OTP (in production this goes via SMS/email)
       console.log('[2FA] OTP for', email, ':', otp);
@@ -5829,7 +5829,7 @@ async function saveAdjustment() {
   await sb.from('members').update({ [balField]: newBal }).eq('id', currentMemberId);
   toast(`${direction==='credit'?'Credit':'Debit'} of Ksh ${amount.toLocaleString()} applied to ${adjType}`);
   // Log this sensitive action
-  const { data: m } = await sb.from('members').select('full_name').eq('id', currentMemberId).single().catch(()=>({data:null}));
+  const { data: m } = await sb.from('members').select('full_name').eq('id', currentMemberId).maybeSingle();
   await logActivity(
     `${direction.toUpperCase()} ${adjType}`,
     `${direction==='credit'?'Credited':'Debited'} Ksh ${amount.toLocaleString()} ${adjType} for ${m?.full_name||'member'}. Reason: ${reason}`,
@@ -6173,7 +6173,7 @@ async function loadMyProfile() {
   if (currentUser?.email) {
     const { data: byEmail } = await sb.from('members')
       .select('*').eq('org_id', currentOrg.id)
-      .eq('portal_email', currentUser.email).maybeSingle().catch(()=>({data:null}));
+      .eq('portal_email', currentUser.email).maybeSingle();
     if (byEmail) myRecord = byEmail;
   }
   // Fallback: phone or name match
@@ -6572,7 +6572,7 @@ async function loadBilling() {
 
   // SMS usage
   const month = new Date().toISOString().slice(0,7);
-  const { data: usage } = await sb.from('sms_usage').select('*').eq('org_id', currentOrg.id).eq('month', month).single().catch(()=>({data:null}));
+  const { data: usage } = await sb.from('sms_usage').select('*').eq('org_id', currentOrg.id).eq('month', month).maybeSingle();
   const smsUsed = usage?.messages_sent || 0;
   const smsBundle = org?.sms_bundle || PLAN_SMS[org?.plan||'starter'] || 50;
   const smsPct = Math.min(100, Math.round((smsUsed/smsBundle)*100));
@@ -7023,7 +7023,7 @@ async function trackSmsUsage(orgId, messagesSent) {
   const chargedToOrg = messagesSent * SMS_RATE;
   
   const { data: existing } = await sb.from('sms_usage')
-    .select('*').eq('org_id', orgId).eq('month', month).single().catch(()=>({data:null}));
+    .select('*').eq('org_id', orgId).eq('month', month).maybeSingle();
   
   if (existing) {
     await sb.from('sms_usage').update({
