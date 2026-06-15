@@ -300,6 +300,21 @@ body{font-family:'Inter',sans-serif;background:var(--surface-2);color:var(--ink)
 .org-option-name{font-weight:600;color:var(--ink)}
 .org-option-meta{font-size:.7rem;color:var(--ink-faint);margin-top:.1rem}
 
+/* ── MEMBER FILTER PILLS ── */
+.mf-pill{
+  padding:.3rem .8rem;font-size:.72rem;font-weight:600;cursor:pointer;
+  border:1.5px solid var(--border-dk);background:var(--surface);color:var(--ink-faint);
+  border-radius:99px;transition:all .15s;font-family:'Inter',sans-serif
+}
+.mf-pill:hover{border-color:var(--teal);color:var(--teal)}
+.mf-pill.active{background:var(--teal);color:#fff;border-color:var(--teal);
+  box-shadow:0 2px 8px rgba(15,110,86,.25)}
+
+/* ── MEMBER FILTER PILLS ── */
+.mf-pill{padding:.3rem .8rem;font-size:.72rem;font-weight:600;cursor:pointer;border:1.5px solid var(--border-dk);background:var(--surface);color:var(--ink-faint);border-radius:99px;transition:all .15s;font-family:'Inter',sans-serif}
+.mf-pill:hover{border-color:var(--teal);color:var(--teal)}
+.mf-pill.active{background:var(--teal);color:#fff;border-color:var(--teal);box-shadow:0 2px 8px rgba(15,110,86,.25)}
+
 /* ── DASHBOARD ── */
 .dash-stat{transition:transform .15s,box-shadow .15s;cursor:pointer}
 .dash-stat:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.1)}
@@ -437,13 +452,86 @@ tr:hover td{background:var(--maroon-pale)}
 .search-input:focus{border-color:var(--maroon)}
 
 /* MEMBER GRID */
+/* ── MEMBER CARDS ── */
+@keyframes cardIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
 .member-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
-.member-card{background:var(--surface);border:1px solid var(--border);padding:1rem;cursor:pointer;transition:box-shadow .15s}
-.member-card:hover{box-shadow:0 4px 16px rgba(128,0,32,.1)}
-.member-card-num{font-size:.62rem;font-weight:700;color:var(--maroon);letter-spacing:.1em;margin-bottom:.3rem}
-.member-card-name{font-size:.85rem;font-weight:600;color:var(--ink);margin-bottom:.2rem}
-.member-card-phone{font-size:.72rem;color:var(--ink-faint)}
-.member-card-balances{display:flex;gap:.75rem;margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border)}
+
+.member-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:8px;
+  cursor:pointer;
+  overflow:hidden;
+  transition:transform .18s,box-shadow .18s,border-color .18s;
+  animation:cardIn .35s ease both;
+  position:relative
+}
+.member-card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 8px 24px rgba(15,110,86,.12);
+  border-color:var(--teal-mid)
+}
+
+/* Coloured top accent bar per status */
+.member-card::before{
+  content:'';display:block;height:4px;width:100%;
+  background:var(--card-accent,var(--border-dk));
+  transition:background .2s
+}
+.member-card.status-active::before{background:var(--teal)}
+.member-card.status-arrears::before{background:var(--warning)}
+.member-card.status-inactive::before{background:var(--border-dk)}
+.member-card.status-suspended::before{background:var(--danger)}
+
+/* Avatar + header row */
+.mc-header{display:flex;align-items:center;gap:.75rem;padding:.85rem 1rem .6rem}
+.mc-avatar{
+  width:40px;height:40px;border-radius:50%;
+  background:linear-gradient(135deg,var(--teal-pale),var(--teal-mid));
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Crimson Pro',serif;font-size:1rem;font-weight:700;
+  color:var(--teal-dk);flex-shrink:0;
+  transition:transform .2s
+}
+.member-card:hover .mc-avatar{transform:scale(1.08)}
+.mc-meta{flex:1;min-width:0}
+.mc-num{font-size:.6rem;font-weight:700;color:var(--maroon);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.15rem}
+.mc-name{font-size:.88rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mc-phone{font-size:.7rem;color:var(--ink-faint);margin-top:.1rem}
+
+/* Balance row */
+.mc-balances{
+  display:flex;padding:.6rem 1rem;
+  background:var(--surface-2);
+  border-top:1px solid var(--border);
+  gap:0
+}
+.mc-bal{flex:1;text-align:center;padding:.25rem .1rem}
+.mc-bal+.mc-bal{border-left:1px solid var(--border)}
+.mc-bal-label{font-size:.55rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem}
+.mc-bal-value{font-size:.8rem;font-weight:700}
+
+/* Footer row */
+.mc-footer{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.5rem 1rem;font-size:.65rem;color:var(--ink-faint);
+  border-top:1px solid var(--border)
+}
+.mc-reg-ok{color:var(--teal);font-weight:600}
+.mc-reg-warn{color:var(--danger);font-weight:600}
+
+/* Stagger delay for visual effect */
+.member-card:nth-child(1){animation-delay:.03s}
+.member-card:nth-child(2){animation-delay:.07s}
+.member-card:nth-child(3){animation-delay:.11s}
+.member-card:nth-child(4){animation-delay:.15s}
+.member-card:nth-child(5){animation-delay:.19s}
+.member-card:nth-child(6){animation-delay:.23s}
+.member-card:nth-child(7){animation-delay:.27s}
+.member-card:nth-child(8){animation-delay:.31s}
+.member-card:nth-child(9){animation-delay:.35s}
+
 .member-bal{display:flex;flex-direction:column;gap:.15rem}
 .member-bal-label{font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint)}
 .member-bal-value{font-size:.82rem;font-weight:700;color:var(--ink)}
@@ -1070,13 +1158,47 @@ tr:hover td{background:var(--maroon-pale)}
     <!-- MEMBERS -->
     <div class="page" id="page-members">
       <div class="section-header">
-        <div><div class="section-title">Member Register</div><div class="section-sub" id="members-sub">Loading…</div></div>
-        <button class="btn btn-primary" onclick="showModal('addMember')">+ Add Member</button>
+        <div>
+          <div class="section-title">Member Register</div>
+          <div class="section-sub" id="members-sub">Loading…</div>
+        </div>
+        <div style="display:flex;gap:.6rem">
+          <button class="btn btn-secondary btn-sm" id="members-view-toggle" onclick="toggleMembersView()" title="Switch view">⊞ Grid</button>
+          <button class="btn btn-primary" onclick="showModal('addMember')">+ Add Member</button>
+        </div>
       </div>
-      <div class="search-bar">
-        <input class="search-input" placeholder="Search by name or phone…" oninput="filterMembers(this.value)"/>
+
+      <!-- Status filter pills + search -->
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap">
+        <div style="display:flex;gap:.35rem" id="member-status-filters">
+          <button class="mf-pill active" onclick="filterByStatus('all',this)">All</button>
+          <button class="mf-pill" onclick="filterByStatus('active',this)">Active</button>
+          <button class="mf-pill" onclick="filterByStatus('arrears',this)">Arrears</button>
+          <button class="mf-pill" onclick="filterByStatus('inactive',this)">Inactive</button>
+        </div>
+        <div style="flex:1;min-width:200px;position:relative">
+          <span style="position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:var(--ink-faint);font-size:.85rem;pointer-events:none">🔍</span>
+          <input class="search-input" id="member-search-input"
+            placeholder="Search name, phone, email, ID…"
+            oninput="filterMembers(this.value)"
+            style="padding-left:2.2rem;width:100%"/>
+        </div>
+        <div id="members-count-label" style="font-size:.72rem;color:var(--ink-faint);white-space:nowrap"></div>
       </div>
-      <div class="member-grid" id="member-grid"><div class="loading"><div class="spinner"></div>Loading members…</div></div>
+
+      <div class="member-grid" id="member-grid">
+        <div class="loading"><div class="spinner"></div>Loading members…</div>
+      </div>
+
+      <!-- List view (hidden by default) -->
+      <div id="member-list-view" style="display:none">
+        <div class="table-wrap card">
+          <table>
+            <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>Shares</th><th>Savings</th><th>Status</th><th></th></tr></thead>
+            <tbody id="member-list-table"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- FINANCE -->
@@ -3528,33 +3650,126 @@ async function loadMembers() {
   renderMemberGrid(allMembers);
 }
 
+// Track current member filter state
+let _memberStatusFilter = 'all';
+
+function filterByStatus(status, btn) {
+  _memberStatusFilter = status;
+  document.querySelectorAll('.mf-pill').forEach(p => p.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const q = document.getElementById('member-search-input')?.value || '';
+  applyMemberFilters(q, status);
+}
+
+function filterMembers(q) {
+  applyMemberFilters(q, _memberStatusFilter);
+}
+
+function applyMemberFilters(q, status) {
+  let list = allMembers;
+  if (status && status !== 'all') list = list.filter(m => m.status === status);
+  if (q && q.length >= 1) {
+    const ql = q.toLowerCase();
+    list = list.filter(m =>
+      (m.full_name||'').toLowerCase().includes(ql) ||
+      (m.phone||'').includes(q) ||
+      (m.email||'').toLowerCase().includes(ql) ||
+      (m.id_number||'').includes(q) ||
+      (m.member_number?.toString()||'').includes(q)
+    );
+  }
+  const countEl = document.getElementById('members-count-label');
+  if (countEl) countEl.textContent = list.length + ' of ' + allMembers.length + ' members';
+  const gridView = document.getElementById('member-grid');
+  const listView = document.getElementById('member-list-view');
+  if (gridView && gridView.style.display !== 'none') renderMemberGrid(list);
+  else renderMemberList(list);
+}
+
+let _membersViewMode = 'grid';
+function toggleMembersView() {
+  _membersViewMode = _membersViewMode === 'grid' ? 'list' : 'grid';
+  const grid = document.getElementById('member-grid');
+  const list = document.getElementById('member-list-view');
+  const btn = document.getElementById('members-view-toggle');
+  if (_membersViewMode === 'list') {
+    if (grid) grid.style.display = 'none';
+    if (list) list.style.display = '';
+    if (btn) btn.textContent = '☰ List';
+    renderMemberList(allMembers);
+  } else {
+    if (grid) grid.style.display = '';
+    if (list) list.style.display = 'none';
+    if (btn) btn.textContent = '⊞ Grid';
+    renderMemberGrid(allMembers);
+  }
+}
+
+function renderMemberList(list) {
+  const tbody = document.getElementById('member-list-table');
+  if (!tbody) return;
+  tbody.innerHTML = list.length ? list.map(m => `<tr onclick="openMemberDetail('${m.id}')" style="cursor:pointer">
+    <td style="font-weight:700;color:var(--maroon)">#${m.member_number||'—'}</td>
+    <td><strong>${m.full_name}</strong><div style="font-size:.68rem;color:var(--ink-faint)">${m.email||''}</div></td>
+    <td>${m.phone||'—'}</td>
+    <td style="font-weight:600;color:var(--maroon)">Ksh ${Number(m.shares_balance||0).toLocaleString()}</td>
+    <td style="font-weight:600;color:var(--teal)">Ksh ${Number(m.savings_balance||0).toLocaleString()}</td>
+    <td><span class="badge ${m.status==='active'?'badge-green':m.status==='arrears'?'badge-warn':'badge-grey'}">${m.status}</span></td>
+    <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openMemberDetail('${m.id}')">View →</button></td>
+  </tr>`).join('') : '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--ink-faint)">No members found</td></tr>';
+}
+
 function renderMemberGrid(list) {
-  document.getElementById('member-grid').innerHTML = list.length ? list.map(m => `
-    <div class="member-card" onclick="openMemberDetail('${m.id}')">
-      <div class="member-card-num">Member #${m.member_number||'—'}</div>
-      <div class="member-card-name">${m.full_name}</div>
-      <div class="member-card-phone">${m.phone||'—'}</div>
-      <div class="member-card-balances">
-        <div class="member-bal">
-          <div class="member-bal-label">Shares Bal</div>
-          <div class="member-bal-value" style="color:var(--maroon)">Ksh ${(m.shares_balance||0).toLocaleString()}</div>
+  const grid = document.getElementById('member-grid');
+  if (!grid) return;
+  if (!list.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;padding:3rem;text-align:center">
+      <div style="font-size:2.5rem;margin-bottom:.75rem">◉</div>
+      <div style="font-size:.95rem;font-weight:600;color:var(--ink);margin-bottom:.4rem">No members yet</div>
+      <div style="font-size:.8rem;color:var(--ink-faint);margin-bottom:1.25rem">Add your first member to get started</div>
+      <button class="btn btn-primary" style="width:auto;padding:.65rem 1.5rem" onclick="showModal('addMember')">+ Add First Member</button>
+    </div>`;
+    return;
+  }
+  const countEl = document.getElementById('members-count-label');
+  if (countEl) countEl.textContent = list.length + ' of ' + allMembers.length + ' members';
+  grid.innerHTML = list.map((m,i) => {
+    const initials = (m.full_name||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+    const totalBal = Number(m.shares_balance||0) + Number(m.savings_balance||0);
+    const statusClass = 'status-' + (m.status||'inactive');
+    const badgeClass = m.status==='active'?'badge-green':m.status==='arrears'?'badge-warn':'badge-grey';
+    const regOk = m.registration_paid;
+    const renewalDue = m.registration_renewal && new Date(m.registration_renewal) < new Date();
+    return \`<div class="member-card \${statusClass}" onclick="openMemberDetail('\${m.id}')" style="animation-delay:\${i*0.04}s">
+      <div class="mc-header">
+        <div class="mc-avatar">\${initials}</div>
+        <div class="mc-meta">
+          <div class="mc-num">Member #\${m.member_number||'—'}</div>
+          <div class="mc-name">\${m.full_name}</div>
+          <div class="mc-phone">\${m.phone||m.email||'—'}</div>
         </div>
-        <div class="member-bal">
-          <div class="member-bal-label">Savings Bal</div>
-          <div class="member-bal-value" style="color:var(--teal,#1a5c5a)">Ksh ${(m.savings_balance||0).toLocaleString()}</div>
+        <span class="badge \${badgeClass}" style="font-size:.6rem;flex-shrink:0">\${m.status||'—'}</span>
+      </div>
+      <div class="mc-balances">
+        <div class="mc-bal">
+          <div class="mc-bal-label">Shares</div>
+          <div class="mc-bal-value" style="color:var(--maroon)">Ksh \${Number(m.shares_balance||0).toLocaleString()}</div>
         </div>
-        <div class="member-bal">
-          <div class="member-bal-label">Status</div>
-          <div class="member-bal-value">
-            <span class="badge ${m.status==='active'?'badge-green':m.status==='arrears'?'badge-warn':'badge-grey'}">${m.status}</span>
-          </div>
+        <div class="mc-bal">
+          <div class="mc-bal-label">Savings</div>
+          <div class="mc-bal-value" style="color:var(--teal)">Ksh \${Number(m.savings_balance||0).toLocaleString()}</div>
+        </div>
+        <div class="mc-bal">
+          <div class="mc-bal-label">Total</div>
+          <div class="mc-bal-value" style="color:var(--ink)">Ksh \${totalBal.toLocaleString()}</div>
         </div>
       </div>
-      <div style="margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:.68rem;color:var(--ink-faint)">
-        <span>Savings/mo: Ksh ${m.savings_tier?.toLocaleString()||'—'}</span>
-        <span style="color:${m.registration_paid?'var(--success)':'var(--danger)'};font-weight:600">${m.registration_paid?'✓ Registered':'⚠ Unregistered'}${m.registration_renewal&&new Date(m.registration_renewal)<new Date()?' (Renewal Due!)':''}</span>
+      <div class="mc-footer">
+        <span>Ksh \${(m.savings_tier||0).toLocaleString()}/mo</span>
+        <span class="\${regOk&&!renewalDue?'mc-reg-ok':'mc-reg-warn'}">\${regOk&&!renewalDue?'✓ Registered':renewalDue?'⚠ Renewal due':'⚠ Unregistered'}</span>
       </div>
-    </div>`).join('') : '<div style="padding:2rem;color:var(--ink-faint);text-align:center">No members yet. Add your first member.</div>';
+    </div>\`;
+  }).join('');
 }
 
 function filterMembers(q) {
