@@ -2993,9 +2993,18 @@ async function init() {
     showAuthScreen();
   }
   sb.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'SIGNED_IN') {
+    if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+      if (!session) return;
+      // Avoid double-loading if we already have a matching session
+      if (event === 'INITIAL_SESSION' && currentProfile) return;
       currentUser = session.user;
-      await loadProfileAndOrg();
+      try {
+        await loadProfileAndOrg();
+      } catch(e) {
+        console.error('[GY360] loadProfileAndOrg error:', e);
+        // Don't sign out on error — just show auth screen
+        showAuthScreen();
+      }
     } else if (event === 'SIGNED_OUT') {
       showAuthScreen();
     }
@@ -3005,15 +3014,21 @@ async function init() {
 async function loadProfileAndOrg() {
   // If pending org from org code login, use that profile
   let profile;
-  if (_pendingOrgId) {
-    const { data: p } = await sb.from('profiles').select('*')
-      .eq('id', currentUser.id).eq('org_id', _pendingOrgId).maybeSingle();
-    profile = p;
-    _pendingOrgId = null;
-  }
-  if (!profile) {
-    const { data: p } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
-    profile = p;
+  try {
+    if (_pendingOrgId) {
+      const { data: p } = await sb.from('profiles').select('*')
+        .eq('id', currentUser.id).eq('org_id', _pendingOrgId).maybeSingle();
+      profile = p;
+      _pendingOrgId = null;
+    }
+    if (!profile) {
+      const { data: p } = await sb.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
+      profile = p;
+    }
+  } catch(e) {
+    console.error('[GY360] Profile fetch error:', e);
+    showAuthScreen();
+    return;
   }
   currentProfile = profile;
   if (!profile) { showAuthScreen(); return; }
@@ -3468,9 +3483,9 @@ function showApp() {
   const today = new Date().toISOString().split('T')[0];
   document.querySelectorAll('input[type="date"]').forEach(el => { if(!el.value) el.value = today; });
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    loadDashboard();
-    prefetchData();
-    checkSubscriptionAccess();
+    try { loadDashboard(); } catch(e) { console.error('[GY360] Dashboard error:', e); }
+    try { prefetchData(); } catch(e) { console.error('[GY360] Prefetch error:', e); }
+    try { checkSubscriptionAccess(); } catch(e) { console.error('[GY360] Sub check error:', e); }
   }));
 }
 
