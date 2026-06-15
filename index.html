@@ -701,14 +701,49 @@ tr:hover td{background:var(--maroon-pale)}
 .org-actions{display:flex;align-items:center;gap:.5rem}
 
 /* FARM CARD */
-.farm-card{background:var(--surface);border:1px solid var(--border);padding:1.25rem}
-.farm-name{font-size:.9rem;font-weight:700;color:var(--ink)}
-.farm-location{font-size:.7rem;color:var(--ink-faint);margin-top:.1rem;margin-bottom:.75rem}
+/* ══ PROJECTS PAGE ══ */
+@keyframes projIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.farm-card{
+  background:var(--surface);border:1px solid var(--border);
+  overflow:hidden;animation:projIn .35s ease both;
+  transition:transform .18s,box-shadow .18s,border-color .18s
+}
+.farm-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.1);border-color:var(--teal-mid)}
+.farm-card::before{content:'';display:block;height:4px;background:var(--teal)}
+.farm-card.completed::before{background:var(--border-dk)}
+.farm-card.paused::before{background:var(--warning)}
+.farm-card-body{padding:1.1rem 1.25rem}
+.farm-name{font-size:.92rem;font-weight:700;color:var(--ink);margin-bottom:.15rem}
+.farm-location{font-size:.7rem;color:var(--ink-faint);margin-bottom:.75rem;display:flex;align-items:center;gap:.3rem}
 .farm-stat{display:flex;justify-content:space-between;font-size:.75rem;padding:.35rem 0;border-bottom:1px solid var(--border)}
 .farm-stat:last-child{border-bottom:none}
 .farm-stat-label{color:var(--ink-faint)}
 .farm-stat-val{font-weight:600;color:var(--ink)}
 .farm-stat-val.neg{color:var(--danger)}
+.farm-stat-val.pos{color:var(--teal)}
+.farm-card-footer{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.6rem 1.25rem;background:var(--surface-2);
+  border-top:1px solid var(--border)
+}
+.proj-type-icon{
+  width:36px;height:36px;border-radius:8px;
+  background:var(--teal-pale);display:flex;align-items:center;
+  justify-content:center;font-size:1.1rem;flex-shrink:0
+}
+.proj-type-icon.completed{background:var(--surface-3)}
+.proj-hero{
+  background:linear-gradient(135deg,#063d2e 0%,var(--teal) 55%,#1a1a1a 100%);
+  padding:1.25rem 1.5rem;margin-bottom:1.25rem;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem
+}
+.proj-hero-title{font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:#fff}
+.proj-hero-sub{font-size:.72rem;color:rgba(255,255,255,.5)}
+.proj-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1.25rem}
+.proj-stat{background:var(--surface);border:1px solid var(--border);padding:.85rem 1rem;text-align:center;animation:projIn .3s ease both}
+.proj-stat-val{font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:var(--teal)}
+.proj-stat-label{font-size:.62rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-top:.15rem}
+.proj-filter-bar{display:flex;gap:.4rem;margin-bottom:1rem;flex-wrap:wrap}
 
 /* ATT */
 .att-btn{padding:.3rem .7rem;font-size:.7rem;font-weight:600;cursor:pointer;border:1.5px solid var(--border-dk);background:var(--surface);color:var(--ink-faint);transition:all .15s;min-width:90px;text-align:center;font-family:'Inter',sans-serif}
@@ -1810,11 +1845,47 @@ tr:hover td{background:var(--maroon-pale)}
 
     <!-- PROJECTS -->
     <div class="page" id="page-projects">
-      <div class="section-header">
-        <div><div class="section-title">Projects & Investments</div></div>
-        <button class="btn btn-primary" onclick="showModal('addProject')">+ Add Project</button>
+
+      <!-- ── HERO ── -->
+      <div class="proj-hero">
+        <div>
+          <div class="proj-hero-title">⚑ Projects & Investments</div>
+          <div class="proj-hero-sub" id="proj-hero-sub">Track farms, properties and group investments</div>
+        </div>
+        <button class="btn fin-ctrl-btn" onclick="showModal('addProject')">+ Add Project</button>
       </div>
-      <div class="grid-3" id="projects-grid"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+
+      <!-- ── STATS ── -->
+      <div class="proj-stats">
+        <div class="proj-stat" style="animation-delay:.0s">
+          <div class="proj-stat-val" id="proj-stat-active">—</div>
+          <div class="proj-stat-label">Active</div>
+        </div>
+        <div class="proj-stat" style="animation-delay:.06s">
+          <div class="proj-stat-val" id="proj-stat-total">—</div>
+          <div class="proj-stat-label">Total Projects</div>
+        </div>
+        <div class="proj-stat" style="animation-delay:.12s">
+          <div class="proj-stat-val" id="proj-stat-invested" style="color:var(--maroon)">—</div>
+          <div class="proj-stat-label">Total Invested</div>
+        </div>
+        <div class="proj-stat" style="animation-delay:.18s">
+          <div class="proj-stat-val" id="proj-stat-completed" style="color:var(--ink-faint)">—</div>
+          <div class="proj-stat-label">Completed</div>
+        </div>
+      </div>
+
+      <!-- ── FILTER ── -->
+      <div class="proj-filter-bar">
+        <button class="mf-pill active" onclick="filterProjects('all',this)">All</button>
+        <button class="mf-pill" onclick="filterProjects('active',this)">Active</button>
+        <button class="mf-pill" onclick="filterProjects('completed',this)">Completed</button>
+      </div>
+
+      <!-- ── GRID ── -->
+      <div class="grid-3" id="projects-grid">
+        <div class="loading"><div class="spinner"></div>Loading…</div>
+      </div>
     </div>
 
     <!-- MESSAGES -->
@@ -4954,27 +5025,109 @@ function toggleWelfareCategory(cat) {
 }
 
 // ── PROJECTS ──
-async function loadProjects() {
-  if (!currentOrg?.id) return;
-  const { data } = await sb.from('projects').select('*').eq('org_id', currentOrg.id);
-  allProjects = data || [];
-  document.getElementById('projects-grid').innerHTML = allProjects.length ? allProjects.map(p => `
-    <div class="farm-card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">
-        <div><div class="farm-name">${p.name}</div><div class="farm-location">📍 ${p.location||'—'}</div></div>
-        <div style="display:flex;gap:.4rem;align-items:center">
-          <span class="badge ${p.status==='active'?'badge-green':'badge-grey'}">${p.status}</span>
-          <button class="btn btn-danger btn-sm" onclick="deleteProject('${p.id}','${p.name.replace(/'/g,"&apos;")}')" style="padding:.2rem .5rem;font-size:.6rem">✕</button>
+// Project type icons and labels
+const projTypeIcon = {
+  farm: '🌾', property: '🏘', business: '💼', vehicle: '🚗',
+  equipment: '⚙', livestock: '🐄', other: '⚑'
+};
+
+function getProjectIcon(p) {
+  const name = (p.name + ' ' + (p.notes||'')).toLowerCase();
+  if (name.includes('farm') || name.includes('shamba') || name.includes('crop') || name.includes('harvest')) return '🌾';
+  if (name.includes('house') || name.includes('plot') || name.includes('land') || name.includes('property')) return '🏘';
+  if (name.includes('vehicle') || name.includes('car') || name.includes('matatu') || name.includes('truck')) return '🚗';
+  if (name.includes('livestock') || name.includes('cow') || name.includes('goat') || name.includes('dairy')) return '🐄';
+  if (name.includes('business') || name.includes('shop') || name.includes('trade')) return '💼';
+  return '⚑';
+}
+
+function renderProjectCard(p, idx) {
+  const isActive = p.status === 'active';
+  const icon = getProjectIcon(p);
+  const cost = Number(p.acquisition_cost||0);
+  const income = Number(p.total_income||0);
+  const expenses = Number(p.total_expenses||0);
+  const roi = cost > 0 ? ((income - expenses - cost) / cost * 100).toFixed(1) : null;
+  return `<div class="farm-card ${isActive?'':'completed'}" style="animation-delay:${idx*0.05}s">
+    <div class="farm-card-body">
+      <div style="display:flex;align-items:flex-start;gap:.75rem;margin-bottom:.75rem">
+        <div class="proj-type-icon ${isActive?'':'completed'}">${icon}</div>
+        <div style="flex:1;min-width:0">
+          <div class="farm-name">${p.name}</div>
+          <div class="farm-location">📍 ${p.location||'Location not set'}</div>
+          <span class="badge ${isActive?'badge-green':'badge-grey'}" style="font-size:.6rem">${p.status}</span>
         </div>
       </div>
-      <div class="farm-stat"><span class="farm-stat-label">Acquisition Cost</span><span class="farm-stat-val neg">Ksh ${Number(p.acquisition_cost||0).toLocaleString()}</span></div>
-      ${p.notes?`<div style="font-size:.75rem;color:var(--ink-faint);margin-top:.6rem">${p.notes}</div>`:''}
-      <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border);display:flex;gap:.5rem">
-        <button class="btn btn-secondary btn-sm" onclick="toggleProjectStatus('${p.id}','${p.status}')">${p.status==='active'?'Mark Complete':'Reactivate'}</button>
+      <div class="farm-stat">
+        <span class="farm-stat-label">Acquisition Cost</span>
+        <span class="farm-stat-val neg">Ksh ${cost.toLocaleString()}</span>
       </div>
-    </div>`).join('') : '<div style="padding:2rem;color:var(--ink-faint)">No projects yet. Add your first investment.</div>';
-  const projOpts = '<option value="">None</option>' + allProjects.map(p=>`<option value="${p.name}">${p.name}</option>`).join('');
-  const ep = document.getElementById('exp-project'); if(ep) ep.innerHTML = projOpts;
+      ${income > 0 ? `<div class="farm-stat">
+        <span class="farm-stat-label">Total Income</span>
+        <span class="farm-stat-val pos">Ksh ${income.toLocaleString()}</span>
+      </div>` : ''}
+      ${roi !== null ? `<div class="farm-stat">
+        <span class="farm-stat-label">ROI</span>
+        <span class="farm-stat-val ${parseFloat(roi)>=0?'pos':'neg'}">${roi}%</span>
+      </div>` : ''}
+      ${p.notes ? `<div style="font-size:.72rem;color:var(--ink-faint);margin-top:.6rem;line-height:1.5">${p.notes}</div>` : ''}
+    </div>
+    <div class="farm-card-footer">
+      <button class="btn btn-secondary btn-sm" style="font-size:.7rem"
+        onclick="toggleProjectStatus('${p.id}','${p.status}')">
+        ${isActive ? '✓ Mark Complete' : '↺ Reactivate'}
+      </button>
+      <button class="btn btn-danger btn-sm" style="font-size:.7rem"
+        onclick="deleteProject('${p.id}','${p.name.replace(/'/g,"&apos;")}')">✕ Delete</button>
+    </div>
+  </div>`;
+}
+
+function filterProjects(status, btn) {
+  document.querySelectorAll('.proj-filter-bar .mf-pill').forEach(p => p.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const filtered = status === 'all' ? allProjects : allProjects.filter(p => p.status === status);
+  const grid = document.getElementById('projects-grid');
+  if (!filtered.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;padding:2.5rem;text-align:center">
+      <div style="font-size:2rem;margin-bottom:.5rem">⚑</div>
+      <div style="font-size:.85rem;color:var(--ink-faint)">${status==='all'?'No projects yet — add your first investment':'No '+status+' projects'}</div>
+    </div>`;
+    return;
+  }
+  grid.innerHTML = filtered.map((p,i) => renderProjectCard(p, i)).join('');
+}
+
+async function loadProjects() {
+  if (!currentOrg?.id) return;
+  const { data } = await sb.from('projects').select('*').eq('org_id', currentOrg.id).order('created_at',{ascending:false});
+  allProjects = data || [];
+
+  // Stats
+  const active = allProjects.filter(p => p.status === 'active');
+  const completed = allProjects.filter(p => p.status !== 'active');
+  const totalInvested = allProjects.reduce((s,p) => s + Number(p.acquisition_cost||0), 0);
+  const setEl = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  setEl('proj-stat-active', active.length);
+  setEl('proj-stat-total', allProjects.length);
+  setEl('proj-stat-invested', 'Ksh ' + (totalInvested >= 1000000
+    ? (totalInvested/1000000).toFixed(1)+'M'
+    : totalInvested >= 1000 ? (totalInvested/1000).toFixed(0)+'K'
+    : totalInvested.toLocaleString()));
+  setEl('proj-stat-completed', completed.length);
+
+  // Hero sub
+  const heroSub = document.getElementById('proj-hero-sub');
+  if (heroSub) heroSub.textContent = active.length
+    ? `${active.length} active project${active.length!==1?'s':''} · Ksh ${totalInvested.toLocaleString()} invested`
+    : 'No active projects — add your first investment';
+
+  // Render grid (all by default)
+  filterProjects('all', document.querySelector('.proj-filter-bar .mf-pill'));
+
+  // Populate project dropdowns in finance forms
+  const projOpts = '<option value="">None</option>' + allProjects.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+  ['exp-project','inc-project'].forEach(id => { const el=document.getElementById(id); if(el) el.innerHTML=projOpts; });
 }
 
 async function saveProject() {
