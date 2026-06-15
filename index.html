@@ -3922,31 +3922,31 @@ function renderMemberGrid(list) {
     const renewalDue = m.registration_renewal && new Date(m.registration_renewal) < new Date();
     return `<div class="member-card ${statusClass}" onclick="openMemberDetail('${m.id}')" style="animation-delay:${i*0.04}s">
       <div class="mc-header">
-        <div class="mc-avatar">\${initials}</div>
+        <div class="mc-avatar">${initials}</div>
         <div class="mc-meta">
-          <div class="mc-num">Member #\${m.member_number||'—'}</div>
-          <div class="mc-name">\${m.full_name}</div>
-          <div class="mc-phone">\${m.phone||m.email||'—'}</div>
+          <div class="mc-num">Member #${m.member_number||'—'}</div>
+          <div class="mc-name">${m.full_name}</div>
+          <div class="mc-phone">${m.phone||m.email||'—'}</div>
         </div>
-        <span class="badge \${badgeClass}" style="font-size:.6rem;flex-shrink:0">\${m.status||'—'}</span>
+        <span class="badge ${badgeClass}" style="font-size:.6rem;flex-shrink:0">${m.status||'—'}</span>
       </div>
       <div class="mc-balances">
         <div class="mc-bal">
           <div class="mc-bal-label">Shares</div>
-          <div class="mc-bal-value" style="color:var(--maroon)">Ksh \${Number(m.shares_balance||0).toLocaleString()}</div>
+          <div class="mc-bal-value" style="color:var(--maroon)">Ksh ${Number(m.shares_balance||0).toLocaleString()}</div>
         </div>
         <div class="mc-bal">
           <div class="mc-bal-label">Savings</div>
-          <div class="mc-bal-value" style="color:var(--teal)">Ksh \${Number(m.savings_balance||0).toLocaleString()}</div>
+          <div class="mc-bal-value" style="color:var(--teal)">Ksh ${Number(m.savings_balance||0).toLocaleString()}</div>
         </div>
         <div class="mc-bal">
           <div class="mc-bal-label">Total</div>
-          <div class="mc-bal-value" style="color:var(--ink)">Ksh \${totalBal.toLocaleString()}</div>
+          <div class="mc-bal-value" style="color:var(--ink)">Ksh ${totalBal.toLocaleString()}</div>
         </div>
       </div>
       <div class="mc-footer">
-        <span>Ksh \${(m.savings_tier||0).toLocaleString()}/mo</span>
-        <span class="\${regOk&&!renewalDue?'mc-reg-ok':'mc-reg-warn'}">\${regOk&&!renewalDue?'✓ Registered':renewalDue?'⚠ Renewal due':'⚠ Unregistered'}</span>
+        <span>Ksh ${(m.savings_tier||0).toLocaleString()}/mo</span>
+        <span class="${regOk&&!renewalDue?'mc-reg-ok':'mc-reg-warn'}">${regOk&&!renewalDue?'✓ Registered':renewalDue?'⚠ Renewal due':'⚠ Unregistered'}</span>
       </div>
     </div>`;
   }).join('');
