@@ -836,6 +836,70 @@ tr:hover td{background:var(--maroon-pale)}
   .member-grid,.grid-3{grid-template-columns:repeat(2,1fr)}
   .grid-2{grid-template-columns:1fr}
 }
+
+/* ══ MEETINGS PAGE ══ */
+@keyframes mtgIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.mtg-hero{
+  background:linear-gradient(135deg,#0d3d2e 0%,var(--teal) 55%,#3a000e 100%);
+  padding:1.25rem 1.5rem;margin-bottom:1.25rem;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem
+}
+.mtg-hero-title{font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:#fff;margin-bottom:.15rem}
+.mtg-hero-sub{font-size:.72rem;color:rgba(255,255,255,.5)}
+.mtg-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1.25rem}
+.mtg-stat{background:var(--surface);border:1px solid var(--border);padding:.85rem 1rem;text-align:center;animation:mtgIn .3s ease both}
+.mtg-stat-val{font-family:'Crimson Pro',serif;font-size:1.5rem;font-weight:700;color:var(--teal)}
+.mtg-stat-label{font-size:.65rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem}
+.mtg-layout{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.mtg-card{
+  background:var(--surface);border:1px solid var(--border);
+  padding:1rem 1.25rem;margin-bottom:.75rem;
+  border-left:4px solid var(--teal);
+  animation:mtgIn .35s ease both;
+  transition:box-shadow .15s,transform .15s;cursor:pointer
+}
+.mtg-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(15,110,86,.1)}
+.mtg-card.past{border-left-color:var(--border-dk);opacity:.85}
+.mtg-card.selected{border-left-color:var(--maroon);box-shadow:0 0 0 2px var(--maroon-pale)}
+.mtg-date-block{display:flex;align-items:center;gap:.85rem;margin-bottom:.6rem}
+.mtg-cal{
+  background:var(--teal-pale);border:1px solid var(--teal-mid);
+  padding:.3rem .6rem;text-align:center;min-width:46px;border-radius:4px
+}
+.mtg-cal.past{background:var(--surface-3);border-color:var(--border-dk)}
+.mtg-cal-month{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--teal-dk)}
+.mtg-cal-day{font-family:'Crimson Pro',serif;font-size:1.5rem;font-weight:700;color:var(--teal-dk);line-height:1}
+.mtg-cal.past .mtg-cal-month,.mtg-cal.past .mtg-cal-day{color:var(--ink-faint)}
+.mtg-title{font-size:.88rem;font-weight:700;color:var(--ink);margin-bottom:.15rem}
+.mtg-meta{font-size:.72rem;color:var(--ink-faint);display:flex;gap:.75rem;flex-wrap:wrap}
+.mtg-countdown{
+  display:inline-flex;align-items:center;gap:.35rem;
+  font-size:.68rem;font-weight:600;padding:.2rem .55rem;
+  border-radius:99px;background:var(--teal-pale);color:var(--teal-dk);margin-top:.35rem
+}
+.mtg-countdown.today{background:var(--maroon-pale);color:var(--maroon)}
+.mtg-countdown.soon{background:rgba(196,154,48,.12);color:var(--gold)}
+.mtg-card-actions{display:flex;gap:.4rem;margin-top:.65rem}
+/* Attendance grid upgrade */
+.att-section{background:var(--surface);border:1px solid var(--border);padding:1.25rem;margin-top:1rem}
+.att-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem}
+.att-meeting-name{font-size:.9rem;font-weight:700;color:var(--ink)}
+.att-counts{display:flex;gap:.5rem}
+.att-count-pill{font-size:.68rem;font-weight:600;padding:.25rem .65rem;border-radius:99px}
+.att-count-pill.present{background:var(--teal-pale);color:var(--teal-dk)}
+.att-count-pill.apology{background:rgba(196,154,48,.12);color:var(--gold)}
+.att-count-pill.absent{background:var(--surface-3);color:var(--ink-faint)}
+.att-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.5rem}
+.att-btn{
+  padding:.5rem .4rem;font-size:.75rem;font-weight:600;text-align:center;
+  border:1.5px solid var(--border-dk);background:var(--surface);color:var(--ink-faint);
+  cursor:pointer;border-radius:4px;transition:all .15s;font-family:'Inter',sans-serif;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.att-btn.present{background:var(--teal-pale);border-color:var(--teal);color:var(--teal-dk);font-weight:700}
+.att-btn.apology{background:rgba(196,154,48,.1);border-color:var(--gold);color:var(--gold)}
+.att-btn.absent{background:var(--surface);border-color:var(--border-dk);color:var(--ink-faint)}
+@media(max-width:700px){.mtg-layout{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -1643,31 +1707,68 @@ tr:hover td{background:var(--maroon-pale)}
 
     <!-- MEETINGS -->
     <div class="page" id="page-meetings">
-      <div class="section-header">
-        <div><div class="section-title">Meetings</div><div class="section-sub">Schedule, attendance & minutes</div></div>
+
+      <!-- ── HERO ── -->
+      <div class="mtg-hero">
+        <div>
+          <div class="mtg-hero-title">📅 Meetings</div>
+          <div class="mtg-hero-sub" id="mtg-hero-sub">Schedule, attendance & minutes</div>
+        </div>
         <div id="meetings-admin-btn"></div>
       </div>
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-header"><div class="card-title">Upcoming Meetings</div></div>
-          <div id="upcoming-meetings"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+
+      <!-- ── STATS ── -->
+      <div class="mtg-stats">
+        <div class="mtg-stat" style="animation-delay:.0s">
+          <div class="mtg-stat-val" id="mtg-stat-upcoming">—</div>
+          <div class="mtg-stat-label">Upcoming</div>
         </div>
-        <div class="card">
-          <div class="card-header"><div class="card-title">Past Meetings</div></div>
-          <div id="past-meetings"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+        <div class="mtg-stat" style="animation-delay:.07s">
+          <div class="mtg-stat-val" id="mtg-stat-total">—</div>
+          <div class="mtg-stat-label">Total This Year</div>
+        </div>
+        <div class="mtg-stat" style="animation-delay:.14s">
+          <div class="mtg-stat-val" id="mtg-stat-rate" style="color:var(--maroon)">—</div>
+          <div class="mtg-stat-label">Avg Attendance</div>
         </div>
       </div>
-      <div class="card" id="attendance-section">
-        <div class="card-header"><div><div class="card-title">Record Attendance</div><div class="card-sub">Select a meeting above then mark attendance</div></div></div>
-        <div class="card-body">
-          <div class="alert alert-info" id="att-meeting-label">No meeting selected</div>
-          <div class="att-grid" id="att-grid"></div>
-          <div class="form-actions" style="margin-top:1rem">
-            <button class="btn btn-primary" onclick="saveAttendance()" id="att-save-btn" style="display:none">Save Attendance</button>
-            <div style="font-size:.75rem;color:var(--ink-faint);align-self:center;margin-left:auto">
-              <span id="att-present-count">0</span> Present · <span id="att-apology-count">0</span> Apology · <span id="att-absent-count">0</span> Absent
-            </div>
+
+      <!-- ── UPCOMING + PAST ── -->
+      <div class="mtg-layout">
+        <div>
+          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--teal);margin-bottom:.6rem">Upcoming</div>
+          <div id="upcoming-meetings"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+        <div>
+          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.6rem">Recent Past</div>
+          <div id="past-meetings"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+
+      <!-- ── ATTENDANCE ── -->
+      <div class="att-section" id="attendance-section">
+        <div class="att-header">
+          <div>
+            <div class="att-meeting-name" id="att-meeting-label">Select a meeting above to record attendance</div>
+            <div style="font-size:.7rem;color:var(--ink-faint);margin-top:.15rem">Click a name to cycle: Present → Apology → Absent</div>
           </div>
+          <div class="att-counts">
+            <div class="att-count-pill present">✓ <span id="att-present-count">0</span></div>
+            <div class="att-count-pill apology">~ <span id="att-apology-count">0</span></div>
+            <div class="att-count-pill absent">✗ <span id="att-absent-count">0</span></div>
+          </div>
+        </div>
+        <div class="att-grid" id="att-grid">
+          <div style="color:var(--ink-faint);font-size:.8rem;grid-column:1/-1;padding:.5rem 0">No meeting selected</div>
+        </div>
+        <div style="margin-top:1rem;display:flex;gap:.75rem;align-items:center">
+          <button class="btn btn-primary" onclick="saveAttendance()" id="att-save-btn"
+            style="display:none;background:var(--teal);box-shadow:0 3px 10px rgba(15,110,86,.2)">
+            ✓ Save Attendance
+          </button>
+          <button class="btn btn-secondary" onclick="exportAttendance()" id="att-export-btn" style="display:none;font-size:.75rem">
+            ↓ Export
+          </button>
         </div>
       </div>
     </div>
@@ -4381,49 +4482,146 @@ function clearExpForm() { ['exp-category','exp-desc','exp-amount','exp-ref','exp
 async function loadMeetings() {
   if (!currentOrg?.id) return;
   const role = currentProfile?.role;
+  const canSchedule = ['admin','officer','treasurer'].includes(role);
+
+  // ── Admin buttons ──
   const adminBtn = document.getElementById('meetings-admin-btn');
   if (adminBtn) {
-    const canSchedule = ['admin','officer','treasurer'].includes(role);
     adminBtn.innerHTML = canSchedule ? `
-      <div style="display:flex;gap:.5rem">
-        <button class="btn btn-secondary" onclick="sendMeetingReminders()" id="reminder-btn">
-          📱 Send Reminders
-        </button>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <button class="btn fin-ctrl-btn" onclick="sendMeetingReminders()" id="reminder-btn">📱 Reminders</button>
         <button class="btn btn-primary" onclick="showModal('scheduleMeeting')">+ Schedule Meeting</button>
       </div>` : '';
   }
-  const today = new Date().toISOString().split('T')[0];
-  const [upcomingRes, pastRes] = await Promise.all([
-    sb.from('meetings').select('*').eq('org_id', currentOrg.id).gte('meeting_date', today).order('meeting_date'),
-    sb.from('meetings').select('*').eq('org_id', currentOrg.id).lt('meeting_date', today).order('meeting_date',{ascending:false}).limit(5)
+
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  const thisYear = today.getFullYear().toString();
+
+  const [upcomingRes, pastRes, yearRes] = await Promise.all([
+    sb.from('meetings').select('*').eq('org_id', currentOrg.id).gte('meeting_date', todayStr).order('meeting_date'),
+    sb.from('meetings').select('*').eq('org_id', currentOrg.id).lt('meeting_date', todayStr).order('meeting_date',{ascending:false}).limit(6),
+    sb.from('meetings').select('id').eq('org_id', currentOrg.id).gte('meeting_date', thisYear+'-01-01')
   ]);
+
   const upcoming = upcomingRes.data || [];
   const past = pastRes.data || [];
+  const yearTotal = yearRes.data?.length || 0;
 
-  document.getElementById('upcoming-meetings').innerHTML = upcoming.length ? `
-    <table><thead><tr><th>Date</th><th>Time</th><th>Venue</th><th>Action</th></tr></thead>
-    <tbody>${upcoming.map(m=>`<tr>
-      <td><strong>${new Date(m.meeting_date).toDateString()}</strong></td>
-      <td>${m.meeting_time||'8:30 PM'}</td>
-      <td>${m.venue||'Online'}</td>
-      <td><button class="btn btn-ghost" onclick="selectMeeting('${m.id}','${new Date(m.meeting_date).toDateString()}')">Attendance</button></td>
-    </tr>`).join('')}</tbody></table>` :
-    '<div style="padding:1.25rem;font-size:.82rem;color:var(--ink-faint)">No upcoming meetings. Schedule one above.</div>';
+  // ── Stats ──
+  const setEl = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  setEl('mtg-stat-upcoming', upcoming.length);
+  setEl('mtg-stat-total', yearTotal);
 
-  document.getElementById('past-meetings').innerHTML = past.length ? `
-    <table><thead><tr><th>Date</th><th>Venue</th><th>Status</th></tr></thead>
-    <tbody>${past.map(m=>`<tr>
-      <td>${new Date(m.meeting_date).toDateString()}</td>
-      <td>${m.venue||'Online'}</td>
-      <td><span class="badge ${m.minutes?'badge-green':'badge-grey'}">${m.minutes?'Minutes Filed':'Pending'}</span></td>
-    </tr>`).join('')}</tbody></table>` :
-    '<div style="padding:1.25rem;font-size:.82rem;color:var(--ink-faint)">No past meetings recorded.</div>';
+  // Avg attendance from past meetings
+  let attRate = '—';
+  if (past.length && allMembers.length) {
+    const { data: attData } = await sb.from('attendance')
+      .select('status')
+      .in('meeting_id', past.map(m=>m.id))
+      .eq('status','present');
+    const present = attData?.length || 0;
+    const total = past.length * allMembers.length;
+    attRate = total > 0 ? Math.round((present/total)*100) + '%' : '—';
+  }
+  setEl('mtg-stat-rate', attRate);
+
+  // ── Hero sub ──
+  const heroSub = document.getElementById('mtg-hero-sub');
+  if (heroSub) {
+    const nextMtg = upcoming[0];
+    if (nextMtg) {
+      const daysAway = Math.ceil((new Date(nextMtg.meeting_date) - today) / (1000*60*60*24));
+      heroSub.textContent = daysAway === 0 ? 'Meeting today!' :
+        daysAway === 1 ? 'Next meeting tomorrow' :
+        `Next meeting in ${daysAway} days`;
+    } else {
+      heroSub.textContent = 'No upcoming meetings scheduled';
+    }
+  }
+
+  // ── Render meeting card ──
+  const renderCard = (m, isPast) => {
+    const d = new Date(m.meeting_date);
+    const daysAway = Math.ceil((d - today) / (1000*60*60*24));
+    const isToday = daysAway === 0;
+    const isSoon = daysAway > 0 && daysAway <= 3;
+    const countdownClass = isToday ? 'today' : isSoon ? 'soon' : '';
+    const countdownText = isPast ? '' :
+      isToday ? '📍 Today' :
+      daysAway === 1 ? '⏰ Tomorrow' :
+      `In ${daysAway} days`;
+
+    return `<div class="mtg-card ${isPast?'past':''}" onclick="${isPast?'':''} selectMeeting('${m.id}','${d.toDateString()}')">
+      <div class="mtg-date-block">
+        <div class="mtg-cal ${isPast?'past':''}">
+          <div class="mtg-cal-month">${d.toLocaleString('default',{month:'short'})}</div>
+          <div class="mtg-cal-day">${d.getDate()}</div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div class="mtg-title">${m.agenda ? m.agenda.slice(0,40)+(m.agenda.length>40?'…':'') : (isPast ? 'Past Meeting' : 'General Meeting')}</div>
+          <div class="mtg-meta">
+            <span>🕐 ${m.meeting_time||'Time TBA'}</span>
+            <span>📍 ${m.venue||'Venue TBA'}</span>
+          </div>
+          ${!isPast && countdownText ? `<div class="mtg-countdown ${countdownClass}">${countdownText}</div>` : ''}
+          ${isPast ? `<div style="margin-top:.3rem"><span class="badge ${m.minutes?'badge-green':'badge-grey'}" style="font-size:.62rem">${m.minutes?'✓ Minutes filed':'Pending minutes'}</span></div>` : ''}
+        </div>
+      </div>
+      <div class="mtg-card-actions">
+        <button class="btn btn-secondary btn-sm" style="font-size:.7rem"
+          onclick="event.stopPropagation();selectMeeting('${m.id}','${d.toDateString()}')">
+          ${isPast?'View Attendance':'Take Attendance'}
+        </button>
+        ${canSchedule ? `<button class="btn btn-danger btn-sm" style="font-size:.7rem"
+          onclick="event.stopPropagation();deleteMeeting('${m.id}')">✕</button>` : ''}
+      </div>
+    </div>`;
+  };
+
+  // ── Upcoming ──
+  const upEl = document.getElementById('upcoming-meetings');
+  if (upEl) upEl.innerHTML = upcoming.length ?
+    upcoming.map(m => renderCard(m, false)).join('') :
+    `<div style="padding:1.5rem;text-align:center">
+      <div style="font-size:1.5rem;margin-bottom:.5rem">📅</div>
+      <div style="font-size:.82rem;color:var(--ink-faint);margin-bottom:.75rem">No upcoming meetings</div>
+      ${canSchedule ? '<button class="btn btn-primary btn-sm" onclick="showModal(`scheduleMeeting`)">Schedule One</button>' : ''}
+    </div>`;
+
+  // ── Past ──
+  const pastEl = document.getElementById('past-meetings');
+  if (pastEl) pastEl.innerHTML = past.length ?
+    past.map(m => renderCard(m, true)).join('') :
+    '<div style="padding:1rem;font-size:.82rem;color:var(--ink-faint)">No past meetings recorded yet.</div>';
+}
+
+async function deleteMeeting(id) {
+  if (!confirm('Delete this meeting?')) return;
+  await sb.from('attendance').delete().eq('meeting_id', id);
+  await sb.from('meetings').delete().eq('id', id);
+  toast('Meeting deleted');
+  loadMeetings();
+}
+
+function exportAttendance() {
+  if (!selectedMeetingId || !allMembers.length) return;
+  const rows = [['Member','Status']];
+  allMembers.forEach(m => rows.push([m.full_name, attState[m.id] || 'absent']));
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'attendance.csv';
+  a.click();
 }
 
 async function selectMeeting(meetingId, dateStr) {
   selectedMeetingId = meetingId;
   document.getElementById('att-meeting-label').textContent = '📅 Recording attendance for: ' + dateStr;
   document.getElementById('att-save-btn').style.display = 'inline-flex';
+  const expBtn = document.getElementById('att-export-btn');
+  if (expBtn) expBtn.style.display = 'inline-flex';
   const grid = document.getElementById('att-grid');
   grid.innerHTML = '<div class="loading"><div class="spinner"></div>Loading members…</div>';
   const { data: existing } = await sb.from('attendance').select('*').eq('meeting_id', meetingId);
