@@ -3257,12 +3257,13 @@ async function signIn() {
   // Check if this user needs 2FA (admin roles)
   const { data: profile } = await sb.from('profiles').select('role,full_name,org_id').eq('id', data.user.id).maybeSingle();
 
-  const needs2FA = ['admin','treasurer','officer','superadmin'].includes(profile?.role);
+  const needs2FA = ['admin','treasurer','officer'].includes(profile?.role);
+  // Superadmin bypasses 2FA — OTP delivery not yet configured
+  // Regular admins only trigger 2FA if their org has it enabled
 
   if (needs2FA) {
-    // Check if org has 2FA enabled (or superadmin always has it)
-    let twoFAEnabled = profile?.role === 'superadmin';
-    if (!twoFAEnabled && profile?.org_id) {
+    let twoFAEnabled = false;
+    if (profile?.org_id) {
       const { data: org } = await sb.from('organisations').select('two_fa_enabled').eq('id', profile.org_id).maybeSingle();
       twoFAEnabled = org?.two_fa_enabled || false;
     }
