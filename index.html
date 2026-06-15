@@ -1010,6 +1010,209 @@ tr:hover td{background:var(--maroon-pale)}
 .msg-history-body{font-size:.75rem;color:var(--ink-soft);line-height:1.5;margin-top:.2rem}
 .msg-history-meta{font-size:.67rem;color:var(--ink-faint)}
 @media(max-width:700px){.msg-layout{grid-template-columns:1fr}}
+
+/* ════════════════════════════════════════════════
+   MEMBER PORTAL — GY360 SHOWCASE EXPERIENCE
+════════════════════════════════════════════════ */
+
+/* ── Core animations ── */
+@keyframes portalFadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes portalFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes counterTick{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shimmerSlide{0%{background-position:-200% center}100%{background-position:200% center}}
+@keyframes ringPulse{0%,100%{transform:scale(1);opacity:.6}50%{transform:scale(1.12);opacity:1}}
+@keyframes floatUp{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes progressFill{from{width:0}to{width:var(--target-width)}}
+@keyframes cardSlideIn{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:translateX(0)}}
+@keyframes dotBlink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+/* ── Profile hero card ── */
+.mp-hero{
+  position:relative;overflow:hidden;
+  background:linear-gradient(135deg,#3a000e 0%,var(--maroon) 40%,#0d3d2e 100%);
+  background-size:200% 200%;
+  animation:gradientShift 8s ease infinite,portalFadeIn .5s ease;
+  padding:2rem 1.5rem 1.5rem;margin-bottom:1.5rem
+}
+.mp-hero::after{
+  content:'';position:absolute;inset:0;
+  background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  pointer-events:none
+}
+/* Decorative rings */
+.mp-hero-ring1{
+  position:absolute;width:300px;height:300px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.06);top:-80px;right:-60px;
+  animation:ringPulse 6s ease-in-out infinite
+}
+.mp-hero-ring2{
+  position:absolute;width:180px;height:180px;border-radius:50%;
+  border:1px solid rgba(31,158,117,.12);bottom:-40px;right:60px;
+  animation:ringPulse 8s ease-in-out infinite reverse
+}
+.mp-hero-inner{position:relative;z-index:1}
+.mp-hero-avatar{
+  width:64px;height:64px;border-radius:50%;
+  background:linear-gradient(135deg,var(--teal-pale),var(--teal-mid));
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;
+  color:var(--teal-dk);margin-bottom:1rem;
+  box-shadow:0 4px 16px rgba(0,0,0,.2);
+  animation:floatUp 4s ease-in-out infinite
+}
+.mp-hero-name{
+  font-family:'Crimson Pro',serif;font-size:1.8rem;font-weight:700;
+  color:#fff;line-height:1;margin-bottom:.3rem;
+  animation:portalFadeUp .5s ease .1s both
+}
+.mp-hero-org{
+  font-size:.78rem;color:rgba(255,255,255,.6);margin-bottom:1.25rem;
+  animation:portalFadeUp .5s ease .2s both
+}
+.mp-hero-chips{
+  display:flex;gap:.5rem;flex-wrap:wrap;
+  animation:portalFadeUp .5s ease .3s both
+}
+.mp-hero-chip{
+  display:flex;align-items:center;gap:.4rem;
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
+  padding:.3rem .7rem;border-radius:99px;font-size:.7rem;
+  color:rgba(255,255,255,.85);font-weight:600
+}
+.mp-hero-chip.teal{background:rgba(15,110,86,.3);border-color:rgba(31,158,117,.4)}
+.mp-hero-chip.gold{background:rgba(196,154,48,.2);border-color:rgba(196,154,48,.35);color:var(--gold-lt)}
+
+/* ── Balance cards ── */
+.mp-balances{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;
+  margin-bottom:1.25rem
+}
+.mp-bal-card{
+  background:var(--surface);border:1px solid var(--border);
+  padding:1rem 1.1rem;position:relative;overflow:hidden;
+  animation:portalFadeUp .4s ease both
+}
+.mp-bal-card::before{content:'';display:block;height:3px;background:var(--card-accent,var(--maroon));margin:-1rem -1.1rem .85rem;display:block}
+.mp-bal-card:nth-child(1)::before{background:var(--maroon)}
+.mp-bal-card:nth-child(2)::before{background:var(--teal)}
+.mp-bal-card:nth-child(3)::before{background:var(--gold)}
+.mp-bal-label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.4rem}
+.mp-bal-value{
+  font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:var(--maroon);
+  animation:counterTick .4s ease both
+}
+.mp-bal-card:nth-child(2) .mp-bal-value{color:var(--teal)}
+.mp-bal-card:nth-child(3) .mp-bal-value{color:var(--gold)}
+.mp-bal-meta{font-size:.67rem;color:var(--ink-faint);margin-top:.25rem}
+
+/* ── Progress ring ── */
+.mp-progress-ring{position:relative;width:80px;height:80px;flex-shrink:0}
+.mp-progress-ring svg{transform:rotate(-90deg)}
+.mp-progress-ring-label{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:'Crimson Pro',serif;font-size:.95rem;font-weight:700;color:var(--teal)
+}
+
+/* ── Payment box upgrade ── */
+.mp-pay-box{
+  background:linear-gradient(135deg,var(--maroon-pale) 0%,var(--surface) 100%);
+  border:1px solid var(--maroon-muted);padding:1.25rem;
+  position:relative;overflow:hidden
+}
+.mp-pay-paybill{
+  font-family:'Crimson Pro',serif;font-size:2.5rem;font-weight:700;
+  color:var(--maroon);letter-spacing:.05em;line-height:1;margin:.35rem 0
+}
+.mp-pay-copy{
+  display:inline-flex;align-items:center;gap:.4rem;
+  background:var(--maroon);color:#fff;border:none;
+  padding:.4rem .9rem;font-size:.75rem;font-weight:600;cursor:pointer;
+  font-family:'Inter',sans-serif;transition:background .15s,transform .1s;
+  margin-top:.5rem
+}
+.mp-pay-copy:hover{background:var(--maroon-lt);transform:translateY(-1px)}
+.mp-pay-copy:active{transform:translateY(0)}
+
+/* ── Contribution chart ── */
+.mp-chart-wrap{padding:1rem 1.25rem}
+.mp-chart{display:flex;align-items:flex-end;gap:.4rem;height:90px;border-bottom:1.5px solid var(--border)}
+.mp-chart-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:.15rem}
+.mp-chart-bar{
+  width:100%;border-radius:3px 3px 0 0;min-height:3px;margin-top:auto;
+  background:var(--teal-pale);transition:height .8s ease
+}
+.mp-chart-bar.active{background:var(--teal)}
+.mp-chart-val{font-size:.55rem;color:var(--ink-faint);text-align:center}
+.mp-chart-labels{display:flex;gap:.4rem;margin-top:.4rem;font-size:.62rem;color:var(--ink-faint)}
+
+/* ── Activity timeline ── */
+.mp-timeline{padding:.25rem 0}
+.mp-tl-item{display:flex;gap:.85rem;padding:.7rem 1.25rem;border-bottom:1px solid var(--border);animation:cardSlideIn .3s ease both}
+.mp-tl-item:last-child{border-bottom:none}
+.mp-tl-dot{width:8px;height:8px;border-radius:50%;background:var(--teal);flex-shrink:0;margin-top:.45rem}
+.mp-tl-dot.debit{background:var(--danger)}
+.mp-tl-title{font-size:.8rem;font-weight:600;color:var(--ink)}
+.mp-tl-meta{font-size:.68rem;color:var(--ink-faint);margin-top:.1rem}
+.mp-tl-amt{font-size:.85rem;font-weight:700;color:var(--teal);margin-left:auto;white-space:nowrap;flex-shrink:0}
+
+/* ── Meeting card (member view) ── */
+.mp-meeting-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-left:3px solid var(--teal);padding:.9rem 1.1rem;
+  margin-bottom:.65rem;animation:portalFadeUp .35s ease both;
+  transition:box-shadow .15s
+}
+.mp-meeting-card:hover{box-shadow:0 3px 12px rgba(15,110,86,.1)}
+.mp-meeting-card.past{border-left-color:var(--border-dk);opacity:.8}
+
+/* ── Notice card ── */
+.mp-notice-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-left:3px solid var(--gold);padding:1rem 1.25rem;
+  margin-bottom:.75rem;animation:portalFadeUp .35s ease both
+}
+.mp-notice-date{font-size:.68rem;color:var(--ink-faint);margin-bottom:.4rem}
+.mp-notice-body{font-size:.82rem;color:var(--ink-soft);line-height:1.7}
+
+/* ── GY360 Marketing footer ── */
+.mp-gy-banner{
+  background:linear-gradient(135deg,#0d0d0d 0%,#1a1a1a 50%,#0d3d2e 100%);
+  padding:1.5rem;margin-top:1.5rem;position:relative;overflow:hidden;
+  animation:portalFadeUp .5s ease .5s both
+}
+.mp-gy-banner::before{
+  content:'GY360';
+  position:absolute;right:-20px;bottom:-20px;
+  font-family:'Crimson Pro',serif;font-size:8rem;font-weight:700;
+  color:rgba(255,255,255,.03);line-height:1;pointer-events:none
+}
+.mp-gy-venn{margin-bottom:.75rem}
+.mp-gy-title{font-family:'Crimson Pro',serif;font-size:1.2rem;font-weight:700;color:#fff;margin-bottom:.3rem}
+.mp-gy-sub{font-size:.75rem;color:rgba(255,255,255,.55);line-height:1.6;margin-bottom:1rem}
+.mp-gy-features{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1rem}
+.mp-gy-feat{font-size:.65rem;font-weight:600;padding:.25rem .6rem;border-radius:99px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.1)}
+.mp-gy-link{
+  display:inline-flex;align-items:center;gap:.4rem;
+  background:var(--teal);color:#fff;padding:.55rem 1.1rem;
+  font-size:.78rem;font-weight:600;text-decoration:none;
+  border-radius:3px;transition:background .15s,transform .1s;
+  box-shadow:0 3px 10px rgba(15,110,86,.3)
+}
+.mp-gy-link:hover{background:var(--teal-lt);transform:translateY(-1px);color:#fff}
+
+/* ── Welfare alert card ── */
+.mp-welfare-alert{
+  background:linear-gradient(135deg,var(--maroon-pale),var(--surface));
+  border:1px solid var(--maroon-muted);border-left:4px solid var(--maroon);
+  padding:1rem 1.25rem;margin-bottom:.75rem;animation:portalFadeUp .3s ease both
+}
+
+/* responsive */
+@media(max-width:700px){
+  .mp-balances{grid-template-columns:1fr 1fr}
+  .mp-hero-name{font-size:1.4rem}
+}
 </style>
 </head>
 <body>
@@ -2517,66 +2720,128 @@ tr:hover td{background:var(--maroon-pale)}
 
     <!-- MEMBER: MY PROFILE -->
     <div class="page" id="page-my_profile">
-      <div class="section-header"><div><div class="section-title">My Profile</div><div class="section-sub" id="my-profile-org">—</div></div></div>
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-header"><div class="card-title">Personal Details</div></div>
-          <div class="card-body">
-            <div class="stats-row" style="grid-template-columns:repeat(2,1fr);margin-bottom:1rem">
-              <div class="stat-card"><div class="stat-label">Member Number</div><div class="stat-value" id="mp-number" style="font-size:1.3rem">—</div></div>
-              <div class="stat-card green"><div class="stat-label">Status</div><div class="stat-value" id="mp-status" style="font-size:1.3rem">—</div></div>
-            </div>
-            <!-- Balances -->
-            <div class="stats-row" style="grid-template-columns:repeat(2,1fr);margin-bottom:1rem">
-              <div class="stat-card" style="border-top-color:var(--maroon)">
-                <div class="stat-label">Shares Balance</div>
-                <div class="stat-value" id="mp-shares-bal-display" style="font-size:1.2rem;color:var(--maroon)">—</div>
-              </div>
-              <div class="stat-card gold">
-                <div class="stat-label">Savings Balance</div>
-                <div class="stat-value" id="mp-savings-bal-display" style="font-size:1.2rem">—</div>
-              </div>
-            </div>
-            <table style="width:100%">
-              <tbody id="mp-details"></tbody>
-            </table>
-            <!-- Contribution Summary -->
-            <div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--border)">
-              <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.5rem">My Contribution Summary</div>
-              <div id="mp-contrib-summary" style="font-size:.82rem;color:var(--ink-faint)">Loading...</div>
-            </div>
-          </div>
-        </div>
-        <div class="card" id="org-balance-card" style="display:none">
-          <div class="card-header"><div class="card-title">Organisation Balance</div></div>
-          <div class="card-body">
-            <div class="stats-row" style="grid-template-columns:repeat(2,1fr)">
-              <div class="stat-card"><div class="stat-label">Bank Balance</div><div class="stat-value" id="mp-org-balance" style="font-size:1.2rem;color:var(--maroon)">—</div></div>
-              <div class="stat-card gold"><div class="stat-label">As of</div><div class="stat-value" id="mp-org-balance-date" style="font-size:1rem">—</div></div>
-            </div>
-          </div>
-        </div>
-    <div class="card">
-          <div class="card-header"><div class="card-title">Payment Details</div><div class="card-sub">How to make contributions</div></div>
-          <div class="card-body">
-            <div class="payment-box">
-              <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--maroon);font-weight:600;margin-bottom:.5rem">Send to Paybill</div>
-              <div class="payment-paybill" id="mp-paybill">—</div>
-              <div class="payment-label">Account: Your Full Name</div>
-              <button onclick="navigator.clipboard.writeText(document.getElementById('mp-paybill').textContent).then(()=>toast('Copied!'))"
-                style="font-size:.72rem;color:var(--maroon);cursor:pointer;font-weight:600;border:1px solid var(--maroon);padding:.25rem .75rem;background:transparent;font-family:Inter,sans-serif">
-                Copy Paybill
-              </button>
-            </div>
-            <div style="margin-top:1rem;font-size:.78rem;color:var(--ink-soft);line-height:1.75">
-              <strong>Monthly Contributions:</strong><br>
-              Shares: <strong id="mp-shares-amount">Ksh 300</strong><br>
-              Savings: <strong id="mp-savings-tier">Ksh 500/mo</strong><br>
-              Registration Fee: <span id="mp-reg-status">—</span>
+
+      <!-- ── HERO CARD ── -->
+      <div class="mp-hero">
+        <div class="mp-hero-ring1"></div>
+        <div class="mp-hero-ring2"></div>
+        <div class="mp-hero-inner">
+          <div style="display:flex;align-items:flex-start;gap:1.1rem;flex-wrap:wrap">
+            <div class="mp-hero-avatar" id="mp-hero-avatar">?</div>
+            <div style="flex:1">
+              <div class="mp-hero-name" id="mp-hero-name">Loading…</div>
+              <div class="mp-hero-org" id="my-profile-org">—</div>
+              <div class="mp-hero-chips" id="mp-hero-chips"></div>
             </div>
           </div>
         </div>
       </div>
+
+      <!-- ── BALANCE CARDS ── -->
+      <div class="mp-balances">
+        <div class="mp-bal-card" style="animation-delay:.0s">
+          <div class="mp-bal-label">Shares Balance</div>
+          <div class="mp-bal-value" id="mp-shares-bal-display">—</div>
+          <div class="mp-bal-meta">Equity in the group</div>
+        </div>
+        <div class="mp-bal-card" style="animation-delay:.08s">
+          <div class="mp-bal-label">Savings Balance</div>
+          <div class="mp-bal-value" id="mp-savings-bal-display">—</div>
+          <div class="mp-bal-meta">Monthly deposits</div>
+        </div>
+        <div class="mp-bal-card" style="animation-delay:.16s">
+          <div class="mp-bal-label">Total Balance</div>
+          <div class="mp-bal-value" id="mp-total-bal-display">—</div>
+          <div class="mp-bal-meta">Combined holdings</div>
+        </div>
+      </div>
+
+      <!-- ── MAIN GRID ── -->
+      <div class="grid-2" style="margin-bottom:1rem">
+
+        <!-- Personal Details -->
+        <div class="card" style="animation:portalFadeUp .4s ease .2s both">
+          <div class="card-header">
+            <div class="card-title">Personal Details</div>
+            <span class="badge badge-grey" id="mp-number" style="font-size:.72rem">—</span>
+          </div>
+          <div class="card-body" style="padding:.75rem 1.25rem">
+            <table style="width:100%">
+              <tbody id="mp-details"></tbody>
+            </table>
+            <div style="margin-top:.85rem;padding-top:.75rem;border-top:1px solid var(--border)">
+              <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.6rem">My Contributions by Type</div>
+              <div id="mp-contrib-summary"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment + Org Balance -->
+        <div style="display:flex;flex-direction:column;gap:1rem">
+
+          <!-- Pay box -->
+          <div class="mp-pay-box" style="animation:portalFadeUp .4s ease .3s both">
+            <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--maroon);margin-bottom:.25rem">📱 Send to Paybill</div>
+            <div class="mp-pay-paybill" id="mp-paybill">—</div>
+            <div style="font-size:.75rem;color:var(--ink-faint)">Account No: <strong style="color:var(--ink)">Your Full Name</strong></div>
+            <button class="mp-pay-copy" onclick="navigator.clipboard.writeText(document.getElementById('mp-paybill').textContent).then(()=>toast('✓ Paybill copied!'))">
+              📋 Copy Paybill Number
+            </button>
+            <div style="margin-top:1rem;padding-top:.85rem;border-top:1px solid var(--maroon-muted);font-size:.78rem;color:var(--ink-soft);line-height:1.8">
+              Savings/mo: <strong id="mp-savings-tier">—</strong><br>
+              Reg. fee: <span id="mp-reg-status">—</span>
+            </div>
+          </div>
+
+          <!-- Org balance if visible -->
+          <div class="card" id="org-balance-card" style="display:none;animation:portalFadeUp .4s ease .35s both">
+            <div class="card-header"><div class="card-title">Group Bank Balance</div></div>
+            <div class="card-body">
+              <div style="font-family:'Crimson Pro',serif;font-size:2rem;font-weight:700;color:var(--maroon)" id="mp-org-balance">—</div>
+              <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.2rem">As of <span id="mp-org-balance-date">—</span></div>
+            </div>
+          </div>
+
+          <!-- Payment methods -->
+          <div class="card" style="animation:portalFadeUp .4s ease .4s both">
+            <div class="card-header"><div class="card-title">Payment Methods</div></div>
+            <div class="card-body" id="mp-payment-methods">
+              <div class="loading"><div class="spinner"></div></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── GY360 MARKETING BANNER ── -->
+      <div class="mp-gy-banner">
+        <div class="mp-gy-venn">
+          <svg width="42" height="38" viewBox="0 0 62 54" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="22" cy="22" r="20" stroke="rgba(196,154,48,.6)" stroke-width="1.5" fill="none"/>
+            <circle cx="40" cy="22" r="20" stroke="rgba(196,154,48,.6)" stroke-width="1.5" fill="none"/>
+            <circle cx="31" cy="36" r="20" stroke="rgba(31,158,117,.5)" stroke-width="1.5" fill="none"/>
+            <circle cx="31" cy="26" r="3.5" fill="rgba(31,158,117,.9)"/>
+          </svg>
+        </div>
+        <div class="mp-gy-title">Powered by GroupYetu360</div>
+        <div class="mp-gy-sub">Kenya's complete platform for chamas, welfare groups and investment clubs. Run your group like a pro — track members, finances, meetings and welfare all in one place.</div>
+        <div class="mp-gy-features">
+          <span class="mp-gy-feat">Member Tracking</span>
+          <span class="mp-gy-feat">M-Pesa Integration</span>
+          <span class="mp-gy-feat">Bulk SMS</span>
+          <span class="mp-gy-feat">Finance Reports</span>
+          <span class="mp-gy-feat">Welfare Management</span>
+          <span class="mp-gy-feat">Meeting Scheduler</span>
+        </div>
+        <a href="https://groupyetu.org" target="_blank" class="mp-gy-link">
+          🌐 Visit groupyetu.org →
+        </a>
+        <div style="margin-top:.75rem;font-size:.65rem;color:rgba(255,255,255,.25)">Free to start · No credit card · Setup in minutes · By EPH Technologies Ltd</div>
+      </div>
+
+      <!-- hidden inputs kept for JS compatibility -->
+      <input id="mp-shares-amount" type="hidden" value="Ksh 300"/>
+      <div id="mp-status" style="display:none"></div>
     </div>
 
     <!-- MEMBER: MY CONTRIBUTIONS -->
@@ -2622,29 +2887,35 @@ tr:hover td{background:var(--maroon-pale)}
 
     <!-- MEMBER: MY MEETINGS -->
     <div class="page" id="page-my_meetings">
-      <div class="section-header">
-        <div><div class="section-title">Meetings</div><div class="section-sub" id="my-meetings-sub">Upcoming and past meetings</div></div>
-      </div>
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-header"><div class="card-title">Upcoming Meetings</div></div>
-          <div id="my-upcoming-meetings"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+      <div class="msg-hero" style="background:linear-gradient(135deg,#0d3d2e 0%,var(--teal) 60%,#1a1a1a 100%);margin-bottom:1.25rem">
+        <div>
+          <div style="font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:#fff">📅 My Meetings</div>
+          <div id="my-meetings-sub" style="font-size:.72rem;color:rgba(255,255,255,.5);margin-top:.15rem">Upcoming and past meetings</div>
         </div>
-        <div class="card">
-          <div class="card-header"><div class="card-title">My Attendance Record</div></div>
-          <div id="my-attendance-record"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+        <div style="display:flex;gap:.5rem" id="my-attendance-chips"></div>
+      </div>
+      <div class="grid-2" style="margin-bottom:1rem">
+        <div>
+          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--teal);margin-bottom:.6rem">Upcoming</div>
+          <div id="my-upcoming-meetings"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+        <div>
+          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.6rem">My Attendance Summary</div>
+          <div id="my-attendance-record"><div class="loading"><div class="spinner"></div></div></div>
         </div>
       </div>
-      <div class="card">
-        <div class="card-header"><div class="card-title">Past Meetings</div></div>
-        <div id="my-past-meetings"><div class="loading"><div class="spinner"></div>Loading...</div></div>
-      </div>
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.6rem">Past Meetings</div>
+      <div id="my-past-meetings"><div class="loading"><div class="spinner"></div></div></div>
     </div>
 
     <!-- MEMBER: MY NOTICES -->
     <div class="page" id="page-my_notices">
-      <div class="section-header">
-        <div><div class="section-title">Notices</div><div class="section-sub">Messages from your group admin</div></div>
+      <div class="msg-hero" style="background:linear-gradient(135deg,#1a1a1a 0%,#2d2d2d 50%,#0d3d2e 100%);margin-bottom:1.25rem">
+        <div>
+          <div style="font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:#fff">📢 Notices</div>
+          <div style="font-size:.72rem;color:rgba(255,255,255,.5);margin-top:.15rem">Messages from your group admin</div>
+        </div>
+        <div id="notices-count-chip" style="font-size:.72rem;color:rgba(255,255,255,.6)"></div>
       </div>
       <div id="my-notices-list"><div class="loading"><div class="spinner"></div>Loading...</div></div>
     </div>
@@ -6951,10 +7222,41 @@ async function loadMyProfile() {
           </div>`).join('') :
         '<span style="color:var(--ink-faint)">No contributions recorded yet</span>';
     }
+    // ── Set hero ──
+    const initials = myRecord.full_name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+    const avatarEl = document.getElementById('mp-hero-avatar');
+    if (avatarEl) avatarEl.textContent = initials;
+    const nameEl = document.getElementById('mp-hero-name');
+    if (nameEl) nameEl.textContent = myRecord.full_name;
+    const numEl = document.getElementById('mp-number');
+    if (numEl) numEl.textContent = 'Member #' + (myRecord.member_number||'—');
+    const totalBal = Number(myRecord.shares_balance||0) + Number(myRecord.savings_balance||0);
+    const totalEl = document.getElementById('mp-total-bal-display');
+    if (totalEl) totalEl.textContent = 'Ksh ' + totalBal.toLocaleString();
+    // Hero chips
+    const chipsEl = document.getElementById('mp-hero-chips');
+    if (chipsEl) {
+      const statusClass = myRecord.status==='active'?'teal':myRecord.status==='arrears'?'gold':'';
+      chipsEl.innerHTML = `
+        <div class="mp-hero-chip ${statusClass}">${myRecord.status==='active'?'✓ Active':myRecord.status==='arrears'?'⚠ Arrears':'Inactive'}</div>
+        <div class="mp-hero-chip">#${myRecord.member_number||'—'}</div>
+        ${myRecord.registration_paid?'<div class="mp-hero-chip teal">✓ Registered</div>':'<div class="mp-hero-chip gold">⚠ Unregistered</div>'}
+      `;
+    }
+    // Details table
+    const joinDate = myRecord.join_date ? new Date(myRecord.join_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : '—';
+    document.getElementById('mp-details').innerHTML = `
+      <tr><td style="padding:.45rem 0;font-size:.75rem;color:var(--ink-faint);width:110px">Full Name</td><td style="font-size:.85rem;font-weight:600">${myRecord.full_name}</td></tr>
+      <tr><td style="padding:.45rem 0;font-size:.75rem;color:var(--ink-faint)">Phone</td><td style="font-size:.85rem">${myRecord.phone||'—'}</td></tr>
+      <tr><td style="padding:.45rem 0;font-size:.75rem;color:var(--ink-faint)">ID Number</td><td style="font-size:.85rem">${myRecord.id_number||'—'}</td></tr>
+      <tr><td style="padding:.45rem 0;font-size:.75rem;color:var(--ink-faint)">Joined</td><td style="font-size:.85rem">${joinDate}</td></tr>
+      <tr><td style="padding:.45rem 0;font-size:.75rem;color:var(--ink-faint)">Savings/mo</td><td><strong style="color:var(--teal)">Ksh ${Number(myRecord.savings_tier||0).toLocaleString()}</strong></td></tr>`;
+
   } else {
     window._myMemberId = null;
-    document.getElementById('mp-number').textContent = 'Pending';
-    document.getElementById('mp-status').innerHTML = '<span class="badge badge-grey">Not linked</span>';
+    const avatarEl = document.getElementById('mp-hero-avatar'); if(avatarEl) avatarEl.textContent = '?';
+    const nameEl = document.getElementById('mp-hero-name'); if(nameEl) nameEl.textContent = currentProfile?.full_name || 'Member';
+    const numEl = document.getElementById('mp-number'); if(numEl) numEl.textContent = 'Not linked';
     document.getElementById('mp-details').innerHTML = '<tr><td colspan="2" style="padding:1rem;color:var(--ink-faint);font-size:.82rem;line-height:1.7">Your account has not been linked to a member record yet.<br>Please contact your group admin.</td></tr>';
   }
 }
@@ -8013,102 +8315,112 @@ async function submitMemberPayment() {
 async function loadMyMeetings() {
   if (!currentOrg?.id) return;
   const today = new Date().toISOString().split('T')[0];
-  const memberId = window._myMemberId;
-
   const [upRes, pastRes] = await Promise.all([
-    sb.from('meetings').select('*').eq('org_id', currentOrg.id)
-      .gte('meeting_date', today).order('meeting_date').limit(5),
-    sb.from('meetings').select('*').eq('org_id', currentOrg.id)
-      .lt('meeting_date', today).order('meeting_date',{ascending:false}).limit(10)
+    sb.from('meetings').select('*').eq('org_id', currentOrg.id).gte('meeting_date', today).order('meeting_date').limit(5),
+    sb.from('meetings').select('*').eq('org_id', currentOrg.id).lt('meeting_date', today).order('meeting_date',{ascending:false}).limit(10)
   ]);
-
   const upcoming = upRes.data || [];
   const past = pastRes.data || [];
 
-  document.getElementById('my-meetings-sub').textContent = currentOrg.name + ' meetings';
+  // Attendance summary
+  let attSummary = { present:0, apology:0, absent:0, total:0 };
+  if (window._myMemberId && past.length) {
+    const { data: attData } = await sb.from('attendance').select('status').eq('member_id', window._myMemberId);
+    (attData||[]).forEach(a => { attSummary[a.status] = (attSummary[a.status]||0)+1; attSummary.total++; });
+  }
 
+  // Hero sub
+  const subEl = document.getElementById('my-meetings-sub');
+  if (subEl) subEl.textContent = upcoming.length ? `Next meeting in ${Math.ceil((new Date(upcoming[0].meeting_date) - new Date())/(1000*60*60*24))} days` : 'No upcoming meetings';
+
+  // Attendance chips
+  const chipsEl = document.getElementById('my-attendance-chips');
+  if (chipsEl && attSummary.total > 0) {
+    const rate = Math.round((attSummary.present/attSummary.total)*100);
+    chipsEl.innerHTML = `
+      <div style="background:rgba(255,255,255,.1);padding:.3rem .7rem;border-radius:99px;font-size:.7rem;color:rgba(255,255,255,.8)">✓ ${attSummary.present} Present</div>
+      <div style="background:rgba(255,255,255,.08);padding:.3rem .7rem;border-radius:99px;font-size:.7rem;color:rgba(255,255,255,.6)">${rate}% Rate</div>`;
+  }
+
+  // Upcoming
   const upEl = document.getElementById('my-upcoming-meetings');
-  upEl.innerHTML = upcoming.length ? upcoming.map(m => `
-    <div style="padding:1rem;border-bottom:1px solid var(--border)">
-      <div style="font-size:.95rem;font-weight:700;color:var(--maroon)">${new Date(m.meeting_date).toDateString()}</div>
-      <div style="font-size:.78rem;color:var(--ink-faint);margin:.2rem 0">${m.meeting_time||'8:30 PM'} · ${m.venue||'Online'}</div>
-      ${m.agenda ? `<div style="font-size:.78rem;color:var(--ink-soft);margin-top:.5rem;line-height:1.7;white-space:pre-line">${m.agenda}</div>` : ''}
-    </div>`).join('') :
-    '<div style="padding:1.5rem;text-align:center;color:var(--ink-faint);font-size:.82rem">No upcoming meetings scheduled</div>';
+  if (upEl) upEl.innerHTML = upcoming.length ? upcoming.map((m,i) => {
+    const d = new Date(m.meeting_date);
+    const days = Math.ceil((d - new Date())/(1000*60*60*24));
+    return `<div class="mp-meeting-card" style="animation-delay:${i*0.06}s">
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <div style="background:var(--teal-pale);border:1px solid var(--teal-mid);padding:.3rem .5rem;text-align:center;min-width:40px;border-radius:4px">
+          <div style="font-size:.55rem;font-weight:700;text-transform:uppercase;color:var(--teal-dk)">${d.toLocaleString('default',{month:'short'})}</div>
+          <div style="font-family:'Crimson Pro',serif;font-size:1.3rem;font-weight:700;color:var(--teal-dk);line-height:1">${d.getDate()}</div>
+        </div>
+        <div>
+          <div style="font-size:.85rem;font-weight:700;color:var(--ink)">${m.agenda||'General Meeting'}</div>
+          <div style="font-size:.7rem;color:var(--ink-faint)">${m.meeting_time||'TBA'} · ${m.venue||'TBA'}</div>
+          <div style="margin-top:.25rem;font-size:.68rem;font-weight:600;color:${days<=1?'var(--maroon)':days<=3?'var(--gold)':'var(--teal)'}">${days===0?'Today!':days===1?'Tomorrow':'In '+days+' days'}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('') : '<div style="padding:1.5rem;text-align:center;font-size:.82rem;color:var(--ink-faint)">No upcoming meetings scheduled</div>';
 
   // Attendance record
   const attEl = document.getElementById('my-attendance-record');
-  if (memberId && past.length) {
-    const meetingIds = past.map(m => m.id);
-    const { data: attData } = await sb.from('attendance')
-      .select('*').eq('member_id', memberId).in('meeting_id', meetingIds);
-    const attMap = {};
-    (attData||[]).forEach(a => attMap[a.meeting_id] = a.status);
-    const present = Object.values(attMap).filter(s=>s==='present').length;
-    const apology = Object.values(attMap).filter(s=>s==='apology').length;
-    const absent = Object.values(attMap).filter(s=>s==='absent').length;
-    const total = past.length;
-    const pct = total > 0 ? Math.round((present/total)*100) : 0;
-    attEl.innerHTML = `
-      <div style="text-align:center;padding:1rem">
-        <div style="font-size:2.5rem;font-weight:700;color:${pct>=75?'var(--success)':pct>=50?'var(--warning)':'var(--danger)'}">${pct}%</div>
-        <div style="font-size:.75rem;color:var(--ink-faint);margin-bottom:1rem">Attendance Rate</div>
-      </div>
-      <div class="progress-row"><div class="progress-label" style="min-width:80px">Present</div>
-        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:var(--success)"></div></div>
-        <div class="progress-val">${present}/${total}</div></div>
-      <div class="progress-row"><div class="progress-label" style="min-width:80px">Apology</div>
-        <div class="progress-bar"><div class="progress-fill gold" style="width:${total>0?Math.round((apology/total)*100):0}%"></div></div>
-        <div class="progress-val">${apology}/${total}</div></div>`;
-  } else {
-    attEl.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--ink-faint);font-size:.82rem">Attendance records will appear here once meetings are recorded</div>';
+  if (attEl) {
+    if (attSummary.total > 0) {
+      const rate = Math.round((attSummary.present/attSummary.total)*100);
+      attEl.innerHTML = `
+        <div style="padding:.75rem 1.25rem">
+          <div style="display:flex;justify-content:space-between;margin-bottom:.85rem">
+            <div style="text-align:center"><div style="font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:var(--teal)">${attSummary.present}</div><div style="font-size:.65rem;color:var(--ink-faint);text-transform:uppercase">Present</div></div>
+            <div style="text-align:center"><div style="font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:var(--gold)">${attSummary.apology}</div><div style="font-size:.65rem;color:var(--ink-faint);text-transform:uppercase">Apology</div></div>
+            <div style="text-align:center"><div style="font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:var(--ink-faint)">${attSummary.absent}</div><div style="font-size:.65rem;color:var(--ink-faint);text-transform:uppercase">Absent</div></div>
+            <div style="text-align:center"><div style="font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:var(--maroon)">${rate}%</div><div style="font-size:.65rem;color:var(--ink-faint);text-transform:uppercase">Rate</div></div>
+          </div>
+          <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${rate}%;background:var(--teal);border-radius:3px;transition:width 1s ease"></div>
+          </div>
+        </div>`;
+    } else {
+      attEl.innerHTML = '<div style="padding:1.5rem;text-align:center;font-size:.82rem;color:var(--ink-faint)">No attendance records yet</div>';
+    }
   }
 
+  // Past meetings
   const pastEl = document.getElementById('my-past-meetings');
-  pastEl.innerHTML = past.length ? `
-    <table><thead><tr><th>Date</th><th>Venue</th><th>My Status</th></tr></thead>
-    <tbody>${past.map(m => {
-      const memberId2 = window._myMemberId;
-      return `<tr>
-        <td>${new Date(m.meeting_date).toDateString()}</td>
-        <td>${m.venue||'Online'}</td>
-        <td id="att-${m.id}"><span class="badge badge-grey">—</span></td>
-      </tr>`;
-    }).join('')}</tbody></table>` :
-    '<div style="padding:1.5rem;text-align:center;color:var(--ink-faint);font-size:.82rem">No past meetings recorded yet</div>';
-
-  // Load attendance status for past meetings
-  if (memberId) {
-    const { data: myAtt } = await sb.from('attendance')
-      .select('meeting_id,status').eq('member_id', memberId);
-    (myAtt||[]).forEach(a => {
-      const el = document.getElementById(`att-${a.meeting_id}`);
-      if (el) el.innerHTML = `<span class="badge ${a.status==='present'?'badge-green':a.status==='apology'?'badge-warn':'badge-red'}">${a.status}</span>`;
-    });
-  }
+  if (pastEl) pastEl.innerHTML = past.length ? past.map((m,i) => {
+    const d = new Date(m.meeting_date);
+    const myAtt = attSummary.total > 0 ? null : null;
+    return `<div class="mp-meeting-card past" style="animation-delay:${i*0.04}s">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
+          <div style="font-size:.7rem;color:var(--ink-faint)">${m.venue||'Online'}</div>
+        </div>
+        <span class="badge ${m.minutes?'badge-green':'badge-grey'}" style="font-size:.62rem">${m.minutes?'✓ Minutes':'Pending'}</span>
+      </div>
+    </div>`;
+  }).join('') : '<div style="padding:1.5rem;text-align:center;font-size:.82rem;color:var(--ink-faint)">No past meetings recorded</div>';
 }
 
 async function loadMyNotices() {
   if (!currentOrg?.id) return;
-  const { data: msgs } = await sb.from('messages_log')
-    .select('*').eq('org_id', currentOrg.id)
-    .order('sent_at',{ascending:false}).limit(20);
-
-  const el = document.getElementById('my-notices-list');
-  el.innerHTML = (msgs||[]).length ? (msgs||[]).map(m => `
-    <div class="card" style="margin-bottom:1rem">
-      <div class="card-body">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">
-          <span class="badge badge-maroon">${m.recipient_type==='all'?'All Members':m.recipient_type==='active'?'Active Members':m.recipient_type||'Notice'}</span>
-          <span style="font-size:.72rem;color:var(--ink-faint)">${m.sent_at?new Date(m.sent_at).toDateString():'—'}</span>
-        </div>
-        <div style="font-size:.85rem;color:var(--ink);line-height:1.7">${m.body||'—'}</div>
-      </div>
-    </div>`).join('') :
-    '<div style="padding:2rem;text-align:center;color:var(--ink-faint);font-size:.85rem">No notices yet. Messages from your group admin will appear here.</div>';
+  const { data } = await sb.from('messages_log').select('*').eq('org_id', currentOrg.id).order('sent_at',{ascending:false}).limit(20);
+  const logs = data || [];
+  const countEl = document.getElementById('notices-count-chip');
+  if (countEl) countEl.textContent = logs.length + ' notice' + (logs.length!==1?'s':'');
+  const listEl = document.getElementById('my-notices-list');
+  if (!listEl) return;
+  listEl.innerHTML = logs.length ? logs.map((l,i) => {
+    const dateStr = l.sent_at ? new Date(l.sent_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+    return `<div class="mp-notice-card" style="animation-delay:${i*0.04}s">
+      <div class="mp-notice-date">📢 ${dateStr} · ${l.recipient_type==='all'?'All Members':l.recipient_type==='active'?'Active Members':'Members'}</div>
+      <div class="mp-notice-body">${l.body||'—'}</div>
+    </div>`;
+  }).join('') : `<div style="padding:3rem;text-align:center">
+    <div style="font-size:2rem;margin-bottom:.75rem">📢</div>
+    <div style="font-size:.85rem;color:var(--ink-faint)">No notices from your admin yet</div>
+  </div>`;
 }
 
-// ── START ──
 async function start() {
   const isReset = await handleAuthRedirect();
   if (!isReset) init();
