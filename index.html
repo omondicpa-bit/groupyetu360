@@ -730,6 +730,106 @@ tr:hover td{background:var(--maroon-pale)}
 /* WELFARE */
 .welfare-card{background:var(--surface);border:1px solid var(--border);padding:1.25rem;border-left:4px solid var(--maroon)}
 
+/* ══ WELFARE PAGE ══ */
+@keyframes welIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.wel-hero{background:linear-gradient(135deg,#3a000e 0%,var(--maroon) 50%,#0d3d2e 100%);padding:1.25rem 1.5rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+.wel-hero-title{font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:#fff;margin-bottom:.2rem}
+.wel-hero-sub{font-size:.72rem;color:rgba(255,255,255,.5);letter-spacing:.05em;margin-bottom:.6rem}
+.wel-rates{display:flex;gap:.5rem;flex-wrap:wrap}
+.wel-rate-pill{display:flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);padding:.35rem .75rem;border-radius:99px}
+.wel-rate-pill-label{font-size:.62rem;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.08em}
+.wel-rate-pill-val{font-size:.8rem;font-weight:700;color:#fff}
+.wel-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1.25rem}
+.wel-stat{background:var(--surface);border:1px solid var(--border);padding:.85rem 1rem;text-align:center;animation:welIn .3s ease both}
+.wel-stat-val{font-family:'Crimson Pro',serif;font-size:1.5rem;font-weight:700;color:var(--maroon)}
+.wel-stat-label{font-size:.65rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem}
+.wel-event-card{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--maroon);margin-bottom:.85rem;animation:welIn .35s ease both;overflow:hidden;transition:box-shadow .15s,border-color .15s}
+.wel-event-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.wel-event-card.closed{border-left-color:var(--border-dk);opacity:.7}
+.wel-event-card.general{border-left-color:var(--teal)}
+.wel-event-header{display:flex;align-items:flex-start;justify-content:space-between;padding:1rem 1.25rem .75rem;gap:.75rem}
+.wel-event-icon{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0;background:var(--maroon-pale)}
+.wel-event-icon.general{background:var(--teal-pale)}
+.wel-event-type{font-size:.88rem;font-weight:700;color:var(--ink);margin-bottom:.2rem}
+.wel-event-member{font-size:.75rem;color:var(--ink-faint);margin-bottom:.1rem}
+.wel-event-date{font-size:.7rem;color:var(--ink-faint)}
+.wel-event-amt-val{font-family:'Crimson Pro',serif;font-size:1.5rem;font-weight:700;color:var(--maroon);line-height:1;text-align:right}
+.wel-event-amt-label{font-size:.62rem;color:var(--ink-faint);margin-top:.1rem;text-align:right}
+.wel-event-footer{display:flex;align-items:center;justify-content:space-between;padding:.6rem 1.25rem;background:var(--surface-2);border-top:1px solid var(--border)}
+.wel-event-notes{font-size:.72rem;color:var(--ink-faint);flex:1;margin-right:.75rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wel-empty{padding:3rem;text-align:center}
+.wel-empty-icon{font-size:2.5rem;margin-bottom:.75rem}
+.wel-empty-title{font-size:.95rem;font-weight:600;color:var(--ink);margin-bottom:.4rem}
+.wel-empty-sub{font-size:.8rem;color:var(--ink-faint);margin-bottom:1.25rem}
+
+
+/* ══ WELFARE PAGE ══ */
+@keyframes welIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.wel-hero{
+  background:linear-gradient(135deg,#3a000e 0%,var(--maroon) 50%,#0d3d2e 100%);
+  padding:1.25rem 1.5rem;margin-bottom:1.25rem;display:flex;align-items:center;
+  justify-content:space-between;flex-wrap:wrap;gap:1rem
+}
+.wel-hero-left{position:relative;z-index:1}
+.wel-hero-title{font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:#fff;margin-bottom:.2rem}
+.wel-hero-sub{font-size:.72rem;color:rgba(255,255,255,.5);letter-spacing:.05em}
+.wel-rates{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.85rem}
+.wel-rate-pill{
+  display:flex;align-items:center;gap:.5rem;
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
+  padding:.35rem .75rem;border-radius:99px
+}
+.wel-rate-pill-label{font-size:.62rem;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.08em}
+.wel-rate-pill-val{font-size:.8rem;font-weight:700;color:#fff}
+.wel-event-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-left:4px solid var(--maroon);margin-bottom:.85rem;
+  animation:welIn .35s ease both;overflow:hidden;
+  transition:box-shadow .15s,border-color .15s
+}
+.wel-event-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);border-color:var(--maroon-muted)}
+.wel-event-card.closed{border-left-color:var(--border-dk);opacity:.7}
+.wel-event-card.general{border-left-color:var(--teal)}
+.wel-event-header{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  padding:1rem 1.25rem .75rem;gap:.75rem
+}
+.wel-event-icon{
+  width:42px;height:42px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.25rem;flex-shrink:0;background:var(--maroon-pale)
+}
+.wel-event-icon.general{background:var(--teal-pale)}
+.wel-event-type{font-size:.88rem;font-weight:700;color:var(--ink);margin-bottom:.2rem}
+.wel-event-member{font-size:.75rem;color:var(--ink-faint);margin-bottom:.1rem}
+.wel-event-date{font-size:.7rem;color:var(--ink-faint)}
+.wel-event-amt{
+  text-align:right;flex-shrink:0
+}
+.wel-event-amt-val{
+  font-family:'Crimson Pro',serif;font-size:1.5rem;font-weight:700;
+  color:var(--maroon);line-height:1
+}
+.wel-event-amt-label{font-size:.62rem;color:var(--ink-faint);margin-top:.1rem}
+.wel-event-footer{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.6rem 1.25rem;background:var(--surface-2);
+  border-top:1px solid var(--border)
+}
+.wel-event-notes{font-size:.72rem;color:var(--ink-faint);flex:1;margin-right:.75rem;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wel-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1.25rem}
+.wel-stat{
+  background:var(--surface);border:1px solid var(--border);
+  padding:.85rem 1rem;text-align:center;animation:welIn .3s ease both
+}
+.wel-stat-val{font-family:'Crimson Pro',serif;font-size:1.5rem;font-weight:700;color:var(--maroon)}
+.wel-stat-label{font-size:.65rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem}
+.wel-empty{padding:3rem;text-align:center}
+.wel-empty-icon{font-size:2.5rem;margin-bottom:.75rem}
+.wel-empty-title{font-size:.95rem;font-weight:600;color:var(--ink);margin-bottom:.4rem}
+.wel-empty-sub{font-size:.8rem;color:var(--ink-faint);margin-bottom:1.25rem}
+
 @media(max-width:900px){
   .sidebar{width:200px}.main{margin-left:200px}
   .stats-row{grid-template-columns:repeat(2,1fr)}
@@ -1574,12 +1674,37 @@ tr:hover td{background:var(--maroon-pale)}
 
     <!-- WELFARE -->
     <div class="page" id="page-welfare">
-      <div class="section-header">
-        <div><div class="section-title">Welfare</div><div class="section-sub">Bereavement contributions</div></div>
-        <button class="btn btn-primary" onclick="showModal('welfareEvent')">+ New Welfare Event</button>
+
+      <!-- ── HERO ── -->
+      <div class="wel-hero">
+        <div class="wel-hero-left">
+          <div class="wel-hero-title">♡ Welfare Fund</div>
+          <div class="wel-hero-sub" id="wel-hero-sub">Loading rates…</div>
+          <div class="wel-rates" id="wel-rates-pills"></div>
+        </div>
+        <button class="btn fin-ctrl-btn" onclick="showModal('welfareEvent')">+ New Event</button>
       </div>
-      <div class="alert alert-info" id="welfare-rates-alert">&#8505; Loading welfare rates…</div>
-      <div id="welfare-events-list"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+
+      <!-- ── STATS ── -->
+      <div class="wel-stats">
+        <div class="wel-stat">
+          <div class="wel-stat-val" id="wel-stat-total">—</div>
+          <div class="wel-stat-label">Total Events</div>
+        </div>
+        <div class="wel-stat">
+          <div class="wel-stat-val" id="wel-stat-open">—</div>
+          <div class="wel-stat-label">Open Events</div>
+        </div>
+        <div class="wel-stat">
+          <div class="wel-stat-val" id="wel-stat-collected">—</div>
+          <div class="wel-stat-label">Total Contributed</div>
+        </div>
+      </div>
+
+      <!-- ── EVENT LIST ── -->
+      <div id="welfare-events-list">
+        <div class="loading"><div class="spinner"></div>Loading…</div>
+      </div>
     </div>
 
     <!-- PROJECTS -->
@@ -4464,36 +4589,108 @@ async function saveMeeting() {
 // ── WELFARE ──
 async function loadWelfare() {
   if (!currentOrg?.id) return;
-  // Update welfare rates alert dynamically
-  const alertEl = document.getElementById('welfare-rates-alert');
-  if (alertEl) {
-    const mRate = currentOrg?.welfare_rate_member || 1000;
-    const sRate = currentOrg?.welfare_rate_spouse || 750;
-    const cRate = currentOrg?.welfare_rate_child || 500;
-    alertEl.innerHTML = `&#8505; Welfare rates for ${currentOrg.name}: Member death <strong>Ksh ${mRate.toLocaleString()}</strong> &middot; Spouse/Parent <strong>Ksh ${sRate.toLocaleString()}</strong> &middot; Child <strong>Ksh ${cRate.toLocaleString()}</strong> <span style="font-size:.7rem;margin-left:.5rem"><a onclick="showPage('settings')" style="color:var(--maroon);cursor:pointer">Edit in Settings</a></span>`;
-  }
-  const { data } = await sb.from('welfare_events').select('*,members(full_name)').eq('org_id', currentOrg.id).order('created_at',{ascending:false});
+
+  // ── Hero rates pills ──
+  const mRate = currentOrg?.welfare_rate_member || 1000;
+  const sRate = currentOrg?.welfare_rate_spouse || 750;
+  const cRate = currentOrg?.welfare_rate_child || 500;
+  const subEl = document.getElementById('wel-hero-sub');
+  if (subEl) subEl.textContent = currentOrg.name + ' · Edit rates in Settings';
+  const pillsEl = document.getElementById('wel-rates-pills');
+  if (pillsEl) pillsEl.innerHTML = [
+    ['Member death', 'Ksh ' + mRate.toLocaleString()],
+    ['Spouse/Parent', 'Ksh ' + sRate.toLocaleString()],
+    ['Child', 'Ksh ' + cRate.toLocaleString()]
+  ].map(([label, val]) => `
+    <div class="wel-rate-pill">
+      <span class="wel-rate-pill-label">${label}</span>
+      <span class="wel-rate-pill-val">${val}</span>
+    </div>`).join('');
+
+  // ── Fetch events ──
+  const { data } = await sb.from('welfare_events')
+    .select('*,members(full_name)')
+    .eq('org_id', currentOrg.id)
+    .order('created_at', {ascending: false});
   const events = data || [];
-  document.getElementById('welfare-events-list').innerHTML = events.length ? events.map(e => `
-    <div class="welfare-card" style="margin-bottom:.75rem;opacity:${e.is_active===false?'0.6':'1'}">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div>
-          <div style="display:flex;align-items:center;gap:.5rem">
-            <span style="font-size:.85rem;font-weight:700;color:var(--ink)">${e.event_type==='member'?'Member Death':e.event_type==='spouse'?'Spouse/Parent Death':'Child Death'}</span>
-            <span class="badge ${e.is_active===false?'badge-grey':'badge-green'}" style="font-size:.65rem">${e.is_active===false?'Closed':'Open'}</span>
+
+  // ── Stats ──
+  const openEvents = events.filter(e => e.is_active !== false);
+  const totalContrib = events.reduce((s,e) => s + Number(e.contribution_per_member||0), 0);
+  const setEl = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  setEl('wel-stat-total', events.length);
+  setEl('wel-stat-open', openEvents.length);
+  setEl('wel-stat-collected', 'Ksh ' + totalContrib.toLocaleString());
+
+  // ── Event type labels ──
+  const typeLabel = {
+    member: 'Member Death', spouse: 'Spouse / Parent Death', child: 'Child Death',
+    community: 'Community Contribution', annual_party: 'Annual Party / Celebration',
+    emergency_fund: 'Emergency Fund', custom: 'Custom Event'
+  };
+  const typeIcon = {
+    member: '🕊', spouse: '🕊', child: '🕊',
+    community: '🤝', annual_party: '🎉', emergency_fund: '⚡', custom: '♡'
+  };
+
+  // ── Render events ──
+  const listEl = document.getElementById('welfare-events-list');
+  if (!events.length) {
+    listEl.innerHTML = `<div class="wel-empty card">
+      <div class="wel-empty-icon">♡</div>
+      <div class="wel-empty-title">No welfare events recorded</div>
+      <div class="wel-empty-sub">Create a welfare event when a member needs group support</div>
+      <button class="btn btn-primary" style="width:auto;padding:.65rem 1.5rem" onclick="showModal('welfareEvent')">+ Record First Event</button>
+    </div>`;
+    return;
+  }
+
+  listEl.innerHTML = events.map((e, i) => {
+    const isGeneral = !e.affected_member_id;
+    const isClosed = e.is_active === false;
+    const label = typeLabel[e.event_type] || e.event_type || 'Welfare Event';
+    const icon = typeIcon[e.event_type] || '♡';
+    const memberName = isGeneral ? 'General / Community' : (e.members?.full_name || 'Member');
+    const dateStr = e.event_date ? new Date(e.event_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : 'Date not set';
+    const cardClass = isClosed ? 'closed' : isGeneral ? 'general' : '';
+    return `<div class="wel-event-card ${cardClass}" style="animation-delay:${i*0.05}s">
+      <div class="wel-event-header">
+        <div class="wel-event-icon ${isGeneral?'general':''}">${icon}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.2rem">
+            <div class="wel-event-type">${label}</div>
+            <span class="badge ${isClosed?'badge-grey':'badge-green'}" style="font-size:.6rem">${isClosed?'Closed':'Open'}</span>
+            ${isGeneral?'<span class="badge badge-grey" style="font-size:.6rem;background:var(--teal-pale);color:var(--teal-dk)">General</span>':''}
           </div>
-          <div style="font-size:.72rem;color:var(--ink-faint);margin:.2rem 0">${e.members?.full_name||'Unknown member'} · ${e.event_date||'Date not set'}</div>
-          <div style="font-size:.8rem;color:var(--ink-soft)">Contribution per member: <strong>Ksh ${Number(e.contribution_per_member).toLocaleString()}</strong></div>
-          ${e.notes?`<div style="font-size:.78rem;color:var(--ink-faint);margin-top:.3rem">${e.notes}</div>`:''}
+          <div class="wel-event-member">👤 ${memberName}</div>
+          <div class="wel-event-date">📅 ${dateStr}</div>
         </div>
-        <div style="display:flex;gap:.4rem;flex-shrink:0;margin-left:.75rem">
-          <button class="btn btn-secondary btn-sm" style="font-size:.7rem"
-            onclick="toggleWelfareActive('${e.id}',${e.is_active!==false})">
-            ${e.is_active===false?'Reopen':'Close'}
-          </button>
+        <div>
+          <div class="wel-event-amt-val">Ksh ${Number(e.contribution_per_member).toLocaleString()}</div>
+          <div class="wel-event-amt-label">per member</div>
         </div>
       </div>
-    </div>`).join('') : '<div style="padding:2rem;text-align:center;color:var(--ink-faint);font-size:.85rem">No welfare events recorded</div>';
+      <div class="wel-event-footer">
+        <div class="wel-event-notes">${e.notes || 'No notes'}</div>
+        <div style="display:flex;gap:.4rem">
+          <button class="btn btn-secondary btn-sm" style="font-size:.7rem"
+            onclick="toggleWelfareActive('${e.id}',${e.is_active!==false})">
+            ${isClosed ? '↺ Reopen' : '✓ Close'}
+          </button>
+          <button class="btn btn-danger btn-sm" style="font-size:.7rem"
+            onclick="deleteWelfareEvent('${e.id}')">✕</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function deleteWelfareEvent(id) {
+  if (!confirm('Delete this welfare event? This cannot be undone.')) return;
+  const { error } = await sb.from('welfare_events').delete().eq('id', id);
+  if (error) { toast('Error: ' + error.message); return; }
+  toast('Welfare event deleted');
+  loadWelfare();
 }
 
 async function toggleWelfareActive(id, isCurrentlyActive) {
