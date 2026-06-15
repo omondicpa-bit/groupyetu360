@@ -27,10 +27,15 @@
 :root{
   --maroon:#800020;--maroon-dk:#5a0016;--maroon-lt:#a0002a;--maroon-pale:#fdf0f3;--maroon-muted:#c85070;
   --gold:#c49a30;--gold-lt:#e0b84a;
-  --ink:#1a1214;--ink-soft:#4a3840;--ink-faint:#8a7078;
-  --surface:#ffffff;--surface-2:#faf7f8;--surface-3:#f3edef;
-  --border:#e8dde0;--border-dk:#d4c4c8;
-  --success:#1a7a4a;--success-pale:#e8f7ef;
+  /* ── Teal palette ── */
+  --teal:#0f6e56;--teal-dk:#085041;--teal-lt:#1d9e75;--teal-pale:#e1f5ee;--teal-mid:#9fe1cb;
+  /* ── Ink (warm near-black) ── */
+  --ink:#1a1a1a;--ink-soft:#3d3d3d;--ink-faint:#767676;
+  /* ── Surfaces (teal-tinted) ── */
+  --surface:#ffffff;--surface-2:#f4f9f7;--surface-3:#e9f4f0;
+  --border:#d0e8e0;--border-dk:#b0d4c8;
+  /* ── Semantic ── */
+  --success:#0f6e56;--success-pale:#e1f5ee;
   --warning:#a06010;--warning-pale:#fef3e0;
   --danger:#cc2020;--danger-pale:#fdeaea;
   --sidebar-w:240px;
@@ -38,66 +43,137 @@
 html{scroll-behavior:smooth}
 body{font-family:'Inter',sans-serif;background:var(--surface-2);color:var(--ink);font-size:14px;line-height:1.5}
 
-/* ══════════════════════════════════
-   AUTH SCREEN — SPLIT LAYOUT
-══════════════════════════════════ */
+/* ══════════════════════════════════════════════════
+   AUTH SCREEN — MAROON + TEAL SPLIT + ANIMATIONS
+══════════════════════════════════════════════════ */
+
+/* ── Keyframe animations ── */
+@keyframes fadeSlideUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeSlideRight{from{opacity:0;transform:translateX(-22px)}to{opacity:1;transform:translateX(0)}}
+@keyframes vennDraw{from{stroke-dashoffset:600}to{stroke-dashoffset:0}}
+@keyframes vennPulse{0%,100%{r:3.5;opacity:.9}50%{r:5.5;opacity:1}}
+@keyframes floatRing{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-12px) rotate(4deg)}}
+@keyframes floatRing2{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(10px) rotate(-3deg)}}
+@keyframes featIn{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:translateX(0)}}
+@keyframes formIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+@keyframes tealPing{0%{transform:scale(1);opacity:.6}100%{transform:scale(2.2);opacity:0}}
+@keyframes inputFocusLine{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
 .auth-screen{
   min-height:100vh;display:flex;align-items:stretch;
-  background:#0a0006;position:relative;overflow:hidden
+  background:#030d0a;position:relative;overflow:hidden
 }
-/* Left brand panel */
+
+/* ── Left — deep maroon brand panel ── */
 .auth-left{
   flex:0 0 42%;display:flex;flex-direction:column;justify-content:space-between;
   padding:3rem 3rem 2.5rem;
-  background:linear-gradient(160deg,#5c0018 0%,var(--maroon) 45%,#3a000e 100%);
+  background:linear-gradient(160deg,#3a000e 0%,#5c0018 30%,var(--maroon) 65%,#0d3d2e 100%);
   position:relative;overflow:hidden
 }
-/* Decorative circles on brand panel */
-.auth-left::before{
-  content:'';position:absolute;width:420px;height:420px;border-radius:50%;
-  border:1px solid rgba(196,154,48,.15);top:-80px;right:-120px
+
+/* Animated floating rings */
+.auth-left .ring1{
+  position:absolute;width:380px;height:380px;border-radius:50%;
+  border:1px solid rgba(31,158,117,.18);top:-90px;right:-100px;
+  animation:floatRing 8s ease-in-out infinite
 }
+.auth-left .ring2{
+  position:absolute;width:220px;height:220px;border-radius:50%;
+  border:1px solid rgba(196,154,48,.14);bottom:80px;left:-60px;
+  animation:floatRing2 10s ease-in-out infinite
+}
+.auth-left .ring3{
+  position:absolute;width:120px;height:120px;border-radius:50%;
+  border:1px solid rgba(31,158,117,.12);bottom:30px;right:40px;
+  animation:floatRing 12s ease-in-out infinite reverse
+}
+/* Soft teal glow bottom-left */
 .auth-left::after{
-  content:'';position:absolute;width:260px;height:260px;border-radius:50%;
-  border:1px solid rgba(196,154,48,.1);bottom:60px;left:-80px
+  content:'';position:absolute;width:300px;height:300px;border-radius:50%;
+  background:radial-gradient(circle,rgba(15,110,86,.25) 0%,transparent 70%);
+  bottom:-60px;left:-60px;pointer-events:none
 }
+
 .auth-left-inner{position:relative;z-index:2}
-/* Venn logo mark SVG */
+
+/* Animated venn SVG */
 .auth-venn{margin-bottom:1.75rem}
+.auth-venn circle.v-ring{
+  stroke-dasharray:600;
+  animation:vennDraw 2s ease forwards
+}
+.auth-venn circle.v-ring:nth-child(1){animation-delay:.1s}
+.auth-venn circle.v-ring:nth-child(2){animation-delay:.35s}
+.auth-venn circle.v-ring:nth-child(3){animation-delay:.6s}
+.auth-venn circle.v-dot{animation:vennPulse 3s ease-in-out 1s infinite}
+
+/* Teal ping halo behind dot */
+.auth-venn .v-ping{animation:tealPing 2.5s ease-out 1.2s infinite}
+
 .auth-brand-name{
   font-family:'Crimson Pro',serif;font-size:2.8rem;font-weight:700;
-  color:#fff;line-height:1;margin-bottom:.4rem
+  color:#fff;line-height:1;margin-bottom:.4rem;
+  animation:fadeSlideRight .6s ease .8s both
 }
 .auth-brand-name span{color:var(--gold-lt)}
 .auth-brand-tag{
   font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;
-  color:rgba(255,255,255,.45);margin-bottom:2.5rem
+  color:rgba(255,255,255,.4);margin-bottom:2.5rem;
+  animation:fadeSlideRight .6s ease 1s both
 }
+
+/* Feature list — staggered slide-in */
 .auth-features{display:flex;flex-direction:column;gap:1rem}
-.auth-feat{display:flex;align-items:flex-start;gap:.85rem}
+.auth-feat{
+  display:flex;align-items:flex-start;gap:.85rem;
+  opacity:0;animation:featIn .5s ease forwards
+}
+.auth-feat:nth-child(1){animation-delay:1.1s}
+.auth-feat:nth-child(2){animation-delay:1.25s}
+.auth-feat:nth-child(3){animation-delay:1.4s}
+.auth-feat:nth-child(4){animation-delay:1.55s}
+
 .auth-feat-icon{
-  width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.1);
+  width:34px;height:34px;border-radius:8px;
+  background:rgba(15,110,86,.35);border:1px solid rgba(31,158,117,.4);
   display:flex;align-items:center;justify-content:center;font-size:.85rem;
-  flex-shrink:0;margin-top:.05rem
+  flex-shrink:0;margin-top:.05rem;
+  transition:background .2s,transform .2s
 }
+.auth-feat:hover .auth-feat-icon{background:rgba(15,110,86,.55);transform:scale(1.08)}
 .auth-feat-text strong{display:block;font-size:.82rem;color:#fff;font-weight:600;margin-bottom:.1rem}
-.auth-feat-text span{font-size:.72rem;color:rgba(255,255,255,.5);line-height:1.5}
+.auth-feat-text span{font-size:.72rem;color:rgba(255,255,255,.48);line-height:1.5}
+
 .auth-left-footer{
-  position:relative;z-index:2;font-size:.65rem;color:rgba(255,255,255,.3);
-  letter-spacing:.08em
+  position:relative;z-index:2;font-size:.65rem;color:rgba(255,255,255,.28);
+  letter-spacing:.08em;animation:fadeSlideUp .5s ease 2s both
 }
-/* Right form panel */
+
+/* ── Right — teal-tinted form panel ── */
 .auth-right{
   flex:1;display:flex;align-items:center;justify-content:center;
-  background:var(--surface);padding:2.5rem
+  background:var(--surface-2);padding:2.5rem;
+  position:relative
 }
+/* Subtle teal corner accent */
+.auth-right::before{
+  content:'';position:absolute;top:0;right:0;width:180px;height:180px;
+  background:radial-gradient(circle at top right,rgba(15,110,86,.08) 0%,transparent 70%);
+  pointer-events:none
+}
+
 .auth-box{
-  width:100%;max-width:400px;position:relative;z-index:1
+  width:100%;max-width:400px;position:relative;z-index:1;
+  animation:formIn .55s ease .3s both
 }
-.auth-brand{display:none} /* hidden on desktop — shown on mobile */
+.auth-brand{display:none}
+
 .auth-form-heading{
-  font-family:'Crimson Pro',serif;font-size:1.65rem;font-weight:600;
-  color:var(--maroon);margin-bottom:.25rem;line-height:1.2
+  font-family:'Crimson Pro',serif;font-size:1.7rem;font-weight:600;
+  color:var(--maroon);margin-bottom:.25rem;line-height:1.2;
+  transition:color .3s
 }
 .auth-form-sub{
   font-size:.78rem;color:var(--ink-faint);margin-bottom:1.75rem;line-height:1.6
@@ -107,56 +183,98 @@ body{font-family:'Inter',sans-serif;background:var(--surface-2);color:var(--ink)
 .auth-tagline{font-size:.72rem;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-faint);margin-top:.25rem}
 .auth-title{font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:.25rem}
 .auth-sub{font-size:.78rem;color:var(--ink-faint);margin-bottom:1.5rem}
+
+/* Pill tab switcher */
 .auth-tabs{
   display:flex;gap:0;margin-bottom:1.5rem;
   border:1.5px solid var(--border-dk);padding:3px;
-  background:var(--surface-2)
+  background:var(--surface);border-radius:6px
 }
 .auth-tab{
   flex:1;text-align:center;padding:.45rem .5rem;font-size:.75rem;font-weight:600;
-  cursor:pointer;color:var(--ink-faint);transition:all .18s;border-radius:1px
+  cursor:pointer;color:var(--ink-faint);transition:all .2s;border-radius:4px
 }
 .auth-tab.active{
-  background:var(--maroon);color:#fff;
+  background:var(--teal);color:#fff;
+  box-shadow:0 2px 8px rgba(15,110,86,.3)
 }
-.auth-panel{display:none}.auth-panel.active{display:block}
-/* Input style upgrade */
-.auth-box .form-input,.auth-box .form-select{
-  border:1.5px solid var(--border-dk);padding:.65rem .85rem;
-  font-size:.85rem;transition:border-color .15s,box-shadow .15s
+.auth-tab:not(.active):hover{color:var(--teal);background:var(--teal-pale)}
+
+.auth-panel{display:none}.auth-panel.active{animation:fadeSlideUp .25s ease;display:block}
+
+/* ── Inputs — teal focus ── */
+.auth-box .form-input,
+.auth-box .form-select{
+  border:1.5px solid var(--border-dk);
+  padding:.68rem .85rem;font-size:.85rem;
+  background:var(--surface);
+  transition:border-color .18s,box-shadow .18s,background .18s;
+  border-radius:4px
 }
-.auth-box .form-input:focus,.auth-box .form-select:focus{
-  border-color:var(--maroon);
-  box-shadow:0 0 0 3px rgba(128,0,32,.08)
+.auth-box .form-input:focus,
+.auth-box .form-select:focus{
+  border-color:var(--teal);
+  box-shadow:0 0 0 3px rgba(15,110,86,.1);
+  background:#fff;outline:none
 }
+.auth-box .form-input:focus + .input-focus-line,
+.input-focus-line{
+  display:block;height:2px;background:var(--teal);
+  transform:scaleX(0);transform-origin:left;
+  animation:inputFocusLine .2s ease forwards
+}
+
+/* ── Primary button — teal ── */
 .auth-box .btn-primary{
-  background:var(--maroon);padding:.8rem;font-size:.85rem;
-  letter-spacing:.04em;transition:background .15s,transform .1s
+  background:var(--teal);padding:.82rem;font-size:.85rem;
+  letter-spacing:.04em;border-radius:4px;
+  transition:background .15s,transform .12s,box-shadow .15s;
+  box-shadow:0 3px 10px rgba(15,110,86,.25)
 }
-.auth-box .btn-primary:hover{background:#6a0019;transform:translateY(-1px)}
-.auth-box .btn-primary:active{transform:translateY(0)}
+.auth-box .btn-primary:hover{
+  background:var(--teal-lt);transform:translateY(-1px);
+  box-shadow:0 6px 16px rgba(15,110,86,.3)
+}
+.auth-box .btn-primary:active{transform:translateY(0);box-shadow:none}
+
 /* Input icon wrapper */
 .input-wrap{position:relative}
 .input-wrap .form-input{padding-left:2.4rem}
 .input-icon{
   position:absolute;left:.75rem;top:50%;transform:translateY(-50%);
-  font-size:.9rem;color:var(--ink-faint);pointer-events:none
+  font-size:.9rem;color:var(--ink-faint);pointer-events:none;
+  transition:color .18s
 }
-/* Floating label hint */
+.input-wrap:focus-within .input-icon{color:var(--teal)}
+
 .field-hint{font-size:.67rem;color:var(--ink-faint);margin-top:.25rem;line-height:1.5}
-/* Mobile: stack panels */
+
+/* Social proof strip */
+.auth-proof{
+  display:flex;justify-content:center;gap:1.5rem;margin-top:1.5rem;
+  padding-top:1.25rem;border-top:1px solid var(--border)
+}
+.auth-proof-item{text-align:center}
+.auth-proof-val{
+  font-family:'Crimson Pro',serif;font-size:1.15rem;font-weight:700;
+  color:var(--teal);display:block;line-height:1
+}
+.auth-proof-label{font-size:.62rem;color:var(--ink-faint);letter-spacing:.04em;margin-top:.15rem}
+
+/* Mobile */
 @media(max-width:700px){
   .auth-screen{flex-direction:column}
   .auth-left{flex:none;padding:2rem 1.5rem 1.75rem;min-height:auto}
   .auth-features{display:none}
   .auth-brand-name{font-size:2rem}
-  .auth-right{padding:1.5rem}
-  .auth-left::before,.auth-left::after{display:none}
+  .auth-right{padding:1.5rem;background:var(--surface-2)}
+  .auth-left .ring1,.auth-left .ring2,.auth-left .ring3{display:none}
+  .auth-left::after{display:none}
 }
 .form-group{display:flex;flex-direction:column;gap:.3rem;margin-bottom:1rem}
 .form-label{font-size:.7rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint)}
 .form-input,.form-select,.form-textarea{border:1.5px solid var(--border-dk);padding:.6rem .75rem;font-family:'Inter',sans-serif;font-size:.85rem;color:var(--ink);background:var(--surface);outline:none;transition:border-color .15s;width:100%}
-.form-input:focus,.form-select:focus{border-color:var(--maroon)}
+.form-input:focus,.form-select:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(15,110,86,.08);outline:none}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;padding:.6rem 1.2rem;font-size:.8rem;font-weight:600;cursor:pointer;border:none;letter-spacing:.03em;transition:all .15s;font-family:'Inter',sans-serif}
 .btn-primary{background:var(--maroon);color:#fff;width:100%;padding:.75rem}
 .btn-primary:hover{background:var(--maroon-lt)}
@@ -182,10 +300,35 @@ body{font-family:'Inter',sans-serif;background:var(--surface-2);color:var(--ink)
 .org-option-name{font-weight:600;color:var(--ink)}
 .org-option-meta{font-size:.7rem;color:var(--ink-faint);margin-top:.1rem}
 
+/* ── DASHBOARD ── */
+.dash-stat{transition:transform .15s,box-shadow .15s;cursor:pointer}
+.dash-stat:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.1)}
+.dash-txn-row{display:flex;align-items:center;gap:.85rem;padding:.75rem 1.25rem;border-bottom:1px solid var(--border);transition:background .12s}
+.dash-txn-row:last-child{border-bottom:none}
+.dash-txn-row:hover{background:var(--surface-2)}
+.dash-txn-avatar{width:34px;height:34px;border-radius:50%;background:var(--teal-pale);display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;color:var(--teal-dk);flex-shrink:0;font-family:'Crimson Pro',serif}
+.dash-txn-name{font-size:.82rem;font-weight:600;color:var(--ink);line-height:1.3}
+.dash-txn-meta{font-size:.68rem;color:var(--ink-faint)}
+.dash-txn-amt{font-size:.88rem;font-weight:700;color:var(--teal);margin-left:auto;white-space:nowrap}
+.dash-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:.2rem}
+.dash-bar-fill{width:100%;border-radius:2px 2px 0 0;min-height:3px;transition:height .8s ease}
+.dash-bar-val{font-size:.58rem;color:var(--ink-faint);text-align:center}
+
 /* APP */
+/* ── DASHBOARD ── */
+.dash-stat{transition:transform .15s,box-shadow .15s}
+.dash-stat:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.1)}
+.dash-txn-row{display:flex;align-items:center;gap:.85rem;padding:.75rem 1.25rem;border-bottom:1px solid var(--border);transition:background .12s}
+.dash-txn-row:last-child{border-bottom:none}
+.dash-txn-row:hover{background:var(--surface-2)}
+.dash-txn-avatar{width:34px;height:34px;border-radius:50%;background:var(--teal-pale);display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;color:var(--teal-dk);flex-shrink:0;font-family:'Crimson Pro',serif}
+.dash-txn-name{font-size:.82rem;font-weight:600;color:var(--ink);line-height:1.3}
+.dash-txn-meta{font-size:.68rem;color:var(--ink-faint)}
+.dash-txn-amt{font-size:.88rem;font-weight:700;color:var(--teal);margin-left:auto;white-space:nowrap}
+
 .app-screen{display:none}
 .app-screen.visible{display:flex;min-height:100vh}
-.sidebar{position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;background:var(--maroon-dk);display:flex;flex-direction:column;z-index:100;overflow-y:auto;transition:transform .25s ease}
+.sidebar{position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;background:linear-gradient(180deg,#3a000e 0%,#5a0016 40%,#063d2e 100%);display:flex;flex-direction:column;z-index:100;overflow-y:auto;transition:transform .25s ease}
 .sidebar.collapsed{transform:translateX(-100%)}
 .main{margin-left:var(--sidebar-w);transition:margin-left .25s ease}
 .main.expanded{margin-left:0}
@@ -261,7 +404,7 @@ td{padding:.65rem 1rem;border-bottom:1px solid var(--border);font-size:.8rem;col
 tr:last-child td{border-bottom:none}
 tr:hover td{background:var(--maroon-pale)}
 .badge{display:inline-block;font-size:.62rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:.2rem .55rem}
-.badge-green{background:var(--success-pale);color:var(--success)}
+.badge-green{background:var(--teal-pale);color:var(--teal-dk)}
 .badge-warn{background:var(--warning-pale);color:var(--warning)}
 .badge-red{background:var(--danger-pale);color:var(--danger)}
 .badge-grey{background:var(--surface-3);color:var(--ink-faint)}
@@ -397,16 +540,32 @@ tr:hover td{background:var(--maroon-pale)}
 
   <!-- ── LEFT BRAND PANEL ── -->
   <div class="auth-left">
+    <!-- Animated floating rings -->
+    <div class="ring1"></div>
+    <div class="ring2"></div>
+    <div class="ring3"></div>
+
     <div class="auth-left-inner">
-      <!-- Venn diagram mark -->
+      <!-- Animated Venn SVG with teal + gold -->
       <div class="auth-venn">
-        <svg width="62" height="54" viewBox="0 0 62 54" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="22" cy="22" r="20" stroke="rgba(196,154,48,.7)" stroke-width="1.5" fill="none"/>
-          <circle cx="40" cy="22" r="20" stroke="rgba(196,154,48,.7)" stroke-width="1.5" fill="none"/>
-          <circle cx="31" cy="36" r="20" stroke="rgba(196,154,48,.7)" stroke-width="1.5" fill="none"/>
-          <circle cx="31" cy="26" r="3.5" fill="rgba(196,154,48,.9)"/>
+        <svg width="72" height="64" viewBox="0 0 72 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Teal ping halo -->
+          <circle class="v-ping" cx="36" cy="31" r="6" fill="none" stroke="rgba(31,158,117,.5)" stroke-width="1"/>
+          <!-- Three Venn circles — drawn in sequence -->
+          <circle class="v-ring" cx="26" cy="26" r="22"
+            stroke="rgba(196,154,48,.75)" stroke-width="1.5" fill="none"
+            stroke-dasharray="600" stroke-dashoffset="600"/>
+          <circle class="v-ring" cx="46" cy="26" r="22"
+            stroke="rgba(196,154,48,.75)" stroke-width="1.5" fill="none"
+            stroke-dasharray="600" stroke-dashoffset="600"/>
+          <circle class="v-ring" cx="36" cy="42" r="22"
+            stroke="rgba(31,158,117,.65)" stroke-width="1.5" fill="none"
+            stroke-dasharray="600" stroke-dashoffset="600"/>
+          <!-- Pulsing centre dot — teal -->
+          <circle class="v-dot" cx="36" cy="31" r="3.5" fill="rgba(31,158,117,.95)"/>
         </svg>
       </div>
+
       <div class="auth-brand-name">GroupYetu<span>360</span></div>
       <div class="auth-brand-tag">Community Management Platform</div>
 
@@ -501,21 +660,18 @@ tr:hover td{background:var(--maroon-pale)}
             <a onclick="switchAuthTab('forgot')" style="font-size:.72rem;color:var(--maroon);cursor:pointer;font-weight:600">Forgot password?</a>
             <a onclick="switchAuthTab('register')" style="font-size:.72rem;color:var(--ink-faint);cursor:pointer">Register new org</a>
           </div>
-          <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border);text-align:center">
-            <div style="font-size:.68rem;color:var(--ink-faint);margin-bottom:.5rem;letter-spacing:.05em">FREE TO START — NO CREDIT CARD NEEDED</div>
-            <div style="display:flex;justify-content:center;gap:1.5rem">
-              <div style="text-align:center">
-                <div style="font-size:1.1rem;font-weight:700;color:var(--maroon);font-family:'Crimson Pro',serif">2 Months</div>
-                <div style="font-size:.65rem;color:var(--ink-faint)">Free trial</div>
-              </div>
-              <div style="text-align:center">
-                <div style="font-size:1.1rem;font-weight:700;color:var(--maroon);font-family:'Crimson Pro',serif">5 min</div>
-                <div style="font-size:.65rem;color:var(--ink-faint)">Setup time</div>
-              </div>
-              <div style="text-align:center">
-                <div style="font-size:1.1rem;font-weight:700;color:var(--maroon);font-family:'Crimson Pro',serif">M-Pesa</div>
-                <div style="font-size:.65rem;color:var(--ink-faint)">Integrated</div>
-              </div>
+          <div class="auth-proof">
+            <div class="auth-proof-item">
+              <span class="auth-proof-val">2 Months</span>
+              <div class="auth-proof-label">Free trial</div>
+            </div>
+            <div class="auth-proof-item">
+              <span class="auth-proof-val">5 min</span>
+              <div class="auth-proof-label">Setup time</div>
+            </div>
+            <div class="auth-proof-item">
+              <span class="auth-proof-val">M-Pesa</span>
+              <div class="auth-proof-label">Integrated</div>
             </div>
           </div>
         </div>
@@ -682,7 +838,7 @@ tr:hover td{background:var(--maroon-pale)}
     <div class="alert alert-info" style="text-align:left;margin-bottom:1.5rem">
       ℹ Once approved, sign out and sign back in to access your portal.
     </div>
-    <button class="btn btn-secondary btn-block" onclick="signOut()">Sign Out</button>
+    <button class="btn btn-secondary btn-block" onclick="signOut()" style="margin-top:1rem">Sign Out</button>
   </div><!-- end auth-box -->
   </div><!-- end auth-right -->
 </div><!-- end pending-screen -->
@@ -725,71 +881,190 @@ tr:hover td{background:var(--maroon-pale)}
 
     <!-- DASHBOARD -->
     <div class="page" id="page-dashboard">
-      <div class="stats-row">
-        <div class="stat-card"><div class="stat-label">Bank Balance</div><div class="stat-value" id="dash-balance">—</div><div class="stat-meta" id="dash-balance-meta">Loading…</div></div>
-        <div class="stat-card gold"><div class="stat-label">Total Members</div><div class="stat-value" id="dash-members">—</div><div class="stat-meta" id="dash-members-meta">Active members</div></div>
-        <div class="stat-card green"><div class="stat-label">Transactions (2026)</div><div class="stat-value" id="dash-txn">—</div><div class="stat-meta">Recorded payments</div></div>
-        <div class="stat-card warn"><div class="stat-label">Projects</div><div class="stat-value" id="dash-projects">—</div><div class="stat-meta">Active investments</div></div>
-      </div>
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-header"><div><div class="card-title">Recent Transactions</div><div class="card-sub">Latest recorded payments</div></div><button class="card-action" onclick="showPage('finance')">View all →</button></div>
-          <div class="card-body" style="padding:0"><div class="timeline" id="dash-recent-txn" style="padding:0 1.25rem"><div class="loading"><div class="spinner"></div>Loading…</div></div></div>
-        </div>
-        <div class="card">
-          <div class="card-header"><div><div class="card-title">Next Meeting</div></div></div>
-          <div class="card-body" id="dash-next-meeting"><div class="loading"><div class="spinner"></div>Loading…</div></div>
-        </div>
-      </div>
-      <!-- REGISTRATION WARNING CARD -->
-      <div class="card" id="registration-warning-card" style="display:none;border-top:3px solid var(--danger)">
-        <div class="card-header">
+
+      <!-- ── HERO GREETING ── -->
+      <div id="dash-hero" style="
+        background:linear-gradient(135deg,var(--maroon-dk) 0%,var(--maroon) 55%,#9a0025 100%);
+        padding:1.75rem 2rem;margin-bottom:1.5rem;position:relative;overflow:hidden
+      ">
+        <!-- decorative rings -->
+        <div style="position:absolute;width:280px;height:280px;border-radius:50%;border:1px solid rgba(255,255,255,.06);top:-80px;right:-60px;pointer-events:none"></div>
+        <div style="position:absolute;width:160px;height:160px;border-radius:50%;border:1px solid rgba(196,154,48,.15);bottom:-40px;right:80px;pointer-events:none"></div>
+        <div style="position:relative;z-index:1;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:1rem">
           <div>
-            <div class="card-title">⚠ Registration Issues</div>
-            <div class="card-sub" id="reg-warning-text">Members with registration issues</div>
+            <div id="dash-greeting" style="font-size:.72rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:.35rem">Good morning</div>
+            <div id="dash-hero-name" style="font-family:'Crimson Pro',serif;font-size:2rem;font-weight:700;color:#fff;line-height:1.1;margin-bottom:.5rem">—</div>
+            <div id="dash-hero-org" style="font-size:.8rem;color:rgba(255,255,255,.6);display:flex;align-items:center;gap:.6rem">
+              <span id="dash-hero-org-name">—</span>
+              <span style="opacity:.4">·</span>
+              <span id="dash-hero-date" style="opacity:.7"></span>
+            </div>
           </div>
-          <button class="card-action" onclick="showPage('members')">View Members →</button>
+          <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+            <div style="text-align:center;padding:.6rem 1rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12)">
+              <div style="font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:#fff" id="dash-hero-members">—</div>
+              <div style="font-size:.62rem;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.1em">Members</div>
+            </div>
+            <div style="text-align:center;padding:.6rem 1rem;background:rgba(196,154,48,.15);border:1px solid rgba(196,154,48,.25)">
+              <div style="font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:var(--gold-lt)" id="dash-hero-balance">—</div>
+              <div style="font-size:.62rem;color:rgba(196,154,48,.7);text-transform:uppercase;letter-spacing:.1em">Bank Balance</div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- PENDING APPROVALS CARD — shown only when there are pending requests -->
-      <div class="card" id="pending-approvals-card" style="display:none;border-top:3px solid var(--warning)">
+      <!-- ── ALERT CARDS (warnings first) ── -->
+      <div class="card" id="registration-warning-card" style="display:none;border-top:3px solid var(--danger);margin-bottom:1rem">
         <div class="card-header">
-          <div>
-            <div class="card-title">⚠ Pending Member Approvals</div>
-            <div class="card-sub">Members waiting for your approval to join</div>
-          </div>
-          <button class="card-action" onclick="showPage('approvals')">Manage all →</button>
+          <div><div class="card-title">⚠ Registration Issues</div><div class="card-sub" id="reg-warning-text"></div></div>
+          <button class="card-action" onclick="showPage('members')">Fix now →</button>
+        </div>
+      </div>
+      <div class="card" id="pending-approvals-card" style="display:none;border-top:3px solid var(--warning);margin-bottom:1rem">
+        <div class="card-header">
+          <div><div class="card-title">⏳ Pending Member Approvals</div><div class="card-sub">Members waiting to join your group</div></div>
+          <button class="card-action" onclick="showPage('approvals')">Review →</button>
         </div>
         <div id="pending-approvals-preview" style="padding:0"></div>
       </div>
 
-      <!-- Transaction Summary by Category -->
-      <div class="card" id="txn-summary-card">
-        <div class="card-header">
-          <div><div class="card-title">Contributions Summary</div><div class="card-sub">Totals by contribution type</div></div>
-          <div style="display:flex;align-items:center;gap:.75rem">
-            <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.75rem;color:var(--ink-faint)">
-              <input type="checkbox" id="show-balance-toggle" style="accent-color:var(--maroon)"
-                onchange="toggleMemberBalanceVisibility(this.checked)"/>
-              Members can see balance
-            </label>
+      <!-- ── STAT CARDS (animated count-up) ── -->
+      <div class="stats-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:1.5rem">
+        <div class="stat-card dash-stat" style="cursor:pointer" onclick="showPage('finance')">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">
+            <div class="stat-label">Bank Balance</div>
+            <div style="width:30px;height:30px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;font-size:.85rem">🏦</div>
+          </div>
+          <div class="stat-value" id="dash-balance" style="font-size:1.25rem">—</div>
+          <div class="stat-meta" id="dash-balance-meta" style="margin-top:.35rem"></div>
+          <div style="height:2px;background:var(--border);margin-top:.75rem;border-radius:1px">
+            <div id="dash-balance-bar" style="height:100%;background:var(--maroon);width:0%;border-radius:1px;transition:width 1s ease"></div>
           </div>
         </div>
-        <div class="card-body" id="txn-summary-content">
-          <div class="loading"><div class="spinner"></div>Loading...</div>
+        <div class="stat-card dash-stat gold" style="cursor:pointer" onclick="showPage('members')">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">
+            <div class="stat-label">Total Members</div>
+            <div style="width:30px;height:30px;border-radius:50%;background:rgba(196,154,48,.15);display:flex;align-items:center;justify-content:center;font-size:.85rem">◉</div>
+          </div>
+          <div class="stat-value" id="dash-members" style="font-size:1.5rem">—</div>
+          <div class="stat-meta" id="dash-members-meta" style="margin-top:.35rem"></div>
+          <div id="dash-members-bar-wrap" style="margin-top:.75rem;display:flex;gap:2px" title="Active vs inactive"></div>
+        </div>
+        <div class="stat-card dash-stat green" style="cursor:pointer" onclick="showPage('finance')">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">
+            <div class="stat-label">This Year's Payments</div>
+            <div style="width:30px;height:30px;border-radius:50%;background:rgba(0,150,80,.12);display:flex;align-items:center;justify-content:center;font-size:.85rem">₭</div>
+          </div>
+          <div class="stat-value" id="dash-txn" style="font-size:1.5rem">—</div>
+          <div class="stat-meta" id="dash-txn-meta" style="margin-top:.35rem">Recorded payments</div>
+        </div>
+        <div class="stat-card dash-stat" style="cursor:pointer;border-top-color:var(--gold)" onclick="showPage('projects')">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">
+            <div class="stat-label">Active Projects</div>
+            <div style="width:30px;height:30px;border-radius:50%;background:rgba(196,154,48,.12);display:flex;align-items:center;justify-content:center;font-size:.85rem">⚑</div>
+          </div>
+          <div class="stat-value" id="dash-projects" style="font-size:1.5rem">—</div>
+          <div class="stat-meta" style="margin-top:.35rem">Group investments</div>
         </div>
       </div>
 
+      <!-- ── MAIN CONTENT GRID ── -->
+      <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:1rem;margin-bottom:1rem">
+
+        <!-- Recent Transactions — wider -->
+        <div class="card" style="overflow:hidden">
+          <div class="card-header">
+            <div><div class="card-title">Recent Payments</div><div class="card-sub">Latest contributions recorded</div></div>
+            <button class="card-action" onclick="showPage('finance')">View all →</button>
+          </div>
+          <div id="dash-recent-txn" style="padding:0">
+            <div class="loading" style="padding:1.5rem"><div class="spinner"></div>Loading…</div>
+          </div>
+        </div>
+
+        <!-- Right column: meeting + quick actions -->
+        <div style="display:flex;flex-direction:column;gap:1rem">
+
+          <!-- Next Meeting -->
+          <div class="card">
+            <div class="card-header">
+              <div><div class="card-title">📅 Next Meeting</div></div>
+              <button class="card-action" onclick="showPage('meetings')">All →</button>
+            </div>
+            <div class="card-body" id="dash-next-meeting" style="padding-top:.5rem">
+              <div class="loading"><div class="spinner"></div></div>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="card">
+            <div class="card-header"><div class="card-title">Quick Actions</div></div>
+            <div style="padding:.75rem 1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+              <button class="btn btn-secondary" onclick="showModal('addMember')" style="font-size:.75rem;padding:.55rem .5rem;gap:.35rem">
+                ＋ Add Member
+              </button>
+              <button class="btn btn-secondary" onclick="showPage('finance');setTimeout(()=>switchTab(document.querySelector('[onclick*=tab-record]'),'tab-record'),100)" style="font-size:.75rem;padding:.55rem .5rem">
+                ₭ Record Payment
+              </button>
+              <button class="btn btn-secondary" onclick="showPage('messages')" style="font-size:.75rem;padding:.55rem .5rem">
+                ✉ Send SMS
+              </button>
+              <button class="btn btn-secondary" onclick="showModal('scheduleMeeting')" style="font-size:.75rem;padding:.55rem .5rem">
+                📅 Schedule Meeting
+              </button>
+              <button class="btn btn-secondary" onclick="showModal('welfareEvent')" style="font-size:.75rem;padding:.55rem .5rem">
+                ♡ Welfare Event
+              </button>
+              <button class="btn btn-secondary" onclick="showPage('finance');setTimeout(()=>switchTab(document.querySelector('[onclick*=tab-expense-record]'),'tab-expense-record'),100)" style="font-size:.75rem;padding:.55rem .5rem">
+                − Record Expense
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CONTRIBUTIONS BREAKDOWN + MINI BAR CHART ── -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+        <div class="card" id="txn-summary-card">
+          <div class="card-header">
+            <div><div class="card-title">Contributions by Type</div><div class="card-sub">All-time totals per category</div></div>
+            <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.72rem;color:var(--ink-faint)">
+              <input type="checkbox" id="show-balance-toggle" style="accent-color:var(--maroon)" onchange="toggleMemberBalanceVisibility(this.checked)"/>
+              Show balance to members
+            </label>
+          </div>
+          <div class="card-body" id="txn-summary-content" style="padding-top:.25rem">
+            <div class="loading"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+        <!-- Monthly bar chart -->
+        <div class="card">
+          <div class="card-header"><div class="card-title">Monthly Collections</div><div class="card-sub">Last 6 months</div></div>
+          <div style="padding:1rem 1.25rem">
+            <div id="dash-monthly-chart" style="display:flex;align-items:flex-end;gap:.4rem;height:90px;border-bottom:1.5px solid var(--border);padding-bottom:0">
+              <div class="loading"><div class="spinner"></div></div>
+            </div>
+            <div id="dash-monthly-labels" style="display:flex;gap:.4rem;margin-top:.4rem;font-size:.62rem;color:var(--ink-faint)"></div>
+            <div id="dash-monthly-total" style="font-size:.72rem;color:var(--ink-faint);margin-top:.5rem"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── MEMBERS SNAPSHOT ── -->
       <div class="card">
-        <div class="card-header"><div><div class="card-title">Members — Quick Overview</div></div><button class="card-action" onclick="showPage('members')">View all →</button></div>
+        <div class="card-header">
+          <div><div class="card-title">Members Snapshot</div><div class="card-sub" id="dash-members-snap-sub">Latest registered members</div></div>
+          <button class="card-action" onclick="showPage('members')">View all →</button>
+        </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>Savings Tier</th><th>Status</th></tr></thead>
-            <tbody id="dash-members-table"><tr><td colspan="5"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr></tbody>
+            <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>Balance</th><th>Status</th></tr></thead>
+            <tbody id="dash-members-table"><tr><td colspan="5"><div class="loading"><div class="spinner"></div></div></td></tr></tbody>
           </table>
         </div>
       </div>
+
     </div>
 
     <!-- MEMBERS -->
@@ -3044,114 +3319,204 @@ function showPage(id) {
 async function loadDashboard() {
   if (!currentOrg?.id && currentProfile?.role !== 'superadmin') return;
   if (currentProfile?.role === 'superadmin') {
-    // Remove org dashboard elements for superadmin
     document.getElementById('page-title').textContent = 'Platform Control';
     document.getElementById('page-sub').textContent = 'EPH Technologies — Super Admin';
     showPage('superadmin');
     return;
   }
   if (currentProfile?.role === 'member') { showPage('my_profile'); return; }
+
   const orgId = currentOrg.id;
   document.getElementById('page-sub').textContent = currentOrg.name;
 
-  const [membersRes, txnRes, projRes, meetRes] = await Promise.all([
-    sb.from('members').select('id,full_name,member_number,phone,savings_tier,status').eq('org_id', orgId).order('member_number'),
-    sb.from('transactions').select('*,members(full_name),contribution_types(name)').eq('org_id', orgId).order('created_at', {ascending:false}).limit(5),
-    sb.from('projects').select('id').eq('org_id', orgId).eq('status','active'),
-    sb.from('meetings').select('*').eq('org_id', orgId).gte('meeting_date', new Date().toISOString().split('T')[0]).order('meeting_date').limit(1)
+  // ── Hero greeting ──
+  const now = new Date();
+  const hour = now.getHours();
+  const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const adminName = currentProfile?.full_name?.split(' ')[0] || 'Admin';
+  const dateStr = now.toLocaleDateString('en-KE',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const setEl = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  const setHTML = (id,v) => { const el=document.getElementById(id); if(el) el.innerHTML=v; };
+  setEl('dash-greeting', greet);
+  setEl('dash-hero-name', adminName);
+  setEl('dash-hero-org-name', currentOrg.name);
+  setEl('dash-hero-date', dateStr);
+
+  // ── Fetch all data in parallel ──
+  const thisYear = now.getFullYear().toString();
+  const [membersRes, txnRes, projRes, meetRes, allTxnRes] = await Promise.all([
+    sb.from('members').select('*').eq('org_id', orgId).order('member_number'),
+    sb.from('transactions').select('*,members(full_name),contribution_types(name)').eq('org_id', orgId).order('created_at',{ascending:false}).limit(6),
+    sb.from('projects').select('id,name,status').eq('org_id', orgId).eq('status','active'),
+    sb.from('meetings').select('*').eq('org_id', orgId).gte('meeting_date', now.toISOString().split('T')[0]).order('meeting_date').limit(1),
+    sb.from('transactions').select('amount,transaction_date,contribution_types(name)').eq('org_id', orgId)
   ]);
 
   const members = membersRes.data || [];
   const txns = txnRes.data || [];
   const projs = projRes.data || [];
   const meetings = meetRes.data || [];
+  const allTxns = allTxnRes.data || [];
 
   const bankBal = currentOrg?.bank_balance || 0;
-  const bankDate = currentOrg?.bank_balance_updated || 'Not set';
-  document.getElementById('dash-balance').innerHTML = 'Ksh ' + bankBal.toLocaleString();
-  document.getElementById('dash-balance-meta').textContent = 'Updated: ' + bankDate + ' · Edit in Settings';
-  document.getElementById('dash-members').textContent = members.length;
-  document.getElementById('dash-members-meta').textContent = members.filter(m=>m.status==='active').length + ' active';
-  document.getElementById('dash-txn').textContent = txns.length ? txns.length+'+' : '0';
-  document.getElementById('dash-projects').textContent = projs.length;
+  const activeMems = members.filter(m=>m.status==='active').length;
+  const yearTxns = allTxns.filter(t=>(t.transaction_date||'').startsWith(thisYear));
+  const yearTotal = yearTxns.reduce((s,t)=>s+Number(t.amount||0),0);
 
-  // Recent transactions
-  document.getElementById('dash-recent-txn').innerHTML = txns.length ? txns.map(t => `
-    <div class="tl-item">
-      <div class="tl-dot green"></div>
-      <div class="tl-content">
-        <div class="tl-title">${t.members?.full_name||'Unknown'} — Ksh ${Number(t.amount).toLocaleString()} (${t.contribution_types?.name||'Payment'})</div>
-        <div class="tl-meta">${t.transaction_date||t.created_at?.split('T')[0]||''} ${t.mpesa_ref?'· REF: '+t.mpesa_ref:''}</div>
-      </div>
-    </div>`).join('') : '<div style="padding:1rem;font-size:.8rem;color:var(--ink-faint)">No transactions recorded yet</div>';
+  // ── Hero stats ──
+  setEl('dash-hero-members', members.length);
+  setEl('dash-hero-balance', 'Ksh ' + (bankBal/1000 >= 1 ? (bankBal/1000).toFixed(0)+'K' : bankBal.toLocaleString()));
 
-  // Next meeting
-  const nmEl = document.getElementById('dash-next-meeting');
-  if (meetings.length) {
-    const m = meetings[0];
-    nmEl.innerHTML = `<div style="font-size:1.3rem;font-weight:700;color:var(--maroon)">${new Date(m.meeting_date).toDateString()}</div>
-      <div style="font-size:.78rem;color:var(--ink-faint);margin-top:.25rem">${m.meeting_time||'8:30 PM'} · ${m.venue||'Online'}</div>
-      ${m.agenda?`<div style="font-size:.78rem;color:var(--ink-soft);margin-top:.75rem;line-height:1.7">${m.agenda}</div>`:''}
-      <button class="btn btn-secondary btn-sm" style="margin-top:1rem" onclick="showPage('meetings')">View Meetings →</button>`;
-  } else {
-    nmEl.innerHTML = `<div style="color:var(--ink-faint);font-size:.82rem">No upcoming meetings scheduled</div>
-      <button class="btn btn-primary btn-sm" style="margin-top:1rem" onclick="showModal('scheduleMeeting')">Schedule Meeting</button>`;
+  // ── Stat cards (animate in) ──
+  setHTML('dash-balance', 'Ksh ' + bankBal.toLocaleString());
+  setEl('dash-balance-meta', currentOrg?.bank_balance_updated ? 'Updated ' + currentOrg.bank_balance_updated : 'Set balance in Settings');
+  setEl('dash-members', members.length);
+  setEl('dash-members-meta', activeMems + ' active · ' + (members.length-activeMems) + ' inactive');
+  setEl('dash-txn', yearTxns.length);
+  setEl('dash-txn-meta', 'Ksh ' + yearTotal.toLocaleString() + ' this year');
+  setEl('dash-projects', projs.length);
+
+  // Mini member status bar (active vs arrears vs inactive)
+  const barWrap = document.getElementById('dash-members-bar-wrap');
+  if (barWrap && members.length) {
+    const counts = { active:0, arrears:0, inactive:0 };
+    members.forEach(m => { counts[m.status] = (counts[m.status]||0)+1; });
+    const colours = { active:'var(--success)', arrears:'var(--warning)', inactive:'var(--border-dk)' };
+    barWrap.innerHTML = Object.entries(counts).filter(([,v])=>v>0).map(([k,v])=>
+      `<div title="${v} ${k}" style="height:4px;flex:${v};background:${colours[k]};border-radius:2px;transition:flex .8s ease"></div>`
+    ).join('');
   }
 
-  // Members table
-  // Check for pending approvals
-  await checkPendingApprovals();
+  // ── Recent transactions ──
+  const txnEl = document.getElementById('dash-recent-txn');
+  if (txnEl) {
+    txnEl.innerHTML = txns.length ? txns.map(t => {
+      const name = t.members?.full_name || 'Unknown';
+      const initials = name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+      const dateStr = t.transaction_date || t.created_at?.split('T')[0] || '';
+      return `<div class="dash-txn-row">
+        <div class="dash-txn-avatar">${initials}</div>
+        <div style="flex:1;min-width:0">
+          <div class="dash-txn-name">${name}</div>
+          <div class="dash-txn-meta">${t.contribution_types?.name||'Payment'} · ${dateStr}${t.mpesa_ref?' · '+t.mpesa_ref:''}</div>
+        </div>
+        <div class="dash-txn-amt">+Ksh ${Number(t.amount).toLocaleString()}</div>
+      </div>`;
+    }).join('') + `<div style="padding:.75rem 1.25rem;text-align:center">
+        <button class="btn btn-ghost btn-sm" onclick="showPage('finance')">View all transactions →</button>
+      </div>` :
+    `<div style="padding:2rem 1.25rem;text-align:center">
+      <div style="font-size:2rem;margin-bottom:.5rem">₭</div>
+      <div style="font-size:.82rem;color:var(--ink-faint);margin-bottom:.75rem">No payments recorded yet</div>
+      <button class="btn btn-primary btn-sm" onclick="showPage('finance');setTimeout(()=>switchTab(document.querySelector('[onclick*=tab-record]'),\'tab-record\'),100)">Record First Payment</button>
+    </div>`;
+  }
 
-  // Check for unregistered members and renewal due
-  const unregistered = members.filter(m => !m.registration_paid);
-  const renewalDue = members.filter(m =>
-    m.registration_renewal && new Date(m.registration_renewal) < new Date()
-  );
-  const regWarningEl = document.getElementById('registration-warning-card');
-  if (regWarningEl) {
-    if (unregistered.length > 0 || renewalDue.length > 0) {
-      regWarningEl.style.display = 'block';
-      document.getElementById('reg-warning-text').textContent =
-        `${unregistered.length} unregistered member${unregistered.length!==1?'s':''}`+
-        (renewalDue.length>0?` · ${renewalDue.length} renewal${renewalDue.length!==1?'s':''} overdue`:'');
+  // ── Next Meeting ──
+  const nmEl = document.getElementById('dash-next-meeting');
+  if (nmEl) {
+    if (meetings.length) {
+      const m = meetings[0];
+      const mDate = new Date(m.meeting_date);
+      const daysAway = Math.ceil((mDate - now)/(1000*60*60*24));
+      const dayLabel = daysAway === 0 ? 'Today!' : daysAway === 1 ? 'Tomorrow' : `In ${daysAway} days`;
+      nmEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem">
+          <div style="background:var(--maroon-pale);padding:.5rem .65rem;text-align:center;min-width:44px">
+            <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--maroon);font-weight:700">${mDate.toLocaleString('default',{month:'short'})}</div>
+            <div style="font-size:1.5rem;font-weight:700;color:var(--maroon);font-family:'Crimson Pro',serif;line-height:1">${mDate.getDate()}</div>
+          </div>
+          <div>
+            <div style="font-size:.85rem;font-weight:700;color:var(--ink)">${dayLabel}</div>
+            <div style="font-size:.72rem;color:var(--ink-faint)">${m.meeting_time||'Time TBA'} · ${m.venue||'Venue TBA'}</div>
+          </div>
+        </div>
+        ${m.agenda?`<div style="font-size:.75rem;color:var(--ink-soft);line-height:1.65;padding:.5rem .6rem;background:var(--surface-2);border-left:2px solid var(--maroon)">${m.agenda}</div>`:''}`;
     } else {
-      regWarningEl.style.display = 'none';
+      nmEl.innerHTML = `<div style="text-align:center;padding:.5rem 0">
+        <div style="font-size:1.5rem;margin-bottom:.4rem">📅</div>
+        <div style="font-size:.78rem;color:var(--ink-faint);margin-bottom:.75rem">No meetings scheduled yet</div>
+        <button class="btn btn-primary btn-sm" onclick="showModal('scheduleMeeting')">Schedule a Meeting</button>
+      </div>`;
     }
   }
 
-  // Load transaction summary by category
-  const { data: allTxns } = await sb.from('transactions')
-    .select('amount,contribution_types(name)').eq('org_id', orgId);
+  // ── Alert cards ──
+  await checkPendingApprovals();
+  const unregistered = members.filter(m => !m.registration_paid);
+  const regWarningEl = document.getElementById('registration-warning-card');
+  if (regWarningEl) {
+    regWarningEl.style.display = unregistered.length > 0 ? 'block' : 'none';
+    if (unregistered.length > 0) setEl('reg-warning-text', `${unregistered.length} member${unregistered.length!==1?'s':''} yet to pay registration fee`);
+  }
+
+  // ── Contributions by type ──
   const categoryTotals = {};
-  (allTxns||[]).forEach(t => {
+  allTxns.forEach(t => {
     const cat = t.contribution_types?.name || 'Other';
     categoryTotals[cat] = (categoryTotals[cat]||0) + Number(t.amount||0);
   });
   const summaryEl = document.getElementById('txn-summary-content');
   if (summaryEl) {
     const entries = Object.entries(categoryTotals).sort((a,b)=>b[1]-a[1]);
-    summaryEl.innerHTML = entries.length ? `
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.75rem">
-        ${entries.map(([cat,total])=>`
-          <div style="padding:.75rem;background:var(--surface-2);border:1px solid var(--border)">
-            <div style="font-size:.72rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.06em">${cat}</div>
-            <div style="font-size:1.1rem;font-weight:700;color:var(--maroon);margin-top:.25rem">Ksh ${total.toLocaleString()}</div>
-          </div>`).join('')}
-      </div>` :
-      '<div style="color:var(--ink-faint);font-size:.82rem">No transactions recorded yet</div>';
+    const grandTotal = entries.reduce((s,[,v])=>s+v,0);
+    summaryEl.innerHTML = entries.length ? entries.map(([cat,total])=>{
+      const pct = grandTotal ? Math.round((total/grandTotal)*100) : 0;
+      return `<div style="margin-bottom:.7rem">
+        <div style="display:flex;justify-content:space-between;margin-bottom:.25rem">
+          <span style="font-size:.78rem;color:var(--ink-soft)">${cat}</span>
+          <strong style="font-size:.78rem;color:var(--maroon)">Ksh ${total.toLocaleString()}</strong>
+        </div>
+        <div style="height:5px;background:var(--border);border-radius:3px">
+          <div style="height:100%;width:${pct}%;background:var(--maroon);border-radius:3px;transition:width 1s ease"></div>
+        </div>
+      </div>`;
+    }).join('') : '<div style="color:var(--ink-faint);font-size:.82rem;padding:.5rem 0">No contributions recorded yet</div>';
   }
-  // Load balance visibility toggle state
   const showBalToggle = document.getElementById('show-balance-toggle');
   if (showBalToggle) showBalToggle.checked = currentOrg?.show_balance_to_members || false;
 
-  document.getElementById('dash-members-table').innerHTML = members.slice(0,8).map(m => `
-    <tr>
-      <td>${m.member_number||'—'}</td>
+  // ── Monthly bar chart ──
+  const chartEl = document.getElementById('dash-monthly-chart');
+  const labelsEl = document.getElementById('dash-monthly-labels');
+  const totalEl = document.getElementById('dash-monthly-total');
+  if (chartEl) {
+    const months = [];
+    for (let i=5; i>=0; i--) {
+      const d = new Date(); d.setDate(1); d.setMonth(d.getMonth()-i);
+      months.push({ key: d.toISOString().slice(0,7), label: d.toLocaleString('default',{month:'short'}) });
+    }
+    const monthData = months.map(m => ({
+      label: m.label,
+      total: allTxns.filter(t=>(t.transaction_date||'').startsWith(m.key)).reduce((s,t)=>s+Number(t.amount||0),0)
+    }));
+    const maxVal = Math.max(...monthData.map(m=>m.total), 1);
+    chartEl.innerHTML = monthData.map(m => {
+      const h = Math.round((m.total/maxVal)*80);
+      const isLatest = m.label === monthData[5].label;
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:.2rem">
+        <div style="font-size:.58rem;color:var(--ink-faint)">${m.total>0?'Ksh '+(m.total>=1000?(m.total/1000).toFixed(0)+'K':m.total):''}</div>
+        <div style="width:100%;background:${isLatest?'var(--maroon)':'var(--maroon-pale)'};height:${h||3}px;border-radius:2px 2px 0 0;min-height:3px;margin-top:auto"></div>
+      </div>`;
+    }).join('');
+    if (labelsEl) labelsEl.innerHTML = monthData.map(m=>`<div style="flex:1;text-align:center">${m.label}</div>`).join('');
+    const sixMonthTotal = monthData.reduce((s,m)=>s+m.total,0);
+    if (totalEl) totalEl.textContent = 'Total (6 months): Ksh ' + sixMonthTotal.toLocaleString();
+  }
+
+  // ── Members snapshot ──
+  const snapSub = document.getElementById('dash-members-snap-sub');
+  if (snapSub) snapSub.textContent = `${members.length} members · ${activeMems} active`;
+  document.getElementById('dash-members-table').innerHTML = members.slice(0,8).map(m => {
+    const bal = Number(m.shares_balance||0) + Number(m.savings_balance||0);
+    return `<tr onclick="openMemberDetail('${m.id}')" style="cursor:pointer">
+      <td style="font-weight:600;color:var(--maroon)">#${m.member_number||'—'}</td>
       <td><strong>${m.full_name}</strong></td>
-      <td>${m.phone||'—'}</td>
-      <td>Ksh ${m.savings_tier?.toLocaleString()||'—'}/mo</td>
+      <td style="font-size:.78rem">${m.phone||'—'}</td>
+      <td style="font-weight:600">Ksh ${bal.toLocaleString()}</td>
       <td><span class="badge ${m.status==='active'?'badge-green':m.status==='arrears'?'badge-warn':'badge-grey'}">${m.status}</span></td>
-    </tr>`).join('') + (members.length>8?`<tr><td colspan="5" style="text-align:center;padding:.75rem"><button class="btn btn-ghost" onclick="showPage('members')">View all ${members.length} members →</button></td></tr>`:'');
+    </tr>`;
+  }).join('') + (members.length>8 ? `<tr><td colspan="5" style="text-align:center;padding:.65rem"><button class="btn btn-ghost btn-sm" onclick="showPage('members')">View all ${members.length} members →</button></td></tr>` : '');
 }
 
 // ── MEMBERS ──
