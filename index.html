@@ -38,20 +38,121 @@
 html{scroll-behavior:smooth}
 body{font-family:'Inter',sans-serif;background:var(--surface-2);color:var(--ink);font-size:14px;line-height:1.5}
 
-/* AUTH SCREEN */
-.auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--maroon-dk) 0%,var(--maroon) 60%,#a0002a 100%)}
-.auth-screen::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")}
-.auth-box{background:var(--surface);width:420px;padding:2.5rem;position:relative;z-index:1;box-shadow:0 24px 80px rgba(0,0,0,0.4)}
-.auth-brand{text-align:center;margin-bottom:2rem}
+/* ══════════════════════════════════
+   AUTH SCREEN — SPLIT LAYOUT
+══════════════════════════════════ */
+.auth-screen{
+  min-height:100vh;display:flex;align-items:stretch;
+  background:#0a0006;position:relative;overflow:hidden
+}
+/* Left brand panel */
+.auth-left{
+  flex:0 0 42%;display:flex;flex-direction:column;justify-content:space-between;
+  padding:3rem 3rem 2.5rem;
+  background:linear-gradient(160deg,#5c0018 0%,var(--maroon) 45%,#3a000e 100%);
+  position:relative;overflow:hidden
+}
+/* Decorative circles on brand panel */
+.auth-left::before{
+  content:'';position:absolute;width:420px;height:420px;border-radius:50%;
+  border:1px solid rgba(196,154,48,.15);top:-80px;right:-120px
+}
+.auth-left::after{
+  content:'';position:absolute;width:260px;height:260px;border-radius:50%;
+  border:1px solid rgba(196,154,48,.1);bottom:60px;left:-80px
+}
+.auth-left-inner{position:relative;z-index:2}
+/* Venn logo mark SVG */
+.auth-venn{margin-bottom:1.75rem}
+.auth-brand-name{
+  font-family:'Crimson Pro',serif;font-size:2.8rem;font-weight:700;
+  color:#fff;line-height:1;margin-bottom:.4rem
+}
+.auth-brand-name span{color:var(--gold-lt)}
+.auth-brand-tag{
+  font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;
+  color:rgba(255,255,255,.45);margin-bottom:2.5rem
+}
+.auth-features{display:flex;flex-direction:column;gap:1rem}
+.auth-feat{display:flex;align-items:flex-start;gap:.85rem}
+.auth-feat-icon{
+  width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.1);
+  display:flex;align-items:center;justify-content:center;font-size:.85rem;
+  flex-shrink:0;margin-top:.05rem
+}
+.auth-feat-text strong{display:block;font-size:.82rem;color:#fff;font-weight:600;margin-bottom:.1rem}
+.auth-feat-text span{font-size:.72rem;color:rgba(255,255,255,.5);line-height:1.5}
+.auth-left-footer{
+  position:relative;z-index:2;font-size:.65rem;color:rgba(255,255,255,.3);
+  letter-spacing:.08em
+}
+/* Right form panel */
+.auth-right{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  background:var(--surface);padding:2.5rem
+}
+.auth-box{
+  width:100%;max-width:400px;position:relative;z-index:1
+}
+.auth-brand{display:none} /* hidden on desktop — shown on mobile */
+.auth-form-heading{
+  font-family:'Crimson Pro',serif;font-size:1.65rem;font-weight:600;
+  color:var(--maroon);margin-bottom:.25rem;line-height:1.2
+}
+.auth-form-sub{
+  font-size:.78rem;color:var(--ink-faint);margin-bottom:1.75rem;line-height:1.6
+}
 .auth-logo{font-family:'Crimson Pro',serif;font-size:2.2rem;font-weight:600;color:var(--maroon)}
 .auth-logo span{color:var(--gold)}
 .auth-tagline{font-size:.72rem;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-faint);margin-top:.25rem}
 .auth-title{font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:.25rem}
 .auth-sub{font-size:.78rem;color:var(--ink-faint);margin-bottom:1.5rem}
-.auth-tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:1.5rem}
-.auth-tab{flex:1;text-align:center;padding:.6rem;font-size:.8rem;font-weight:600;cursor:pointer;color:var(--ink-faint);border-bottom:2px solid transparent;margin-bottom:-2px}
-.auth-tab.active{color:var(--maroon);border-bottom-color:var(--maroon)}
+.auth-tabs{
+  display:flex;gap:0;margin-bottom:1.5rem;
+  border:1.5px solid var(--border-dk);padding:3px;
+  background:var(--surface-2)
+}
+.auth-tab{
+  flex:1;text-align:center;padding:.45rem .5rem;font-size:.75rem;font-weight:600;
+  cursor:pointer;color:var(--ink-faint);transition:all .18s;border-radius:1px
+}
+.auth-tab.active{
+  background:var(--maroon);color:#fff;
+}
 .auth-panel{display:none}.auth-panel.active{display:block}
+/* Input style upgrade */
+.auth-box .form-input,.auth-box .form-select{
+  border:1.5px solid var(--border-dk);padding:.65rem .85rem;
+  font-size:.85rem;transition:border-color .15s,box-shadow .15s
+}
+.auth-box .form-input:focus,.auth-box .form-select:focus{
+  border-color:var(--maroon);
+  box-shadow:0 0 0 3px rgba(128,0,32,.08)
+}
+.auth-box .btn-primary{
+  background:var(--maroon);padding:.8rem;font-size:.85rem;
+  letter-spacing:.04em;transition:background .15s,transform .1s
+}
+.auth-box .btn-primary:hover{background:#6a0019;transform:translateY(-1px)}
+.auth-box .btn-primary:active{transform:translateY(0)}
+/* Input icon wrapper */
+.input-wrap{position:relative}
+.input-wrap .form-input{padding-left:2.4rem}
+.input-icon{
+  position:absolute;left:.75rem;top:50%;transform:translateY(-50%);
+  font-size:.9rem;color:var(--ink-faint);pointer-events:none
+}
+/* Floating label hint */
+.field-hint{font-size:.67rem;color:var(--ink-faint);margin-top:.25rem;line-height:1.5}
+/* Mobile: stack panels */
+@media(max-width:700px){
+  .auth-screen{flex-direction:column}
+  .auth-left{flex:none;padding:2rem 1.5rem 1.75rem;min-height:auto}
+  .auth-features{display:none}
+  .auth-brand-name{font-size:2rem}
+  .auth-right{padding:1.5rem}
+  .auth-left::before,.auth-left::after{display:none}
+}
 .form-group{display:flex;flex-direction:column;gap:.3rem;margin-bottom:1rem}
 .form-label{font-size:.7rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint)}
 .form-input,.form-select,.form-textarea{border:1.5px solid var(--border-dk);padding:.6rem .75rem;font-family:'Inter',sans-serif;font-size:.85rem;color:var(--ink);background:var(--surface);outline:none;transition:border-color .15s;width:100%}
@@ -293,186 +394,288 @@ tr:hover td{background:var(--maroon-pale)}
 
 <!-- ═══════ AUTH SCREEN ═══════ -->
 <div class="auth-screen" id="auth-screen">
-  <div class="auth-box">
-    <div class="auth-brand">
-      <div class="auth-logo">GroupYetu<span>360</span></div>
-      <div class="auth-tagline">Community Management Platform</div>
-    </div>
 
-    <!-- STEP 1: LOGIN / REGISTER -->
-    <div id="auth-step-1">
-      <div class="auth-tabs">
-        <div class="auth-tab active" onclick="switchAuthTab('login')">Sign In</div>
-        <div class="auth-tab" onclick="switchAuthTab('join')">Join a Group</div>
-        <div class="auth-tab" onclick="switchAuthTab('register')">Register Org</div>
+  <!-- ── LEFT BRAND PANEL ── -->
+  <div class="auth-left">
+    <div class="auth-left-inner">
+      <!-- Venn diagram mark -->
+      <div class="auth-venn">
+        <svg width="62" height="54" viewBox="0 0 62 54" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="22" cy="22" r="20" stroke="rgba(196,154,48,.7)" stroke-width="1.5" fill="none"/>
+          <circle cx="40" cy="22" r="20" stroke="rgba(196,154,48,.7)" stroke-width="1.5" fill="none"/>
+          <circle cx="31" cy="36" r="20" stroke="rgba(196,154,48,.7)" stroke-width="1.5" fill="none"/>
+          <circle cx="31" cy="26" r="3.5" fill="rgba(196,154,48,.9)"/>
+        </svg>
       </div>
+      <div class="auth-brand-name">GroupYetu<span>360</span></div>
+      <div class="auth-brand-tag">Community Management Platform</div>
 
-      <!-- LOGIN -->
-      <div class="auth-panel active" id="auth-login">
-        <div class="auth-error" id="login-error"></div>
-        <div class="auth-success" id="login-success"></div>
-        <div class="form-group">
-          <label class="form-label">Organisation Code</label>
-          <input class="form-input" type="text" id="login-org-code"
-            placeholder="e.g. ADA-001 — from your admin"
-            style="text-transform:uppercase;letter-spacing:.08em;font-weight:600"
-            oninput="this.value=this.value.toUpperCase()"/>
-          <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">
-            Leave blank if you are the organisation admin
+      <div class="auth-features">
+        <div class="auth-feat">
+          <div class="auth-feat-icon">₭</div>
+          <div class="auth-feat-text">
+            <strong>Finance & Contributions</strong>
+            <span>Track savings, shares, expenses and member balances in real time</span>
           </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Email Address</label>
-          <input class="form-input" type="email" id="login-email" placeholder="your@email.com"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Password</label>
-          <input class="form-input" type="password" id="login-password" placeholder="••••••••"/>
-        </div>
-        <button class="btn btn-primary" onclick="signIn()">Sign In to GroupYetu360</button>
-        <div class="auth-footer" style="display:flex;justify-content:space-between;margin-top:1rem">
-          <a onclick="switchAuthTab('forgot')">Forgot password?</a>
-          <a onclick="switchAuthTab('register')">Register organisation</a>
-        </div>
-      </div>
-
-      <!-- FORGOT PASSWORD -->
-      <div class="auth-panel" id="auth-forgot">
-        <div class="auth-error" id="forgot-error"></div>
-        <div class="auth-success" id="forgot-success"></div>
-        <div style="font-size:.82rem;color:var(--ink-soft);margin-bottom:1.25rem;line-height:1.6">
-          Enter your email and we will send you a password reset link.
-        </div>
-        <div class="form-group">
-          <label class="form-label">Email Address</label>
-          <input class="form-input" type="email" id="forgot-email" placeholder="your@email.com"/>
-        </div>
-        <button class="btn btn-primary" onclick="sendPasswordReset()">Send Reset Link</button>
-        <div class="auth-footer" style="margin-top:1rem">
-          <a onclick="switchAuthTab('login')">&#8592; Back to Sign In</a>
-        </div>
-      </div>
-
-      <!-- JOIN ORG -->
-      <div class="auth-panel" id="auth-join">
-        <div class="auth-error" id="join-error"></div>
-        <div class="auth-success" id="join-success"></div>
-        <div class="alert alert-info" style="margin-bottom:1rem">👥 Use this if your group is already on GroupYetu360 and you want to access your account.</div>
-        <div class="form-group">
-          <label class="form-label">Search Your Organisation</label>
-          <input class="form-input" type="text" id="join-search" placeholder="Type organisation name…" oninput="searchOrgsForJoin(this.value)"/>
-        </div>
-        <div id="join-org-results" style="margin-bottom:1rem"></div>
-        <div id="join-org-selected" style="display:none;margin-bottom:1rem">
-          <div class="alert alert-success">✓ Selected: <strong id="join-org-selected-name"></strong></div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Your Full Name</label>
-          <input class="form-input" type="text" id="join-name" placeholder="As it appears in your group records"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Phone Number</label>
-          <input class="form-input" type="text" id="join-phone" placeholder="07XXXXXXXX"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Email Address</label>
-          <input class="form-input" type="email" id="join-email" placeholder="your@email.com"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Create Password</label>
-          <input class="form-input" type="password" id="join-password" placeholder="Minimum 6 characters"/>
-        </div>
-        <button class="btn btn-primary" onclick="joinOrg()">Request Access</button>
-        <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.75rem;line-height:1.6">Your request will be visible to your group admin who can approve your access and link you to your member record.</div>
-        <div class="auth-footer">Already have an account? <a onclick="switchAuthTab('login')">Sign in</a></div>
-      </div>
-
-      <!-- REGISTER -->
-      <div class="auth-panel" id="auth-register">
-        <div class="auth-error" id="register-error"></div>
-        <div class="auth-success" id="register-success"></div>
-        <div class="form-group">
-          <label class="form-label">Organisation Name</label>
-          <input class="form-input" type="text" id="reg-org-name" placeholder="e.g. Westlands Investment Chama"/>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Your Full Name</label>
-            <input class="form-input" type="text" id="reg-name" placeholder="Admin's full name"/>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Phone Number</label>
-            <input class="form-input" type="text" id="reg-phone" placeholder="07XXXXXXXX"/>
+        <div class="auth-feat">
+          <div class="auth-feat-icon">◉</div>
+          <div class="auth-feat-text">
+            <strong>Member Management</strong>
+            <span>Full member register, portals, approvals and welfare tracking</span>
           </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Email Address</label>
-          <input class="form-input" type="email" id="reg-email" placeholder="admin@youremail.com"/>
+        <div class="auth-feat">
+          <div class="auth-feat-icon">📱</div>
+          <div class="auth-feat-text">
+            <strong>M-Pesa & Bulk SMS</strong>
+            <span>STK Push payments and instant SMS notices to all members</span>
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Password</label>
-          <input class="form-input" type="password" id="reg-password" placeholder="Minimum 6 characters"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Subscription Plan</label>
-          <select class="form-select" id="reg-plan">
-            <option value="starter">Starter — Free (up to 15 members)</option>
-            <option value="basic">Basic — Ksh 3,000/year (up to 30 members)</option>
-            <option value="standard" selected>Standard — Ksh 6,000/year (up to 75 members)</option>
-            <option value="pro">Pro — Ksh 12,000/year (unlimited members)</option>
-          </select>
-        </div>
-        <button class="btn btn-primary" onclick="registerOrg()">Create Organisation & Account</button>
-        <div class="auth-footer">
-          Already registered? <a onclick="switchAuthTab('login')">Sign in</a>
+        <div class="auth-feat">
+          <div class="auth-feat-icon">⚑</div>
+          <div class="auth-feat-text">
+            <strong>Projects & Investments</strong>
+            <span>Manage farms, properties and group investments end-to-end</span>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- STEP 2FA: OTP VERIFICATION -->
-    <div id="auth-step-2fa" style="display:none">
-      <div style="text-align:center;margin-bottom:1.5rem">
-        <div style="font-size:2.5rem;margin-bottom:.5rem">🔐</div>
-        <div class="auth-title">Two-Factor Verification</div>
-        <div class="auth-sub" id="2fa-sub">Enter the 6-digit code sent to your email</div>
-      </div>
-      <div class="auth-error" id="2fa-error"></div>
-      <div class="auth-success" id="2fa-success"></div>
-      <div class="form-group">
-        <label class="form-label">Verification Code</label>
-        <input class="form-input" type="text" id="2fa-code"
-          placeholder="000000" maxlength="6"
-          style="font-size:1.8rem;text-align:center;letter-spacing:.5rem;font-weight:700"
-          oninput="this.value=this.value.replace(/[^0-9]/g,'')"/>
-      </div>
-      <button class="btn btn-primary" onclick="verify2FA()">Verify & Continue</button>
-      <div class="auth-footer" style="margin-top:1rem;display:flex;justify-content:space-between">
-        <a onclick="resend2FACode()">Resend code</a>
-        <a onclick="cancel2FA()">Cancel</a>
-      </div>
-    </div>
-
-    <!-- STEP 2: SELECT ORG (for users with multiple orgs) -->
-    <div id="auth-step-2" style="display:none">
-      <div class="auth-title">Select Organisation</div>
-      <div class="auth-sub">You have access to multiple organisations. Choose one to continue.</div>
-      <div class="org-select-list" id="org-select-list"></div>
-      <button class="btn btn-secondary btn-block" onclick="signOut()">Sign Out</button>
+    <div class="auth-left-footer">
+      © 2025 EPH Technologies Limited &nbsp;·&nbsp; groupyetu.org
     </div>
   </div>
+
+  <!-- ── RIGHT FORM PANEL ── -->
+  <div class="auth-right">
+    <div class="auth-box">
+
+      <!-- STEP 1: MAIN FORMS -->
+      <div id="auth-step-1">
+        <!-- Dynamic heading updated per tab -->
+        <div style="margin-bottom:1.5rem">
+          <div class="auth-form-heading" id="auth-form-heading">Welcome back</div>
+          <div class="auth-form-sub" id="auth-form-sub">Sign in to manage your group</div>
+        </div>
+
+        <div class="auth-tabs">
+          <div class="auth-tab active" onclick="switchAuthTab('login')">Sign In</div>
+          <div class="auth-tab" onclick="switchAuthTab('join')">Join Group</div>
+          <div class="auth-tab" onclick="switchAuthTab('register')">Register</div>
+        </div>
+
+        <!-- LOGIN -->
+        <div class="auth-panel active" id="auth-login">
+          <div class="auth-error" id="login-error"></div>
+          <div class="auth-success" id="login-success"></div>
+          <div class="form-group">
+            <label class="form-label">Organisation Code <span style="font-weight:400;color:var(--ink-faint)">(optional for admins)</span></label>
+            <div class="input-wrap">
+              <span class="input-icon">🏷</span>
+              <input class="form-input" type="text" id="login-org-code"
+                placeholder="e.g. ADA-001"
+                style="text-transform:uppercase;letter-spacing:.1em;font-weight:700"
+                oninput="this.value=this.value.toUpperCase()"/>
+            </div>
+            <div class="field-hint">Leave blank if you are the organisation admin</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <div class="input-wrap">
+              <span class="input-icon">✉</span>
+              <input class="form-input" type="email" id="login-email" placeholder="your@email.com"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <div class="input-wrap">
+              <span class="input-icon">🔑</span>
+              <input class="form-input" type="password" id="login-password" placeholder="••••••••"/>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="signIn()" style="margin-top:.25rem">
+            Sign In →
+          </button>
+          <div style="display:flex;justify-content:space-between;margin-top:1rem">
+            <a onclick="switchAuthTab('forgot')" style="font-size:.72rem;color:var(--maroon);cursor:pointer;font-weight:600">Forgot password?</a>
+            <a onclick="switchAuthTab('register')" style="font-size:.72rem;color:var(--ink-faint);cursor:pointer">Register new org</a>
+          </div>
+          <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border);text-align:center">
+            <div style="font-size:.68rem;color:var(--ink-faint);margin-bottom:.5rem;letter-spacing:.05em">FREE TO START — NO CREDIT CARD NEEDED</div>
+            <div style="display:flex;justify-content:center;gap:1.5rem">
+              <div style="text-align:center">
+                <div style="font-size:1.1rem;font-weight:700;color:var(--maroon);font-family:'Crimson Pro',serif">2 Months</div>
+                <div style="font-size:.65rem;color:var(--ink-faint)">Free trial</div>
+              </div>
+              <div style="text-align:center">
+                <div style="font-size:1.1rem;font-weight:700;color:var(--maroon);font-family:'Crimson Pro',serif">5 min</div>
+                <div style="font-size:.65rem;color:var(--ink-faint)">Setup time</div>
+              </div>
+              <div style="text-align:center">
+                <div style="font-size:1.1rem;font-weight:700;color:var(--maroon);font-family:'Crimson Pro',serif">M-Pesa</div>
+                <div style="font-size:.65rem;color:var(--ink-faint)">Integrated</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FORGOT PASSWORD -->
+        <div class="auth-panel" id="auth-forgot">
+          <div class="auth-error" id="forgot-error"></div>
+          <div class="auth-success" id="forgot-success"></div>
+          <div style="font-size:.82rem;color:var(--ink-soft);margin-bottom:1.5rem;line-height:1.7">
+            Enter your email address and we'll send you a link to reset your password.
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <div class="input-wrap">
+              <span class="input-icon">✉</span>
+              <input class="form-input" type="email" id="forgot-email" placeholder="your@email.com"/>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="sendPasswordReset()">Send Reset Link</button>
+          <div style="text-align:center;margin-top:1rem">
+            <a onclick="switchAuthTab('login')" style="font-size:.75rem;color:var(--maroon);cursor:pointer;font-weight:600">← Back to Sign In</a>
+          </div>
+        </div>
+
+        <!-- JOIN ORG -->
+        <div class="auth-panel" id="auth-join">
+          <div class="auth-error" id="join-error"></div>
+          <div class="auth-success" id="join-success"></div>
+          <div style="font-size:.78rem;color:var(--ink-soft);margin-bottom:1.25rem;line-height:1.65;padding:.65rem .85rem;background:var(--maroon-pale);border-left:3px solid var(--maroon)">
+            Your group is already on GroupYetu360. Fill in your details to request access — your admin will approve and link you to your member record.
+          </div>
+          <div class="form-group">
+            <label class="form-label">Find Your Organisation</label>
+            <div class="input-wrap">
+              <span class="input-icon">🔍</span>
+              <input class="form-input" type="text" id="join-search" placeholder="Type group name…" oninput="searchOrgsForJoin(this.value)"/>
+            </div>
+          </div>
+          <div id="join-org-results" style="margin-bottom:1rem"></div>
+          <div id="join-org-selected" style="display:none;margin-bottom:1rem">
+            <div class="alert alert-success" style="font-size:.78rem">✓ Selected: <strong id="join-org-selected-name"></strong></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Your Full Name</label>
+            <input class="form-input" type="text" id="join-name" placeholder="As registered with your group"/>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Phone</label>
+              <input class="form-input" type="text" id="join-phone" placeholder="07XXXXXXXX"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input class="form-input" type="email" id="join-email" placeholder="your@email.com"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Create Password</label>
+            <input class="form-input" type="password" id="join-password" placeholder="Minimum 6 characters"/>
+          </div>
+          <button class="btn btn-primary" onclick="joinOrg()">Request Access →</button>
+          <div style="text-align:center;margin-top:.75rem;font-size:.72rem;color:var(--ink-faint)">Already have access? <a onclick="switchAuthTab('login')" style="color:var(--maroon);cursor:pointer;font-weight:600">Sign in</a></div>
+        </div>
+
+        <!-- REGISTER -->
+        <div class="auth-panel" id="auth-register">
+          <div class="auth-error" id="register-error"></div>
+          <div class="auth-success" id="register-success"></div>
+          <div class="form-group">
+            <label class="form-label">Group / Organisation Name</label>
+            <input class="form-input" type="text" id="reg-org-name" placeholder="e.g. Westlands Investment Chama"/>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Your Full Name</label>
+              <input class="form-input" type="text" id="reg-name" placeholder="Admin name"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Phone</label>
+              <input class="form-input" type="text" id="reg-phone" placeholder="07XXXXXXXX"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input class="form-input" type="email" id="reg-email" placeholder="admin@youremail.com"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input class="form-input" type="password" id="reg-password" placeholder="Minimum 6 characters"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Plan <span style="font-weight:400;color:var(--gold)">— all plans include 2 months free</span></label>
+            <select class="form-select" id="reg-plan">
+              <option value="starter">Starter — Free forever (up to 15 members)</option>
+              <option value="basic">Basic — Ksh 3,000/yr (up to 30 members)</option>
+              <option value="standard" selected>Standard — Ksh 6,000/yr (up to 75 members)</option>
+              <option value="pro">Pro — Ksh 12,000/yr (unlimited members)</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="registerOrg()">Create Your Organisation →</button>
+          <div style="text-align:center;margin-top:.75rem;font-size:.72rem;color:var(--ink-faint)">Already registered? <a onclick="switchAuthTab('login')" style="color:var(--maroon);cursor:pointer;font-weight:600">Sign in</a></div>
+        </div>
+      </div>
+
+      <!-- STEP 2FA -->
+      <div id="auth-step-2fa" style="display:none">
+        <div style="text-align:center;margin-bottom:1.75rem">
+          <div style="width:56px;height:56px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.5rem">🔐</div>
+          <div class="auth-form-heading">Verify Identity</div>
+          <div class="auth-form-sub" id="2fa-sub">Enter the 6-digit code sent to your email</div>
+        </div>
+        <div class="auth-error" id="2fa-error"></div>
+        <div class="auth-success" id="2fa-success"></div>
+        <div class="form-group">
+          <input class="form-input" type="text" id="2fa-code"
+            placeholder="000000" maxlength="6"
+            style="font-size:2rem;text-align:center;letter-spacing:.6rem;font-weight:700;padding:1rem"
+            oninput="this.value=this.value.replace(/[^0-9]/g,'')"/>
+        </div>
+        <button class="btn btn-primary" onclick="verify2FA()">Verify & Continue →</button>
+        <div style="display:flex;justify-content:space-between;margin-top:1rem">
+          <a onclick="resend2FACode()" style="font-size:.72rem;color:var(--maroon);cursor:pointer;font-weight:600">Resend code</a>
+          <a onclick="cancel2FA()" style="font-size:.72rem;color:var(--ink-faint);cursor:pointer">Cancel</a>
+        </div>
+      </div>
+
+      <!-- STEP 2: SELECT ORG -->
+      <div id="auth-step-2" style="display:none">
+        <div style="margin-bottom:1.5rem">
+          <div class="auth-form-heading">Select Organisation</div>
+          <div class="auth-form-sub">You have access to multiple groups. Choose one to continue.</div>
+        </div>
+        <div class="org-select-list" id="org-select-list"></div>
+        <button class="btn btn-secondary btn-block" onclick="signOut()" style="margin-top:.5rem">Sign Out</button>
+      </div>
+
+    </div><!-- end auth-box -->
+  </div><!-- end auth-right -->
 </div>
 
 <!-- ═══════ PENDING SCREEN ═══════ -->
 <div class="auth-screen" id="pending-screen" style="display:none">
-  <div class="auth-box" style="text-align:center">
-    <div class="auth-brand">
-      <div class="auth-logo">GroupYetu<span>360</span></div>
-      <div class="auth-tagline">Community Management Platform</div>
+  <div class="auth-left" style="justify-content:center">
+    <div class="auth-left-inner" style="text-align:center">
+      <svg width="62" height="54" viewBox="0 0 62 54" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:1.5rem">
+        <circle cx="22" cy="22" r="20" stroke="rgba(196,154,48,.7)" stroke-width="1.5" fill="none"/>
+        <circle cx="40" cy="22" r="20" stroke="rgba(196,154,48,.7)" stroke-width="1.5" fill="none"/>
+        <circle cx="31" cy="36" r="20" stroke="rgba(196,154,48,.7)" stroke-width="1.5" fill="none"/>
+        <circle cx="31" cy="26" r="3.5" fill="rgba(196,154,48,.9)"/>
+      </svg>
+      <div class="auth-brand-name">GroupYetu<span>360</span></div>
+      <div class="auth-brand-tag">Community Management Platform</div>
     </div>
-    <div style="font-size:3rem;margin-bottom:1rem">⏳</div>
-    <div style="font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:.5rem">Access Pending Approval</div>
-    <div style="font-size:.82rem;color:var(--ink-faint);line-height:1.7;margin-bottom:1.5rem">
-      Your request to join has been submitted successfully.<br>
+  </div>
+  <div class="auth-right">
+  <div class="auth-box" style="text-align:center">
+    <div style="width:64px;height:64px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;font-size:1.8rem">⏳</div>
+    <div class="auth-form-heading" style="text-align:center">Access Pending</div>
+    <div style="font-size:.82rem;color:var(--ink-faint);line-height:1.75;margin-bottom:1.5rem">
+      Your request to join has been submitted.<br>
       Your group admin will review and approve your access.<br>
       Please check back later or contact your admin directly.
     </div>
@@ -480,8 +683,9 @@ tr:hover td{background:var(--maroon-pale)}
       ℹ Once approved, sign out and sign back in to access your portal.
     </div>
     <button class="btn btn-secondary btn-block" onclick="signOut()">Sign Out</button>
-  </div>
-</div>
+  </div><!-- end auth-box -->
+  </div><!-- end auth-right -->
+</div><!-- end pending-screen -->
 
 <!-- ═══════ APP SCREEN ═══════ -->
 <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Toggle Sidebar">&#9776;</button>
@@ -2290,9 +2494,22 @@ function showPendingScreen() {
 function switchAuthTab(tab) {
   document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.auth-panel').forEach(p => p.classList.remove('active'));
-  const idx = {login:0, join:1, register:2};
+  const idx = {login:0, join:1, register:2, forgot:0};
   document.querySelectorAll('.auth-tab')[idx[tab]]?.classList.add('active');
   document.getElementById('auth-'+tab)?.classList.add('active');
+  const headings = {
+    login:    { h:'Welcome back',        s:'Sign in to manage your group' },
+    join:     { h:'Join your group',     s:'Request access to your organisation on GroupYetu360' },
+    register: { h:'Get started free',    s:'Set up your chama or investment group in minutes' },
+    forgot:   { h:'Reset your password', s:"We'll send you a secure reset link" }
+  };
+  const hd = headings[tab];
+  if (hd) {
+    const hEl = document.getElementById('auth-form-heading');
+    const sEl = document.getElementById('auth-form-sub');
+    if (hEl) hEl.textContent = hd.h;
+    if (sEl) sEl.textContent = hd.s;
+  }
 }
 
 // ── JOIN ORG FLOW ──
