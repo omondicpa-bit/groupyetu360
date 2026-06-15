@@ -329,6 +329,123 @@ body{font-family:'Inter',sans-serif;background:var(--surface-2);color:var(--ink)
 .dash-bar-fill{width:100%;border-radius:2px 2px 0 0;min-height:3px;transition:height .8s ease}
 .dash-bar-val{font-size:.58rem;color:var(--ink-faint);text-align:center}
 
+
+/* ══════════════════════════════════
+   FINANCE PAGE
+══════════════════════════════════ */
+@keyframes countUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* Hero strip */
+.fin-hero{
+  background:linear-gradient(135deg,var(--maroon-dk) 0%,var(--maroon) 50%,#0d3d2e 100%);
+  padding:1.25rem 1.5rem;margin-bottom:1.25rem;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem
+}
+.fin-hero-title{font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:#fff}
+.fin-hero-sub{font-size:.72rem;color:rgba(255,255,255,.5);margin-top:.15rem;letter-spacing:.06em}
+.fin-hero-controls{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
+.fin-ctrl-btn{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.2);font-size:.75rem;padding:.4rem .85rem;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;transition:background .15s}
+.fin-ctrl-btn:hover{background:rgba(255,255,255,.2)}
+.fin-withdraw-pill{display:flex;align-items:center;gap:.5rem;background:rgba(0,0,0,.2);padding:.35rem .75rem;border-radius:99px;border:1px solid rgba(255,255,255,.1)}
+.fin-withdraw-dot{width:8px;height:8px;border-radius:50%;background:var(--danger);flex-shrink:0;transition:background .3s}
+.fin-withdraw-dot.open{background:var(--teal-lt)}
+.fin-toggle-btn{background:rgba(255,255,255,.15);color:#fff;border:none;font-size:.68rem;font-weight:600;padding:.2rem .6rem;border-radius:3px;cursor:pointer;font-family:'Inter',sans-serif;transition:background .15s}
+.fin-toggle-btn:hover{background:rgba(255,255,255,.25)}
+
+/* Scorecard */
+.fin-scorecard{
+  display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem
+}
+.fin-score-main{
+  background:var(--surface);border:1px solid var(--border);
+  border-left:4px solid var(--maroon);padding:1.25rem 1.5rem;
+  animation:countUp .4s ease both
+}
+.fin-score-label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.35rem}
+.fin-score-value{font-family:'Crimson Pro',serif;font-size:2.2rem;font-weight:700;color:var(--maroon);line-height:1;margin-bottom:.25rem}
+.fin-score-meta{font-size:.72rem;color:var(--ink-faint)}
+.fin-score-bar{height:4px;background:var(--border);margin-top:.85rem;border-radius:2px;overflow:hidden}
+.fin-score-bar-fill{height:100%;border-radius:2px;transition:width 1.2s ease}
+.fin-score-split{display:flex;flex-direction:column;gap:1rem}
+.fin-score-item{
+  background:var(--surface);border:1px solid var(--border);
+  padding:1rem 1.25rem;border-left:4px solid var(--gold);
+  animation:countUp .4s ease .1s both;flex:1
+}
+.fin-score-item.teal{border-left-color:var(--teal)}
+.fin-score-item-label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.3rem}
+.fin-score-item-value{font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:var(--ink);line-height:1;margin-bottom:.15rem}
+.fin-score-item.teal .fin-score-item-value{color:var(--teal)}
+.fin-score-item-note{font-size:.68rem;color:var(--ink-faint)}
+
+/* 4 Stat cards */
+.fin-stats{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1.25rem
+}
+.fin-stat-card{
+  background:var(--surface);border:1px solid var(--border);
+  padding:.85rem 1rem;display:flex;align-items:center;gap:.85rem;
+  cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;
+  animation:countUp .35s ease both
+}
+.fin-stat-card:nth-child(2){animation-delay:.05s}
+.fin-stat-card:nth-child(3){animation-delay:.1s}
+.fin-stat-card:nth-child(4){animation-delay:.15s}
+.fin-stat-card:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.08);border-color:var(--teal-mid)}
+.fin-stat-icon{
+  width:36px;height:36px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1rem;font-weight:700;flex-shrink:0
+}
+.fin-stat-icon.teal{background:var(--teal-pale);color:var(--teal-dk)}
+.fin-stat-icon.gold{background:rgba(196,154,48,.12);color:var(--gold)}
+.fin-stat-icon.warn{background:var(--warning-pale);color:var(--warning)}
+.fin-stat-icon.net-icon{background:var(--maroon-pale);color:var(--maroon)}
+.fin-stat-label{font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-faint);margin-bottom:.2rem}
+.fin-stat-value{font-family:'Crimson Pro',serif;font-size:1.15rem;font-weight:700;color:var(--ink)}
+.fin-stat-card.net{border-left:3px solid var(--maroon)}
+
+/* Tabs */
+.fin-tabs{
+  display:flex;gap:.35rem;margin-bottom:1rem;flex-wrap:wrap;
+  border-bottom:2px solid var(--border);padding-bottom:.5rem
+}
+.fin-tab{
+  padding:.45rem .9rem;font-size:.78rem;font-weight:600;cursor:pointer;
+  border:1px solid var(--border-dk);background:var(--surface);color:var(--ink-faint);
+  border-radius:4px 4px 0 0;font-family:'Inter',sans-serif;
+  transition:all .15s
+}
+.fin-tab:hover{color:var(--teal);border-color:var(--teal-mid)}
+.fin-tab.active{background:var(--teal);color:#fff;border-color:var(--teal);box-shadow:0 2px 8px rgba(15,110,86,.2)}
+.fin-tab.record{border-style:dashed;color:var(--ink-faint)}
+.fin-tab.record.active{border-style:solid;background:var(--maroon);border-color:var(--maroon)}
+
+/* Sub-tabs */
+.fin-sub-tabs{display:flex;gap:.5rem;margin-bottom:.5rem}
+.fin-sub-tab{padding:.3rem .75rem;font-size:.75rem;font-weight:600;cursor:pointer;border:none;background:var(--surface-3);color:var(--ink-faint);border-radius:3px;font-family:'Inter',sans-serif;transition:all .15s}
+.fin-sub-tab.active{background:var(--maroon-pale);color:var(--maroon)}
+
+/* Record forms */
+.fin-form-card{
+  background:var(--surface);border:1px solid var(--border);
+  padding:1.5rem;max-width:600px;margin-top:.75rem;
+  animation:countUp .3s ease
+}
+.fin-form-heading{display:flex;align-items:center;gap:.85rem;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}
+.fin-form-icon{
+  width:44px;height:44px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;font-weight:700;flex-shrink:0
+}
+.fin-form-icon.teal{background:var(--teal-pale);color:var(--teal-dk)}
+.fin-form-icon.gold{background:rgba(196,154,48,.12);color:var(--gold)}
+.fin-form-icon.warn{background:var(--warning-pale);color:var(--warning)}
+.fin-form-title{font-size:.95rem;font-weight:700;color:var(--ink);margin-bottom:.15rem}
+.fin-form-sub{font-size:.75rem;color:var(--ink-faint)}
+.fin-form-actions{display:flex;gap:.75rem;margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border)}
+.fin-form-actions .btn{width:auto}
+
 /* APP */
 /* ── DASHBOARD ── */
 .dash-stat{transition:transform .15s,box-shadow .15s}
@@ -1203,60 +1320,103 @@ tr:hover td{background:var(--maroon-pale)}
 
     <!-- FINANCE -->
     <div class="page" id="page-finance">
-      <!-- Finance Controls Bar -->
-      <div style="display:flex;gap:.75rem;margin-bottom:1.25rem;flex-wrap:wrap;align-items:center">
-        <div style="flex:1;min-width:200px">
-          <div style="font-size:.7rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em">Finance Controls</div>
+
+      <!-- ── FINANCE HERO STRIP ── -->
+      <div class="fin-hero">
+        <div class="fin-hero-inner">
+          <div class="fin-hero-title">Finance Overview</div>
+          <div class="fin-hero-sub" id="fin-hero-org">—</div>
         </div>
-        <button class="btn btn-secondary" onclick="showShareoutModal()" style="font-size:.78rem">
-          💰 Year-End Shareout
-        </button>
-        <div style="display:flex;align-items:center;gap:.5rem;padding:.4rem .75rem;background:var(--surface-2);border:1px solid var(--border)">
-          <span style="font-size:.78rem;color:var(--ink-faint)">Withdraw Window:</span>
-          <span id="withdraw-status-label" style="font-size:.78rem;font-weight:600">Closed</span>
-          <button id="withdraw-toggle-btn" onclick="toggleWithdrawWindow()" class="btn btn-secondary btn-sm" style="font-size:.7rem">Open</button>
+        <div class="fin-hero-controls">
+          <button class="btn fin-ctrl-btn" onclick="showShareoutModal()">💰 Year-End Shareout</button>
+          <div class="fin-withdraw-pill">
+            <span class="fin-withdraw-dot" id="fin-withdraw-dot"></span>
+            <span style="font-size:.75rem;color:rgba(255,255,255,.7)">Withdraw:</span>
+            <span id="withdraw-status-label" style="font-size:.75rem;font-weight:600;color:#fff">Closed</span>
+            <button id="withdraw-toggle-btn" onclick="toggleWithdrawWindow()" class="fin-toggle-btn">Open</button>
+          </div>
         </div>
       </div>
-      <div class="tabs">
-        <div class="tab active" onclick="switchTab(this,'tab-transactions')">Income / Contributions</div>
-        <div class="tab" onclick="switchTab(this,'tab-expenses')">Expenses</div>
-        <div class="tab" onclick="switchTab(this,'tab-income-record')">Record Income</div>
-        <div class="tab" onclick="switchTab(this,'tab-record')">Record Contribution</div>
-        <div class="tab" onclick="switchTab(this,'tab-expense-record')">Record Expense</div>
+
+      <!-- ── BALANCE SCORECARD ── -->
+      <div class="fin-scorecard">
+        <!-- Bank balance — hero number -->
+        <div class="fin-score-main">
+          <div class="fin-score-label">Total Bank Balance</div>
+          <div class="fin-score-value" id="fin-bank-balance">—</div>
+          <div class="fin-score-meta">All funds across group accounts</div>
+          <div class="fin-score-bar">
+            <div class="fin-score-bar-fill" id="fin-bank-bar" style="width:100%;background:var(--maroon)"></div>
+          </div>
+        </div>
+        <!-- Member split -->
+        <div class="fin-score-split">
+          <div class="fin-score-item teal">
+            <div class="fin-score-item-label">👥 Member Balances</div>
+            <div class="fin-score-item-value" id="fin-member-balance">—</div>
+            <div class="fin-score-item-note">Savings + shares</div>
+          </div>
+          <div class="fin-score-item" id="fin-admin-card">
+            <div class="fin-score-item-label">🏛 Admin Balance</div>
+            <div class="fin-score-item-value" id="fin-admin-balance">—</div>
+            <div class="fin-score-item-note" id="fin-admin-note">Group-retained funds</div>
+          </div>
+        </div>
       </div>
+
+      <!-- ── 4 STAT CARDS ── -->
+      <div class="fin-stats">
+        <div class="fin-stat-card" onclick="switchTab(document.querySelector('[onclick*=sub-tab-contributions]'),'sub-tab-contributions');switchTab(document.querySelector('[onclick*=tab-transactions]'),'tab-transactions')">
+          <div class="fin-stat-icon teal">₭</div>
+          <div>
+            <div class="fin-stat-label">Member Contributions</div>
+            <div class="fin-stat-value" id="fin-total-contrib">—</div>
+          </div>
+        </div>
+        <div class="fin-stat-card" onclick="switchTab(document.querySelector('[onclick*=sub-tab-income]'),'sub-tab-income');switchTab(document.querySelector('[onclick*=tab-transactions]'),'tab-transactions')">
+          <div class="fin-stat-icon gold">⚑</div>
+          <div>
+            <div class="fin-stat-label">Other Income</div>
+            <div class="fin-stat-value" id="fin-total-income">—</div>
+          </div>
+        </div>
+        <div class="fin-stat-card" onclick="switchTab(document.querySelector('[onclick*=tab-expenses]'),'tab-expenses')">
+          <div class="fin-stat-icon warn">−</div>
+          <div>
+            <div class="fin-stat-label">Total Expenses</div>
+            <div class="fin-stat-value" id="fin-total-exp">—</div>
+          </div>
+        </div>
+        <div class="fin-stat-card net">
+          <div class="fin-stat-icon net-icon">≈</div>
+          <div>
+            <div class="fin-stat-label">Net Position</div>
+            <div class="fin-stat-value" id="fin-net">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TABS ── -->
+      <div class="fin-tabs">
+        <button class="fin-tab active" onclick="switchFinTab(this,'tab-transactions')">📋 Ledger</button>
+        <button class="fin-tab" onclick="switchFinTab(this,'tab-expenses')">📤 Expenses</button>
+        <button class="fin-tab record" onclick="switchFinTab(this,'tab-record')">＋ Record Payment</button>
+        <button class="fin-tab record" onclick="switchFinTab(this,'tab-income-record')">＋ Record Income</button>
+        <button class="fin-tab record" onclick="switchFinTab(this,'tab-expense-record')">＋ Record Expense</button>
+      </div>
+
+      <!-- TAB: LEDGER -->
       <div class="tab-panel active" id="tab-transactions">
-        <!-- Row 1: Inflows/outflows -->
-        <div class="stats-row" style="grid-template-columns:repeat(4,1fr)">
-          <div class="stat-card"><div class="stat-label">Member Contributions</div><div class="stat-value" id="fin-total-contrib" style="font-size:1.2rem">—</div><div class="stat-meta">Payments recorded</div></div>
-          <div class="stat-card green"><div class="stat-label">Other Income</div><div class="stat-value" id="fin-total-income" style="font-size:1.2rem">—</div><div class="stat-meta">Harvests, grants etc.</div></div>
-          <div class="stat-card warn"><div class="stat-label">Total Expenses</div><div class="stat-value" id="fin-total-exp" style="font-size:1.2rem">—</div><div class="stat-meta">Outflows</div></div>
-          <div class="stat-card gold"><div class="stat-label">Net Position</div><div class="stat-value" id="fin-net" style="font-size:1.2rem">—</div><div class="stat-meta">Surplus / Deficit</div></div>
-        </div>
-        <!-- Row 2: Balance breakdown -->
-        <div class="stats-row" style="grid-template-columns:repeat(3,1fr);margin-top:.75rem">
-          <div class="stat-card" style="border-top-color:var(--maroon)">
-            <div class="stat-label">💰 Total Bank Balance</div>
-            <div class="stat-value" id="fin-bank-balance" style="font-size:1.3rem;color:var(--maroon)">—</div>
-            <div class="stat-meta">All funds in group accounts</div>
-          </div>
-          <div class="stat-card green">
-            <div class="stat-label">👥 Member Balances</div>
-            <div class="stat-value" id="fin-member-balance" style="font-size:1.3rem">—</div>
-            <div class="stat-meta">Sum of all member savings + shares</div>
-          </div>
-          <div class="stat-card" id="fin-admin-card" style="border-top-color:var(--gold)">
-            <div class="stat-label">🏛 Admin / Group Balance</div>
-            <div class="stat-value" id="fin-admin-balance" style="font-size:1.3rem">—</div>
-            <div class="stat-meta" id="fin-admin-note">Bank minus member balances</div>
-          </div>
-        </div>
-        <div class="tabs" style="margin-top:.5rem">
-          <div class="tab active" onclick="switchTab(this,'sub-tab-contributions')">Member Contributions</div>
-          <div class="tab" onclick="switchTab(this,'sub-tab-income')">Other Income</div>
+        <div class="fin-sub-tabs">
+          <button class="fin-sub-tab active" onclick="switchFinSubTab(this,'sub-tab-contributions')">Member Contributions</button>
+          <button class="fin-sub-tab" onclick="switchFinSubTab(this,'sub-tab-income')">Other Income</button>
         </div>
         <div class="tab-panel active" id="sub-tab-contributions">
-          <div class="table-wrap card">
-            <div class="card-header"><div class="card-title">Member Contributions</div></div>
+          <div class="table-wrap card" style="margin-top:.75rem">
+            <div class="card-header">
+              <div class="card-title">Member Contributions</div>
+              <div style="font-size:.72rem;color:var(--ink-faint)" id="fin-contrib-count"></div>
+            </div>
             <table>
               <thead><tr><th>Date</th><th>Member</th><th>Type</th><th>Amount</th><th>M-Pesa Ref</th><th>Notes</th></tr></thead>
               <tbody id="txn-table"><tr><td colspan="6"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr></tbody>
@@ -1264,7 +1424,7 @@ tr:hover td{background:var(--maroon-pale)}
           </div>
         </div>
         <div class="tab-panel" id="sub-tab-income">
-          <div class="table-wrap card">
+          <div class="table-wrap card" style="margin-top:.75rem">
             <div class="card-header"><div class="card-title">Other Income & Revenue</div></div>
             <table>
               <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Reference</th><th>Project</th></tr></thead>
@@ -1273,8 +1433,10 @@ tr:hover td{background:var(--maroon-pale)}
           </div>
         </div>
       </div>
+
+      <!-- TAB: EXPENSES -->
       <div class="tab-panel" id="tab-expenses">
-        <div class="table-wrap card">
+        <div class="table-wrap card" style="margin-top:.75rem">
           <div class="card-header"><div class="card-title">Expense Ledger</div></div>
           <table>
             <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>M-Pesa Ref</th><th>Project</th></tr></thead>
@@ -1282,90 +1444,101 @@ tr:hover td{background:var(--maroon-pale)}
           </table>
         </div>
       </div>
-      <!-- INCOME TAB -->
-      <div class="tab-panel" id="tab-income-record">
-        <div class="card" style="max-width:600px">
-          <div class="card-header"><div class="card-title">Record Income / Revenue</div><div class="card-sub">Project income, investments, grants, or any other income</div></div>
-          <div class="card-body">
-            <div class="alert alert-info">Use this for non-member income — farm harvest proceeds, investment returns, grants, donations, etc.</div>
-            <div class="form-row">
-              <div class="form-group"><label class="form-label">Income Category</label><input class="form-input" id="inc-category" placeholder="e.g. Farm Harvest, Investment Return, Grant"/></div>
-              <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="inc-date"/></div>
+
+      <!-- TAB: RECORD PAYMENT -->
+      <div class="tab-panel" id="tab-record">
+        <div class="fin-form-card">
+          <div class="fin-form-heading">
+            <div class="fin-form-icon teal">₭</div>
+            <div>
+              <div class="fin-form-title">Record Member Payment</div>
+              <div class="fin-form-sub">Log a contribution, savings deposit or share payment</div>
             </div>
-            <div class="form-row">
-              <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="inc-desc" placeholder="e.g. Farm A sugarcane harvest proceeds"/></div>
-              <div class="form-group"><label class="form-label">Amount (Ksh)</label><input class="form-input" type="number" id="inc-amount" placeholder="e.g. 120000"/></div>
-            </div>
-            <div class="form-row">
-              <div class="form-group"><label class="form-label">Reference / Receipt No.</label><input class="form-input" id="inc-ref" placeholder="Optional"/></div>
-              <div class="form-group"><label class="form-label">Linked Project</label><select class="form-select" id="inc-project"><option value="">None</option></select></div>
-            </div>
-            <div class="form-row single">
-              <div class="form-group"><label class="form-label">Notes</label><input class="form-input" id="inc-notes" placeholder="Any additional details…"/></div>
-            </div>
-            <div class="form-actions">
-              <button class="btn btn-primary" onclick="saveIncome()">Record Income</button>
-              <button class="btn btn-secondary" onclick="clearIncForm()">Clear</button>
-            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Member</label><select class="form-select" id="pay-member"><option value="">Select member…</option></select></div>
+            <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="pay-date"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Payment Type</label><select class="form-select" id="pay-type"><option value="">Select type…</option></select></div>
+            <div class="form-group"><label class="form-label">Amount (Ksh)</label><input class="form-input" type="number" id="pay-amount" placeholder="0"/></div>
+          </div>
+          <div class="form-group"><label class="form-label">M-Pesa Reference</label><input class="form-input" id="pay-ref" placeholder="e.g. QBC4X8YZDE — optional"/></div>
+          <div class="form-group"><label class="form-label">Notes (optional)</label><input class="form-input" id="pay-notes" placeholder="Any additional info…"/></div>
+          <div class="fin-form-actions">
+            <button class="btn btn-primary" onclick="saveTransaction()" style="background:var(--teal);box-shadow:0 3px 10px rgba(15,110,86,.2)">Save Payment →</button>
+            <button class="btn btn-secondary" onclick="clearPayForm()">Clear</button>
           </div>
         </div>
       </div>
 
-      <div class="tab-panel" id="tab-record">
-        <div class="card" style="max-width:600px">
-          <div class="card-header"><div class="card-title">Record Member Payment</div></div>
-          <div class="card-body">
-            <div class="form-row">
-              <div class="form-group"><label class="form-label">Member</label><select class="form-select" id="pay-member"><option value="">Select member…</option></select></div>
-              <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="pay-date"/></div>
+      <!-- TAB: RECORD INCOME -->
+      <div class="tab-panel" id="tab-income-record">
+        <div class="fin-form-card">
+          <div class="fin-form-heading">
+            <div class="fin-form-icon gold">⚑</div>
+            <div>
+              <div class="fin-form-title">Record Income / Revenue</div>
+              <div class="fin-form-sub">Farm harvests, investment returns, grants, donations</div>
             </div>
-            <div class="form-row">
-              <div class="form-group"><label class="form-label">Payment Type</label><select class="form-select" id="pay-type"><option value="">Select type…</option></select></div>
-              <div class="form-group"><label class="form-label">Amount (Ksh)</label><input class="form-input" type="number" id="pay-amount" placeholder="e.g. 500"/></div>
-            </div>
-            <div class="form-row single">
-              <div class="form-group"><label class="form-label">M-Pesa Reference</label><input class="form-input" id="pay-ref" placeholder="e.g. QBC4X8YZDE"/></div>
-            </div>
-            <div class="form-row single">
-              <div class="form-group"><label class="form-label">Notes (optional)</label><input class="form-input" id="pay-notes" placeholder="Any additional info…"/></div>
-            </div>
-            <div class="form-actions">
-              <button class="btn btn-primary" onclick="saveTransaction()">Save Payment</button>
-              <button class="btn btn-secondary" onclick="clearPayForm()">Clear</button>
-            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Income Category</label><input class="form-input" id="inc-category" placeholder="e.g. Farm Harvest, Investment Return, Grant"/></div>
+            <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="inc-date"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="inc-desc" placeholder="e.g. Farm A sugarcane harvest proceeds"/></div>
+            <div class="form-group"><label class="form-label">Amount (Ksh)</label><input class="form-input" type="number" id="inc-amount" placeholder="0"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Reference / Receipt No.</label><input class="form-input" id="inc-ref" placeholder="Optional"/></div>
+            <div class="form-group"><label class="form-label">Linked Project</label><select class="form-select" id="inc-project"><option value="">None</option></select></div>
+          </div>
+          <div class="form-group"><label class="form-label">Notes</label><input class="form-input" id="inc-notes" placeholder="Any additional details…"/></div>
+          <div class="fin-form-actions">
+            <button class="btn btn-primary" onclick="saveIncome()" style="background:var(--gold);box-shadow:0 3px 10px rgba(196,154,48,.2)">Record Income →</button>
+            <button class="btn btn-secondary" onclick="clearIncForm()">Clear</button>
           </div>
         </div>
       </div>
+
+      <!-- TAB: RECORD EXPENSE -->
       <div class="tab-panel" id="tab-expense-record">
-        <div class="card" style="max-width:600px">
-          <div class="card-header"><div class="card-title">Record Expense</div></div>
-          <div class="card-body">
-            <div class="form-row">
-              <div class="form-group"><label class="form-label">Category</label><input class="form-input" id="exp-category" placeholder="e.g. Farm Expense, Admin, Transport…" list="exp-category-suggestions"/><datalist id="exp-category-suggestions"><option value="Farm Expense"/><option value="Admin"/><option value="Bank Charges"/><option value="Welfare Payout"/><option value="Transport"/><option value="Communication"/><option value="Equipment"/></datalist></div>
-              <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="exp-date"/></div>
+        <div class="fin-form-card">
+          <div class="fin-form-heading">
+            <div class="fin-form-icon warn">−</div>
+            <div>
+              <div class="fin-form-title">Record Expense</div>
+              <div class="fin-form-sub">Farm costs, admin spend, bank charges and outflows</div>
             </div>
-            <div class="form-row">
-              <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="exp-desc" placeholder="e.g. Weeding Farm A"/></div>
-              <div class="form-group"><label class="form-label">Amount (Ksh)</label><input class="form-input" type="number" id="exp-amount" placeholder="e.g. 2930"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Category</label>
+              <input class="form-input" id="exp-category" placeholder="e.g. Farm Expense, Admin, Transport…" list="exp-category-suggestions"/>
+              <datalist id="exp-category-suggestions"><option value="Farm Expense"/><option value="Admin"/><option value="Bank Charges"/><option value="Welfare Payout"/><option value="Transport"/><option value="Communication"/><option value="Equipment"/></datalist>
             </div>
-            <div class="form-row">
-              <div class="form-group"><label class="form-label">M-Pesa Reference</label><input class="form-input" id="exp-ref" placeholder="Optional"/></div>
-              <div class="form-group"><label class="form-label">Project</label><select class="form-select" id="exp-project"><option value="">None</option></select></div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Transaction Charges (Ksh)</label>
-                <input class="form-input" type="number" id="exp-charges" placeholder="0 — e.g. M-Pesa charges"/>
-                <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">Bank/M-Pesa charges for this transaction. Will be recorded as a separate expense.</div>
-              </div>
-            </div>
-            <div class="form-actions">
-              <button class="btn btn-primary" onclick="saveExpense()">Save Expense</button>
-              <button class="btn btn-secondary" onclick="clearExpForm()">Clear</button>
-            </div>
+            <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="exp-date"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="exp-desc" placeholder="e.g. Weeding Farm A"/></div>
+            <div class="form-group"><label class="form-label">Amount (Ksh)</label><input class="form-input" type="number" id="exp-amount" placeholder="0"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">M-Pesa Reference</label><input class="form-input" id="exp-ref" placeholder="Optional"/></div>
+            <div class="form-group"><label class="form-label">Project</label><select class="form-select" id="exp-project"><option value="">None</option></select></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Transaction Charges (Ksh)</label>
+            <input class="form-input" type="number" id="exp-charges" placeholder="0 — e.g. M-Pesa charges"/>
+            <div class="field-hint">Bank/M-Pesa charges for this transaction — recorded as a separate expense line.</div>
+          </div>
+          <div class="fin-form-actions">
+            <button class="btn btn-primary" onclick="saveExpense()" style="background:var(--warning);box-shadow:0 3px 10px rgba(160,96,16,.2)">Save Expense →</button>
+            <button class="btn btn-secondary" onclick="clearExpForm()">Clear</button>
           </div>
         </div>
       </div>
+
     </div>
 
     <!-- MEETINGS -->
@@ -3842,15 +4015,17 @@ async function saveMember() {
 // ── FINANCE ──
 async function loadFinance() {
   if (!currentOrg?.id) return;
-  // Update withdraw window status
+  // Hero org name
+  const heroOrg = document.getElementById('fin-hero-org');
+  if (heroOrg) heroOrg.textContent = currentOrg.name + ' — ' + new Date().getFullYear() + ' Financial Year';
+  // Withdraw window status
   const wBtn = document.getElementById('withdraw-toggle-btn');
   const wLabel = document.getElementById('withdraw-status-label');
-  if (wBtn && wLabel) {
-    const isOpen = currentOrg?.withdraw_enabled || false;
-    wBtn.textContent = isOpen ? 'Close' : 'Open';
-    wLabel.textContent = isOpen ? 'OPEN' : 'Closed';
-    wLabel.style.color = isOpen ? 'var(--success)' : 'var(--ink-faint)';
-  }
+  const wDot = document.getElementById('fin-withdraw-dot');
+  const isOpen = currentOrg?.withdraw_enabled || false;
+  if (wBtn) wBtn.textContent = isOpen ? 'Close' : 'Open';
+  if (wLabel) wLabel.textContent = isOpen ? 'OPEN' : 'Closed';
+  if (wDot) wDot.classList.toggle('open', isOpen);
   // Update income project dropdown
   const incProj = document.getElementById('inc-project');
   if (incProj) {
@@ -4873,6 +5048,24 @@ async function executeShareout() {
   prefetchData();
 }
 
+function switchFinTab(btn, tabId) {
+  document.querySelectorAll('.fin-tab').forEach(t => t.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.querySelectorAll('#page-finance > .tab-panel').forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById(tabId);
+  if (panel) panel.classList.add('active');
+}
+
+function switchFinSubTab(btn, tabId) {
+  const parent = btn.closest('.tab-panel');
+  if (!parent) return;
+  parent.querySelectorAll('.fin-sub-tab').forEach(t => t.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  parent.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById(tabId);
+  if (panel) panel.classList.add('active');
+}
+
 async function toggleWithdrawWindow() {
   const isOpen = currentOrg?.withdraw_enabled || false;
   const newState = !isOpen;
@@ -4880,11 +5073,10 @@ async function toggleWithdrawWindow() {
   currentOrg.withdraw_enabled = newState;
   const btn = document.getElementById('withdraw-toggle-btn');
   const label = document.getElementById('withdraw-status-label');
+  const dot = document.getElementById('fin-withdraw-dot');
   if (btn) btn.textContent = newState ? 'Close' : 'Open';
-  if (label) {
-    label.textContent = newState ? 'OPEN' : 'Closed';
-    label.style.color = newState ? 'var(--success)' : 'var(--ink-faint)';
-  }
+  if (label) label.textContent = newState ? 'OPEN' : 'Closed';
+  if (dot) dot.classList.toggle('open', newState);
   toast(`Withdraw window ${newState ? 'opened' : 'closed'}`);
   await logActivity(newState?'WITHDRAW OPEN':'WITHDRAW CLOSE', `Withdraw window ${newState?'opened':'closed'} by admin`);
 }
