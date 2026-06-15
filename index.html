@@ -935,6 +935,81 @@ tr:hover td{background:var(--maroon-pale)}
 .att-btn.apology{background:rgba(196,154,48,.1);border-color:var(--gold);color:var(--gold)}
 .att-btn.absent{background:var(--surface);border-color:var(--border-dk);color:var(--ink-faint)}
 @media(max-width:700px){.mtg-layout{grid-template-columns:1fr}}
+
+/* ══ MESSAGES PAGE ══ */
+@keyframes msgIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.msg-hero{
+  background:linear-gradient(135deg,#1a1a1a 0%,#2d2d2d 50%,#0d3d2e 100%);
+  padding:1.25rem 1.5rem;margin-bottom:1.25rem;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem
+}
+.msg-hero-title{font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:#fff}
+.msg-hero-sub{font-size:.72rem;color:rgba(255,255,255,.5)}
+.msg-layout{display:grid;grid-template-columns:1.2fr 1fr;gap:1rem}
+.msg-compose{background:var(--surface);border:1px solid var(--border);animation:msgIn .3s ease}
+.msg-compose-header{
+  padding:1rem 1.25rem;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:.75rem
+}
+.msg-compose-icon{
+  width:36px;height:36px;border-radius:8px;
+  background:rgba(15,110,86,.12);display:flex;align-items:center;
+  justify-content:center;font-size:1rem;flex-shrink:0
+}
+.msg-compose-title{font-size:.88rem;font-weight:700;color:var(--ink)}
+.msg-compose-body{padding:1.25rem}
+.msg-recipient-pills{display:flex;gap:.4rem;margin-bottom:1rem;flex-wrap:wrap}
+.msg-recipient-pill{
+  padding:.3rem .75rem;font-size:.72rem;font-weight:600;cursor:pointer;
+  border:1.5px solid var(--border-dk);background:var(--surface);color:var(--ink-faint);
+  border-radius:99px;transition:all .15s;font-family:'Inter',sans-serif
+}
+.msg-recipient-pill:hover{border-color:var(--teal);color:var(--teal)}
+.msg-recipient-pill.active{background:var(--teal);color:#fff;border-color:var(--teal);
+  box-shadow:0 2px 8px rgba(15,110,86,.25)}
+.msg-textarea{
+  width:100%;border:1.5px solid var(--border-dk);padding:.75rem;
+  font-size:.85rem;font-family:'Inter',sans-serif;resize:vertical;min-height:110px;
+  line-height:1.6;color:var(--ink);background:var(--surface);
+  transition:border-color .15s,box-shadow .15s
+}
+.msg-textarea:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(15,110,86,.08);outline:none}
+.msg-char-bar{height:3px;background:var(--border);margin-top:.35rem;border-radius:2px;overflow:hidden}
+.msg-char-fill{height:100%;background:var(--teal);transition:width .2s;border-radius:2px}
+.msg-char-fill.warn{background:var(--warning)}
+.msg-char-fill.over{background:var(--danger)}
+.msg-actions{display:flex;gap:.5rem;margin-top:1rem;flex-wrap:wrap}
+.msg-send-btn{
+  background:var(--teal);color:#fff;padding:.7rem 1.25rem;font-size:.82rem;font-weight:600;
+  border:none;cursor:pointer;font-family:'Inter',sans-serif;flex:1;
+  box-shadow:0 3px 10px rgba(15,110,86,.2);transition:background .15s,transform .1s
+}
+.msg-send-btn:hover{background:var(--teal-lt);transform:translateY(-1px)}
+.msg-send-btn:active{transform:translateY(0)}
+.msg-right-col{display:flex;flex-direction:column;gap:1rem}
+.msg-status-card{background:var(--surface);border:1px solid var(--border);padding:1rem 1.25rem;animation:msgIn .3s ease .05s both}
+.msg-status-active{display:flex;align-items:center;gap:.75rem}
+.msg-status-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;transition:background .3s}
+.msg-status-dot.active{background:var(--teal);box-shadow:0 0 0 3px rgba(15,110,86,.2)}
+.msg-status-dot.inactive{background:var(--danger)}
+.msg-bundle-bar{height:6px;background:var(--border);border-radius:3px;margin-top:.6rem;overflow:hidden}
+.msg-bundle-fill{height:100%;background:var(--teal);border-radius:3px;transition:width 1s ease}
+.msg-bundle-fill.low{background:var(--warning)}
+.msg-history-card{background:var(--surface);border:1px solid var(--border);animation:msgIn .3s ease .1s both;flex:1}
+.msg-history-item{
+  display:flex;align-items:flex-start;gap:.75rem;
+  padding:.75rem 1.25rem;border-bottom:1px solid var(--border);
+  transition:background .12s
+}
+.msg-history-item:last-child{border-bottom:none}
+.msg-history-item:hover{background:var(--surface-2)}
+.msg-history-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--teal);
+  flex-shrink:0;margin-top:.35rem
+}
+.msg-history-body{font-size:.75rem;color:var(--ink-soft);line-height:1.5;margin-top:.2rem}
+.msg-history-meta{font-size:.67rem;color:var(--ink-faint)}
+@media(max-width:700px){.msg-layout{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -1890,73 +1965,110 @@ tr:hover td{background:var(--maroon-pale)}
 
     <!-- MESSAGES -->
     <div class="page" id="page-messages">
-      <div class="section-header">
+
+      <!-- ── HERO ── -->
+      <div class="msg-hero">
         <div>
-          <div class="section-title" id="msg-page-title">Messages</div>
-          <div class="section-sub" id="msg-page-sub">SMS communication to members</div>
+          <div class="msg-hero-title">✉ Messages</div>
+          <div id="msg-page-sub" class="msg-hero-sub">Bulk SMS to members via Africa's Talking</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <div class="msg-status-dot inactive" id="msg-status-dot"></div>
+          <span id="msg-status-label" style="font-size:.75rem;color:rgba(255,255,255,.6)">Checking…</span>
         </div>
       </div>
+
       <div id="msg-admin-section">
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-header"><div class="card-title">Compose Message</div></div>
-          <div class="card-body">
-            <div class="form-group">
-              <label class="form-label">Recipients</label>
-              <select class="form-select" id="sms-recipients">
+        <div class="msg-layout">
+
+          <!-- ── COMPOSE ── -->
+          <div class="msg-compose">
+            <div class="msg-compose-header">
+              <div class="msg-compose-icon">✉</div>
+              <div>
+                <div class="msg-compose-title">Compose Message</div>
+                <div style="font-size:.7rem;color:var(--ink-faint)">Choose recipients then type your message</div>
+              </div>
+            </div>
+            <div class="msg-compose-body">
+
+              <select id="sms-recipients" style="display:none">
                 <option value="all">All Members</option>
                 <option value="active">Active Members Only</option>
                 <option value="arrears">Members with Arrears</option>
               </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Template</label>
-              <select class="form-select" onchange="loadSmsTemplate(this.value)">
-                <option value="">Custom message…</option>
-                <option value="meeting">Meeting Reminder</option>
-                <option value="contribution">Contribution Reminder</option>
-                <option value="welfare">Welfare Notice</option>
-                <option value="agm">AGM Announcement</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Message</label>
-              <textarea class="form-textarea" id="sms-body" placeholder="Type your message…" oninput="updateSmsCount(this.value)"></textarea>
-              <div style="font-size:.7rem;color:var(--ink-faint);text-align:right;margin-top:.2rem"><span id="sms-chars">0</span>/160 · <span id="sms-parts">1</span> SMS</div>
-            </div>
-            <div class="form-actions">
-              <button class="btn btn-primary" onclick="sendSms()">Send SMS</button>
-              <button class="btn btn-secondary" onclick="testSms()">Test (Send to Me)</button>
-              <button class="btn btn-secondary" onclick="document.getElementById('sms-body').value='';updateSmsCount('')">Clear</button>
-            </div>
-          </div>
-        </div>
-        <div>
-          <div class="card" id="sms-status-card">
-            <div class="card-header"><div class="card-title">SMS Integration Status</div></div>
-            <div class="card-body" id="sms-status-body">
-              <div class="loading"><div class="spinner"></div>Checking…</div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-header"><div class="card-title">Payment Details</div></div>
-            <div class="card-body">
-              <div class="payment-box">
-                <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--maroon);font-weight:600;margin-bottom:.5rem">Send to Paybill</div>
-                <div class="payment-paybill" id="msg-paybill">—</div>
-                <div class="payment-label">Account: Your Full Name</div>
-                <button onclick="copyPaybill()" style="font-size:.72rem;color:var(--maroon);cursor:pointer;font-weight:600;border:1px solid var(--maroon);padding:.25rem .75rem;background:transparent;font-family:'Inter',sans-serif">Copy Paybill</button>
+              <!-- Recipients as pills -->
+              <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.5rem">Recipients</div>
+              <div class="msg-recipient-pills" id="msg-recipient-pills">
+                <button class="msg-recipient-pill active" onclick="setRecipient('all',this)">All Members</button>
+                <button class="msg-recipient-pill" onclick="setRecipient('active',this)">Active Only</button>
+                <button class="msg-recipient-pill" onclick="setRecipient('arrears',this)">In Arrears</button>
+              </div>
+              <div style="font-size:.7rem;color:var(--ink-faint);margin-bottom:.85rem" id="msg-recipient-count"></div>
+
+              <!-- Templates -->
+              <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.5rem">Quick Templates</div>
+              <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1rem">
+                <button class="btn btn-secondary btn-sm" style="font-size:.7rem" onclick="loadSmsTemplate('meeting')">📅 Meeting</button>
+                <button class="btn btn-secondary btn-sm" style="font-size:.7rem" onclick="loadSmsTemplate('contribution')">₭ Contributions</button>
+                <button class="btn btn-secondary btn-sm" style="font-size:.7rem" onclick="loadSmsTemplate('welfare')">♡ Welfare</button>
+                <button class="btn btn-secondary btn-sm" style="font-size:.7rem" onclick="loadSmsTemplate('agm')">🏛 AGM</button>
+              </div>
+
+              <!-- Compose area -->
+              <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.5rem">Message</div>
+              <textarea class="msg-textarea" id="sms-body" placeholder="Type your message here…" oninput="updateSmsCount(this.value)"></textarea>
+              <div class="msg-char-bar"><div class="msg-char-fill" id="msg-char-fill" style="width:0%"></div></div>
+              <div style="display:flex;justify-content:space-between;font-size:.68rem;color:var(--ink-faint);margin-top:.3rem">
+                <span><span id="sms-chars">0</span> / 160 characters</span>
+                <span><span id="sms-parts">1</span> SMS part</span>
+              </div>
+
+              <!-- Actions -->
+              <div class="msg-actions">
+                <button class="msg-send-btn" onclick="sendSms()">📤 Send to <span id="msg-send-count">—</span></button>
+                <button class="btn btn-secondary" onclick="testSms()" style="font-size:.78rem">Test →Me</button>
+                <button class="btn btn-secondary" onclick="document.getElementById('sms-body').value='';updateSmsCount('')" style="font-size:.78rem">Clear</button>
               </div>
             </div>
           </div>
-          <div class="card">
-            <div class="card-header"><div class="card-title">Message History</div></div>
-            <div id="msg-history"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+
+          <!-- ── RIGHT COLUMN ── -->
+          <div class="msg-right-col">
+
+            <!-- SMS Status + Bundle -->
+            <div class="msg-status-card">
+              <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.75rem">SMS Status</div>
+              <div id="sms-status-body"><div class="loading"><div class="spinner"></div></div></div>
+              <div style="margin-top:1rem" id="msg-bundle-section" style="display:none">
+                <div style="display:flex;justify-content:space-between;font-size:.72rem;margin-bottom:.3rem">
+                  <span style="color:var(--ink-faint)">SMS Bundle</span>
+                  <span id="msg-bundle-label" style="font-weight:600;color:var(--ink)">—</span>
+                </div>
+                <div class="msg-bundle-bar"><div class="msg-bundle-fill" id="msg-bundle-fill" style="width:100%"></div></div>
+              </div>
+            </div>
+
+            <!-- Paybill -->
+            <div class="msg-status-card">
+              <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.75rem">Payment Details</div>
+              <div class="payment-box">
+                <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--maroon);font-weight:600;margin-bottom:.5rem">Paybill Number</div>
+                <div class="payment-paybill" id="msg-paybill">—</div>
+                <div class="payment-label">Account: Your Full Name</div>
+                <button onclick="copyPaybill()" style="font-size:.72rem;color:var(--maroon);cursor:pointer;font-weight:600;border:1px solid var(--maroon);padding:.25rem .75rem;background:transparent;font-family:'Inter',sans-serif;margin-top:.5rem">Copy Paybill</button>
+              </div>
+            </div>
+
+            <!-- History -->
+            <div class="msg-history-card">
+              <div style="padding:.75rem 1.25rem;border-bottom:1px solid var(--border);font-size:.82rem;font-weight:700;color:var(--ink)">Message History</div>
+              <div id="msg-history"><div class="loading" style="padding:1rem"><div class="spinner"></div></div></div>
+            </div>
           </div>
         </div>
       </div>
     </div>
-    </div><!-- end msg-admin-section -->
 
     <!-- APPROVALS -->
     <div class="page" id="page-approvals">
@@ -5164,59 +5276,128 @@ async function toggleProjectStatus(projectId, currentStatus) {
 }
 
 // ── MESSAGES ──
+// Track selected recipient type
+let _msgRecipientType = 'all';
+
+function setRecipient(type, btn) {
+  _msgRecipientType = type;
+  document.querySelectorAll('.msg-recipient-pill').forEach(p => p.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  // Update count label
+  let count = 0;
+  if (type === 'all') count = allMembers.filter(m => m.phone).length;
+  else if (type === 'active') count = allMembers.filter(m => m.phone && m.status === 'active').length;
+  else if (type === 'arrears') count = allMembers.filter(m => m.phone && m.status === 'arrears').length;
+  const countEl = document.getElementById('msg-recipient-count');
+  if (countEl) countEl.textContent = count + ' recipient' + (count!==1?'s':'') + ' with phone numbers';
+  const sendCount = document.getElementById('msg-send-count');
+  if (sendCount) sendCount.textContent = count + ' member' + (count!==1?'s':'');
+  // Sync hidden select (used by sendSms)
+  const sel = document.getElementById('sms-recipients');
+  if (sel) sel.value = type;
+}
+
 async function loadMessages() {
   const role = currentProfile?.role;
-  const titleEl = document.getElementById('msg-page-title');
-  const subEl = document.getElementById('msg-page-sub');
   const adminSection = document.getElementById('msg-admin-section');
+  const subEl = document.getElementById('msg-page-sub');
+
   if (role === 'member') {
-    if (titleEl) titleEl.textContent = 'Notices';
-    if (subEl) subEl.textContent = 'Messages from your group admin';
+    if (subEl) subEl.textContent = 'Notices from your group admin';
     if (adminSection) adminSection.style.display = 'none';
-  } else {
-    if (titleEl) titleEl.textContent = 'Messages';
-    if (subEl) subEl.textContent = 'SMS communication to members';
-    if (adminSection) adminSection.style.display = 'block';
+    return;
   }
-  document.getElementById('msg-paybill').textContent = currentOrg?.paybill || '—';
-  // Show SMS integration status (platform-level)
+  if (adminSection) adminSection.style.display = 'block';
+
+  // Paybill
+  const paybillEl = document.getElementById('msg-paybill');
+  if (paybillEl) paybillEl.textContent = currentOrg?.paybill || '—';
+
+  // ── SMS Status ──
+  let hasAT = false;
+  try {
+    const { data: ps } = await sb.from('platform_settings').select('at_api_key').maybeSingle();
+    hasAT = !!ps?.at_api_key;
+  } catch(e) {}
+
+  // Update hero dot
+  const dot = document.getElementById('msg-status-dot');
+  const lbl = document.getElementById('msg-status-label');
+  if (dot) dot.className = 'msg-status-dot ' + (hasAT ? 'active' : 'inactive');
+  if (lbl) lbl.textContent = hasAT ? 'SMS Active' : 'SMS Inactive';
+
   const statusEl = document.getElementById('sms-status-body');
   if (statusEl) {
-    // Check platform-level AT status (no credentials shown to org admins)
-    let hasAT = false;
-    try {
-      const { data: ps } = await sb.from('platform_settings').select('at_api_key').maybeSingle();
-      hasAT = !!ps?.at_api_key;
-    } catch(e) {}
-    statusEl.innerHTML = hasAT ?
-      `<div style="display:flex;align-items:center;gap:.6rem">
-        <span style="color:var(--success);font-size:1.4rem">✓</span>
-        <div>
-          <div style="font-size:.85rem;font-weight:600;color:var(--success)">SMS Active</div>
-          <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.1rem">Messages will be sent to members' phones</div>
+    if (hasAT) {
+      // Show bundle usage
+      const used = currentOrg?.sms_used || 0;
+      const bundle = currentOrg?.sms_bundle || 0;
+      const remaining = Math.max(0, bundle - used);
+      const pct = bundle > 0 ? Math.round((remaining/bundle)*100) : 100;
+      statusEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem">
+          <div class="msg-status-dot active"></div>
+          <div>
+            <div style="font-size:.85rem;font-weight:700;color:var(--teal)">SMS Active</div>
+            <div style="font-size:.7rem;color:var(--ink-faint)">Messages delivered to members' phones</div>
+          </div>
         </div>
-      </div>` :
-      `<div style="display:flex;align-items:center;gap:.6rem">
-        <span style="color:var(--danger);font-size:1.4rem">✗</span>
-        <div>
-          <div style="font-size:.85rem;font-weight:600;color:var(--danger)">SMS Inactive</div>
-          <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.1rem">Messages are being logged. Contact GroupYetu360 support to activate SMS.</div>
+        <div style="display:flex;justify-content:space-between;font-size:.72rem;margin-bottom:.3rem">
+          <span style="color:var(--ink-faint)">Bundle remaining</span>
+          <span style="font-weight:700;color:${pct<20?'var(--danger)':pct<40?'var(--warning)':'var(--teal)'}">${remaining} / ${bundle} SMS</span>
         </div>
-      </div>`;
+        <div class="msg-bundle-bar">
+          <div class="msg-bundle-fill ${pct<20?'low':''}" style="width:${pct}%"></div>
+        </div>`;
+    } else {
+      statusEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:.75rem">
+          <div class="msg-status-dot inactive"></div>
+          <div>
+            <div style="font-size:.85rem;font-weight:700;color:var(--danger)">SMS Inactive</div>
+            <div style="font-size:.7rem;color:var(--ink-faint);line-height:1.5">Messages are logged but not delivered. Contact GroupYetu360 support to activate.</div>
+          </div>
+        </div>`;
+    }
   }
-  const { data } = await sb.from('messages_log').select('*').eq('org_id', currentOrg?.id||'').order('sent_at',{ascending:false}).limit(10);
+
+  // ── Recipient count ──
+  setRecipient(_msgRecipientType, document.querySelector('.msg-recipient-pill.active'));
+
+  // ── Message history ──
+  const { data } = await sb.from('messages_log').select('*').eq('org_id', currentOrg?.id||'').order('sent_at',{ascending:false}).limit(15);
   const logs = data || [];
-  document.getElementById('msg-history').innerHTML = logs.length ? `<div class="timeline" style="padding:0 1.25rem">${logs.map(l=>`
-    <div class="tl-item"><div class="tl-dot green"></div><div class="tl-content">
-      <div class="tl-title">${l.recipient_type||'All Members'}</div>
-      <div class="tl-meta">${l.sent_at?.split('T')[0]||'—'} · ${l.recipient_count||0} recipients</div>
-      <div style="font-size:.72rem;color:var(--ink-soft);margin-top:.2rem">${(l.body||'').substring(0,80)}…</div>
-    </div></div>`).join('')}</div>` : '<div style="padding:1.25rem;font-size:.8rem;color:var(--ink-faint)">No messages sent yet</div>';
+  const histEl = document.getElementById('msg-history');
+  if (histEl) {
+    histEl.innerHTML = logs.length ? logs.map(l => `
+      <div class="msg-history-item">
+        <div class="msg-history-dot"></div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.2rem">
+            <span style="font-size:.78rem;font-weight:600;color:var(--ink)">${l.recipient_type==='all'?'All Members':l.recipient_type==='active'?'Active Members':'Arrears Members'}</span>
+            <span class="badge badge-green" style="font-size:.58rem">${l.recipient_count||0} sent</span>
+          </div>
+          <div class="msg-history-body">${(l.body||'').substring(0,100)}${(l.body||'').length>100?'…':''}</div>
+          <div class="msg-history-meta">${l.sent_at ? new Date(l.sent_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</div>
+        </div>
+      </div>`).join('') :
+      '<div style="padding:1.5rem 1.25rem;text-align:center;font-size:.82rem;color:var(--ink-faint)">No messages sent yet</div>';
+  }
 }
 
 function updateSmsCount(v) {
-  document.getElementById('sms-chars').textContent = v.length;
-  document.getElementById('sms-parts').textContent = Math.ceil(v.length/160)||1;
+  const len = v.length;
+  const parts = Math.ceil(len/160)||1;
+  const pct = Math.min((len/160)*100, 100);
+  const el = document.getElementById('sms-chars');
+  const partsEl = document.getElementById('sms-parts');
+  const fill = document.getElementById('msg-char-fill');
+  if (el) el.textContent = len;
+  if (partsEl) partsEl.textContent = parts;
+  if (fill) {
+    fill.style.width = pct + '%';
+    fill.className = 'msg-char-fill' + (len > 160 ? ' over' : len > 120 ? ' warn' : '');
+  }
 }
 
 function loadSmsTemplate(t) {
