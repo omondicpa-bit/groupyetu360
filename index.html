@@ -4587,6 +4587,7 @@ function buildNav() {
     <a class="nav-item" onclick="showPage('billing')" href="#"><span class="nav-icon">💳</span> Billing & SMS</a>
     <a class="nav-item" onclick="showPage('support')" href="#"><span class="nav-icon">☎</span> Support</a>
     <a class="nav-item" onclick="showPage('my_account')" href="#"><span class="nav-icon">👤</span> My Account</a>`;
+    }
   } else {
     // Remove any stray page-dashboard active class
     document.querySelectorAll('.page.active').forEach(p => p.classList.remove('active'));
@@ -8894,175 +8895,6 @@ window.addEventListener('appinstalled', () => {
   document.getElementById('pwa-install-banner')?.remove();
   toast('GroupYetu360 installed! Find it on your home screen.');
 });
-</script>
-
-<!-- ── FLOATING SUPPORT BUTTON ── -->
-<style>
-#support-fab{position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;display:flex;flex-direction:column;align-items:flex-end;gap:.55rem}
-#support-fab-menu{display:none;flex-direction:column;gap:.4rem;align-items:flex-end}
-.fab-option{display:flex;align-items:center;gap:.55rem;padding:.5rem .9rem .5rem .6rem;border-radius:99px;font-size:.76rem;font-weight:600;text-decoration:none;box-shadow:0 2px 12px rgba(0,0,0,.18);transition:transform .15s,box-shadow .15s;white-space:nowrap}
-.fab-option:hover{transform:translateX(-3px);box-shadow:0 4px 16px rgba(0,0,0,.25)}
-.fab-option-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.fab-main{
-  width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 4px 16px rgba(0,0,0,.25),0 0 0 3px rgba(255,255,255,.9);
-  transition:transform .2s,box-shadow .2s;
-  background:#25D366;
-  position:relative;overflow:hidden
-}
-.fab-main:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(0,0,0,.3),0 0 0 3px rgba(255,255,255,.9)}
-.fab-main:active{transform:scale(.96)}
-/* Pulse ring */
-.fab-pulse{
-  position:absolute;inset:-4px;border-radius:50%;
-  border:2px solid rgba(37,211,102,.5);
-  animation:fabPing 2.5s ease-out infinite
-}
-@keyframes fabPing{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.5);opacity:0}}
-
-/* ══ ROTATING SAVINGS (MERRY-GO-ROUND) ══ */
-@keyframes mgrIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.mgr-hero{background:linear-gradient(135deg,#1a1a1a 0%,#2d2d2d 40%,#0d3d2e 100%);padding:1.25rem 1.5rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
-.mgr-hero-title{font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:#fff}
-.mgr-hero-sub{font-size:.72rem;color:rgba(255,255,255,.5);margin-top:.15rem}
-.mgr-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1.25rem}
-.mgr-stat{background:var(--surface);border:1px solid var(--border);padding:.85rem 1rem;text-align:center;animation:mgrIn .3s ease both}
-.mgr-stat-val{font-family:'Crimson Pro',serif;font-size:1.5rem;font-weight:700;color:var(--teal)}
-.mgr-stat-label{font-size:.62rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem}
-/* Round tabs */
-.mgr-tabs{display:flex;gap:.35rem;margin-bottom:1rem;border-bottom:2px solid var(--border);padding-bottom:.5rem;flex-wrap:wrap}
-.mgr-tab{padding:.4rem .85rem;font-size:.78rem;font-weight:600;cursor:pointer;border:1px solid var(--border-dk);background:var(--surface);color:var(--ink-faint);border-radius:4px 4px 0 0;font-family:'Inter',sans-serif;transition:all .15s}
-.mgr-tab:hover{color:var(--teal);border-color:var(--teal-mid)}
-.mgr-tab.active{background:var(--teal);color:#fff;border-color:var(--teal)}
-/* Round card */
-.round-card{background:var(--surface);border:1px solid var(--border);margin-bottom:1rem;animation:mgrIn .35s ease both;overflow:hidden;transition:box-shadow .15s}
-.round-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.07)}
-.round-card-header{display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.25rem;border-bottom:1px solid var(--border);background:var(--surface-2)}
-.round-card-title{font-size:.88rem;font-weight:700;color:var(--ink)}
-.round-card-meta{font-size:.7rem;color:var(--ink-faint);margin-top:.1rem}
-/* Slot grid */
-.slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.75rem;padding:1rem 1.25rem}
-.slot-card{border:1px solid var(--border);border-radius:6px;overflow:hidden;transition:border-color .15s,box-shadow .15s}
-.slot-card:hover{border-color:var(--teal-mid);box-shadow:0 2px 10px rgba(15,110,86,.08)}
-.slot-card.active-slot{border-color:var(--teal);border-width:2px}
-.slot-card.received{border-color:var(--border-dk);opacity:.75}
-.slot-header{display:flex;align-items:center;gap:.6rem;padding:.65rem .75rem;background:var(--surface-2);border-bottom:1px solid var(--border)}
-.slot-num{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700;flex-shrink:0}
-.slot-num.pending{background:var(--teal-pale);color:var(--teal-dk)}
-.slot-num.active-num{background:var(--teal);color:#fff}
-.slot-num.done{background:var(--surface-3);color:var(--ink-faint)}
-.slot-name{font-size:.78rem;font-weight:600;color:var(--ink);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.slot-body{padding:.6rem .75rem}
-.slot-contrib-bar{height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:.4rem}
-.slot-contrib-fill{height:100%;background:var(--teal);border-radius:3px;transition:width .6s ease}
-.slot-contrib-text{font-size:.65rem;color:var(--ink-faint);display:flex;justify-content:space-between}
-.slot-date{font-size:.65rem;color:var(--ink-faint);margin-top:.35rem}
-.slot-received-badge{display:inline-flex;align-items:center;gap:.3rem;font-size:.62rem;font-weight:600;color:var(--teal-dk);background:var(--teal-pale);padding:.15rem .5rem;border-radius:3px;margin-top:.35rem}
-/* Contribution recording */
-.mgr-contrib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.5rem;padding:.75rem 1.25rem}
-.mgr-contrib-item{border:1px solid var(--border);border-radius:5px;padding:.55rem .75rem;display:flex;align-items:center;justify-content:space-between;transition:border-color .15s}
-.mgr-contrib-item.paid{border-color:var(--teal);background:var(--teal-pale)}
-.mgr-contrib-item.pending{border-color:var(--warning);background:rgba(160,96,16,.06)}
-.mgr-contrib-name{font-size:.75rem;font-weight:600;color:var(--ink)}
-.mgr-contrib-status{font-size:.65rem;font-weight:600}
-.mgr-contrib-status.paid{color:var(--teal-dk)}
-.mgr-contrib-status.pending{color:var(--warning)}
-/* Method badge */
-.mgr-method-pill{display:inline-flex;align-items:center;gap:.3rem;font-size:.62rem;font-weight:600;padding:.2rem .55rem;border-radius:99px}
-.mgr-method-treasurer{background:var(--maroon-pale);color:var(--maroon)}
-.mgr-method-direct{background:var(--teal-pale);color:var(--teal-dk)}
-/* Empty state */
-.mgr-empty{padding:3rem;text-align:center}
-.mgr-empty-icon{font-size:2.5rem;margin-bottom:.75rem}
-/* Setup form */
-.mgr-form-card{background:var(--surface);border:1px solid var(--border);padding:1.5rem;max-width:580px;margin-top:.75rem;animation:mgrIn .3s ease}
-.mgr-form-heading{display:flex;align-items:center;gap:.85rem;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}
-.mgr-form-icon{width:44px;height:44px;border-radius:10px;background:rgba(31,158,117,.12);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
-.mgr-form-title{font-size:.95rem;font-weight:700;color:var(--ink);margin-bottom:.15rem}
-.mgr-form-sub{font-size:.75rem;color:var(--ink-faint)}
-/* Method toggle */
-.method-toggle{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem}
-.method-opt{border:1.5px solid var(--border-dk);border-radius:6px;padding:.85rem;cursor:pointer;transition:all .15s;text-align:center}
-.method-opt.selected{border-color:var(--teal);background:var(--teal-pale)}
-.method-opt-icon{font-size:1.4rem;margin-bottom:.35rem}
-.method-opt-title{font-size:.8rem;font-weight:600;color:var(--ink);margin-bottom:.2rem}
-.method-opt-desc{font-size:.68rem;color:var(--ink-faint);line-height:1.4}
-.method-opt.selected .method-opt-title{color:var(--teal-dk)}
-</style>
-<div id="support-fab">
-  <div id="support-fab-menu">
-    <a id="fab-whatsapp" href="https://wa.me/254792385970" target="_blank" class="fab-option" style="background:#25D366;color:#fff">
-      <div class="fab-option-icon" style="background:rgba(255,255,255,.2)">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.555 4.122 1.526 5.854L.057 23.882l6.197-1.635A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.805 9.805 0 01-5.031-1.388l-.361-.214-3.741.981 1.005-3.647-.235-.374A9.773 9.773 0 012.182 12C2.182 6.591 6.591 2.182 12 2.182 17.409 2.182 21.818 6.591 21.818 12c0 5.409-4.409 9.818-9.818 9.818z"/></svg>
-      </div>
-      WhatsApp
-    </a>
-    <a id="fab-call" href="tel:+254792385970" class="fab-option" style="background:#800020;color:#fff">
-      <div class="fab-option-icon" style="background:rgba(255,255,255,.15)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-      </div>
-      Call Us
-    </a>
-    <a id="fab-email" href="mailto:support@groupyetu.org" class="fab-option" style="background:#0f6e56;color:#fff">
-      <div class="fab-option-icon" style="background:rgba(255,255,255,.15)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-      </div>
-      Email
-    </a>
-  </div>
-
-  <!-- Main WhatsApp-style button -->
-  <button onclick="toggleSupportFab()" id="support-fab-btn" class="fab-main" title="Support">
-    <div class="fab-pulse" id="fab-pulse"></div>
-    <!-- WhatsApp icon (default) / X icon (open) -->
-    <svg id="fab-icon-chat" width="26" height="26" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.555 4.122 1.526 5.854L.057 23.882l6.197-1.635A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.805 9.805 0 01-5.031-1.388l-.361-.214-3.741.981 1.005-3.647-.235-.374A9.773 9.773 0 012.182 12C2.182 6.591 6.591 2.182 12 2.182 17.409 2.182 21.818 6.591 21.818 12c0 5.409-4.409 9.818-9.818 9.818z"/></svg>
-    <svg id="fab-icon-close" width="20" height="20" viewBox="0 0 24 24" fill="#fff" style="display:none"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-  </button>
-</div>
-<script>
-function toggleSupportFab() {
-  const menu = document.getElementById('support-fab-menu');
-  const iconChat = document.getElementById('fab-icon-chat');
-  const iconClose = document.getElementById('fab-icon-close');
-  const pulse = document.getElementById('fab-pulse');
-  const btn = document.getElementById('support-fab-btn');
-  const open = menu.style.display === 'flex';
-  if (open) {
-    menu.style.display = 'none';
-    if (iconChat) iconChat.style.display = '';
-    if (iconClose) iconClose.style.display = 'none';
-    if (pulse) pulse.style.display = '';
-    btn.style.background = '#25D366';
-  } else {
-    menu.style.display = 'flex';
-    if (iconChat) iconChat.style.display = 'none';
-    if (iconClose) iconClose.style.display = '';
-    if (pulse) pulse.style.display = 'none';
-    btn.style.background = '#555';
-  }
-}
-// Update FAB contacts from platform settings
-(async () => {
-  try {
-    if (typeof sb !== 'undefined') {
-      const { data: ps } = await sb.from('platform_settings').select('support_phone,support_email').maybeSingle();
-      if (ps?.support_phone) {
-        const phone = ps.support_phone.replace(/\D/g,'');
-        const wLink = document.getElementById('fab-whatsapp');
-        const cLink = document.getElementById('fab-call');
-        if (wLink) wLink.href = 'https://wa.me/254' + phone.replace(/^0/,'');
-        if (cLink) cLink.href = 'tel:+254' + phone.replace(/^0/,'');
-      }
-      if (ps?.support_email) {
-        const eLink = document.getElementById('fab-email');
-        if (eLink) eLink.href = 'mailto:' + ps.support_email;
-      }
-    }
-  } catch(e) {}
-})();
-
-
 
 /* ════════════════════════════════════════════════
    ROTATING SAVINGS / MERRY-GO-ROUND FUNCTIONS
@@ -9557,6 +9389,176 @@ function clearMgrDisForm() {
   ['mgr-dis-slot','mgr-dis-method'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
   ['mgr-dis-amount','mgr-dis-ref','mgr-dis-notes'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
 }
+
+
+</script>
+
+<!-- ── FLOATING SUPPORT BUTTON ── -->
+<style>
+#support-fab{position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;display:flex;flex-direction:column;align-items:flex-end;gap:.55rem}
+#support-fab-menu{display:none;flex-direction:column;gap:.4rem;align-items:flex-end}
+.fab-option{display:flex;align-items:center;gap:.55rem;padding:.5rem .9rem .5rem .6rem;border-radius:99px;font-size:.76rem;font-weight:600;text-decoration:none;box-shadow:0 2px 12px rgba(0,0,0,.18);transition:transform .15s,box-shadow .15s;white-space:nowrap}
+.fab-option:hover{transform:translateX(-3px);box-shadow:0 4px 16px rgba(0,0,0,.25)}
+.fab-option-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.fab-main{
+  width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 16px rgba(0,0,0,.25),0 0 0 3px rgba(255,255,255,.9);
+  transition:transform .2s,box-shadow .2s;
+  background:#25D366;
+  position:relative;overflow:hidden
+}
+.fab-main:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(0,0,0,.3),0 0 0 3px rgba(255,255,255,.9)}
+.fab-main:active{transform:scale(.96)}
+/* Pulse ring */
+.fab-pulse{
+  position:absolute;inset:-4px;border-radius:50%;
+  border:2px solid rgba(37,211,102,.5);
+  animation:fabPing 2.5s ease-out infinite
+}
+@keyframes fabPing{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.5);opacity:0}}
+
+/* ══ ROTATING SAVINGS (MERRY-GO-ROUND) ══ */
+@keyframes mgrIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.mgr-hero{background:linear-gradient(135deg,#1a1a1a 0%,#2d2d2d 40%,#0d3d2e 100%);padding:1.25rem 1.5rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+.mgr-hero-title{font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:#fff}
+.mgr-hero-sub{font-size:.72rem;color:rgba(255,255,255,.5);margin-top:.15rem}
+.mgr-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1.25rem}
+.mgr-stat{background:var(--surface);border:1px solid var(--border);padding:.85rem 1rem;text-align:center;animation:mgrIn .3s ease both}
+.mgr-stat-val{font-family:'Crimson Pro',serif;font-size:1.5rem;font-weight:700;color:var(--teal)}
+.mgr-stat-label{font-size:.62rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem}
+/* Round tabs */
+.mgr-tabs{display:flex;gap:.35rem;margin-bottom:1rem;border-bottom:2px solid var(--border);padding-bottom:.5rem;flex-wrap:wrap}
+.mgr-tab{padding:.4rem .85rem;font-size:.78rem;font-weight:600;cursor:pointer;border:1px solid var(--border-dk);background:var(--surface);color:var(--ink-faint);border-radius:4px 4px 0 0;font-family:'Inter',sans-serif;transition:all .15s}
+.mgr-tab:hover{color:var(--teal);border-color:var(--teal-mid)}
+.mgr-tab.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+/* Round card */
+.round-card{background:var(--surface);border:1px solid var(--border);margin-bottom:1rem;animation:mgrIn .35s ease both;overflow:hidden;transition:box-shadow .15s}
+.round-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.07)}
+.round-card-header{display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.25rem;border-bottom:1px solid var(--border);background:var(--surface-2)}
+.round-card-title{font-size:.88rem;font-weight:700;color:var(--ink)}
+.round-card-meta{font-size:.7rem;color:var(--ink-faint);margin-top:.1rem}
+/* Slot grid */
+.slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.75rem;padding:1rem 1.25rem}
+.slot-card{border:1px solid var(--border);border-radius:6px;overflow:hidden;transition:border-color .15s,box-shadow .15s}
+.slot-card:hover{border-color:var(--teal-mid);box-shadow:0 2px 10px rgba(15,110,86,.08)}
+.slot-card.active-slot{border-color:var(--teal);border-width:2px}
+.slot-card.received{border-color:var(--border-dk);opacity:.75}
+.slot-header{display:flex;align-items:center;gap:.6rem;padding:.65rem .75rem;background:var(--surface-2);border-bottom:1px solid var(--border)}
+.slot-num{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700;flex-shrink:0}
+.slot-num.pending{background:var(--teal-pale);color:var(--teal-dk)}
+.slot-num.active-num{background:var(--teal);color:#fff}
+.slot-num.done{background:var(--surface-3);color:var(--ink-faint)}
+.slot-name{font-size:.78rem;font-weight:600;color:var(--ink);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slot-body{padding:.6rem .75rem}
+.slot-contrib-bar{height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:.4rem}
+.slot-contrib-fill{height:100%;background:var(--teal);border-radius:3px;transition:width .6s ease}
+.slot-contrib-text{font-size:.65rem;color:var(--ink-faint);display:flex;justify-content:space-between}
+.slot-date{font-size:.65rem;color:var(--ink-faint);margin-top:.35rem}
+.slot-received-badge{display:inline-flex;align-items:center;gap:.3rem;font-size:.62rem;font-weight:600;color:var(--teal-dk);background:var(--teal-pale);padding:.15rem .5rem;border-radius:3px;margin-top:.35rem}
+/* Contribution recording */
+.mgr-contrib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.5rem;padding:.75rem 1.25rem}
+.mgr-contrib-item{border:1px solid var(--border);border-radius:5px;padding:.55rem .75rem;display:flex;align-items:center;justify-content:space-between;transition:border-color .15s}
+.mgr-contrib-item.paid{border-color:var(--teal);background:var(--teal-pale)}
+.mgr-contrib-item.pending{border-color:var(--warning);background:rgba(160,96,16,.06)}
+.mgr-contrib-name{font-size:.75rem;font-weight:600;color:var(--ink)}
+.mgr-contrib-status{font-size:.65rem;font-weight:600}
+.mgr-contrib-status.paid{color:var(--teal-dk)}
+.mgr-contrib-status.pending{color:var(--warning)}
+/* Method badge */
+.mgr-method-pill{display:inline-flex;align-items:center;gap:.3rem;font-size:.62rem;font-weight:600;padding:.2rem .55rem;border-radius:99px}
+.mgr-method-treasurer{background:var(--maroon-pale);color:var(--maroon)}
+.mgr-method-direct{background:var(--teal-pale);color:var(--teal-dk)}
+/* Empty state */
+.mgr-empty{padding:3rem;text-align:center}
+.mgr-empty-icon{font-size:2.5rem;margin-bottom:.75rem}
+/* Setup form */
+.mgr-form-card{background:var(--surface);border:1px solid var(--border);padding:1.5rem;max-width:580px;margin-top:.75rem;animation:mgrIn .3s ease}
+.mgr-form-heading{display:flex;align-items:center;gap:.85rem;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}
+.mgr-form-icon{width:44px;height:44px;border-radius:10px;background:rgba(31,158,117,.12);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
+.mgr-form-title{font-size:.95rem;font-weight:700;color:var(--ink);margin-bottom:.15rem}
+.mgr-form-sub{font-size:.75rem;color:var(--ink-faint)}
+/* Method toggle */
+.method-toggle{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem}
+.method-opt{border:1.5px solid var(--border-dk);border-radius:6px;padding:.85rem;cursor:pointer;transition:all .15s;text-align:center}
+.method-opt.selected{border-color:var(--teal);background:var(--teal-pale)}
+.method-opt-icon{font-size:1.4rem;margin-bottom:.35rem}
+.method-opt-title{font-size:.8rem;font-weight:600;color:var(--ink);margin-bottom:.2rem}
+.method-opt-desc{font-size:.68rem;color:var(--ink-faint);line-height:1.4}
+.method-opt.selected .method-opt-title{color:var(--teal-dk)}
+</style>
+<div id="support-fab">
+  <div id="support-fab-menu">
+    <a id="fab-whatsapp" href="https://wa.me/254792385970" target="_blank" class="fab-option" style="background:#25D366;color:#fff">
+      <div class="fab-option-icon" style="background:rgba(255,255,255,.2)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.555 4.122 1.526 5.854L.057 23.882l6.197-1.635A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.805 9.805 0 01-5.031-1.388l-.361-.214-3.741.981 1.005-3.647-.235-.374A9.773 9.773 0 012.182 12C2.182 6.591 6.591 2.182 12 2.182 17.409 2.182 21.818 6.591 21.818 12c0 5.409-4.409 9.818-9.818 9.818z"/></svg>
+      </div>
+      WhatsApp
+    </a>
+    <a id="fab-call" href="tel:+254792385970" class="fab-option" style="background:#800020;color:#fff">
+      <div class="fab-option-icon" style="background:rgba(255,255,255,.15)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+      </div>
+      Call Us
+    </a>
+    <a id="fab-email" href="mailto:support@groupyetu.org" class="fab-option" style="background:#0f6e56;color:#fff">
+      <div class="fab-option-icon" style="background:rgba(255,255,255,.15)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+      </div>
+      Email
+    </a>
+  </div>
+
+  <!-- Main WhatsApp-style button -->
+  <button onclick="toggleSupportFab()" id="support-fab-btn" class="fab-main" title="Support">
+    <div class="fab-pulse" id="fab-pulse"></div>
+    <!-- WhatsApp icon (default) / X icon (open) -->
+    <svg id="fab-icon-chat" width="26" height="26" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.555 4.122 1.526 5.854L.057 23.882l6.197-1.635A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.805 9.805 0 01-5.031-1.388l-.361-.214-3.741.981 1.005-3.647-.235-.374A9.773 9.773 0 012.182 12C2.182 6.591 6.591 2.182 12 2.182 17.409 2.182 21.818 6.591 21.818 12c0 5.409-4.409 9.818-9.818 9.818z"/></svg>
+    <svg id="fab-icon-close" width="20" height="20" viewBox="0 0 24 24" fill="#fff" style="display:none"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+  </button>
+</div>
+<script>
+function toggleSupportFab() {
+  const menu = document.getElementById('support-fab-menu');
+  const iconChat = document.getElementById('fab-icon-chat');
+  const iconClose = document.getElementById('fab-icon-close');
+  const pulse = document.getElementById('fab-pulse');
+  const btn = document.getElementById('support-fab-btn');
+  const open = menu.style.display === 'flex';
+  if (open) {
+    menu.style.display = 'none';
+    if (iconChat) iconChat.style.display = '';
+    if (iconClose) iconClose.style.display = 'none';
+    if (pulse) pulse.style.display = '';
+    btn.style.background = '#25D366';
+  } else {
+    menu.style.display = 'flex';
+    if (iconChat) iconChat.style.display = 'none';
+    if (iconClose) iconClose.style.display = '';
+    if (pulse) pulse.style.display = 'none';
+    btn.style.background = '#555';
+  }
+}
+// Update FAB contacts from platform settings
+(async () => {
+  try {
+    if (typeof sb !== 'undefined') {
+      const { data: ps } = await sb.from('platform_settings').select('support_phone,support_email').maybeSingle();
+      if (ps?.support_phone) {
+        const phone = ps.support_phone.replace(/\D/g,'');
+        const wLink = document.getElementById('fab-whatsapp');
+        const cLink = document.getElementById('fab-call');
+        if (wLink) wLink.href = 'https://wa.me/254' + phone.replace(/^0/,'');
+        if (cLink) cLink.href = 'tel:+254' + phone.replace(/^0/,'');
+      }
+      if (ps?.support_email) {
+        const eLink = document.getElementById('fab-email');
+        if (eLink) eLink.href = 'mailto:' + ps.support_email;
+      }
+    }
+  } catch(e) {}
+})();
+
 
 </script>
 
