@@ -3138,22 +3138,21 @@ tr:hover td{background:var(--maroon-pale)}
           </div>
         </div>
 
-        <!-- Payment + Org Balance -->
+        <!-- Payment Details + Org Balance -->
         <div style="display:flex;flex-direction:column;gap:1rem">
 
-          <!-- Pay box -->
-          <div class="mp-pay-box" style="animation:portalFadeUp .4s ease .3s both">
-            <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--maroon);margin-bottom:.25rem">📱 Send to Paybill</div>
-            <div class="mp-pay-paybill" id="mp-paybill">—</div>
-            <div style="font-size:.75rem;color:var(--ink-faint)">Account No: <strong style="color:var(--ink)">Your Full Name</strong></div>
-            <button class="mp-pay-copy" onclick="navigator.clipboard.writeText(document.getElementById('mp-paybill').textContent).then(()=>toast('✓ Paybill copied!'))">
-              📋 Copy Paybill Number
-            </button>
-            <div style="margin-top:.85rem;padding-top:.85rem;border-top:1px solid var(--maroon-muted)">
-              <div id="mp-payment-extra-methods"></div>
-              <div style="font-size:.78rem;color:var(--ink-soft);line-height:1.8;margin-top:.5rem">
-                Savings/mo: <strong id="mp-savings-tier">—</strong><br>
-                Reg. fee: <span id="mp-reg-status">—</span>
+          <!-- Payment methods — single unified card -->
+          <div class="card" style="animation:portalFadeUp .4s ease .3s both">
+            <div class="card-header">
+              <div class="card-title">💳 How to Pay</div>
+              <div class="card-sub">Send payment using any method below</div>
+            </div>
+            <div class="card-body" id="mp-payment-methods">
+              <div class="loading"><div class="spinner"></div></div>
+            </div>
+            <div style="padding:.75rem 1.25rem;border-top:1px solid var(--border);background:var(--surface-2)">
+              <div style="font-size:.75rem;color:var(--ink-soft);line-height:1.8">
+                Savings/mo: <strong id="mp-savings-tier">—</strong> &nbsp;·&nbsp; Reg. fee: <span id="mp-reg-status">—</span>
               </div>
             </div>
           </div>
@@ -3167,15 +3166,10 @@ tr:hover td{background:var(--maroon-pale)}
             </div>
           </div>
 
-          <!-- Payment methods -->
-          <div class="card" style="animation:portalFadeUp .4s ease .4s both">
-            <div class="card-header"><div class="card-title">Payment Methods</div></div>
-            <div class="card-body" id="mp-payment-methods">
-              <div class="loading"><div class="spinner"></div></div>
-            </div>
-          </div>
-
         </div>
+        <!-- hidden paybill for JS compat -->
+        <div id="mp-paybill" style="display:none"></div>
+        <div id="mp-payment-extra-methods" style="display:none"></div>
       </div>
 
       <!-- ── GY360 MARKETING BANNER ── -->
@@ -7303,6 +7297,19 @@ async function deleteMember() {
 let currentPendingId = null;
 let currentPendingUserId = null;
 
+
+// Update approvals hero count
+function updateApprovalsHero(pendingCount) {
+  const heroCount = document.getElementById('approvals-hero-count');
+  if (heroCount) {
+    heroCount.innerHTML = pendingCount > 0
+      ? `<span style="background:rgba(255,255,255,.15);padding:.25rem .65rem;border-radius:99px;font-weight:600">${pendingCount} pending</span>`
+      : '<span style="color:rgba(255,255,255,.5)">All clear</span>';
+  }
+  const badge = document.getElementById('approvals-badge');
+  if (badge) { badge.textContent = pendingCount; badge.style.display = pendingCount > 0 ? '' : 'none'; }
+}
+
 async function loadApprovals() {
   if (!currentOrg?.id) return;
   const { data: all } = await sb.from('pending_members')
@@ -7547,62 +7554,9 @@ async function loadMyProfile() {
   if (!currentOrg?.id || !currentProfile) return;
   document.getElementById('my-profile-org').textContent = currentOrg.name;
   // Load payment methods
-  const pmEl = document.getElementById('mp-payment-methods');
-  if (pmEl) {
-    const methods = currentOrg?.payment_methods || {};
-    const items = [];
-    if (methods.paybill && methods.paybill_number) {
-      items.push({
-        icon: '📱', label: 'M-Pesa Paybill', 
-        detail: `Paybill: <strong>${methods.paybill_number}</strong>`,
-        sub: `Account: ${methods.paybill_account || 'Your Full Name'}`,
-        copy: methods.paybill_number
-      });
-    } else if (currentOrg?.paybill) {
-      items.push({ icon: '📱', label: 'M-Pesa Paybill',
-        detail: `Paybill: <strong>${currentOrg.paybill}</strong>`,
-        sub: `Account: ${currentOrg.account_format || 'Your Full Name'}`,
-        copy: currentOrg.paybill });
-    }
-    if (methods.till && methods.till_number) {
-      items.push({ icon: '🏪', label: 'Buy Goods (Till)',
-        detail: `Till: <strong>${methods.till_number}</strong>`, sub: '', copy: methods.till_number });
-    }
-    if (methods.send && methods.send_phone) {
-      items.push({ icon: '💸', label: 'M-Pesa Send Money',
-        detail: `Send to: <strong>${methods.send_phone}</strong>`, sub: '', copy: methods.send_phone });
-    }
-    if (methods.pochi && methods.pochi_phone) {
-      items.push({ icon: '🏦', label: 'Pochi La Biashara',
-        detail: `Send to: <strong>${methods.pochi_phone}</strong>`, sub: '', copy: methods.pochi_phone });
-    }
-    if (methods.bank && methods.bank_name) {
-      items.push({ icon: '🏛️', label: 'Bank Transfer',
-        detail: `${methods.bank_name} — Acc: <strong>${methods.bank_account}</strong>`,
-        sub: `Name: ${methods.bank_account_name}`, copy: methods.bank_account });
-    }
-    pmEl.innerHTML = items.length ? items.map(item => `
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem;border:1px solid var(--border);margin-bottom:.5rem;background:var(--surface-2)">
-        <div>
-          <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${item.icon} ${item.label}</div>
-          <div style="font-size:.85rem;color:var(--maroon);margin:.2rem 0">${item.detail}</div>
-          ${item.sub ? `<div style="font-size:.72rem;color:var(--ink-faint)">${item.sub}</div>` : ''}
-        </div>
-        <button onclick="navigator.clipboard.writeText('${item.copy}').then(()=>toast('Copied: ${item.copy}'))"
-          style="background:var(--maroon);color:#fff;border:none;padding:.3rem .7rem;font-size:.72rem;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;flex-shrink:0">
-          Copy
-        </button>
-      </div>`).join('') :
-      '<div style="color:var(--ink-faint);font-size:.82rem">No payment details set. Contact your group admin.</div>';
-  }
+  renderPaymentMethods(currentOrg, 'mp-payment-methods', false);
   document.getElementById('mp-shares-amount').textContent = 'Ksh 300';
-  // Render primary paybill
-  const methods = currentOrg?.payment_methods || {};
-  const primaryPaybill = methods.paybill_number || currentOrg?.paybill || '—';
-  const paybillEl = document.getElementById('mp-paybill');
-  if (paybillEl) paybillEl.textContent = primaryPaybill;
-  // Render additional payment methods below
-  renderPaymentMethods(currentOrg, 'mp-payment-extra-methods', true);
+// payment methods rendered via renderPaymentMethods in mp-payment-methods
   // Show org balance if enabled
   const balCard = document.getElementById('org-balance-card');
   if (balCard && currentOrg?.show_balance_to_members && currentOrg?.bank_balance) {
@@ -8723,33 +8677,37 @@ async function submitMemberPayment() {
   const grandTotal = allocations.reduce((s,a)=>s+a.amount,0);
   let successCount = 0;
 
-  for (const alloc of allocations) {
-    const { error } = await sb.from('transactions').insert({
-      org_id: currentOrg.id,
-      member_id: memberId,
-      type_id: alloc.typeId || null,
-      amount: alloc.amount,
-      mpesa_ref: mpesaRef,
-      transaction_date: payDate,
-      notes: `Self-recorded via member portal. Total: Ksh ${grandTotal.toLocaleString()}${alloc.isWelfare ? ' (Welfare)' : ''}${alloc.isReg ? ' (Registration)' : ''}`,
-      recorded_by: memberId
-    });
-    if (!error) {
-      successCount++;
-      // Update balances
-      const { data: member } = await sb.from('members').select('shares_balance,savings_balance,registration_paid').eq('id', memberId).single();
-      if (member) {
-        const updates = {};
-        const name = alloc.typeName.toLowerCase();
-        if (name.includes('share')) updates.shares_balance = (member.shares_balance||0) + alloc.amount;
-        else if (name.includes('saving')) updates.savings_balance = (member.savings_balance||0) + alloc.amount;
-        if (alloc.isReg) updates.registration_paid = true;
-        if (Object.keys(updates).length) await sb.from('members').update(updates).eq('id', memberId);
-      }
+  // Submit as PENDING payment request — admin must approve before balances update
+  const { error: reqErr } = await sb.from('payment_requests').insert({
+    org_id: currentOrg.id,
+    member_id: memberId,
+    amount: grandTotal,
+    mpesa_ref: mpesaRef,
+    payment_date: payDate,
+    allocations: JSON.stringify(allocations),
+    status: 'pending',
+    requested_at: new Date().toISOString(),
+    notes: `Member self-recorded. ${allocations.map(a=>a.typeName+': Ksh '+a.amount).join(', ')}`
+  });
+
+  if (reqErr) {
+    // Fallback: if payment_requests table doesn't exist yet, go direct
+    console.warn('payment_requests table missing, recording directly:', reqErr.message);
+    for (const alloc of allocations) {
+      const { error } = await sb.from('transactions').insert({
+        org_id: currentOrg.id, member_id: memberId,
+        type_id: alloc.typeId || null, amount: alloc.amount,
+        mpesa_ref: mpesaRef, transaction_date: payDate,
+        notes: 'Self-recorded via member portal', recorded_by: memberId
+      });
+      if (!error) successCount++;
     }
+    toast(`✓ Payment recorded. Ksh ${grandTotal.toLocaleString()} total.`);
+  } else {
+    successCount = allocations.length;
+    toast(`✓ Payment submitted for approval — Ksh ${grandTotal.toLocaleString()}. Your admin will verify and confirm your balance.`);
   }
 
-  toast(`✓ Payment submitted — ${successCount} transaction${successCount!==1?'s':''} recorded. Ksh ${grandTotal.toLocaleString()} total. Your admin will verify.`);
   closeModal('memberPayment');
   loadMyContributions();
   loadMyProfile();
