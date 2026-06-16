@@ -7616,20 +7616,51 @@ async function loadMyProfile() {
   }
 
   let myRecord = null;
-  // Try portal_email match first
+
+  // 1. Try portal_email match
   if (currentUser?.email) {
     const { data: byEmail } = await sb.from('members')
       .select('*').eq('org_id', currentOrg.id)
       .eq('portal_email', currentUser.email).maybeSingle();
-    if (byEmail) myRecord = byEmail;
+    if (byEmail) { myRecord = byEmail; }
   }
-  // Fallback: phone or name match
+
+  // 2. Try linked via pending_members approval
+  if (!myRecord) {
+    const { data: linked } = await sb.from('pending_members')
+      .select('linked_member_id').eq('user_id', currentUser.id).eq('status','approved').maybeSingle();
+    if (linked?.linked_member_id) {
+      const { data: byLink } = await sb.from('members')
+        .select('*').eq('id', linked.linked_member_id).maybeSingle();
+      if (byLink) myRecord = byLink;
+    }
+  }
+
+  // 3. Fallback: load all org members, match by phone or name
   if (!myRecord) {
     const { data: members } = await sb.from('members').select('*').eq('org_id', currentOrg.id);
-    myRecord = (members||[]).find(m =>
-      (currentProfile.phone && m.phone?.replace(/[^0-9]/g,'') === currentProfile.phone?.replace(/[^0-9]/g,'')) ||
-      m.full_name?.toLowerCase().trim() === currentProfile.full_name?.toLowerCase().trim()
-    );
+    const allOrgMembers = members || [];
+    // Phone match (normalised)
+    const myPhone = (currentProfile?.phone || currentUser?.phone || '').replace(/[^0-9]/g,'');
+    if (myPhone.length >= 9) {
+      myRecord = allOrgMembers.find(m => m.phone?.replace(/[^0-9]/g,'') === myPhone);
+    }
+    // Name match (trimmed, lowercased)
+    if (!myRecord && currentProfile?.full_name) {
+      const myName = currentProfile.full_name.toLowerCase().trim();
+      myRecord = allOrgMembers.find(m =>
+        m.full_name?.toLowerCase().trim() === myName ||
+        m.full_name?.toLowerCase().includes(myName.split(' ')[0]) // first name match
+      );
+    }
+  }
+
+  // 4. If still not found but admin is viewing their own record — try member_number or email
+  if (!myRecord && currentUser?.email) {
+    const { data: byPortal } = await sb.from('members')
+      .select('*').eq('org_id', currentOrg.id)
+      .ilike('portal_email', currentUser.email).maybeSingle();
+    if (byPortal) myRecord = byPortal;
   }
 
   if (myRecord) {
@@ -8826,22 +8857,15 @@ async function submitMemberPayment() {
   });
 
   if (reqErr) {
-    // Fallback: if payment_requests table doesn't exist yet, go direct
-    console.warn('payment_requests table missing, recording directly:', reqErr.message);
-    for (const alloc of allocations) {
-      const { error } = await sb.from('transactions').insert({
-        org_id: currentOrg.id, member_id: memberId,
-        type_id: alloc.typeId || null, amount: alloc.amount,
-        mpesa_ref: mpesaRef, transaction_date: payDate,
-        notes: 'Self-recorded via member portal', recorded_by: memberId
-      });
-      if (!error) successCount++;
-    }
-    toast(`✓ Payment recorded. Ksh ${grandTotal.toLocaleString()} total.`);
-  } else {
-    successCount = allocations.length;
-    toast(`✓ Payment submitted for approval — Ksh ${grandTotal.toLocaleString()}. Your admin will verify and confirm your balance.`);
+    // payment_requests table issue — log full error for debugging
+    console.error('payment_requests error:', reqErr);
+    toast('⚠ Could not submit payment request: ' + reqErr.message + '. Please run the SQL migration in Supabase.');
+    return;
   }
+
+  successCount = allocations.length;
+  // Reload to show pending notice
+  toast(`✓ Payment submitted! Ksh ${grandTotal.toLocaleString()} pending admin approval. Reference: ${mpesaRef}`);
 
   closeModal('memberPayment');
   loadMyContributions();
@@ -9843,16 +9867,20 @@ async function approvePaymentRequest(requestId) {
 
   for (const alloc of allocations) {
     // Insert transaction
-    const { error: txErr } = await sb.from('transactions').insert({
+    // Build transaction — only include type_id if it's a valid non-empty value
+    const txnData = {
       org_id: currentOrg.id,
       member_id: req.member_id,
-      type_id: alloc.typeId || null,
       amount: alloc.amount,
       mpesa_ref: req.mpesa_ref || null,
       transaction_date: req.payment_date || new Date().toISOString().split('T')[0],
-      notes: `Approved via Approvals. Original ref: ${req.mpesa_ref||'—'}`,
+      notes: `Approved. Ref: ${req.mpesa_ref||'—'}. Type: ${alloc.typeName||'Payment'}`,
       recorded_by: currentUser.id
-    });
+    };
+    // Only add type_id if it's a real UUID (not empty/null/undefined)
+    if (alloc.typeId && alloc.typeId.length > 10) txnData.type_id = alloc.typeId;
+
+    const { error: txErr } = await sb.from('transactions').insert(txnData);
     if (!txErr) {
       successCount++;
       // Accumulate balance updates
@@ -9871,8 +9899,17 @@ async function approvePaymentRequest(requestId) {
     await sb.from('members').update(memberUpdates).eq('id', req.member_id);
   }
 
-  // Update bank balance
-  await updateBankBalance(currentOrg.id, req.amount, 'credit');
+  // Update bank balance if function exists
+  try {
+    if (typeof updateBankBalance === 'function') {
+      await updateBankBalance(currentOrg.id, req.amount, 'credit');
+    } else {
+      // Direct update
+      const newBal = (currentOrg.bank_balance||0) + Number(req.amount);
+      await sb.from('organisations').update({ bank_balance: newBal }).eq('id', currentOrg.id);
+      currentOrg.bank_balance = newBal;
+    }
+  } catch(e) { console.warn('Bank balance update:', e.message); }
 
   // Mark request as approved
   await sb.from('payment_requests').update({
