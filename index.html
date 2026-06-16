@@ -2613,11 +2613,8 @@ tr:hover td{background:var(--maroon-pale)}
             <!-- Paybill -->
             <div class="msg-status-card">
               <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.75rem">Payment Details</div>
-              <div class="payment-box">
-                <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--maroon);font-weight:600;margin-bottom:.5rem">Paybill Number</div>
-                <div class="payment-paybill" id="msg-paybill">—</div>
-                <div class="payment-label">Account: Your Full Name</div>
-                <button onclick="copyPaybill()" style="font-size:.72rem;color:var(--maroon);cursor:pointer;font-weight:600;border:1px solid var(--maroon);padding:.25rem .75rem;background:transparent;font-family:'Inter',sans-serif;margin-top:.5rem">Copy Paybill</button>
+              <div id="msg-payment-methods-display">
+                <div style="font-size:.68rem;color:var(--ink-faint);font-style:italic">Loading payment methods…</div>
               </div>
             </div>
 
@@ -2633,11 +2630,12 @@ tr:hover td{background:var(--maroon-pale)}
 
     <!-- APPROVALS -->
     <div class="page" id="page-approvals">
-      <div class="section-header">
+      <div class="fin-hero" style="background:linear-gradient(135deg,#0d3d2e 0%,var(--teal) 55%,#1a1a1a 100%);margin-bottom:1.25rem">
         <div>
-          <div class="section-title">Member Approvals</div>
-          <div class="section-sub">Review and approve member access requests</div>
+          <div class="fin-hero-title">✓ Member Approvals</div>
+          <div class="fin-hero-sub">Review and approve member access requests</div>
         </div>
+        <div id="approvals-hero-count" style="display:flex;align-items:center;gap:.5rem;font-size:.78rem;color:rgba(255,255,255,.7)"></div>
       </div>
       <div class="tabs">
         <div class="tab active" onclick="switchTab(this,'tab-pending-approvals')">Pending <span id="pending-count-tab" class="nav-badge" style="background:var(--warning);color:#fff;margin-left:.4rem">0</span></div>
@@ -2658,7 +2656,13 @@ tr:hover td{background:var(--maroon-pale)}
 
     <!-- SETTINGS -->
     <div class="page" id="page-settings">
-      <div class="section-header"><div><div class="section-title">Organisation Settings</div><div class="section-sub">Configure your organisation</div></div></div>
+      <div class="fin-hero" style="background:linear-gradient(135deg,#1a1a1a 0%,#2d2d2d 50%,var(--maroon-dk) 100%)">
+        <div>
+          <div class="fin-hero-title">⚙ Organisation Settings</div>
+          <div class="fin-hero-sub" id="settings-hero-sub">Configure your organisation details and preferences</div>
+        </div>
+        <button class="btn fin-ctrl-btn" onclick="saveSettings()">Save Changes</button>
+      </div>
 
       <!-- ROW 1: ORG DETAILS + CONTRIBUTION TYPES -->
       <div class="grid-2">
@@ -3145,9 +3149,12 @@ tr:hover td{background:var(--maroon-pale)}
             <button class="mp-pay-copy" onclick="navigator.clipboard.writeText(document.getElementById('mp-paybill').textContent).then(()=>toast('✓ Paybill copied!'))">
               📋 Copy Paybill Number
             </button>
-            <div style="margin-top:1rem;padding-top:.85rem;border-top:1px solid var(--maroon-muted);font-size:.78rem;color:var(--ink-soft);line-height:1.8">
-              Savings/mo: <strong id="mp-savings-tier">—</strong><br>
-              Reg. fee: <span id="mp-reg-status">—</span>
+            <div style="margin-top:.85rem;padding-top:.85rem;border-top:1px solid var(--maroon-muted)">
+              <div id="mp-payment-extra-methods"></div>
+              <div style="font-size:.78rem;color:var(--ink-soft);line-height:1.8;margin-top:.5rem">
+                Savings/mo: <strong id="mp-savings-tier">—</strong><br>
+                Reg. fee: <span id="mp-reg-status">—</span>
+              </div>
             </div>
           </div>
 
@@ -5967,8 +5974,7 @@ async function loadMessages() {
   if (adminSection) adminSection.style.display = 'block';
 
   // Paybill
-  const paybillEl = document.getElementById('msg-paybill');
-  if (paybillEl) paybillEl.textContent = currentOrg?.paybill || '—';
+  renderPaymentMethods(currentOrg, 'msg-payment-methods-display', true);
 
   // ── SMS Status ──
   let hasAT = false;
@@ -6225,6 +6231,51 @@ function formatPhone(phone) {
   if (phone.startsWith('254')) return '+' + phone;
   if (phone.startsWith('+')) return phone;
   return '+254' + phone;
+}
+
+
+/* ── Payment methods renderer ── */
+function renderPaymentMethods(org, containerId, compact) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const methods = org?.payment_methods || {};
+  const items = [];
+  if (methods.paybill && methods.paybill_number) {
+    items.push({ icon: '📱', label: 'M-Pesa Paybill', value: methods.paybill_number, sub: 'Account: ' + (methods.paybill_account || methods.account_format || 'Your Full Name'), copy: methods.paybill_number });
+  } else if (org?.paybill) {
+    items.push({ icon: '📱', label: 'M-Pesa Paybill', value: org.paybill, sub: 'Account: ' + (org.account_format || 'Your Full Name'), copy: org.paybill });
+  }
+  if (methods.till && methods.till_number) {
+    items.push({ icon: '🏪', label: 'Buy Goods (Till)', value: methods.till_number, sub: '', copy: methods.till_number });
+  }
+  if (methods.send && methods.send_phone) {
+    items.push({ icon: '💸', label: 'M-Pesa Send Money', value: methods.send_phone, sub: '', copy: methods.send_phone });
+  }
+  if (methods.pochi && methods.pochi_phone) {
+    items.push({ icon: '🏦', label: 'Pochi La Biashara', value: methods.pochi_phone, sub: '', copy: methods.pochi_phone });
+  }
+  if (methods.bank && methods.bank_name) {
+    items.push({ icon: '🏛', label: methods.bank_name, value: methods.bank_account, sub: methods.bank_account_name, copy: methods.bank_account });
+  }
+  if (!items.length) { el.innerHTML = '<div style="font-size:.78rem;color:var(--ink-faint)">No payment methods configured. Ask your admin to set them in Settings.</div>'; return; }
+  el.innerHTML = items.map(item => compact ? `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem .65rem;border:1px solid var(--border);margin-bottom:.4rem;border-radius:4px;background:var(--surface-2)">
+      <div>
+        <div style="font-size:.78rem;font-weight:600;color:var(--ink)">${item.icon} ${item.label}: <span style="color:var(--maroon)">${item.value}</span></div>
+        ${item.sub ? `<div style="font-size:.65rem;color:var(--ink-faint)">${item.sub}</div>` : ''}
+      </div>
+      <button onclick="navigator.clipboard.writeText('${item.copy}').then(()=>toast('Copied: ${item.copy}'))"
+        style="font-size:.65rem;color:var(--maroon);border:1px solid var(--maroon);background:transparent;padding:.2rem .55rem;cursor:pointer;font-family:'Inter',sans-serif;border-radius:3px;flex-shrink:0">Copy</button>
+    </div>` : `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem .85rem;border:1px solid var(--border);margin-bottom:.5rem;background:var(--surface)">
+      <div>
+        <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${item.icon} ${item.label}</div>
+        <div style="font-size:.95rem;font-weight:700;color:var(--maroon);margin:.15rem 0">${item.value}</div>
+        ${item.sub ? `<div style="font-size:.7rem;color:var(--ink-faint)">${item.sub}</div>` : ''}
+      </div>
+      <button onclick="navigator.clipboard.writeText('${item.copy}').then(()=>toast('✓ Copied: ${item.copy}'))"
+        style="background:var(--maroon);color:#fff;border:none;padding:.35rem .8rem;font-size:.72rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;flex-shrink:0">Copy</button>
+    </div>`).join('');
 }
 
 function copyPaybill() {
@@ -7545,6 +7596,13 @@ async function loadMyProfile() {
       '<div style="color:var(--ink-faint);font-size:.82rem">No payment details set. Contact your group admin.</div>';
   }
   document.getElementById('mp-shares-amount').textContent = 'Ksh 300';
+  // Render primary paybill
+  const methods = currentOrg?.payment_methods || {};
+  const primaryPaybill = methods.paybill_number || currentOrg?.paybill || '—';
+  const paybillEl = document.getElementById('mp-paybill');
+  if (paybillEl) paybillEl.textContent = primaryPaybill;
+  // Render additional payment methods below
+  renderPaymentMethods(currentOrg, 'mp-payment-extra-methods', true);
   // Show org balance if enabled
   const balCard = document.getElementById('org-balance-card');
   if (balCard && currentOrg?.show_balance_to_members && currentOrg?.bank_balance) {
