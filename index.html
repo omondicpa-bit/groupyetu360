@@ -1625,6 +1625,12 @@ tr:hover td{background:var(--maroon-pale)}
     <div class="sidebar-footer">
       <div class="sidebar-user" id="sidebar-user-name">—</div>
       <div class="sidebar-role" id="sidebar-user-role">—</div>
+      <a href="https://app.groupyetu.org" onclick="switchToNewOrg(event)"
+        style="display:flex;align-items:center;gap:.5rem;font-size:.72rem;color:rgba(255,255,255,.5);cursor:pointer;margin-bottom:.5rem;text-decoration:none;transition:color .15s;padding:.3rem 0"
+        onmouseover="this.style.color='var(--gold-lt)'" onmouseout="this.style.color='rgba(255,255,255,.5)'">
+        <span style="font-size:.9rem">🌱</span>
+        <span id="sidebar-new-group-label">Start a New Group</span>
+      </a>
       <span class="sidebar-logout" onclick="signOut()">⎋ Sign Out</span>
     </div>
   </aside>
@@ -3225,6 +3231,9 @@ tr:hover td{background:var(--maroon-pale)}
         <div class="stat-card" style="border-top-color:var(--maroon)"><div class="stat-label">Shares Balance</div><div class="stat-value" id="mc-shares-bal" style="font-size:1.3rem;color:var(--maroon)">—</div></div>
         <div class="stat-card green"><div class="stat-label">Savings Balance</div><div class="stat-value" id="mc-savings-bal" style="font-size:1.3rem">—</div></div>
       </div>
+      <!-- Pending payment notice -->
+      <div id="mc-pending-notice" style="margin-bottom:1rem;display:none"></div>
+
       <!-- Mini bar chart of monthly payments -->
       <div class="card" style="margin-bottom:1rem">
         <div class="card-header"><div class="card-title">Monthly Payments — Last 6 Months</div></div>
@@ -3570,23 +3579,54 @@ tr:hover td{background:var(--maroon-pale)}
   </div>
 </div>
 
-<!-- MEMBER PAYMENT MODAL -->
+<!-- MEMBER PAYMENT MODAL — Amount-first, smart split -->
 <div class="modal-overlay" id="modal-memberPayment">
   <div class="modal" style="max-width:520px">
     <div class="modal-header">
       <div>
-        <div class="modal-title">Make a Payment</div>
-        <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.15rem" id="mp-modal-paybill">Loading payment details…</div>
+        <div class="modal-title">💳 Make a Payment</div>
+        <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.1rem" id="mp-modal-paybill"></div>
       </div>
       <button class="modal-close" onclick="closeModal('memberPayment')">✕</button>
     </div>
     <div class="modal-body" style="padding-bottom:.5rem">
 
-      <!-- Payment details box -->
-      <div id="mp-payment-details-box" style="margin-bottom:1rem"></div>
+      <!-- Where to pay -->
+      <div id="mp-payment-details-box" style="margin-bottom:1.1rem"></div>
+
+      <!-- Status alert (arrears, pending) -->
+      <div id="mp-status-alert" style="display:none;margin-bottom:1rem"></div>
+
+      <!-- STEP 1: Enter amount you're paying -->
+      <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:1rem;margin-bottom:1rem">
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.6rem">Step 1 — How much are you paying?</div>
+        <div style="display:flex;align-items:center;gap:.75rem">
+          <div style="flex:1">
+            <div style="font-size:.72rem;color:var(--ink-faint);margin-bottom:.25rem">Amount (Ksh)</div>
+            <input class="form-input" type="number" id="mp-total-amount"
+              placeholder="Enter amount e.g. 2000"
+              oninput="smartSplitPayment(this.value)"
+              style="font-size:1.1rem;font-weight:700;color:var(--maroon);padding:.6rem .85rem"/>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="autoFillSuggestedAmount()"
+            style="font-size:.72rem;white-space:nowrap;margin-top:1rem">
+            Use suggested →
+          </button>
+        </div>
+        <div id="mp-suggested-label" style="font-size:.7rem;color:var(--teal);margin-top:.4rem;font-style:italic"></div>
+      </div>
+
+      <!-- STEP 2: How to split (auto-calculated, editable) -->
+      <div id="mp-split-section" style="display:none">
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.5rem">Step 2 — How should we split your payment?</div>
+        <div style="font-size:.7rem;color:var(--ink-faint);margin-bottom:.75rem">We've suggested a split based on your group's contribution types. Adjust any amount — remaining balance auto-fills.</div>
+        <div id="mp-split-list" style="display:flex;flex-direction:column;gap:.4rem"></div>
+        <!-- Unallocated remainder -->
+        <div id="mp-unallocated" style="display:none;margin-top:.5rem;font-size:.72rem;padding:.4rem .65rem;border-radius:4px;background:rgba(196,154,48,.1);border:1px solid var(--gold);color:var(--ink)"></div>
+      </div>
 
       <!-- M-Pesa ref + date -->
-      <div class="form-row">
+      <div class="form-row" style="margin-top:1rem">
         <div class="form-group">
           <label class="form-label">M-Pesa Reference</label>
           <input class="form-input" id="mp-mpesa-ref" placeholder="e.g. QBC4X8YZDE"/>
@@ -3597,66 +3637,30 @@ tr:hover td{background:var(--maroon-pale)}
         </div>
       </div>
 
-      <div style="font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);margin:.5rem 0 .75rem;border-top:1px solid var(--border);padding-top:.75rem">What are you paying for?</div>
-
-      <!-- SECTION 1: Registration Fee -->
-      <div id="mp-option-reg" style="display:none;margin-bottom:.5rem">
-        <label style="display:flex;align-items:center;gap:.6rem;padding:.6rem .75rem;background:var(--surface-2);border:1px solid var(--border);cursor:pointer;user-select:none">
-          <input type="checkbox" id="mp-check-reg" style="width:16px;height:16px;accent-color:var(--maroon);flex-shrink:0" onchange="togglePayOption('reg')"/>
-          <div style="flex:1">
-            <div style="font-size:.85rem;font-weight:600">📋 Pay Registration Fee</div>
-            <div style="font-size:.68rem;color:var(--ink-faint)" id="mp-reg-fee-label">Registration fee</div>
-          </div>
-        </label>
-        <div id="mp-reg-fields" style="display:none;padding:.5rem .75rem .25rem;border:1px solid var(--border);border-top:none;background:var(--surface)">
-          <div style="display:flex;align-items:center;gap:.75rem;padding:.35rem 0">
-            <div style="flex:1;font-size:.82rem;color:var(--ink)">Registration Fee</div>
-            <input type="number" class="form-input mp-item-input" id="mp-reg-amount"
-              style="width:110px;padding:.35rem .5rem;font-size:.82rem"
-              placeholder="Amount" oninput="updateMpTotal()"/>
-          </div>
-        </div>
-      </div>
-
-      <!-- SECTION 2: Contributions -->
-      <div style="margin-bottom:.5rem">
-        <label style="display:flex;align-items:center;gap:.6rem;padding:.6rem .75rem;background:var(--surface-2);border:1px solid var(--border);cursor:pointer;user-select:none">
-          <input type="checkbox" id="mp-check-contrib" style="width:16px;height:16px;accent-color:var(--maroon);flex-shrink:0" onchange="togglePayOption('contrib')"/>
-          <div style="flex:1">
-            <div style="font-size:.85rem;font-weight:600">💰 Pay Contributions</div>
-            <div style="font-size:.68rem;color:var(--ink-faint)">Monthly savings, shares, or other contributions</div>
-          </div>
-        </label>
-        <div id="mp-contrib-fields" style="display:none;padding:.25rem .75rem .25rem;border:1px solid var(--border);border-top:none;background:var(--surface)">
-          <div id="mp-contrib-list"><div class="loading"><div class="spinner"></div></div></div>
-        </div>
-      </div>
-
-      <!-- SECTION 3: Welfare -->
+      <!-- Welfare (if active events) -->
       <div id="mp-option-welfare" style="display:none;margin-bottom:.5rem">
-        <label style="display:flex;align-items:center;gap:.6rem;padding:.6rem .75rem;background:var(--surface-2);border:1px solid var(--border);cursor:pointer;user-select:none">
-          <input type="checkbox" id="mp-check-welfare" style="width:16px;height:16px;accent-color:var(--maroon);flex-shrink:0" onchange="togglePayOption('welfare')"/>
-          <div style="flex:1">
-            <div style="font-size:.85rem;font-weight:600">❤️ Pay Welfare</div>
-            <div style="font-size:.68rem;color:var(--ink-faint)">Active welfare contributions</div>
-          </div>
-        </label>
-        <div id="mp-welfare-fields" style="display:none;padding:.25rem .75rem .25rem;border:1px solid var(--border);border-top:none;background:var(--surface)">
-          <div id="mp-welfare-list"></div>
-        </div>
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.4rem">Active Welfare Events</div>
+        <div id="mp-welfare-list" style="display:flex;flex-direction:column;gap:.35rem"></div>
       </div>
 
-      <!-- Grand total -->
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:.75rem 1rem;background:var(--maroon-pale);border:1px solid var(--maroon-muted);margin-top:.75rem">
+      <!-- Total confirmation -->
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:.75rem 1rem;background:var(--maroon-pale);border:1px solid var(--maroon-muted);margin-top:.75rem;border-radius:4px">
         <span style="font-size:.85rem;font-weight:600;color:var(--maroon)">Total to Pay:</span>
-        <span id="mp-grand-total" style="font-size:1.1rem;font-weight:700;color:var(--maroon)">Ksh 0</span>
+        <span id="mp-grand-total" style="font-size:1.15rem;font-weight:700;color:var(--maroon)">Ksh 0</span>
       </div>
-      <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.4rem">Send this exact amount via M-Pesa to the details above, then enter the reference number.</div>
+      <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.35rem">Send this exact amount to the payment details above, then enter the M-Pesa reference.</div>
 
+      <!-- Hidden compat fields -->
+      <input type="hidden" id="mp-check-reg"/>
+      <input type="hidden" id="mp-check-contrib"/>
+      <input type="hidden" id="mp-check-welfare"/>
+      <div id="mp-reg-fields" style="display:none"><input id="mp-reg-amount" type="number" value="0"/></div>
+      <div id="mp-contrib-fields" style="display:none"><div id="mp-contrib-list"></div></div>
+      <div id="mp-option-reg" style="display:none"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('memberPayment')">Cancel</button>
-      <button class="btn btn-primary" onclick="submitMemberPayment()">Confirm Payment</button>
+      <button class="btn btn-primary" onclick="submitMemberPayment()" style="background:var(--teal);box-shadow:0 3px 10px rgba(15,110,86,.2)">Confirm Payment →</button>
     </div>
   </div>
 </div>
@@ -4634,6 +4638,18 @@ function updateSidebar() {
   document.getElementById('sidebar-org-plan').textContent = (currentOrg?.plan || 'starter').toUpperCase();
   document.getElementById('sidebar-user-name').textContent = currentProfile?.full_name || currentUser?.email || '—';
   document.getElementById('sidebar-user-role').textContent = currentProfile?.role || 'member';
+  // Update "Start a New Group" label based on role
+  const newGroupLabel = document.getElementById('sidebar-new-group-label');
+  if (newGroupLabel) {
+    const r = currentProfile?.role;
+    if (r === 'admin' || r === 'officer' || r === 'treasurer') {
+      newGroupLabel.textContent = '✦ Register Another Group';
+    } else if (r === 'member') {
+      newGroupLabel.textContent = '🌱 Start Your Own Group';
+    } else {
+      newGroupLabel.textContent = '🌱 Start a New Group';
+    }
+  }
 }
 
 async function prefetchData() {
@@ -7725,6 +7741,21 @@ async function loadMyContributions() {
     setEl('mc-savings-bal', 'Ksh ' + Number(mem.savings_balance||0).toLocaleString());
   }
 
+  // Check for pending payment requests
+  try {
+    const { data: pendingReqs } = await sb.from('payment_requests')
+      .select('amount,status,requested_at').eq('member_id', memberId).eq('status','pending');
+    const pendingTotal = (pendingReqs||[]).reduce((s,r)=>s+Number(r.amount||0),0);
+    const pendingEl = document.getElementById('mc-pending-notice');
+    if (pendingEl) {
+      pendingEl.style.display = pendingReqs?.length ? 'block' : 'none';
+      pendingEl.innerHTML = pendingReqs?.length
+        ? `<div style="background:rgba(196,154,48,.1);border:1px solid var(--gold);border-left:3px solid var(--gold);padding:.65rem 1rem;font-size:.8rem;color:var(--ink)">
+            ⏳ You have <strong>${pendingReqs.length} payment${pendingReqs.length!==1?'s':''} pending approval</strong> (Ksh ${pendingTotal.toLocaleString()} total). Balances will update once your admin approves.
+           </div>` : '';
+    }
+  } catch(e) {}
+
   // ── Mini bar chart: last 6 months ──
   const chartEl = document.getElementById('mc-chart');
   const labelsEl = document.getElementById('mc-chart-labels');
@@ -8510,121 +8541,195 @@ async function trackSmsUsage(orgId, messagesSent) {
 }
 
 // ── MEMBER PAYMENT FUNCTIONS ──
+
+/* ═══════════════════════════════════
+   SMART PAYMENT SPLIT
+═══════════════════════════════════ */
+let _mpContribTypes = [];
+let _mpMemberStatus = null;
+
 async function openMemberPaymentModal() {
-  // Set today's date
   const dateEl = document.getElementById('mp-pay-date');
   if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
   document.getElementById('mp-grand-total').textContent = 'Ksh 0';
   document.getElementById('mp-mpesa-ref').value = '';
+  document.getElementById('mp-total-amount').value = '';
+  const splitSection = document.getElementById('mp-split-section');
+  if (splitSection) splitSection.style.display = 'none';
 
-  // Reset checkboxes
-  ['reg','contrib','welfare'].forEach(k => {
-    const cb = document.getElementById(`mp-check-${k}`);
-    if (cb) cb.checked = false;
-    const f = document.getElementById(`mp-${k}-fields`);
-    if (f) f.style.display = 'none';
-  });
-
-  // Show payment details
-  const detailsBox = document.getElementById('mp-payment-details-box');
-  const methods = currentOrg?.payment_methods || {};
+  // Payment details
+  renderPaymentMethods(currentOrg, 'mp-payment-details-box', false);
   const paybillEl = document.getElementById('mp-modal-paybill');
-  const items = [];
-  if (methods.paybill && methods.paybill_number) {
-    items.push(`Paybill: <strong>${methods.paybill_number}</strong> A/C: ${methods.paybill_account||'Your Full Name'}`);
-  } else if (currentOrg?.paybill) {
-    items.push(`Paybill: <strong>${currentOrg.paybill}</strong> A/C: ${currentOrg.account_format||'Your Full Name'}`);
-  }
-  if (methods.till && methods.till_number) items.push(`Till: <strong>${methods.till_number}</strong>`);
-  if (methods.send && methods.send_phone) items.push(`Send Money: <strong>${methods.send_phone}</strong>`);
-  if (paybillEl) paybillEl.textContent = items.length ? 'Send payment to: ' + items[0].replace(/<[^>]+>/g,'') : 'See My Profile for payment details';
-  if (detailsBox) {
-    detailsBox.innerHTML = items.length ? `
-      <div style="background:var(--maroon-pale);border:1px solid var(--maroon-muted);padding:.75rem 1rem">
-        <div style="font-size:.72rem;font-weight:600;color:var(--maroon);margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.06em">Send Payment To:</div>
-        ${items.map(i=>`<div style="font-size:.82rem;color:var(--ink)">${i}</div>`).join('')}
-      </div>` : '';
+  if (paybillEl) {
+    const methods = currentOrg?.payment_methods || {};
+    const num = methods.paybill_number || currentOrg?.paybill;
+    paybillEl.textContent = num ? 'Send to Paybill ' + num : '';
   }
 
-  // Check if member is registered - show reg option if not
   const memberId = window._myMemberId;
+
+  // Load member status & suggested amounts
   let myRecord = null;
   if (memberId) {
-    const { data: m } = await sb.from('members').select('registration_paid,registration_renewal').eq('id', memberId).maybeSingle();
+    const { data: m } = await sb.from('members')
+      .select('status,savings_tier,shares_balance,savings_balance,registration_paid,registration_renewal,full_name')
+      .eq('id', memberId).maybeSingle();
     myRecord = m;
+    _mpMemberStatus = m;
   }
-  const showReg = !myRecord?.registration_paid ||
-    (myRecord?.registration_renewal && new Date(myRecord.registration_renewal) < new Date());
-  const regOption = document.getElementById('mp-option-reg');
-  if (regOption) regOption.style.display = showReg ? 'block' : 'none';
 
-  // Load contribution types (excluding registration and welfare types)
-  const { data: types } = await sb.from('contribution_types')
-    .select('*').eq('org_id', currentOrg.id).order('name');
-  const contribEl = document.getElementById('mp-contrib-list');
-  const regType = types?.find(t => t.name.toLowerCase().includes('registration'));
-  if (contribEl) {
-    const contribTypes = (types||[]).filter(t =>
-      !t.name.toLowerCase().includes('registration') &&
-      !t.name.toLowerCase().includes('welfare')
-    );
-    if (contribTypes.length) {
-      contribEl.innerHTML = contribTypes.map(t => `
-        <div style="display:flex;align-items:center;gap:.75rem;padding:.5rem 0;border-bottom:1px solid var(--border)">
-          <input type="checkbox" class="mp-contrib-check" data-type-id="${t.id}" data-type-name="${t.name}"
-            style="width:16px;height:16px;accent-color:var(--maroon);flex-shrink:0"
-            onchange="toggleContribItem(this)"/>
-          <div style="flex:1">
-            <div style="font-size:.82rem;font-weight:600">${t.name}</div>
-            <div style="font-size:.68rem;color:var(--ink-faint)">${t.is_variable ? 'Variable amount' : 'Ksh '+Number(t.amount||0).toLocaleString()+' suggested'}</div>
-          </div>
-          <input type="number" class="form-input mp-item-input" data-type-id="${t.id}" data-type-name="${t.name}"
-            id="mp-contrib-amt-${t.id}"
-            style="width:100px;padding:.35rem .5rem;font-size:.82rem;display:none"
-            value="${!t.is_variable && t.amount ? t.amount : ''}"
-            placeholder="Amount"
-            oninput="updateMpTotal()"/>
-        </div>`).join('');
+  // Status alert
+  const alertEl = document.getElementById('mp-status-alert');
+  if (alertEl && myRecord) {
+    if (myRecord.status === 'arrears') {
+      alertEl.style.display = 'block';
+      alertEl.innerHTML = '<div style="background:rgba(160,96,16,.1);border:1px solid var(--gold);border-left:3px solid var(--gold);padding:.65rem 1rem;font-size:.78rem;color:var(--ink)">⚠ Your account is in <strong>arrears</strong>. Please make a payment to bring your contributions up to date.</div>';
     } else {
-      contribEl.innerHTML = '<div style="font-size:.78rem;color:var(--ink-faint);padding:.5rem 0">No contribution types set. Contact your admin.</div>';
+      alertEl.style.display = 'none';
     }
   }
 
-  // Load reg fee amount
-  const regLabel = document.getElementById('mp-reg-fee-label');
-  const regAmtInput = document.getElementById('mp-reg-amount');
-  if (regType) {
-    if (regLabel) regLabel.textContent = `Ksh ${Number(regType.amount||0).toLocaleString()}`;
-    if (regAmtInput) { regAmtInput.value = regType.amount||''; regAmtInput.dataset.typeId = regType.id; regAmtInput.dataset.typeName = regType.name; }
+  // Load contribution types
+  const { data: types } = await sb.from('contribution_types')
+    .select('*').eq('org_id', currentOrg.id).order('name');
+  _mpContribTypes = (types||[]).filter(t =>
+    !t.name.toLowerCase().includes('registration') &&
+    !t.name.toLowerCase().includes('welfare')
+  );
+
+  // Suggested amount label
+  const sugLabel = document.getElementById('mp-suggested-label');
+  const savingsTier = myRecord?.savings_tier || 0;
+  const suggested = _mpContribTypes.reduce((s,t) => s + (t.is_variable ? 0 : Number(t.amount||0)), 0) + savingsTier;
+  if (sugLabel) {
+    sugLabel.textContent = suggested > 0
+      ? `Suggested: Ksh ${suggested.toLocaleString()} (based on your contribution schedule)`
+      : 'Enter the amount you have paid';
   }
 
   // Load active welfare events
-  const { data: welfare } = await sb.from('welfare_events')
-    .select('*').eq('org_id', currentOrg.id).eq('is_active', true).order('event_date', {ascending:false});
-  const welfareOption = document.getElementById('mp-option-welfare');
+  const { data: welfareEvents } = await sb.from('welfare_events')
+    .select('*').eq('org_id', currentOrg.id).eq('is_active', true).limit(5);
+  const welfareSection = document.getElementById('mp-option-welfare');
   const welfareList = document.getElementById('mp-welfare-list');
-  if (welfareOption) welfareOption.style.display = welfare?.length ? 'block' : 'none';
-  if (welfareList && welfare?.length) {
-    welfareList.innerHTML = welfare.map(w => `
-      <div style="display:flex;align-items:center;gap:.75rem;padding:.5rem 0;border-bottom:1px solid var(--border)">
-        <input type="checkbox" class="mp-welfare-check" data-event-id="${w.id}" data-event-name="${w.event_type} — ${w.member_name||w.description||''}"
-          style="width:16px;height:16px;accent-color:var(--maroon);flex-shrink:0"
-          onchange="toggleWelfareItem(this)"/>
-        <div style="flex:1">
-          <div style="font-size:.82rem;font-weight:600">${w.event_type}</div>
-          <div style="font-size:.68rem;color:var(--ink-faint)">${w.member_name||w.description||''} ${w.amount_per_member ? '· Ksh '+Number(w.amount_per_member).toLocaleString()+' per member' : ''}</div>
-        </div>
-        <input type="number" class="form-input mp-item-input" data-event-id="${w.id}" data-event-name="${w.event_type}"
-          id="mp-welfare-amt-${w.id}"
-          style="width:100px;padding:.35rem .5rem;font-size:.82rem;display:none"
-          value="${w.amount_per_member||''}"
-          placeholder="Amount"
-          oninput="updateMpTotal()"/>
-      </div>`).join('');
+  if (welfareSection && welfareList) {
+    if (welfareEvents?.length) {
+      welfareSection.style.display = 'block';
+      welfareList.innerHTML = welfareEvents.map(e => `
+        <div style="display:flex;align-items:center;gap:.65rem;padding:.5rem .65rem;background:var(--surface-2);border:1px solid var(--border);border-radius:4px">
+          <input type="checkbox" class="mp-welfare-check" data-event-id="${e.id}" data-event-name="${(e.event_type||'Welfare').replace(/"/g,'')}"
+            style="width:15px;height:15px;accent-color:var(--maroon);flex-shrink:0"
+            onchange="updateWelfareAmount(this)"/>
+          <div style="flex:1">
+            <div style="font-size:.8rem;font-weight:600">${e.event_type==='member'?'Member Death':e.event_type==='spouse'?'Spouse/Parent Death':'Child Death'}</div>
+            <div style="font-size:.67rem;color:var(--ink-faint)">Suggested: Ksh ${Number(e.contribution_per_member||0).toLocaleString()} per member</div>
+          </div>
+          <input type="number" class="form-input mp-item-input" id="mp-welfare-amt-${e.id}"
+            style="width:100px;padding:.3rem .5rem;font-size:.8rem;display:none"
+            value="${e.contribution_per_member||0}" oninput="updateMpTotal()"/>
+        </div>`).join('');
+    } else {
+      welfareSection.style.display = 'none';
+    }
   }
+}
 
+function autoFillSuggestedAmount() {
+  const savingsTier = _mpMemberStatus?.savings_tier || 0;
+  const suggested = _mpContribTypes.reduce((s,t) => s + (t.is_variable ? 0 : Number(t.amount||0)), 0) + savingsTier;
+  if (suggested > 0) {
+    document.getElementById('mp-total-amount').value = suggested;
+    smartSplitPayment(suggested);
+  }
+}
+
+function smartSplitPayment(totalStr) {
+  const total = parseFloat(totalStr) || 0;
+  document.getElementById('mp-grand-total').textContent = 'Ksh ' + total.toLocaleString();
+
+  const splitSection = document.getElementById('mp-split-section');
+  const splitList = document.getElementById('mp-split-list');
+  if (!splitSection || !splitList) return;
+
+  if (total <= 0 || !_mpContribTypes.length) {
+    splitSection.style.display = 'none';
+    return;
+  }
+  splitSection.style.display = 'block';
+
+  // Auto-split: fill fixed types first, put remainder into first variable or savings
+  let remaining = total;
+  const splits = [];
+
+  // Fixed types first
+  _mpContribTypes.filter(t => !t.is_variable && t.amount).forEach(t => {
+    const amt = Math.min(Number(t.amount), remaining);
+    splits.push({ typeId: t.id, typeName: t.name, suggested: Number(t.amount), value: amt });
+    remaining -= amt;
+  });
+
+  // Variable types / savings tier
+  _mpContribTypes.filter(t => t.is_variable || !t.amount).forEach(t => {
+    const tier = t.name.toLowerCase().includes('saving') ? (_mpMemberStatus?.savings_tier||0) : 0;
+    const amt = Math.min(tier || remaining, remaining);
+    splits.push({ typeId: t.id, typeName: t.name, suggested: tier, value: amt });
+    remaining -= amt;
+  });
+
+  splitList.innerHTML = splits.map((s, i) => `
+    <div style="display:flex;align-items:center;gap:.65rem;padding:.55rem .75rem;background:var(--surface);border:1px solid var(--border);border-radius:4px;transition:border-color .15s" id="split-row-${i}">
+      <div style="flex:1">
+        <div style="font-size:.8rem;font-weight:600;color:var(--ink)">${s.typeName}</div>
+        ${s.suggested > 0 ? `<div style="font-size:.65rem;color:var(--ink-faint)">Suggested: Ksh ${s.suggested.toLocaleString()}</div>` : ''}
+      </div>
+      <div style="display:flex;align-items:center;gap:.3rem">
+        <span style="font-size:.75rem;color:var(--ink-faint)">Ksh</span>
+        <input type="number" class="form-input mp-split-input" data-type-id="${s.typeId}" data-type-name="${s.typeName}"
+          id="mp-split-${i}" value="${s.value}" min="0"
+          style="width:110px;padding:.35rem .55rem;font-size:.88rem;font-weight:600;text-align:right"
+          oninput="recalcSplitRemainder(${i}, ${splits.length})"/>
+      </div>
+    </div>`).join('');
+
+  const unallocEl = document.getElementById('mp-unallocated');
+  if (unallocEl) {
+    unallocEl.style.display = remaining > 0 ? 'block' : 'none';
+    unallocEl.textContent = remaining > 0 ? `⚠ Ksh ${remaining.toLocaleString()} unallocated — adjust the amounts above to split the full payment` : '';
+  }
+}
+
+function recalcSplitRemainder(changedIdx, total) {
+  const totalAmt = parseFloat(document.getElementById('mp-total-amount').value) || 0;
+  let allocated = 0;
+  for (let i = 0; i < total; i++) {
+    allocated += parseFloat(document.getElementById('mp-split-'+i)?.value||0);
+  }
+  const remaining = totalAmt - allocated;
+  const unallocEl = document.getElementById('mp-unallocated');
+  if (unallocEl) {
+    unallocEl.style.display = Math.abs(remaining) > 0.5 ? 'block' : 'none';
+    unallocEl.textContent = remaining > 0
+      ? `⚠ Ksh ${remaining.toLocaleString()} still unallocated`
+      : remaining < -0.5 ? `⚠ Amounts exceed total by Ksh ${Math.abs(remaining).toLocaleString()}`
+      : '';
+  }
+}
+
+function updateWelfareAmount(cb) {
+  const amtEl = document.getElementById('mp-welfare-amt-'+cb.dataset.eventId);
+  if (amtEl) amtEl.style.display = cb.checked ? 'block' : 'none';
   updateMpTotal();
 }
+
+function updateMpTotal() {
+  // Legacy compat — use mp-total-amount as truth now
+  const total = parseFloat(document.getElementById('mp-total-amount')?.value||0);
+  const welfareTotal = Array.from(document.querySelectorAll('.mp-welfare-check:checked'))
+    .reduce((s,cb) => s + (parseFloat(document.getElementById('mp-welfare-amt-'+cb.dataset.eventId)?.value)||0), 0);
+  document.getElementById('mp-grand-total').textContent = 'Ksh ' + (total + welfareTotal).toLocaleString();
+}
+
+
 
 function togglePayOption(key) {
   const cb = document.getElementById(`mp-check-${key}`);
@@ -8683,26 +8788,24 @@ async function submitMemberPayment() {
   // Collect all checked items
   const allocations = [];
 
-  // Registration
-  if (document.getElementById('mp-check-reg')?.checked) {
-    const amt = parseFloat(document.getElementById('mp-reg-amount')?.value)||0;
-    const typeId = document.getElementById('mp-reg-amount')?.dataset?.typeId;
-    if (amt > 0) allocations.push({ typeId, typeName: 'Registration Fee', amount: amt, isReg: true });
-  }
-
-  // Contributions
-  document.querySelectorAll('.mp-contrib-check:checked').forEach(cb => {
-    const amtInput = document.getElementById(`mp-contrib-amt-${cb.dataset.typeId}`);
-    const amt = parseFloat(amtInput?.value)||0;
-    if (amt > 0) allocations.push({ typeId: cb.dataset.typeId, typeName: cb.dataset.typeName, amount: amt });
+  // Read split inputs from the new modal
+  document.querySelectorAll('.mp-split-input').forEach(inp => {
+    const amt = parseFloat(inp.value)||0;
+    if (amt > 0) allocations.push({ typeId: inp.dataset.typeId, typeName: inp.dataset.typeName, amount: amt });
   });
 
-  // Welfare
+  // Welfare checkboxes
   document.querySelectorAll('.mp-welfare-check:checked').forEach(cb => {
-    const amtInput = document.getElementById(`mp-welfare-amt-${cb.dataset.eventId}`);
+    const amtInput = document.getElementById('mp-welfare-amt-'+cb.dataset.eventId);
     const amt = parseFloat(amtInput?.value)||0;
     if (amt > 0) allocations.push({ eventId: cb.dataset.eventId, typeName: cb.dataset.eventName, amount: amt, isWelfare: true });
   });
+
+  // If no split yet, use total as single payment
+  const totalAmt = parseFloat(document.getElementById('mp-total-amount')?.value)||0;
+  if (!allocations.length && totalAmt > 0) {
+    allocations.push({ typeName: 'Payment', amount: totalAmt });
+  }
 
   if (!allocations.length) { toast('Please select at least one payment category and enter an amount'); return; }
 
@@ -9806,6 +9909,28 @@ async function declinePaymentRequest(requestId) {
   toast('Payment request declined');
   await loadPendingPayments();
   await loadApprovals();
+}
+
+
+function switchToNewOrg(e) {
+  e.preventDefault();
+  const role = currentProfile?.role;
+  const isAdmin = ['admin','officer','treasurer'].includes(role);
+  if (isAdmin) {
+    // Admin: show option to register another org
+    if (confirm('You are about to register a new separate organisation on GroupYetu360. Your current group will remain. Continue?')) {
+      // Sign out and go to register tab
+      sb.auth.signOut().then(() => {
+        window.location.reload();
+        setTimeout(() => switchAuthTab('register'), 500);
+      });
+    }
+  } else {
+    // Member: sign out and go to register (they'll create their own group)
+    if (confirm('Start your own group on GroupYetu360? You\'ll be taken to the registration page. Your current membership will remain.')) {
+      window.open('https://app.groupyetu.org', '_blank');
+    }
+  }
 }
 
 </script>
