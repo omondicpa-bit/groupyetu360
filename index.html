@@ -2632,20 +2632,32 @@ tr:hover td{background:var(--maroon-pale)}
     <div class="page" id="page-approvals">
       <div class="fin-hero" style="background:linear-gradient(135deg,#0d3d2e 0%,var(--teal) 55%,#1a1a1a 100%);margin-bottom:1.25rem">
         <div>
-          <div class="fin-hero-title">✓ Member Approvals</div>
-          <div class="fin-hero-sub">Review and approve member access requests</div>
+          <div class="fin-hero-title">✓ Approvals</div>
+          <div class="fin-hero-sub">Member join requests and payment verifications</div>
         </div>
         <div id="approvals-hero-count" style="display:flex;align-items:center;gap:.5rem;font-size:.78rem;color:rgba(255,255,255,.7)"></div>
       </div>
       <div class="tabs">
-        <div class="tab active" onclick="switchTab(this,'tab-pending-approvals')">Pending <span id="pending-count-tab" class="nav-badge" style="background:var(--warning);color:#fff;margin-left:.4rem">0</span></div>
+        <div class="tab active" onclick="switchTab(this,'tab-pending-approvals')">
+          Member Requests <span id="pending-count-tab" class="nav-badge" style="background:var(--warning);color:#fff;margin-left:.4rem">0</span>
+        </div>
+        <div class="tab" onclick="switchTab(this,'tab-pending-payments');loadPendingPayments()">
+          Payments <span id="pay-count-tab" class="nav-badge" style="background:var(--teal);color:#fff;margin-left:.4rem;display:none">0</span>
+        </div>
         <div class="tab" onclick="switchTab(this,'tab-approved-approvals')">Approved</div>
         <div class="tab" onclick="switchTab(this,'tab-rejected-approvals')">Declined</div>
       </div>
 
+      <!-- Member join requests -->
       <div class="tab-panel active" id="tab-pending-approvals">
         <div id="pending-list"><div class="loading"><div class="spinner"></div>Loading…</div></div>
       </div>
+
+      <!-- Payment requests -->
+      <div class="tab-panel" id="tab-pending-payments">
+        <div id="pending-payments-list"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+      </div>
+
       <div class="tab-panel" id="tab-approved-approvals">
         <div id="approved-list"><div class="loading"><div class="spinner"></div>Loading…</div></div>
       </div>
@@ -7321,14 +7333,34 @@ async function loadApprovals() {
   const approved = (all||[]).filter(r => r.status === 'approved');
   const declined = (all||[]).filter(r => r.status === 'declined');
 
-  // Update badge
+  // Also count pending payments
+  let pendingPayCount = 0;
+  try {
+    const { data: pendingPays } = await sb.from('payment_requests')
+      .select('id').eq('org_id', currentOrg.id).eq('status','pending');
+    pendingPayCount = pendingPays?.length || 0;
+  } catch(e) {}
+
+  const totalPending = pending.length + pendingPayCount;
+
+  // Update nav badge
   const badge = document.getElementById('approvals-badge');
   if (badge) {
-    badge.textContent = pending.length;
-    badge.style.display = pending.length > 0 ? 'inline' : 'none';
+    badge.textContent = totalPending;
+    badge.style.display = totalPending > 0 ? 'inline' : 'none';
   }
   const countTab = document.getElementById('pending-count-tab');
   if (countTab) countTab.textContent = pending.length;
+
+  // Update payments tab badge
+  const payTab = document.getElementById('pay-count-tab');
+  if (payTab) {
+    payTab.textContent = pendingPayCount;
+    payTab.style.display = pendingPayCount > 0 ? 'inline' : 'none';
+  }
+
+  // Update hero count
+  updateApprovalsHero(totalPending);
 
   // Render pending
   document.getElementById('pending-list').innerHTML = pending.length ? pending.map(r => `
@@ -9575,6 +9607,206 @@ function toggleSupportFab() {
   } catch(e) {}
 })();
 
+
+
+/* ═══════════════════════════════════════
+   PAYMENT REQUEST APPROVALS
+═══════════════════════════════════════ */
+
+async function loadPendingPayments() {
+  if (!currentOrg?.id) return;
+  const listEl = document.getElementById('pending-payments-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<div class="loading"><div class="spinner"></div>Loading payment requests…</div>';
+
+  let requests = [];
+  try {
+    const { data } = await sb.from('payment_requests')
+      .select('*,members(full_name,member_number,phone)')
+      .eq('org_id', currentOrg.id)
+      .order('requested_at', {ascending: false});
+    requests = data || [];
+  } catch(e) {
+    listEl.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--ink-faint)">Payment requests table not found. Run the SQL migration first.</div>';
+    return;
+  }
+
+  const pending = requests.filter(r => r.status === 'pending');
+  const approved = requests.filter(r => r.status === 'approved');
+  const declined = requests.filter(r => r.status === 'declined');
+
+  if (!requests.length) {
+    listEl.innerHTML = '<div style="padding:3rem;text-align:center"><div style="font-size:2rem;margin-bottom:.75rem">💳</div><div style="font-size:.88rem;color:var(--ink-faint)">No payment requests yet</div></div>';
+    return;
+  }
+
+  const renderPayRequest = (r, showActions) => {
+    let allocations = [];
+    try { allocations = JSON.parse(r.allocations || '[]'); } catch(e) {}
+    const dateStr = (r.requested_at || r.created_at)
+      ? new Date(r.requested_at || r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
+      : '—';
+    const reviewDate = r.approved_at
+      ? new Date(r.approved_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
+      : '—';
+
+    return `<div style="background:var(--surface);border:1px solid var(--border);border-left:4px solid ${showActions?'var(--warning)':r.status==='approved'?'var(--teal)':'var(--danger)'};padding:1rem 1.25rem;margin-bottom:.75rem;animation:welIn .3s ease both">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;flex-wrap:wrap">
+            <div style="font-size:.9rem;font-weight:700;color:var(--ink)">${r.members?.full_name || 'Unknown Member'}</div>
+            <span style="font-size:.62rem;font-weight:600;padding:.15rem .45rem;background:var(--surface-2);color:var(--ink-faint);border-radius:3px">#${r.members?.member_number||'—'}</span>
+            <span class="badge ${showActions?'badge-warn':r.status==='approved'?'badge-green':'badge-red'}">${r.status}</span>
+          </div>
+          <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:.5rem">
+            <span style="font-size:.72rem;color:var(--ink-faint)">📅 ${dateStr}</span>
+            ${r.mpesa_ref ? `<span style="font-size:.72rem;color:var(--ink-faint)">📱 M-Pesa: <strong style="color:var(--ink)">${r.mpesa_ref}</strong></span>` : ''}
+            ${r.members?.phone ? `<span style="font-size:.72rem;color:var(--ink-faint)">📞 ${r.members.phone}</span>` : ''}
+          </div>
+          ${allocations.length ? `
+          <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:.5rem .75rem;margin-bottom:.35rem">
+            <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.35rem">Payment Breakdown</div>
+            ${allocations.map(a => `
+              <div style="display:flex;justify-content:space-between;font-size:.75rem;padding:.2rem 0;border-bottom:1px solid var(--border)">
+                <span style="color:var(--ink-soft)">${a.typeName || 'Payment'}</span>
+                <strong>Ksh ${Number(a.amount||0).toLocaleString()}</strong>
+              </div>`).join('')}
+            <div style="display:flex;justify-content:space-between;font-size:.8rem;font-weight:700;padding:.35rem 0 0">
+              <span>Total</span>
+              <span style="color:var(--teal)">Ksh ${Number(r.amount||0).toLocaleString()}</span>
+            </div>
+          </div>` : `
+          <div style="font-size:.82rem;font-weight:700;color:var(--teal)">Ksh ${Number(r.amount||0).toLocaleString()}</div>`}
+          ${r.notes ? `<div style="font-size:.7rem;color:var(--ink-faint);margin-top:.2rem">${r.notes}</div>` : ''}
+          ${!showActions && r.status !== 'pending' ? `<div style="font-size:.7rem;color:var(--ink-faint);margin-top:.2rem">Reviewed: ${reviewDate}</div>` : ''}
+        </div>
+        ${showActions ? `
+        <div style="display:flex;flex-direction:column;gap:.4rem;flex-shrink:0">
+          <button class="btn btn-primary btn-sm" style="background:var(--teal);font-size:.75rem;padding:.4rem .9rem"
+            onclick="approvePaymentRequest('${r.id}')">✓ Approve</button>
+          <button class="btn btn-danger btn-sm" style="font-size:.75rem;padding:.4rem .9rem"
+            onclick="declinePaymentRequest('${r.id}')">✕ Decline</button>
+        </div>` : ''}
+      </div>
+    </div>`;
+  };
+
+  let html = '';
+
+  // Pending section
+  if (pending.length) {
+    html += `<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--warning);margin-bottom:.6rem">
+      ⏳ Awaiting Approval (${pending.length})</div>`;
+    html += pending.map(r => renderPayRequest(r, true)).join('');
+  }
+
+  // Approved section
+  if (approved.length) {
+    html += `<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--teal);margin:1rem 0 .6rem">
+      ✓ Recently Approved (${approved.length})</div>`;
+    html += approved.slice(0, 10).map(r => renderPayRequest(r, false)).join('');
+  }
+
+  // Declined section
+  if (declined.length) {
+    html += `<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--danger);margin:1rem 0 .6rem">
+      ✕ Declined (${declined.length})</div>`;
+    html += declined.slice(0, 5).map(r => renderPayRequest(r, false)).join('');
+  }
+
+  listEl.innerHTML = html;
+}
+
+async function approvePaymentRequest(requestId) {
+  if (!confirm('Approve this payment? This will record the transactions and update the member\'s balances.')) return;
+
+  // Fetch the request
+  const { data: req, error: fetchErr } = await sb.from('payment_requests')
+    .select('*,members(full_name,shares_balance,savings_balance,registration_paid)')
+    .eq('id', requestId).maybeSingle();
+  if (fetchErr || !req) { toast('Error fetching request'); return; }
+
+  let allocations = [];
+  try { allocations = JSON.parse(req.allocations || '[]'); } catch(e) {}
+
+  // If no allocations, treat whole amount as a generic payment
+  if (!allocations.length) {
+    allocations = [{ typeName: 'Payment', amount: req.amount }];
+  }
+
+  let successCount = 0;
+  const memberData = req.members;
+  const memberUpdates = {};
+
+  for (const alloc of allocations) {
+    // Insert transaction
+    const { error: txErr } = await sb.from('transactions').insert({
+      org_id: currentOrg.id,
+      member_id: req.member_id,
+      type_id: alloc.typeId || null,
+      amount: alloc.amount,
+      mpesa_ref: req.mpesa_ref || null,
+      transaction_date: req.payment_date || new Date().toISOString().split('T')[0],
+      notes: `Approved via Approvals. Original ref: ${req.mpesa_ref||'—'}`,
+      recorded_by: currentUser.id
+    });
+    if (!txErr) {
+      successCount++;
+      // Accumulate balance updates
+      const name = (alloc.typeName || '').toLowerCase();
+      if (name.includes('share')) {
+        memberUpdates.shares_balance = ((memberUpdates.shares_balance ?? (memberData?.shares_balance||0)) + alloc.amount);
+      } else if (name.includes('saving')) {
+        memberUpdates.savings_balance = ((memberUpdates.savings_balance ?? (memberData?.savings_balance||0)) + alloc.amount);
+      }
+      if (alloc.isReg) memberUpdates.registration_paid = true;
+    }
+  }
+
+  // Update member balances
+  if (Object.keys(memberUpdates).length) {
+    await sb.from('members').update(memberUpdates).eq('id', req.member_id);
+  }
+
+  // Update bank balance
+  await updateBankBalance(currentOrg.id, req.amount, 'credit');
+
+  // Mark request as approved
+  await sb.from('payment_requests').update({
+    status: 'approved',
+    approved_by: currentUser.id,
+    approved_at: new Date().toISOString()
+  }).eq('id', requestId);
+
+  // Log activity
+  await logActivity('PAYMENT APPROVED', `Approved Ksh ${Number(req.amount).toLocaleString()} payment from ${memberData?.full_name || 'member'}`);
+
+  toast(`✓ Payment approved — Ksh ${Number(req.amount).toLocaleString()} recorded for ${memberData?.full_name || 'member'}`);
+  await loadPendingPayments();
+  await loadApprovals();
+  loadDashboard();
+  loadFinance();
+}
+
+async function declinePaymentRequest(requestId) {
+  const reason = prompt('Reason for declining (optional):');
+  if (reason === null) return; // cancelled
+
+  const { data: req } = await sb.from('payment_requests')
+    .select('amount,members(full_name)').eq('id', requestId).maybeSingle();
+
+  await sb.from('payment_requests').update({
+    status: 'declined',
+    approved_by: currentUser.id,
+    approved_at: new Date().toISOString(),
+    notes: reason || 'Declined by admin'
+  }).eq('id', requestId);
+
+  await logActivity('PAYMENT DECLINED', `Declined Ksh ${Number(req?.amount||0).toLocaleString()} payment request from ${req?.members?.full_name || 'member'}`);
+  toast('Payment request declined');
+  await loadPendingPayments();
+  await loadApprovals();
+}
 
 </script>
 
