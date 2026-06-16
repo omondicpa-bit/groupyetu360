@@ -2167,6 +2167,283 @@ tr:hover td{background:var(--maroon-pale)}
       </div>
     </div>
 
+    <!-- ROTATING SAVINGS / MERRY-GO-ROUND -->
+    <div class="page" id="page-mgr">
+
+      <!-- Hero -->
+      <div class="mgr-hero">
+        <div>
+          <div class="mgr-hero-title">🔄 Rotating Savings</div>
+          <div class="mgr-hero-sub" id="mgr-hero-sub">Merry-go-round cycles for your group</div>
+        </div>
+        <button class="btn fin-ctrl-btn" onclick="showModal('createRound')">+ New Cycle</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="mgr-stats">
+        <div class="mgr-stat"><div class="mgr-stat-val" id="mgr-stat-active">—</div><div class="mgr-stat-label">Active Cycles</div></div>
+        <div class="mgr-stat"><div class="mgr-stat-val" id="mgr-stat-rounds">—</div><div class="mgr-stat-label">Total Rounds</div></div>
+        <div class="mgr-stat"><div class="mgr-stat-val" id="mgr-stat-disbursed">—</div><div class="mgr-stat-label">Total Disbursed</div></div>
+        <div class="mgr-stat"><div class="mgr-stat-val" id="mgr-stat-next">—</div><div class="mgr-stat-label">Next Receiver</div></div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="mgr-tabs">
+        <button class="mgr-tab active" onclick="switchMgrTab(this,'mgr-tab-overview')">📋 Overview</button>
+        <button class="mgr-tab" onclick="switchMgrTab(this,'mgr-tab-record')">₭ Record Contribution</button>
+        <button class="mgr-tab" onclick="switchMgrTab(this,'mgr-tab-disburse')">💸 Disburse</button>
+        <button class="mgr-tab" onclick="switchMgrTab(this,'mgr-tab-history')">📜 History</button>
+      </div>
+
+      <!-- TAB: Overview -->
+      <div class="tab-panel active" id="mgr-tab-overview">
+        <div id="mgr-rounds-list">
+          <div class="loading"><div class="spinner"></div>Loading cycles…</div>
+        </div>
+      </div>
+
+      <!-- TAB: Record Contribution -->
+      <div class="tab-panel" id="mgr-tab-record">
+        <div class="mgr-form-card">
+          <div class="mgr-form-heading">
+            <div class="mgr-form-icon">₭</div>
+            <div>
+              <div class="mgr-form-title">Record Member Contribution</div>
+              <div class="mgr-form-sub">Mark a member as paid for the active round</div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Cycle</label>
+              <select class="form-select" id="mgr-rec-cycle" onchange="loadRoundSlots(this.value)">
+                <option value="">Select cycle…</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Active Round (Receiver)</label>
+              <select class="form-select" id="mgr-rec-slot">
+                <option value="">Select cycle first…</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Contributing Member</label>
+              <select class="form-select" id="mgr-rec-member">
+                <option value="">Select member…</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Amount (Ksh)</label>
+              <input class="form-input" type="number" id="mgr-rec-amount" placeholder="0"/>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Payment Method</label>
+              <select class="form-select" id="mgr-rec-method">
+                <option value="mpesa">M-Pesa</option>
+                <option value="cash">Cash</option>
+                <option value="bank">Bank Transfer</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">M-Pesa Ref (optional)</label>
+              <input class="form-input" id="mgr-rec-ref" placeholder="e.g. QBC4X8YZ"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input class="form-input" type="date" id="mgr-rec-date"/>
+          </div>
+          <div style="margin-top:1.25rem;display:flex;gap:.75rem">
+            <button class="btn btn-primary" onclick="saveRoundContribution()" style="background:var(--teal);box-shadow:0 3px 10px rgba(15,110,86,.2)">Save Contribution →</button>
+            <button class="btn btn-secondary" onclick="clearMgrRecForm()">Clear</button>
+          </div>
+        </div>
+
+        <!-- Live contribution status for selected round -->
+        <div class="round-card" id="mgr-contrib-status" style="margin-top:1rem;display:none">
+          <div class="round-card-header">
+            <div>
+              <div class="round-card-title" id="mgr-contrib-status-title">Contribution Status</div>
+              <div class="round-card-meta" id="mgr-contrib-status-meta"></div>
+            </div>
+            <div id="mgr-contrib-summary-chips" style="display:flex;gap:.4rem"></div>
+          </div>
+          <div class="mgr-contrib-grid" id="mgr-contrib-grid"></div>
+        </div>
+      </div>
+
+      <!-- TAB: Disburse -->
+      <div class="tab-panel" id="mgr-tab-disburse">
+        <div class="mgr-form-card">
+          <div class="mgr-form-heading">
+            <div class="mgr-form-icon" style="background:rgba(128,0,32,.1)">💸</div>
+            <div>
+              <div class="mgr-form-title">Record Disbursement</div>
+              <div class="mgr-form-sub">Treasurer collection method only — record when pot is sent to receiver</div>
+            </div>
+          </div>
+          <div class="alert alert-info" style="margin-bottom:1rem">Only required for cycles using the <strong>Treasurer Collects</strong> method. For Direct Pay cycles, members pay the receiver directly — no disbursement to record.</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Cycle</label>
+              <select class="form-select" id="mgr-dis-cycle" onchange="loadDisbursementSlots(this.value)">
+                <option value="">Select cycle…</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Round (Receiver)</label>
+              <select class="form-select" id="mgr-dis-slot">
+                <option value="">Select cycle first…</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Amount Disbursed (Ksh)</label>
+              <input class="form-input" type="number" id="mgr-dis-amount" placeholder="Auto-calculated"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date</label>
+              <input class="form-input" type="date" id="mgr-dis-date"/>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Payment Method</label>
+              <select class="form-select" id="mgr-dis-method">
+                <option value="mpesa">M-Pesa</option>
+                <option value="cash">Cash</option>
+                <option value="bank">Bank Transfer</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">M-Pesa Ref</label>
+              <input class="form-input" id="mgr-dis-ref" placeholder="Transaction reference"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <input class="form-input" id="mgr-dis-notes" placeholder="Any additional details…"/>
+          </div>
+          <div style="margin-top:1.25rem;display:flex;gap:.75rem">
+            <button class="btn btn-primary" onclick="saveDisbursement()" style="background:var(--maroon)">Record Disbursement →</button>
+            <button class="btn btn-secondary" onclick="clearMgrDisForm()">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: History -->
+      <div class="tab-panel" id="mgr-tab-history">
+        <div class="card" style="margin-top:.5rem">
+          <div class="card-header"><div class="card-title">Round History</div><div class="card-sub" id="mgr-history-sub"></div></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Cycle</th><th>Round #</th><th>Receiver</th><th>Date</th><th>Pot Amount</th><th>Paid By</th><th>Method</th><th>Status</th></tr></thead>
+              <tbody id="mgr-history-table"><tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--ink-faint)">Select a cycle to view history</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROTATING SAVINGS / MERRY-GO-ROUND -->
+    <div class="page" id="page-mgr">
+      <div class="mgr-hero">
+        <div>
+          <div class="mgr-hero-title">🔄 Rotating Savings</div>
+          <div class="mgr-hero-sub" id="mgr-hero-sub">Merry-go-round cycles for your group</div>
+        </div>
+        <button class="btn fin-ctrl-btn" onclick="showModal('createRound')">+ New Cycle</button>
+      </div>
+      <div class="mgr-stats">
+        <div class="mgr-stat"><div class="mgr-stat-val" id="mgr-stat-active">—</div><div class="mgr-stat-label">Active Cycles</div></div>
+        <div class="mgr-stat"><div class="mgr-stat-val" id="mgr-stat-rounds">—</div><div class="mgr-stat-label">Total Rounds</div></div>
+        <div class="mgr-stat"><div class="mgr-stat-val" id="mgr-stat-disbursed">—</div><div class="mgr-stat-label">Total Disbursed</div></div>
+        <div class="mgr-stat"><div class="mgr-stat-val" id="mgr-stat-next">—</div><div class="mgr-stat-label">Next Receiver</div></div>
+      </div>
+      <div class="mgr-tabs">
+        <button class="mgr-tab active" onclick="switchMgrTab(this,'mgr-tab-overview')">📋 Overview</button>
+        <button class="mgr-tab" onclick="switchMgrTab(this,'mgr-tab-record')">₭ Record Contribution</button>
+        <button class="mgr-tab" onclick="switchMgrTab(this,'mgr-tab-disburse')">💸 Disburse</button>
+        <button class="mgr-tab" onclick="switchMgrTab(this,'mgr-tab-history')">📜 History</button>
+      </div>
+      <div class="tab-panel active" id="mgr-tab-overview">
+        <div id="mgr-rounds-list"><div class="loading"><div class="spinner"></div>Loading cycles…</div></div>
+      </div>
+      <div class="tab-panel" id="mgr-tab-record">
+        <div class="mgr-form-card">
+          <div class="mgr-form-heading">
+            <div class="mgr-form-icon">₭</div>
+            <div><div class="mgr-form-title">Record Member Contribution</div><div class="mgr-form-sub">Mark a member as paid for the active round</div></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Cycle</label><select class="form-select" id="mgr-rec-cycle" onchange="loadRoundSlotsForRecord(this.value)"><option value="">Select cycle…</option></select></div>
+            <div class="form-group"><label class="form-label">Active Round (Receiver)</label><select class="form-select" id="mgr-rec-slot" onchange="loadContribStatusForSlot(this.value)"><option value="">Select cycle first…</option></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Contributing Member</label><select class="form-select" id="mgr-rec-member"><option value="">Select member…</option></select></div>
+            <div class="form-group"><label class="form-label">Amount (Ksh)</label><input class="form-input" type="number" id="mgr-rec-amount" placeholder="0"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Payment Method</label><select class="form-select" id="mgr-rec-method"><option value="mpesa">M-Pesa</option><option value="cash">Cash</option><option value="bank">Bank Transfer</option></select></div>
+            <div class="form-group"><label class="form-label">M-Pesa Ref</label><input class="form-input" id="mgr-rec-ref" placeholder="e.g. QBC4X8YZ"/></div>
+          </div>
+          <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="mgr-rec-date"/></div>
+          <div style="margin-top:1rem;display:flex;gap:.75rem">
+            <button class="btn btn-primary" onclick="saveRoundContribution()" style="background:var(--teal)">Save Contribution →</button>
+            <button class="btn btn-secondary" onclick="clearMgrRecForm()">Clear</button>
+          </div>
+        </div>
+        <div class="round-card" id="mgr-contrib-status" style="margin-top:1rem;display:none">
+          <div class="round-card-header">
+            <div><div class="round-card-title" id="mgr-contrib-status-title">Contribution Status</div><div class="round-card-meta" id="mgr-contrib-status-meta"></div></div>
+            <div id="mgr-contrib-summary-chips" style="display:flex;gap:.4rem"></div>
+          </div>
+          <div class="mgr-contrib-grid" id="mgr-contrib-grid"></div>
+        </div>
+      </div>
+      <div class="tab-panel" id="mgr-tab-disburse">
+        <div class="mgr-form-card">
+          <div class="mgr-form-heading">
+            <div class="mgr-form-icon" style="background:rgba(128,0,32,.1)">💸</div>
+            <div><div class="mgr-form-title">Record Disbursement</div><div class="mgr-form-sub">Treasurer method only — record when pot is sent to receiver</div></div>
+          </div>
+          <div class="alert alert-info" style="margin-bottom:1rem">Only required for <strong>Treasurer Collects</strong> cycles. For Direct Pay cycles, members pay the receiver directly.</div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Cycle</label><select class="form-select" id="mgr-dis-cycle" onchange="loadDisbursementSlots(this.value)"><option value="">Select cycle…</option></select></div>
+            <div class="form-group"><label class="form-label">Round (Receiver)</label><select class="form-select" id="mgr-dis-slot"><option value="">Select cycle first…</option></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Amount Disbursed (Ksh)</label><input class="form-input" type="number" id="mgr-dis-amount" placeholder="Auto-calculated"/></div>
+            <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="mgr-dis-date"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Method</label><select class="form-select" id="mgr-dis-method"><option value="mpesa">M-Pesa</option><option value="cash">Cash</option><option value="bank">Bank</option></select></div>
+            <div class="form-group"><label class="form-label">M-Pesa Ref</label><input class="form-input" id="mgr-dis-ref" placeholder="Transaction reference"/></div>
+          </div>
+          <div class="form-group"><label class="form-label">Notes</label><input class="form-input" id="mgr-dis-notes" placeholder="Any additional details…"/></div>
+          <div style="margin-top:1rem;display:flex;gap:.75rem">
+            <button class="btn btn-primary" onclick="saveDisbursement()" style="background:var(--maroon)">Record Disbursement →</button>
+            <button class="btn btn-secondary" onclick="clearMgrDisForm()">Clear</button>
+          </div>
+        </div>
+      </div>
+      <div class="tab-panel" id="mgr-tab-history">
+        <div class="card" style="margin-top:.5rem">
+          <div class="card-header"><div class="card-title">Round History</div></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Cycle</th><th>Round #</th><th>Receiver</th><th>Date</th><th>Pot</th><th>Paid By</th><th>Method</th><th>Status</th></tr></thead>
+              <tbody id="mgr-history-table"><tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--ink-faint)">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- WELFARE -->
     <div class="page" id="page-welfare">
 
@@ -4292,11 +4569,17 @@ function buildNav() {
       <a class="nav-item active" onclick="showPage('dashboard')" href="#"><span class="nav-icon">⊞</span> Dashboard</a>
       <a class="nav-item" onclick="showPage('members')" href="#"><span class="nav-icon">◉</span> Members</a>`;
     }
-    if (isAdmin) nav += `
+    if (isAdmin) {
+      const plan = currentOrg?.subscription_plan || 'starter';
+      const isPaid = ['basic','standard','pro'].includes(plan);
+      const welfareLink = isPaid ? `<a class="nav-item" onclick="showPage('welfare')" href="#"><span class="nav-icon">♡</span> Welfare</a>` : '';
+      const projectsLink = isPaid ? `<a class="nav-item" onclick="showPage('projects')" href="#"><span class="nav-icon">⚑</span> Projects</a>` : '';
+      nav += `
     <a class="nav-item" onclick="showPage('finance')" href="#"><span class="nav-icon">₭</span> Finance</a>
     <a class="nav-item" onclick="showPage('meetings')" href="#"><span class="nav-icon">◷</span> Meetings</a>
-    <a class="nav-item" onclick="showPage('welfare')" href="#"><span class="nav-icon">♡</span> Welfare</a>
-    <a class="nav-item" onclick="showPage('projects')" href="#"><span class="nav-icon">⚑</span> Projects</a>
+    <a class="nav-item" onclick="showPage('mgr')" href="#"><span class="nav-icon">🔄</span> Rotating Savings</a>
+    ${welfareLink}
+    ${projectsLink}
     <a class="nav-item" onclick="showPage('messages')" href="#"><span class="nav-icon">✉</span> Messages</a>
     <div class="nav-label" style="margin-top:.5rem">Admin</div>
     <a class="nav-item" onclick="showPage('approvals')" href="#"><span class="nav-icon">✓</span> Approvals <span class="nav-badge" id="approvals-badge" style="display:none">0</span></a>
@@ -4396,7 +4679,7 @@ function showPage(id) {
   const info = pageTitles[id] || [id, ''];
   document.getElementById('page-title').textContent = info[0];
   document.getElementById('page-sub').textContent = info[1] || currentOrg?.name || '';
-  const loaders = { members: loadMembers, finance: loadFinance, meetings: loadMeetings, welfare: loadWelfare, projects: loadProjects, messages: loadMessages, settings: loadSettings, superadmin: loadSuperAdmin, sa_members: loadSAMembers, sa_finance: loadSAFinance, my_profile: loadMyProfile, my_contributions: loadMyContributions, approvals: loadApprovals, my_account: loadMyAccount, billing: loadBilling, support: loadSupport, sa_billing: loadSABilling, sa_support: loadSASupport, sa_activity: loadSAActivity, my_meetings: loadMyMeetings, my_notices: loadMyNotices };
+  const loaders = { members: loadMembers, finance: loadFinance, meetings: loadMeetings, welfare: loadWelfare, projects: loadProjects, mgr: loadMGR, messages: loadMessages, settings: loadSettings, superadmin: loadSuperAdmin, sa_members: loadSAMembers, sa_finance: loadSAFinance, my_profile: loadMyProfile, my_contributions: loadMyContributions, approvals: loadApprovals, my_account: loadMyAccount, billing: loadBilling, support: loadSupport, sa_billing: loadSABilling, sa_support: loadSASupport, sa_activity: loadSAActivity, my_meetings: loadMyMeetings, my_notices: loadMyNotices };
   if (loaders[id]) loaders[id]();
 }
 
@@ -8637,6 +8920,75 @@ window.addEventListener('appinstalled', () => {
   animation:fabPing 2.5s ease-out infinite
 }
 @keyframes fabPing{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.5);opacity:0}}
+
+/* ══ ROTATING SAVINGS (MERRY-GO-ROUND) ══ */
+@keyframes mgrIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.mgr-hero{background:linear-gradient(135deg,#1a1a1a 0%,#2d2d2d 40%,#0d3d2e 100%);padding:1.25rem 1.5rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+.mgr-hero-title{font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:#fff}
+.mgr-hero-sub{font-size:.72rem;color:rgba(255,255,255,.5);margin-top:.15rem}
+.mgr-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1.25rem}
+.mgr-stat{background:var(--surface);border:1px solid var(--border);padding:.85rem 1rem;text-align:center;animation:mgrIn .3s ease both}
+.mgr-stat-val{font-family:'Crimson Pro',serif;font-size:1.5rem;font-weight:700;color:var(--teal)}
+.mgr-stat-label{font-size:.62rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem}
+/* Round tabs */
+.mgr-tabs{display:flex;gap:.35rem;margin-bottom:1rem;border-bottom:2px solid var(--border);padding-bottom:.5rem;flex-wrap:wrap}
+.mgr-tab{padding:.4rem .85rem;font-size:.78rem;font-weight:600;cursor:pointer;border:1px solid var(--border-dk);background:var(--surface);color:var(--ink-faint);border-radius:4px 4px 0 0;font-family:'Inter',sans-serif;transition:all .15s}
+.mgr-tab:hover{color:var(--teal);border-color:var(--teal-mid)}
+.mgr-tab.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+/* Round card */
+.round-card{background:var(--surface);border:1px solid var(--border);margin-bottom:1rem;animation:mgrIn .35s ease both;overflow:hidden;transition:box-shadow .15s}
+.round-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.07)}
+.round-card-header{display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.25rem;border-bottom:1px solid var(--border);background:var(--surface-2)}
+.round-card-title{font-size:.88rem;font-weight:700;color:var(--ink)}
+.round-card-meta{font-size:.7rem;color:var(--ink-faint);margin-top:.1rem}
+/* Slot grid */
+.slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.75rem;padding:1rem 1.25rem}
+.slot-card{border:1px solid var(--border);border-radius:6px;overflow:hidden;transition:border-color .15s,box-shadow .15s}
+.slot-card:hover{border-color:var(--teal-mid);box-shadow:0 2px 10px rgba(15,110,86,.08)}
+.slot-card.active-slot{border-color:var(--teal);border-width:2px}
+.slot-card.received{border-color:var(--border-dk);opacity:.75}
+.slot-header{display:flex;align-items:center;gap:.6rem;padding:.65rem .75rem;background:var(--surface-2);border-bottom:1px solid var(--border)}
+.slot-num{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700;flex-shrink:0}
+.slot-num.pending{background:var(--teal-pale);color:var(--teal-dk)}
+.slot-num.active-num{background:var(--teal);color:#fff}
+.slot-num.done{background:var(--surface-3);color:var(--ink-faint)}
+.slot-name{font-size:.78rem;font-weight:600;color:var(--ink);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slot-body{padding:.6rem .75rem}
+.slot-contrib-bar{height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:.4rem}
+.slot-contrib-fill{height:100%;background:var(--teal);border-radius:3px;transition:width .6s ease}
+.slot-contrib-text{font-size:.65rem;color:var(--ink-faint);display:flex;justify-content:space-between}
+.slot-date{font-size:.65rem;color:var(--ink-faint);margin-top:.35rem}
+.slot-received-badge{display:inline-flex;align-items:center;gap:.3rem;font-size:.62rem;font-weight:600;color:var(--teal-dk);background:var(--teal-pale);padding:.15rem .5rem;border-radius:3px;margin-top:.35rem}
+/* Contribution recording */
+.mgr-contrib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.5rem;padding:.75rem 1.25rem}
+.mgr-contrib-item{border:1px solid var(--border);border-radius:5px;padding:.55rem .75rem;display:flex;align-items:center;justify-content:space-between;transition:border-color .15s}
+.mgr-contrib-item.paid{border-color:var(--teal);background:var(--teal-pale)}
+.mgr-contrib-item.pending{border-color:var(--warning);background:rgba(160,96,16,.06)}
+.mgr-contrib-name{font-size:.75rem;font-weight:600;color:var(--ink)}
+.mgr-contrib-status{font-size:.65rem;font-weight:600}
+.mgr-contrib-status.paid{color:var(--teal-dk)}
+.mgr-contrib-status.pending{color:var(--warning)}
+/* Method badge */
+.mgr-method-pill{display:inline-flex;align-items:center;gap:.3rem;font-size:.62rem;font-weight:600;padding:.2rem .55rem;border-radius:99px}
+.mgr-method-treasurer{background:var(--maroon-pale);color:var(--maroon)}
+.mgr-method-direct{background:var(--teal-pale);color:var(--teal-dk)}
+/* Empty state */
+.mgr-empty{padding:3rem;text-align:center}
+.mgr-empty-icon{font-size:2.5rem;margin-bottom:.75rem}
+/* Setup form */
+.mgr-form-card{background:var(--surface);border:1px solid var(--border);padding:1.5rem;max-width:580px;margin-top:.75rem;animation:mgrIn .3s ease}
+.mgr-form-heading{display:flex;align-items:center;gap:.85rem;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}
+.mgr-form-icon{width:44px;height:44px;border-radius:10px;background:rgba(31,158,117,.12);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
+.mgr-form-title{font-size:.95rem;font-weight:700;color:var(--ink);margin-bottom:.15rem}
+.mgr-form-sub{font-size:.75rem;color:var(--ink-faint)}
+/* Method toggle */
+.method-toggle{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem}
+.method-opt{border:1.5px solid var(--border-dk);border-radius:6px;padding:.85rem;cursor:pointer;transition:all .15s;text-align:center}
+.method-opt.selected{border-color:var(--teal);background:var(--teal-pale)}
+.method-opt-icon{font-size:1.4rem;margin-bottom:.35rem}
+.method-opt-title{font-size:.8rem;font-weight:600;color:var(--ink);margin-bottom:.2rem}
+.method-opt-desc{font-size:.68rem;color:var(--ink-faint);line-height:1.4}
+.method-opt.selected .method-opt-title{color:var(--teal-dk)}
 </style>
 <div id="support-fab">
   <div id="support-fab-menu">
@@ -8709,7 +9061,580 @@ function toggleSupportFab() {
     }
   } catch(e) {}
 })();
+
+
+
+/* ════════════════════════════════════════════════
+   ROTATING SAVINGS / MERRY-GO-ROUND FUNCTIONS
+════════════════════════════════════════════════ */
+
+let allRounds = [];
+let currentRoundId = null;
+let mgrMethod = 'treasurer';
+
+function switchMgrTab(btn, tabId) {
+  document.querySelectorAll('.mgr-tab').forEach(t => t.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.querySelectorAll('#page-mgr .tab-panel').forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById(tabId);
+  if (panel) panel.classList.add('active');
+}
+
+function selectMgrMethod(method) {
+  mgrMethod = method;
+  document.getElementById('cr-method').value = method;
+  document.getElementById('cr-method-treasurer').classList.toggle('selected', method === 'treasurer');
+  document.getElementById('cr-method-direct').classList.toggle('selected', method === 'direct');
+}
+
+async function loadMGR() {
+  if (!currentOrg?.id) return;
+
+  // Load cycles from DB
+  const { data: rounds } = await sb.from('savings_rounds')
+    .select('*')
+    .eq('org_id', currentOrg.id)
+    .order('created_at', {ascending: false});
+  allRounds = rounds || [];
+
+  // Stats
+  const active = allRounds.filter(r => r.status === 'active');
+  const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  setEl('mgr-stat-active', active.length);
+
+  // Count total slots (rounds completed)
+  let totalSlots = 0, totalDisbursed = 0, nextReceiver = '—';
+  if (allRounds.length) {
+    const { data: slots } = await sb.from('round_slots')
+      .select('*,members(full_name)')
+      .in('round_id', allRounds.map(r => r.id))
+      .order('slot_number');
+    totalSlots = (slots || []).filter(s => s.received).length;
+
+    // Next unreceived slot across active rounds
+    const nextSlot = (slots || []).find(s => !s.received && active.find(r => r.id === s.round_id));
+    if (nextSlot) nextReceiver = nextSlot.members?.full_name?.split(' ')[0] || '—';
+
+    // Total disbursed
+    const { data: disb } = await sb.from('round_disbursements')
+      .select('amount')
+      .in('round_id', allRounds.map(r => r.id));
+    totalDisbursed = (disb || []).reduce((s, d) => s + Number(d.amount || 0), 0);
+  }
+
+  setEl('mgr-stat-rounds', totalSlots);
+  setEl('mgr-stat-disbursed', totalDisbursed > 0 ? 'Ksh ' + totalDisbursed.toLocaleString() : '—');
+  setEl('mgr-stat-next', nextReceiver);
+
+  // Hero sub
+  const heroSub = document.getElementById('mgr-hero-sub');
+  if (heroSub) heroSub.textContent = active.length
+    ? `${active.length} active cycle${active.length !== 1 ? 's' : ''} · ${allRounds.length} total`
+    : 'No active cycles — create your first merry-go-round';
+
+  // Populate cycle dropdowns
+  const cycleOpts = '<option value="">Select cycle…</option>' +
+    allRounds.map(r => `<option value="${r.id}">${r.name} (${r.status})</option>`).join('');
+  ['mgr-rec-cycle', 'mgr-dis-cycle'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = cycleOpts;
+  });
+
+  // Render overview
+  renderMGROverview(allRounds);
+  await loadMGRHistory();
+}
+
+async function renderMGROverview(rounds) {
+  const listEl = document.getElementById('mgr-rounds-list');
+  if (!listEl) return;
+
+  if (!rounds.length) {
+    listEl.innerHTML = `<div class="mgr-empty">
+      <div class="mgr-empty-icon">🔄</div>
+      <div style="font-size:.95rem;font-weight:700;color:var(--ink);margin-bottom:.4rem">No cycles yet</div>
+      <div style="font-size:.8rem;color:var(--ink-faint);margin-bottom:1.25rem">Create your first rotating savings cycle to get started</div>
+      <button class="btn btn-primary" onclick="showModal('createRound')" style="width:auto;background:var(--teal)">+ Create First Cycle</button>
+    </div>`;
+    return;
+  }
+
+  // Load all slots for these rounds
+  const { data: allSlots } = await sb.from('round_slots')
+    .select('*,members(full_name,phone)')
+    .in('round_id', rounds.map(r => r.id))
+    .order('slot_number');
+
+  const { data: allContribs } = await sb.from('round_contributions')
+    .select('slot_id,contributor_member_id,amount,status')
+    .in('round_id', rounds.map(r => r.id));
+
+  listEl.innerHTML = rounds.map((r, ri) => {
+    const slots = (allSlots || []).filter(s => s.round_id === r.id);
+    const totalMembers = slots.length;
+    const received = slots.filter(s => s.received).length;
+    const currentSlot = slots.find(s => !s.received);
+    const methodLabel = r.collection_method === 'treasurer' ? '🏛 Treasurer Collects' : '📲 Members Pay Directly';
+    const methodClass = r.collection_method === 'treasurer' ? 'mgr-method-treasurer' : 'mgr-method-direct';
+
+    const slotCards = slots.map((s, si) => {
+      const contribs = (allContribs || []).filter(c => c.slot_id === s.id);
+      const paidCount = contribs.filter(c => c.status === 'paid').length;
+      const pct = totalMembers > 0 ? Math.round((paidCount / (totalMembers - 1)) * 100) : 0;
+      const isActive = !s.received && s.id === currentSlot?.id;
+      const numClass = s.received ? 'done' : isActive ? 'active-num' : 'pending';
+      const cardClass = s.received ? 'received' : isActive ? 'active-slot' : '';
+      const scheduledDate = s.scheduled_date
+        ? new Date(s.scheduled_date).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'})
+        : '—';
+
+      return `<div class="slot-card ${cardClass}">
+        <div class="slot-header">
+          <div class="slot-num ${numClass}">${s.slot_number}</div>
+          <div class="slot-name">${s.members?.full_name || '—'}</div>
+          ${isActive ? '<span class="badge badge-green" style="font-size:.58rem">Current</span>' : ''}
+          ${s.received ? '<span class="badge badge-grey" style="font-size:.58rem">✓ Received</span>' : ''}
+        </div>
+        <div class="slot-body">
+          ${!s.received ? `
+          <div class="slot-contrib-bar">
+            <div class="slot-contrib-fill" style="width:${pct}%"></div>
+          </div>
+          <div class="slot-contrib-text">
+            <span>${paidCount} of ${totalMembers > 0 ? totalMembers - 1 : 0} paid</span>
+            <span>${pct}%</span>
+          </div>` : `<div class="slot-received-badge">✓ Received ${s.received_date ? new Date(s.received_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : ''}</div>`}
+          <div class="slot-date">📅 ${scheduledDate}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="round-card" style="animation-delay:${ri*0.05}s">
+      <div class="round-card-header">
+        <div>
+          <div class="round-card-title">${r.name}</div>
+          <div class="round-card-meta">
+            Ksh ${Number(r.amount_per_member).toLocaleString()} per member · ${r.frequency}
+            · ${received}/${totalMembers} rounds complete
+            ${r.start_date ? '· Started ' + new Date(r.start_date).toLocaleDateString('en-GB',{month:'short',year:'numeric'}) : ''}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <span class="mgr-method-pill ${methodClass}">${methodLabel}</span>
+          <span class="badge ${r.status === 'active' ? 'badge-green' : 'badge-grey'}">${r.status}</span>
+          <button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteRound('${r.id}','${r.name.replace(/'/g,"&apos;")}')">✕</button>
+        </div>
+      </div>
+      <div class="slot-grid">${slotCards || '<div style="padding:1rem;color:var(--ink-faint);font-size:.8rem">No members in this cycle yet</div>'}</div>
+    </div>`;
+  }).join('');
+}
+
+async function showModal_createRound_prep() {
+  // Populate member order list
+  const orderEl = document.getElementById('cr-member-order');
+  if (orderEl && allMembers.length) {
+    orderEl.innerHTML = allMembers.map((m, i) => `
+      <div style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;background:var(--surface-2);border-radius:4px;cursor:grab" data-member-id="${m.id}">
+        <span style="font-size:.65rem;font-weight:700;color:var(--ink-faint);width:20px;text-align:center">${i+1}</span>
+        <div style="width:24px;height:24px;border-radius:50%;background:var(--teal-pale);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:var(--teal-dk)">
+          ${(m.full_name||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}
+        </div>
+        <span style="font-size:.78rem;flex:1">${m.full_name}</span>
+        <span style="font-size:.62rem;color:var(--ink-faint)">#${m.member_number||'—'}</span>
+      </div>`).join('');
+  }
+  // Set today as default start date
+  const dateEl = document.getElementById('cr-start-date');
+  if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+}
+
+// Override showModal to prep MGR form
+const _origShowModal = window.showModal;
+window.showModal = function(name) {
+  if (name === 'createRound') showModal_createRound_prep();
+  if (typeof _origShowModal === 'function') _origShowModal(name);
+};
+
+async function saveRound() {
+  const name = document.getElementById('cr-name').value.trim();
+  const amount = Number(document.getElementById('cr-amount').value);
+  const frequency = document.getElementById('cr-frequency').value;
+  const method = document.getElementById('cr-method').value;
+  const startDate = document.getElementById('cr-start-date').value;
+  const notes = document.getElementById('cr-notes').value.trim();
+
+  if (!name) { toast('Please enter a cycle name'); return; }
+  if (!amount || amount <= 0) { toast('Please enter an amount per member'); return; }
+
+  // Get member order from the list
+  const memberItems = document.querySelectorAll('#cr-member-order [data-member-id]');
+  if (!memberItems.length) { toast('No members found'); return; }
+
+  // Create the round
+  const { data: round, error } = await sb.from('savings_rounds').insert({
+    org_id: currentOrg.id,
+    name, amount_per_member: amount, frequency,
+    collection_method: method, start_date: startDate, notes,
+    status: 'active', created_by: currentUser.id
+  }).select().single();
+
+  if (error) { toast('Error creating cycle: ' + error.message); return; }
+
+  // Create slots for each member in order
+  const slots = Array.from(memberItems).map((item, idx) => {
+    const memberId = item.getAttribute('data-member-id');
+    // Calculate scheduled date based on frequency
+    const slotDate = new Date(startDate || Date.now());
+    if (frequency === 'monthly') slotDate.setMonth(slotDate.getMonth() + idx);
+    else if (frequency === 'weekly') slotDate.setDate(slotDate.getDate() + (idx * 7));
+    else if (frequency === 'fortnightly') slotDate.setDate(slotDate.getDate() + (idx * 14));
+    return {
+      round_id: round.id,
+      org_id: currentOrg.id,
+      member_id: memberId,
+      slot_number: idx + 1,
+      scheduled_date: slotDate.toISOString().split('T')[0],
+      received: false
+    };
+  });
+
+  const { error: slotErr } = await sb.from('round_slots').insert(slots);
+  if (slotErr) { toast('Cycle created but slots failed: ' + slotErr.message); }
+  else { toast(`✓ Cycle "${name}" created with ${slots.length} members`); }
+
+  closeModal('createRound');
+  document.getElementById('cr-name').value = '';
+  document.getElementById('cr-amount').value = '';
+  document.getElementById('cr-notes').value = '';
+  await loadMGR();
+}
+
+async function loadRoundSlotsForRecord(roundId) {
+  const slotSel = document.getElementById('mgr-rec-slot');
+  if (!slotSel) return;
+  if (!roundId) { slotSel.innerHTML = '<option value="">Select cycle first…</option>'; return; }
+
+  const { data: slots } = await sb.from('round_slots')
+    .select('*,members(full_name)')
+    .eq('round_id', roundId)
+    .eq('received', false)
+    .order('slot_number');
+
+  slotSel.innerHTML = '<option value="">Select receiving member…</option>' +
+    (slots || []).map(s => `<option value="${s.id}">Round ${s.slot_number} — ${s.members?.full_name || '—'}</option>`).join('');
+
+  // Set default amount from round
+  const round = allRounds.find(r => r.id === roundId);
+  const amtEl = document.getElementById('mgr-rec-amount');
+  if (amtEl && round) amtEl.value = round.amount_per_member;
+
+  // Populate member dropdown (exclude receiver)
+  const memberSel = document.getElementById('mgr-rec-member');
+  if (memberSel) {
+    memberSel.innerHTML = '<option value="">Select contributing member…</option>' +
+      allMembers.map(m => `<option value="${m.id}">${m.full_name}</option>`).join('');
+  }
+
+  // Set today
+  const dateEl = document.getElementById('mgr-rec-date');
+  if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+}
+
+async function loadContribStatusForSlot(slotId) {
+  if (!slotId) { document.getElementById('mgr-contrib-status').style.display = 'none'; return; }
+
+  const statusCard = document.getElementById('mgr-contrib-status');
+  statusCard.style.display = 'block';
+
+  // Get slot info
+  const { data: slot } = await sb.from('round_slots')
+    .select('*,members(full_name)')
+    .eq('id', slotId).maybeSingle();
+
+  const title = document.getElementById('mgr-contrib-status-title');
+  if (title && slot) title.textContent = `Round ${slot.slot_number} — ${slot.members?.full_name} receiving`;
+
+  // Get contributions for this slot
+  const { data: contribs } = await sb.from('round_contributions')
+    .select('*,members!contributor_member_id(full_name)')
+    .eq('slot_id', slotId);
+  const paidIds = new Set((contribs || []).filter(c => c.status === 'paid').map(c => c.contributor_member_id));
+
+  const meta = document.getElementById('mgr-contrib-status-meta');
+  if (meta) meta.textContent = `${paidIds.size} of ${allMembers.length - 1} members paid`;
+
+  const chips = document.getElementById('mgr-contrib-summary-chips');
+  if (chips) chips.innerHTML = `
+    <span class="badge badge-green">${paidIds.size} Paid</span>
+    <span class="badge badge-grey">${(allMembers.length - 1) - paidIds.size} Pending</span>`;
+
+  // Render per-member status (exclude receiver)
+  const receiverMemberId = slot?.member_id;
+  const grid = document.getElementById('mgr-contrib-grid');
+  if (grid) {
+    grid.innerHTML = allMembers
+      .filter(m => m.id !== receiverMemberId)
+      .map(m => {
+        const paid = paidIds.has(m.id);
+        const contrib = (contribs || []).find(c => c.contributor_member_id === m.id);
+        return `<div class="mgr-contrib-item ${paid ? 'paid' : 'pending'}">
+          <div>
+            <div class="mgr-contrib-name">${m.full_name?.split(' ')[0] || '—'}</div>
+            ${paid ? `<div style="font-size:.62rem;color:var(--teal-dk)">Ksh ${Number(contrib?.amount||0).toLocaleString()}</div>` : ''}
+          </div>
+          <div class="mgr-contrib-status ${paid ? 'paid' : 'pending'}">${paid ? '✓ Paid' : '⏳ Pending'}</div>
+        </div>`;
+      }).join('');
+  }
+}
+
+async function saveRoundContribution() {
+  const slotId = document.getElementById('mgr-rec-slot').value;
+  const memberId = document.getElementById('mgr-rec-member').value;
+  const amount = Number(document.getElementById('mgr-rec-amount').value);
+  const method = document.getElementById('mgr-rec-method').value;
+  const ref = document.getElementById('mgr-rec-ref').value.trim();
+  const date = document.getElementById('mgr-rec-date').value;
+  const roundId = document.getElementById('mgr-rec-cycle').value;
+
+  if (!slotId) { toast('Please select a round'); return; }
+  if (!memberId) { toast('Please select a member'); return; }
+  if (!amount || amount <= 0) { toast('Please enter an amount'); return; }
+
+  // Check if already paid
+  const { data: existing } = await sb.from('round_contributions')
+    .select('id').eq('slot_id', slotId).eq('contributor_member_id', memberId).eq('status','paid').maybeSingle();
+  if (existing) { toast('This member has already paid for this round'); return; }
+
+  const { error } = await sb.from('round_contributions').insert({
+    round_id: roundId,
+    slot_id: slotId,
+    org_id: currentOrg.id,
+    contributor_member_id: memberId,
+    amount, method,
+    mpesa_ref: ref || null,
+    payment_date: date || new Date().toISOString().split('T')[0],
+    status: 'paid',
+    recorded_by: currentUser.id
+  });
+
+  if (error) { toast('Error: ' + error.message); return; }
+  toast('✓ Contribution recorded');
+  await loadContribStatusForSlot(slotId);
+  await loadMGR();
+}
+
+async function loadDisbursementSlots(roundId) {
+  const slotSel = document.getElementById('mgr-dis-slot');
+  if (!slotSel) return;
+  if (!roundId) { slotSel.innerHTML = '<option value="">Select cycle first…</option>'; return; }
+
+  const { data: slots } = await sb.from('round_slots')
+    .select('*,members(full_name)')
+    .eq('round_id', roundId)
+    .order('slot_number');
+
+  slotSel.innerHTML = '<option value="">Select receiver…</option>' +
+    (slots || []).map(s => `<option value="${s.id}" ${s.received?'disabled':''}>
+      Round ${s.slot_number} — ${s.members?.full_name || '—'} ${s.received?'(Received)':''}
+    </option>`).join('');
+
+  // Auto-fill amount
+  const round = allRounds.find(r => r.id === roundId);
+  const amtEl = document.getElementById('mgr-dis-amount');
+  if (amtEl && round) {
+    const memberCount = allMembers.length;
+    amtEl.value = (memberCount - 1) * Number(round.amount_per_member);
+  }
+
+  const dateEl = document.getElementById('mgr-dis-date');
+  if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+}
+
+async function saveDisbursement() {
+  const slotId = document.getElementById('mgr-dis-slot').value;
+  const amount = Number(document.getElementById('mgr-dis-amount').value);
+  const date = document.getElementById('mgr-dis-date').value;
+  const method = document.getElementById('mgr-dis-method').value;
+  const ref = document.getElementById('mgr-dis-ref').value.trim();
+  const notes = document.getElementById('mgr-dis-notes').value.trim();
+  const roundId = document.getElementById('mgr-dis-cycle').value;
+
+  if (!slotId) { toast('Please select a round/receiver'); return; }
+  if (!amount || amount <= 0) { toast('Please enter the disbursement amount'); return; }
+
+  // Get slot to find receiving member
+  const { data: slot } = await sb.from('round_slots')
+    .select('member_id').eq('id', slotId).maybeSingle();
+  if (!slot) { toast('Slot not found'); return; }
+
+  const { error } = await sb.from('round_disbursements').insert({
+    round_id: roundId,
+    slot_id: slotId,
+    org_id: currentOrg.id,
+    receiving_member_id: slot.member_id,
+    amount, method,
+    mpesa_ref: ref || null,
+    disbursement_date: date || new Date().toISOString().split('T')[0],
+    disbursed_by: currentUser.id,
+    notes: notes || null
+  });
+  if (error) { toast('Error: ' + error.message); return; }
+
+  // Mark slot as received
+  await sb.from('round_slots').update({
+    received: true,
+    received_date: date || new Date().toISOString().split('T')[0],
+    amount_received: amount
+  }).eq('id', slotId);
+
+  toast('✓ Disbursement recorded — slot marked as received');
+  clearMgrDisForm();
+  await loadMGR();
+}
+
+async function loadMGRHistory() {
+  if (!allRounds.length) return;
+  const tbody = document.getElementById('mgr-history-table');
+  if (!tbody) return;
+
+  const { data: slots } = await sb.from('round_slots')
+    .select('*,members(full_name),savings_rounds(name,amount_per_member,collection_method)')
+    .in('round_id', allRounds.map(r => r.id))
+    .eq('received', true)
+    .order('received_date', {ascending: false});
+
+  const { data: disbs } = await sb.from('round_disbursements')
+    .select('*')
+    .in('round_id', allRounds.map(r => r.id));
+
+  if (!slots?.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--ink-faint)">No completed rounds yet</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = slots.map(s => {
+    const disb = (disbs || []).find(d => d.slot_id === s.id);
+    const round = allRounds.find(r => r.id === s.round_id);
+    const method = round?.collection_method || 'treasurer';
+    const dateStr = s.received_date
+      ? new Date(s.received_date).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'})
+      : '—';
+    const pot = disb ? Number(disb.amount).toLocaleString()
+      : method === 'direct' ? `~${((allMembers.length-1)*Number(round?.amount_per_member||0)).toLocaleString()}`
+      : '—';
+    return `<tr>
+      <td>${s.savings_rounds?.name || '—'}</td>
+      <td style="text-align:center">#${s.slot_number}</td>
+      <td><strong>${s.members?.full_name || '—'}</strong></td>
+      <td>${dateStr}</td>
+      <td>Ksh ${pot}</td>
+      <td>${method === 'direct' ? 'Members directly' : 'Treasurer'}</td>
+      <td>${disb?.method || (method === 'direct' ? 'Direct' : '—')}</td>
+      <td><span class="badge badge-green">✓ Received</span></td>
+    </tr>`;
+  }).join('');
+}
+
+async function deleteRound(id, name) {
+  if (!confirm(`Delete cycle "${name}"? This will remove all slots, contributions and disbursement records. This cannot be undone.`)) return;
+  await sb.from('round_disbursements').delete().eq('round_id', id);
+  await sb.from('round_contributions').delete().eq('round_id', id);
+  await sb.from('round_slots').delete().eq('round_id', id);
+  await sb.from('savings_rounds').delete().eq('id', id);
+  toast('Cycle deleted');
+  await loadMGR();
+}
+
+function clearMgrRecForm() {
+  ['mgr-rec-slot','mgr-rec-member'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  ['mgr-rec-amount','mgr-rec-ref'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('mgr-contrib-status').style.display = 'none';
+}
+
+function clearMgrDisForm() {
+  ['mgr-dis-slot','mgr-dis-method'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  ['mgr-dis-amount','mgr-dis-ref','mgr-dis-notes'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+}
+
 </script>
+
+
+<!-- MODAL: Create Round / MGR Cycle -->
+<div class="modal-overlay" id="modal-createRound">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-header">
+      <div class="modal-title">🔄 New Rotating Savings Cycle</div>
+      <button class="modal-close" onclick="closeModal('createRound')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="form-group">
+        <label class="form-label">Cycle Name</label>
+        <input class="form-input" id="cr-name" placeholder="e.g. 2026 MGR Cycle, January Round"/>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Amount per Member (Ksh)</label>
+          <input class="form-input" type="number" id="cr-amount" placeholder="e.g. 2000"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Frequency</label>
+          <select class="form-select" id="cr-frequency">
+            <option value="monthly">Monthly</option>
+            <option value="weekly">Weekly</option>
+            <option value="fortnightly">Fortnightly</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Start Date</label>
+        <input class="form-input" type="date" id="cr-start-date"/>
+      </div>
+
+      <!-- Collection method toggle -->
+      <div class="form-group">
+        <label class="form-label">Collection Method</label>
+        <div class="method-toggle">
+          <div class="method-opt selected" id="cr-method-treasurer" onclick="selectMgrMethod('treasurer')">
+            <div class="method-opt-icon">🏛</div>
+            <div class="method-opt-title">Treasurer Collects</div>
+            <div class="method-opt-desc">Members pay into group account. Treasurer disburses pot to receiver.</div>
+          </div>
+          <div class="method-opt" id="cr-method-direct" onclick="selectMgrMethod('direct')">
+            <div class="method-opt-icon">📲</div>
+            <div class="method-opt-title">Members Pay Directly</div>
+            <div class="method-opt-desc">Each member sends their share directly to the receiving member.</div>
+          </div>
+        </div>
+        <input type="hidden" id="cr-method" value="treasurer"/>
+      </div>
+
+      <!-- Member order -->
+      <div class="form-group">
+        <label class="form-label">Member Receiving Order</label>
+        <div style="font-size:.72rem;color:var(--ink-faint);margin-bottom:.5rem">Drag to reorder, or leave as-is for default order. Each member will receive once per cycle.</div>
+        <div id="cr-member-order" style="display:flex;flex-direction:column;gap:.35rem;max-height:200px;overflow-y:auto;border:1px solid var(--border);padding:.5rem;border-radius:4px">
+          <div style="color:var(--ink-faint);font-size:.8rem;padding:.5rem">Loading members…</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <input class="form-input" id="cr-notes" placeholder="Any additional details…"/>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveRound()" style="background:var(--teal)">Create Cycle →</button>
+      <button class="btn btn-secondary" onclick="closeModal('createRound')">Cancel</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
