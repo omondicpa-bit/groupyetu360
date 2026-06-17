@@ -615,7 +615,7 @@ async function saveSupportSettings() {
 }
 
 
-DYNAMIC ORG FINANCIAL PROFILE
+/* ════ DYNAMIC ORG FINANCIAL PROFILE ════
    Reads contribution_types to determine what this org uses
 ════════════════════════════════════════════════════ */
 let orgFinProfile = {
@@ -758,7 +758,3 @@ function renderDashboardModules(members, txns, projs) {
   const tbCard = document.getElementById('dash-tb-card');
   if (tbCard) tbCard.style.display = fp.hasTableBanking ? '' : 'none';
 }
-
-
-/* ════════════════════════════════════════════════════
-   

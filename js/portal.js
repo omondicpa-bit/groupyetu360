@@ -996,6 +996,3 @@ window.addEventListener('appinstalled', () => {
   document.getElementById('pwa-install-banner')?.remove();
   toast('GroupYetu360 installed! Find it on your home screen.');
 });
-
-/* ════════════════════════════════════════════════
-   

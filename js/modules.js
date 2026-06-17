@@ -963,7 +963,7 @@ function copyPaybill() {
 }
 
 
-ROTATING SAVINGS / MERRY-GO-ROUND FUNCTIONS
+/* ════ ROTATING SAVINGS / MERRY-GO-ROUND FUNCTIONS
 ════════════════════════════════════════════════ */
 
 let allRounds = [];
@@ -1851,7 +1851,3 @@ async function markLoanRepaid(loanId) {
   await loadTBLoans();
   await loadTableBanking();
 }
-
-
-/* ════════════════════════════════════════════════════
-   

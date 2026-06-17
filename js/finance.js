@@ -439,7 +439,7 @@ function clearPayForm() { ['pay-member','pay-type','pay-amount','pay-ref','pay-n
 function clearExpForm() { ['exp-category','exp-desc','exp-amount','exp-ref','exp-project'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; }); }
 
 
-PAYMENT REQUEST APPROVALS
+/* ════ PAYMENT REQUEST APPROVALS
 ═══════════════════════════════════════ */
 
 async function loadPendingPayments() {
@@ -726,7 +726,3 @@ async function autoLinkAdminMember() {
   await loadMyProfile();
   await loadMyContributions();
 }
-
-
-/* ════════════════════════════════════════════════════
-   

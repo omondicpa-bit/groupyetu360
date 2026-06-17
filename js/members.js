@@ -608,7 +608,7 @@ async function deleteMember() {
 }
 
 
-DYNAMIC MEMBER DETAIL — based on org financial profile
+/* ════ DYNAMIC MEMBER DETAIL — based on org financial profile
 ════════════════════════════════════════════════════ */
 function populateMemberAdjOptions() {
   const fp = orgFinProfile;
