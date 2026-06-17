@@ -1615,9 +1615,15 @@ tr:hover td{background:var(--maroon-pale)}
       <div class="brand-tagline">Community Management</div>
     </div>
     <div class="org-badge" id="sidebar-org-badge">
-      <div class="org-badge-name" id="sidebar-org-name">Loading…</div>
-      <div class="org-badge-reg" id="sidebar-org-reg"></div>
-      <div class="org-badge-plan" id="sidebar-org-plan">starter</div>
+      <button class="org-switcher-btn" onclick="toggleOrgSwitcher()" id="org-switcher-trigger">
+        <div style="flex:1;min-width:0">
+          <div class="org-badge-name" id="sidebar-org-name">Loading…</div>
+          <div class="org-badge-reg" id="sidebar-org-reg"></div>
+          <div class="org-badge-plan" id="sidebar-org-plan">starter</div>
+        </div>
+        <span class="org-switcher-arrow" id="org-switcher-arrow">▼</span>
+      </button>
+      <div class="org-switcher-dropdown" id="org-switcher-dropdown"></div>
     </div>
     <nav class="nav-section" id="sidebar-nav">
       <!-- populated by role -->
@@ -1625,11 +1631,11 @@ tr:hover td{background:var(--maroon-pale)}
     <div class="sidebar-footer">
       <div class="sidebar-user" id="sidebar-user-name">—</div>
       <div class="sidebar-role" id="sidebar-user-role">—</div>
-      <a href="https://app.groupyetu.org" onclick="switchToNewOrg(event)"
+      <a onclick="registerAnotherOrg()"
         style="display:flex;align-items:center;gap:.5rem;font-size:.72rem;color:rgba(255,255,255,.5);cursor:pointer;margin-bottom:.5rem;text-decoration:none;transition:color .15s;padding:.3rem 0"
         onmouseover="this.style.color='var(--gold-lt)'" onmouseout="this.style.color='rgba(255,255,255,.5)'">
-        <span style="font-size:.9rem">🌱</span>
-        <span id="sidebar-new-group-label">Start a New Group</span>
+        <span style="font-size:.9rem">＋</span>
+        <span id="sidebar-new-group-label">Register Another Group</span>
       </a>
       <span class="sidebar-logout" onclick="signOut()">⎋ Sign Out</span>
     </div>
@@ -4107,13 +4113,35 @@ async function loadProfileAndOrg() {
     return;
   }
 
-  if (!profile.org_id) {
+  // Check how many orgs this user belongs to
+  let userOrgCount = 0;
+  try {
+    const { data: uoRows } = await sb.from('user_orgs')
+      .select('org_id').eq('user_id', currentUser.id);
+    userOrgCount = uoRows?.length || 0;
+    if (uoRows?.length) {
+      _userOrgs = []; // will be populated in showOrgPicker
+    }
+  } catch(e) { /* user_orgs table may not exist yet */ }
+
+  if (!profile.org_id || userOrgCount > 1) {
+    // Multiple orgs or no org — show picker
     showOrgPicker();
     return;
   }
+
+  // Single org — go straight in
   const { data: org } = await sb.from('organisations').select('*').eq('id', profile.org_id).single();
   currentOrg = org;
+  // Ensure user_orgs entry exists
+  try {
+    await sb.from('user_orgs').upsert({
+      user_id: currentUser.id, org_id: org.id, role: profile.role
+    });
+    _userOrgs = [{ ...org, _role: profile.role }];
+  } catch(e) {}
   showApp();
+  buildOrgSwitcherDropdown();
 }
 
 // ── AUTH SCREEN ──
@@ -4215,6 +4243,13 @@ async function joinOrg() {
     full_name: name,
     phone
   });
+
+  // Add to user_orgs as pending
+  try {
+    await sb.from('user_orgs').upsert({
+      user_id: authData.user.id, org_id: joinSelectedOrgId, role: 'pending'
+    });
+  } catch(e) {}
 
   // Create pending member request
   await sb.from('pending_members').insert({
@@ -4492,6 +4527,13 @@ async function registerOrg() {
   });
   if (profileErr) console.error('Profile error:', profileErr);
 
+  // Add to user_orgs junction table
+  try {
+    await sb.from('user_orgs').upsert({
+      user_id: authData.user.id, org_id: org.id, role: 'admin'
+    });
+  } catch(e) { console.log('user_orgs upsert:', e.message); }
+
   sucEl.textContent = 'Organisation created! Signing you in…';
   sucEl.classList.add('show');
 
@@ -4505,28 +4547,200 @@ async function registerOrg() {
   }, 1200);
 }
 
+/* ════════════════════════════════════════════════
+   MULTI-ORG WORKSPACE SYSTEM
+════════════════════════════════════════════════ */
+
+let _userOrgs = []; // all orgs this user belongs to
+
+async function loadUserOrgs() {
+  if (!currentUser?.id) return [];
+  // Try user_orgs table first
+  try {
+    const { data: rows } = await sb.from('user_orgs')
+      .select('org_id, role, organisations(*)')
+      .eq('user_id', currentUser.id);
+    if (rows?.length) {
+      _userOrgs = rows.map(r => ({ ...r.organisations, _role: r.role }));
+      return _userOrgs;
+    }
+  } catch(e) { /* table may not exist yet */ }
+
+  // Fallback: use profile's org_id
+  if (currentProfile?.org_id) {
+    const { data: org } = await sb.from('organisations').select('*').eq('id', currentProfile.org_id).single();
+    if (org) {
+      _userOrgs = [{ ...org, _role: currentProfile.role }];
+      return _userOrgs;
+    }
+  }
+  return [];
+}
+
 async function showOrgPicker() {
-  // Only show for superadmin or users genuinely without an org
-  const { data: orgs } = await sb.from('organisations').select('*').eq('status','active');
-  document.getElementById('auth-screen').style.display = 'flex';
+  // Hide all screens, show picker
+  document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app-screen').classList.remove('visible');
-  document.getElementById('auth-step-1').style.display = 'none';
-  document.getElementById('auth-step-2').style.display = 'block';
-  const list = document.getElementById('org-select-list');
-  list.innerHTML = (orgs||[]).map(o => `
-    <div class="org-option" onclick="selectOrg('${o.id}')">
-      <div class="org-option-name">${o.name}</div>
-      <div class="org-option-meta">${o.reg_number||''} · ${o.plan} plan</div>
-    </div>`).join('');
+  const picker = document.getElementById('org-picker-screen');
+  if (picker) picker.style.display = 'flex';
+
+  // Set user name
+  const nameEl = document.getElementById('org-picker-user-name');
+  if (nameEl) nameEl.textContent = currentProfile?.full_name || currentUser?.email || 'there';
+
+  // Load orgs
+  const orgs = await loadUserOrgs();
+  const listEl = document.getElementById('org-picker-list');
+  if (!listEl) return;
+
+  if (!orgs.length) {
+    listEl.innerHTML = `<div style="text-align:center;padding:2rem;color:rgba(255,255,255,.5)">
+      <div style="font-size:1.5rem;margin-bottom:.5rem">🏛</div>
+      <div style="font-size:.82rem">You're not part of any organisation yet.</div>
+      <div style="font-size:.75rem;margin-top:.35rem">Register a new one below.</div>
+    </div>`;
+    return;
+  }
+
+  listEl.innerHTML = orgs.map((org, i) => {
+    const initials = org.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const roleClass = ['admin','officer','treasurer'].includes(org._role) ? 'admin' : 'member';
+    const roleLabel = org._role?.charAt(0).toUpperCase() + org._role?.slice(1) || 'Member';
+    const plan = (org.plan||'starter').toUpperCase();
+    return `<div class="org-picker-item" onclick="selectOrg('${org.id}')" style="animation-delay:${i*0.06}s">
+      <div class="opi-icon ${roleClass === 'admin' ? '' : 'teal'}">${initials}</div>
+      <div style="flex:1;min-width:0">
+        <div class="opi-name">${org.name}</div>
+        <div class="opi-meta">
+          <span>${org.org_code || org.reg_number || '—'}</span>
+          <span>·</span>
+          <span>${plan}</span>
+          <span class="opi-role ${roleClass}">${roleLabel}</span>
+        </div>
+      </div>
+      <div class="opi-arrow">›</div>
+    </div>`;
+  }).join('');
 }
 
 async function selectOrg(orgId) {
+  // Update active org in profile
   await sb.from('profiles').update({ org_id: orgId }).eq('id', currentUser.id);
   const { data: org } = await sb.from('organisations').select('*').eq('id', orgId).single();
   currentOrg = org;
-  const { data: profile } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
+  const { data: profile } = await sb.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
   currentProfile = profile;
+
+  // Hide picker, show app
+  const picker = document.getElementById('org-picker-screen');
+  if (picker) picker.style.display = 'none';
   showApp();
+  buildOrgSwitcherDropdown();
+}
+
+async function switchOrg(orgId) {
+  if (orgId === currentOrg?.id) { closeOrgSwitcher(); return; }
+  toast('Switching workspace…');
+  await selectOrg(orgId);
+  showPage('dashboard');
+}
+
+function toggleOrgSwitcher() {
+  const dd = document.getElementById('org-switcher-dropdown');
+  const arrow = document.getElementById('org-switcher-arrow');
+  const isOpen = dd?.classList.contains('open');
+  if (isOpen) { closeOrgSwitcher(); return; }
+  dd?.classList.add('open');
+  if (arrow) arrow.style.transform = 'rotate(180deg)';
+  buildOrgSwitcherDropdown();
+}
+
+function closeOrgSwitcher() {
+  const dd = document.getElementById('org-switcher-dropdown');
+  const arrow = document.getElementById('org-switcher-arrow');
+  dd?.classList.remove('open');
+  if (arrow) arrow.style.transform = '';
+}
+
+function buildOrgSwitcherDropdown() {
+  const dd = document.getElementById('org-switcher-dropdown');
+  if (!dd) return;
+  const orgs = _userOrgs.filter(o => o.id !== currentOrg?.id);
+  let html = '';
+  if (orgs.length) {
+    html += '<div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.3);padding:.2rem .4rem .4rem">Switch to</div>';
+    html += orgs.map(o => {
+      const initials = o.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+      return `<div class="osd-item" onclick="switchOrg('${o.id}')">
+        <div style="width:20px;height:20px;border-radius:4px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:700;color:#fff;flex-shrink:0">${initials}</div>
+        <span>${o.name}</span>
+      </div>`;
+    }).join('');
+    html += '<div style="height:1px;background:rgba(255,255,255,.1);margin:.35rem 0"></div>';
+  }
+  html += `<div class="osd-item osd-add" onclick="registerAnotherOrg()">＋ Add organisation</div>`;
+  html += `<div class="osd-item" onclick="showAllOrgs()">⊞ All workspaces</div>`;
+  dd.innerHTML = html;
+}
+
+function showAllOrgs() {
+  closeOrgSwitcher();
+  showOrgPicker();
+}
+
+function registerAnotherOrg() {
+  closeOrgSwitcher();
+  showModal('registerNewOrg');
+}
+
+function showOrgPickerRegister() {
+  const picker = document.getElementById('org-picker-screen');
+  if (picker) picker.style.display = 'none';
+  showModal('registerNewOrg');
+}
+
+async function registerNewOrg() {
+  const name = document.getElementById('new-org-name').value.trim();
+  const plan = document.getElementById('new-org-plan').value;
+  const role = document.getElementById('new-org-role').value;
+  const errEl = document.getElementById('new-org-error');
+  const sucEl = document.getElementById('new-org-success');
+  errEl.classList.remove('show'); sucEl.classList.remove('show');
+
+  if (!name) { errEl.textContent='Please enter an organisation name'; errEl.classList.add('show'); return; }
+
+  const orgCode = 'GY' + Math.random().toString(36).toUpperCase().slice(2,6);
+  const { data: org, error: orgErr } = await sb.from('organisations')
+    .insert({ name, plan, status:'active', org_code: orgCode, subscription_status:'trial',
+      trial_ends_at: new Date(Date.now() + 60*24*60*60*1000).toISOString() })
+    .select().single();
+
+  if (orgErr) { errEl.textContent='Error: '+orgErr.message; errEl.classList.add('show'); return; }
+
+  // Add to user_orgs
+  await sb.from('user_orgs').upsert({ user_id: currentUser.id, org_id: org.id, role });
+
+  // Update profile role for this new org
+  await sb.from('profiles').upsert({
+    id: currentUser.id, org_id: org.id, role,
+    full_name: currentProfile?.full_name || ''
+  });
+
+  sucEl.textContent = '✓ Organisation created! Switching to it now…';
+  sucEl.classList.add('show');
+
+  // Log activity
+  await logActivity('ORG CREATED', `New organisation created: ${name}`);
+
+  setTimeout(async () => {
+    closeModal('registerNewOrg');
+    // Reload user orgs and switch to new one
+    await loadUserOrgs();
+    buildOrgSwitcherDropdown();
+    await selectOrg(org.id);
+    showPage('dashboard');
+    toast(`✓ Welcome to ${name}!`);
+  }, 1200);
 }
 
 function toggleSidebar() {
@@ -9678,6 +9892,150 @@ function clearMgrDisForm() {
 .method-opt-title{font-size:.8rem;font-weight:600;color:var(--ink);margin-bottom:.2rem}
 .method-opt-desc{font-size:.68rem;color:var(--ink-faint);line-height:1.4}
 .method-opt.selected .method-opt-title{color:var(--teal-dk)}
+
+/* ════════════════════════════════════════════
+   ORG PICKER / WORKSPACE SWITCHER
+════════════════════════════════════════════ */
+@keyframes pickerFadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes orgCardIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+.org-picker-screen{
+  position:fixed;inset:0;z-index:9000;
+  background:linear-gradient(160deg,#2a0008 0%,#5c0018 35%,#800020 60%,#063d2e 100%);
+  background-size:200% 200%;
+  animation:gradientShift 10s ease infinite;
+  display:none;align-items:center;justify-content:center;
+  padding:1.5rem
+}
+.org-picker-inner{
+  width:100%;max-width:560px;
+  animation:pickerFadeUp .5s ease both
+}
+.org-picker-brand{
+  text-align:center;margin-bottom:2rem
+}
+.org-picker-brand-name{
+  font-family:'Crimson Pro',serif;font-size:2rem;font-weight:700;color:#fff;
+  margin-bottom:.2rem
+}
+.org-picker-brand-name span{color:var(--gold-lt)}
+.org-picker-brand-tag{font-size:.72rem;color:rgba(255,255,255,.4);letter-spacing:.15em;text-transform:uppercase}
+.org-picker-card{
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:16px;
+  padding:1.75rem;
+  backdrop-filter:blur(10px);
+  box-shadow:0 24px 64px rgba(0,0,0,.3)
+}
+.org-picker-welcome{
+  font-size:.78rem;color:rgba(255,255,255,.5);margin-bottom:.25rem
+}
+.org-picker-user{
+  font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:#fff;
+  margin-bottom:1.25rem
+}
+.org-picker-label{
+  font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;
+  color:rgba(255,255,255,.4);margin-bottom:.65rem
+}
+.org-picker-list{
+  display:flex;flex-direction:column;gap:.5rem;
+  max-height:320px;overflow-y:auto;
+  margin-bottom:1.25rem
+}
+.org-picker-list::-webkit-scrollbar{width:4px}
+.org-picker-list::-webkit-scrollbar-track{background:rgba(255,255,255,.05)}
+.org-picker-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:2px}
+.org-picker-item{
+  display:flex;align-items:center;gap:.85rem;
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:10px;padding:.9rem 1.1rem;
+  cursor:pointer;transition:all .18s;
+  animation:orgCardIn .35s ease both
+}
+.org-picker-item:hover{
+  background:rgba(255,255,255,.14);
+  border-color:rgba(255,255,255,.25);
+  transform:translateX(4px)
+}
+.org-picker-item:active{transform:translateX(2px)}
+.opi-icon{
+  width:42px;height:42px;border-radius:10px;
+  background:linear-gradient(135deg,var(--maroon),#5a0016);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Crimson Pro',serif;font-size:1.1rem;font-weight:700;
+  color:#fff;flex-shrink:0
+}
+.opi-icon.teal{background:linear-gradient(135deg,var(--teal),var(--teal-dk))}
+.opi-name{font-size:.88rem;font-weight:700;color:#fff;margin-bottom:.2rem}
+.opi-meta{font-size:.68rem;color:rgba(255,255,255,.45);display:flex;gap:.5rem;flex-wrap:wrap}
+.opi-role{
+  font-size:.6rem;font-weight:700;padding:.15rem .45rem;border-radius:3px;
+  background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.06em
+}
+.opi-role.admin{background:rgba(196,154,48,.2);color:var(--gold-lt)}
+.opi-role.member{background:rgba(31,158,117,.2);color:var(--teal-mid)}
+.opi-arrow{color:rgba(255,255,255,.3);font-size:1.1rem;margin-left:auto;flex-shrink:0;transition:color .15s}
+.org-picker-item:hover .opi-arrow{color:rgba(255,255,255,.8)}
+.org-picker-divider{
+  display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;
+  color:rgba(255,255,255,.25);font-size:.68rem
+}
+.org-picker-divider::before,.org-picker-divider::after{
+  content:'';flex:1;height:1px;background:rgba(255,255,255,.1)
+}
+.btn-new-org{
+  display:flex;align-items:center;justify-content:center;gap:.6rem;
+  width:100%;padding:.75rem;
+  background:rgba(255,255,255,.08);
+  border:1.5px dashed rgba(255,255,255,.2);
+  border-radius:10px;cursor:pointer;
+  font-size:.82rem;font-weight:600;color:rgba(255,255,255,.75);
+  font-family:'Inter',sans-serif;
+  transition:all .18s
+}
+.btn-new-org:hover{
+  background:rgba(255,255,255,.14);
+  border-color:rgba(255,255,255,.4);
+  color:#fff
+}
+.org-picker-footer{
+  text-align:center;margin-top:1.1rem
+}
+.org-picker-footer a{
+  font-size:.72rem;color:rgba(255,255,255,.35);cursor:pointer;
+  transition:color .15s;text-decoration:none
+}
+.org-picker-footer a:hover{color:rgba(255,255,255,.65)}
+
+/* ── Org switcher in sidebar ── */
+.org-switcher-btn{
+  display:flex;align-items:center;gap:.5rem;
+  width:100%;background:transparent;border:none;
+  cursor:pointer;padding:0;text-align:left
+}
+.org-switcher-arrow{
+  font-size:.6rem;color:rgba(255,255,255,.3);
+  transition:transform .2s;flex-shrink:0
+}
+.org-switcher-dropdown{
+  display:none;flex-direction:column;gap:.25rem;
+  margin-top:.5rem;padding:.5rem;
+  background:rgba(0,0,0,.3);border-radius:8px
+}
+.org-switcher-dropdown.open{display:flex}
+.osd-item{
+  padding:.45rem .65rem;border-radius:5px;cursor:pointer;
+  font-size:.72rem;color:rgba(255,255,255,.65);
+  transition:background .12s;display:flex;align-items:center;gap:.5rem
+}
+.osd-item:hover{background:rgba(255,255,255,.1);color:#fff}
+.osd-item.current{background:rgba(31,158,117,.15);color:var(--teal-mid)}
+.osd-add{color:rgba(196,154,48,.7) !important;font-style:italic}
+.osd-add:hover{color:var(--gold-lt) !important}
+
 </style>
 <div id="support-fab">
   <div id="support-fab-menu">
@@ -9966,7 +10324,8 @@ async function declinePaymentRequest(requestId) {
 }
 
 
-function switchToNewOrg(e) {
+function switchToNewOrg(e) { e.preventDefault(); registerAnotherOrg(); } // legacy
+function _switchToNewOrg_legacy(e) {
   e.preventDefault();
   const role = currentProfile?.role;
   const isAdmin = ['admin','officer','treasurer'].includes(role);
@@ -10093,6 +10452,77 @@ async function autoLinkAdminMember() {
     <div class="modal-footer">
       <button class="btn btn-primary" onclick="saveRound()" style="background:var(--teal)">Create Cycle →</button>
       <button class="btn btn-secondary" onclick="closeModal('createRound')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ ORG PICKER SCREEN ══ -->
+<div class="org-picker-screen" id="org-picker-screen">
+  <div class="org-picker-inner">
+    <div class="org-picker-brand">
+      <div class="org-picker-brand-name">GroupYetu<span>360</span></div>
+      <div class="org-picker-brand-tag">Community Management</div>
+    </div>
+    <div class="org-picker-card">
+      <div class="org-picker-welcome">Welcome back,</div>
+      <div class="org-picker-user" id="org-picker-user-name">—</div>
+      <div class="org-picker-label">Choose a workspace</div>
+      <div class="org-picker-list" id="org-picker-list">
+        <div class="loading" style="padding:1.5rem;text-align:center"><div class="spinner"></div></div>
+      </div>
+      <div class="org-picker-divider">or</div>
+      <button class="btn-new-org" onclick="showOrgPickerRegister()">
+        <span style="font-size:1.1rem">＋</span>
+        Register a New Organisation
+      </button>
+      <div class="org-picker-footer">
+        <a onclick="signOut()">Sign out of GroupYetu360</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ REGISTER NEW ORG MODAL (from within app) ══ -->
+<div class="modal-overlay" id="modal-registerNewOrg">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div class="modal-title">＋ Register New Organisation</div>
+      <button class="modal-close" onclick="closeModal('registerNewOrg')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-info" style="margin-bottom:1rem">
+        Your current account will be linked to this new organisation too. You can switch between them any time.
+      </div>
+      <div class="form-group">
+        <label class="form-label">Organisation Name</label>
+        <input class="form-input" id="new-org-name" placeholder="e.g. Westlands Investment Chama"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Plan</label>
+          <select class="form-select" id="new-org-plan">
+            <option value="starter">Starter — Free</option>
+            <option value="basic">Basic — Ksh 3,000/yr</option>
+            <option value="standard" selected>Standard — Ksh 6,000/yr</option>
+            <option value="pro">Pro — Ksh 12,000/yr</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Your Role</label>
+          <select class="form-select" id="new-org-role">
+            <option value="admin">Admin / Chairman</option>
+            <option value="treasurer">Treasurer</option>
+            <option value="officer">Secretary / Officer</option>
+          </select>
+        </div>
+      </div>
+      <div class="auth-error" id="new-org-error"></div>
+      <div class="auth-success" id="new-org-success"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="registerNewOrg()" style="background:var(--teal)">Create Organisation →</button>
+      <button class="btn btn-secondary" onclick="closeModal('registerNewOrg')">Cancel</button>
     </div>
   </div>
 </div>
