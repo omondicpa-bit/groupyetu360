@@ -3174,9 +3174,9 @@ tr:hover td{background:var(--maroon-pale)}
             <div class="card-body" id="mp-payment-methods">
               <div class="loading"><div class="spinner"></div></div>
             </div>
-            <div style="padding:.75rem 1.25rem;border-top:1px solid var(--border);background:var(--surface-2)">
+            <div style="padding:.75rem 1.25rem;border-top:1px solid var(--border);background:var(--surface-2)" id="mp-savings-tier-panel">
               <div style="font-size:.75rem;color:var(--ink-soft);line-height:1.8">
-                Savings/mo: <strong id="mp-savings-tier">—</strong> &nbsp;·&nbsp; Reg. fee: <span id="mp-reg-status">—</span>
+                <span id="mp-savings-tier-label">Savings/mo:</span> <strong id="mp-savings-tier">—</strong> &nbsp;·&nbsp; Reg. fee: <span id="mp-reg-status">—</span>
               </div>
             </div>
           </div>
@@ -3230,12 +3230,12 @@ tr:hover td{background:var(--maroon-pale)}
     <!-- MEMBER: MY CONTRIBUTIONS -->
     <div class="page" id="page-my_contributions">
       <div class="section-header"><div><div class="section-title">My Contributions</div><div class="section-sub">Your payment history and balances</div></div></div>
-      <!-- Summary stats -->
-      <div class="stats-row" style="grid-template-columns:repeat(4,1fr)">
+      <!-- Summary stats — dynamic based on org type -->
+      <div class="stats-row" id="mc-stats-row" style="grid-template-columns:repeat(4,1fr)">
         <div class="stat-card"><div class="stat-label">Total Paid (All Time)</div><div class="stat-value" id="mc-total" style="font-size:1.3rem">—</div></div>
         <div class="stat-card gold"><div class="stat-label">This Year</div><div class="stat-value" id="mc-year" style="font-size:1.3rem">—</div></div>
-        <div class="stat-card" style="border-top-color:var(--maroon)"><div class="stat-label">Shares Balance</div><div class="stat-value" id="mc-shares-bal" style="font-size:1.3rem;color:var(--maroon)">—</div></div>
-        <div class="stat-card green"><div class="stat-label">Savings Balance</div><div class="stat-value" id="mc-savings-bal" style="font-size:1.3rem">—</div></div>
+        <div class="stat-card" id="mc-shares-card" style="border-top-color:var(--maroon)"><div class="stat-label" id="mc-shares-label">Shares Balance</div><div class="stat-value" id="mc-shares-bal" style="font-size:1.3rem;color:var(--maroon)">—</div></div>
+        <div class="stat-card green" id="mc-savings-card"><div class="stat-label" id="mc-savings-label">Savings Balance</div><div class="stat-value" id="mc-savings-bal" style="font-size:1.3rem">—</div></div>
       </div>
       <!-- Pending payment notice -->
       <div id="mc-pending-notice" style="margin-bottom:1rem;display:none"></div>
@@ -8211,6 +8211,9 @@ async function loadMyProfile() {
   }
     document.getElementById('mp-status').innerHTML = `<span class="badge ${myRecord.status==='active'?'badge-green':myRecord.status==='arrears'?'badge-warn':'badge-grey'}">${myRecord.status}</span>`;
     document.getElementById('mp-savings-tier').textContent = 'Ksh ' + (myRecord.savings_tier||500).toLocaleString() + '/mo';
+    // Hide savings/mo panel if org has no savings type
+    const savingsTierPanel = document.getElementById('mp-savings-tier-panel');
+    if (savingsTierPanel) savingsTierPanel.style.display = orgFinProfile.hasSavings ? '' : 'none';
     document.getElementById('mp-reg-status').innerHTML = myRecord.registration_paid ?
       '<span class="badge badge-green">Paid ✓</span>' : '<span class="badge badge-warn">Pending</span>';
     document.getElementById('mp-details').innerHTML = `
@@ -8225,16 +8228,18 @@ async function loadMyProfile() {
 
     // Load contribution summary
     const summaryEl = document.getElementById('mp-contrib-summary');
-    if (summaryEl && myRecord.id) {
+    let totalContributed = 0;
+    if (myRecord.id) {
       const { data: myTxns } = await sb.from('transactions')
-        .select('amount,contribution_types(name)').eq('member_id', myRecord.id);
+        .select('amount,contribution_types(name)').eq('member_id', myRecord.id).eq('org_id', currentOrg.id);
+      totalContributed = (myTxns||[]).reduce((s,t)=>s+Number(t.amount||0),0);
       const catTotals = {};
       (myTxns||[]).forEach(t => {
         const cat = t.contribution_types?.name || 'Other';
         catTotals[cat] = (catTotals[cat]||0) + Number(t.amount||0);
       });
       const entries = Object.entries(catTotals);
-      summaryEl.innerHTML = entries.length ?
+      if (summaryEl) summaryEl.innerHTML = entries.length ?
         entries.map(([cat,total])=>`
           <div style="display:flex;justify-content:space-between;padding:.35rem 0;border-bottom:1px solid var(--border)">
             <span style="color:var(--ink-soft)">${cat}</span>
@@ -8242,6 +8247,11 @@ async function loadMyProfile() {
           </div>`).join('') :
         '<span style="color:var(--ink-faint)">No contributions recorded yet</span>';
     }
+
+    // ── Dynamic balance cards ──
+    // Ensure financial profile is loaded before rendering cards
+    if (!orgFinProfile.allLoaded) await loadOrgFinancialProfile();
+    renderMemberBalanceCards(myRecord, totalContributed);
     // ── Set hero ──
     const initials = myRecord.full_name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
     const avatarEl = document.getElementById('mp-hero-avatar');
@@ -8250,9 +8260,6 @@ async function loadMyProfile() {
     if (nameEl) nameEl.textContent = myRecord.full_name;
     const numEl = document.getElementById('mp-number');
     if (numEl) numEl.textContent = 'Member #' + (myRecord.member_number||'—');
-    const totalBal = Number(myRecord.shares_balance||0) + Number(myRecord.savings_balance||0);
-    const totalEl = document.getElementById('mp-total-bal-display');
-    if (totalEl) totalEl.textContent = 'Ksh ' + totalBal.toLocaleString();
     // Hero chips
     const chipsEl = document.getElementById('mp-hero-chips');
     if (chipsEl) {
@@ -8263,14 +8270,18 @@ async function loadMyProfile() {
         ${myRecord.registration_paid?'<div class="mp-hero-chip teal">✓ Registered</div>':'<div class="mp-hero-chip gold">⚠ Unregistered</div>'}
       `;
     }
-    // Details table
+    // Details table — hide Savings/mo if org has no savings
+    const fp = orgFinProfile;
     const joinDate = myRecord.join_date ? new Date(myRecord.join_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : '—';
+    const savingsRow = fp.hasSavings
+      ? `<tr><td style="padding:.45rem 0;font-size:.75rem;color:var(--ink-faint)">Savings/mo</td><td><strong style="color:var(--teal)">Ksh ${Number(myRecord.savings_tier||0).toLocaleString()}</strong></td></tr>`
+      : '';
     document.getElementById('mp-details').innerHTML = `
       <tr><td style="padding:.45rem 0;font-size:.75rem;color:var(--ink-faint);width:110px">Full Name</td><td style="font-size:.85rem;font-weight:600">${myRecord.full_name}</td></tr>
       <tr><td style="padding:.45rem 0;font-size:.75rem;color:var(--ink-faint)">Phone</td><td style="font-size:.85rem">${myRecord.phone||'—'}</td></tr>
       <tr><td style="padding:.45rem 0;font-size:.75rem;color:var(--ink-faint)">ID Number</td><td style="font-size:.85rem">${myRecord.id_number||'—'}</td></tr>
       <tr><td style="padding:.45rem 0;font-size:.75rem;color:var(--ink-faint)">Joined</td><td style="font-size:.85rem">${joinDate}</td></tr>
-      <tr><td style="padding:.45rem 0;font-size:.75rem;color:var(--ink-faint)">Savings/mo</td><td><strong style="color:var(--teal)">Ksh ${Number(myRecord.savings_tier||0).toLocaleString()}</strong></td></tr>`;
+      ${savingsRow}`;
 
   } else {
     window._myMemberId = null;
@@ -8339,21 +8350,32 @@ async function loadMyContributions() {
   if (countLabel) countLabel.textContent = txns.length + ' payments recorded';
   // Dynamic stat cards based on org type
   const fp2 = orgFinProfile;
+  const mcSharesCard = document.getElementById('mc-shares-card');
+  const mcSavingsCard = document.getElementById('mc-savings-card');
+  const mcStatsRow = document.getElementById('mc-stats-row');
+
   if (fp2.hasShares) {
+    if (mcSharesCard) mcSharesCard.style.display = '';
+    const lbl = document.getElementById('mc-shares-label');
+    if (lbl) lbl.textContent = fp2.sharesLabel || 'Shares Balance';
     setEl('mc-shares-bal', 'Ksh ' + Number(mem?.shares_balance||0).toLocaleString());
-    const sharesCard = document.getElementById('mc-shares-card');
-    if (sharesCard) { sharesCard.style.display=''; document.querySelector('#mc-shares-card .mc-stat-label').textContent = fp2.sharesLabel; }
   } else {
-    const sharesCard = document.getElementById('mc-shares-card');
-    if (sharesCard) sharesCard.style.display = 'none';
+    if (mcSharesCard) mcSharesCard.style.display = 'none';
   }
+
   if (fp2.hasSavings) {
+    if (mcSavingsCard) mcSavingsCard.style.display = '';
+    const lbl = document.getElementById('mc-savings-label');
+    if (lbl) lbl.textContent = fp2.savingsLabel || 'Savings Balance';
     setEl('mc-savings-bal', 'Ksh ' + Number(mem?.savings_balance||0).toLocaleString());
-    const savingsCard = document.getElementById('mc-savings-card');
-    if (savingsCard) { savingsCard.style.display=''; document.querySelector('#mc-savings-card .mc-stat-label').textContent = fp2.savingsLabel; }
   } else {
-    const savingsCard = document.getElementById('mc-savings-card');
-    if (savingsCard) savingsCard.style.display = 'none';
+    if (mcSavingsCard) mcSavingsCard.style.display = 'none';
+  }
+
+  // Adjust grid columns based on visible cards
+  if (mcStatsRow) {
+    const visibleCards = 2 + (fp2.hasShares ? 1 : 0) + (fp2.hasSavings ? 1 : 0);
+    mcStatsRow.style.gridTemplateColumns = `repeat(${visibleCards}, 1fr)`;
   }
 
   // Check for pending payment requests
