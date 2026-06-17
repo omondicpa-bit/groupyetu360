@@ -7694,6 +7694,20 @@ async function saveMemberDetail() {
   loadMembers();
 }
 
+// Helper: link a user (by their auth UUID) to this org via SECURITY DEFINER RPC
+// This bypasses RLS — the SQL function checks admin role server-side
+async function linkUserToOrg(userId, role, fullName, phone) {
+  const { data, error } = await sb.rpc('link_member_to_org', {
+    p_user_id:   userId,
+    p_org_id:    currentOrg.id,
+    p_role:      role || 'member',
+    p_full_name: fullName || '',
+    p_phone:     phone || '',
+  });
+  if (error) return { success: false, error: error.message };
+  return data || { success: true };
+}
+
 async function sendMemberPortalInvite() {
   if (!currentMemberId) return;
   const emailInput = document.getElementById('md-edit-email');
@@ -7708,116 +7722,65 @@ async function sendMemberPortalInvite() {
   };
   setStatus('⏳ Processing…', true);
 
-  // Save email to member record first
   await sb.from('members').update({ portal_email: email }).eq('id', currentMemberId);
   const { data: m } = await sb.from('members').select('full_name,phone').eq('id', currentMemberId).single();
   const appUrl = 'https://app.groupyetu.org/';
 
   try {
-    // ── STEP 1: Look up existing profile by phone number ──────────────
-    // Phone is the reliable cross-org identifier.
-    // If a profile exists with this phone, the user already has a GY360 account.
+    // ── Look up existing user by phone in profiles ────────────────────
     let existingUserId = null;
 
     if (m?.phone) {
       const { data: phoneMatches } = await sb.from('profiles')
-        .select('id, org_id')
-        .eq('phone', m.phone);
+        .select('id, org_id').eq('phone', m.phone);
 
       if (phoneMatches && phoneMatches.length > 0) {
-        // Check if already in THIS org
         const alreadyHere = phoneMatches.find(p => p.org_id === currentOrg.id);
         if (alreadyHere) {
           setStatus('✓ Already has portal access to this organisation', true);
           toast((m.full_name || 'Member') + ' already has portal access here');
           return;
         }
-        // Found in another org — grab their user id
         existingUserId = phoneMatches[0].id;
       }
     }
 
-    // ── STEP 2: Also check by portal_email across members ────────────
-    // Catches the case where phone isn't set but email matches
-    if (!existingUserId) {
-      const { data: emailMembers } = await sb.from('members')
-        .select('id, org_id, portal_email')
-        .eq('portal_email', email)
-        .neq('id', currentMemberId);
-
-      if (emailMembers && emailMembers.length > 0) {
-        // Find their profile from the other org
-        const otherOrgIds = emailMembers.map(mm => mm.org_id);
-        const { data: emailProfiles } = await sb.from('profiles')
-          .select('id, org_id')
-          .in('org_id', otherOrgIds);
-
-        if (emailProfiles && emailProfiles.length > 0) {
-          const alreadyHere = emailProfiles.find(p => p.org_id === currentOrg.id);
-          if (alreadyHere) {
-            setStatus('✓ Already has portal access to this organisation', true);
-            toast((m.full_name || 'Member') + ' already has portal access here');
-            return;
-          }
-          existingUserId = emailProfiles[0].id;
-        }
-      }
-    }
-
     if (existingUserId) {
-      // ── EXISTING USER: add this org to their workspaces ──────────────
-      const { error: profileErr } = await sb.from('profiles').insert({
-        id: existingUserId,
-        org_id: currentOrg.id,
-        role: 'member',
-        full_name: m?.full_name || '',
-        phone: m?.phone || '',
-      });
-
-      if (profileErr && profileErr.code === '23505') {
-        // Unique constraint — they're already in this org
-        setStatus('✓ Already has portal access to this organisation', true);
-        toast((m?.full_name || 'Member') + ' already has access here');
-      } else if (profileErr) {
-        setStatus('✗ Could not link: ' + profileErr.message, false);
-        toast('Error: ' + profileErr.message);
-      } else {
+      // ── EXISTING USER — link via RPC (bypasses RLS) ──────────────────
+      const result = await linkUserToOrg(existingUserId, 'member', m?.full_name, m?.phone);
+      if (result.success) {
         setStatus('✓ Linked — this org added to their workspaces', true);
-        toast('✓ ' + (m?.full_name || 'Member') + ' linked — they can now switch to this org after next login');
-        await logActivity('PORTAL LINKED', 'Linked existing account ' + email + ' to this org', 'member', currentMemberId);
+        toast('✓ ' + (m?.full_name || 'Member') + ' linked — they can switch to this org at next login');
+        await logActivity('PORTAL LINKED', 'Linked ' + email + ' to this org', 'member', currentMemberId);
+      } else {
+        setStatus('✗ ' + (result.error || 'Link failed'), false);
+        toast('Error: ' + (result.error || 'Link failed'));
       }
 
     } else {
-      // ── NEW USER: create account + send password-set email ────────────
+      // ── NEW USER — sign up + send invite email ────────────────────────
       const tempPw = Math.random().toString(36).slice(2, 10) + 'Aa1!';
       const { data: authData, error: signUpErr } = await sb.auth.signUp({
-        email,
-        password: tempPw,
+        email, password: tempPw,
         options: { data: { full_name: m?.full_name || '' } }
       });
 
       if (signUpErr) {
-        // signUp threw an error — could be "already registered" on some Supabase configs
-        // Fall back to just sending a reset link
+        // Account exists but we couldn't find them by phone — send reset link
         await sb.auth.resetPasswordForEmail(email, { redirectTo: appUrl });
-        setStatus('⚠ Account may already exist — password reset link sent', true);
+        setStatus('⚠ Account exists — password reset link sent', true);
         toast('Reset link sent to ' + email);
         return;
       }
 
       if (authData?.user?.id) {
-        await sb.from('profiles').insert({
-          id: authData.user.id,
-          org_id: currentOrg.id,
-          role: 'member',
-          full_name: m?.full_name || '',
-          phone: m?.phone || '',
-        });
-        // Send password-set email
+        // New user — profile insert will work (they're inserting for themselves via signUp)
+        // Use RPC so it works regardless
+        await linkUserToOrg(authData.user.id, 'member', m?.full_name, m?.phone);
         await sb.auth.resetPasswordForEmail(email, { redirectTo: appUrl });
       }
 
-      setStatus('✓ Invite sent — they will receive an email to set their password', true);
+      setStatus('✓ Invite sent — check email for password-set link', true);
       toast('✓ Invite sent to ' + email);
       await logActivity('PORTAL INVITE', 'Sent invite to ' + email, 'member', currentMemberId);
     }
@@ -7867,24 +7830,29 @@ Current: ${existingProfile?.role || 'no portal account'}`
     const email = m.portal_email || prompt('Enter ' + m.full_name + ' email address:');
     if (!email) { toast('Email required'); return; }
     await sb.from('members').update({ portal_email: email }).eq('id', currentMemberId);
-    // Check if user already exists via phone
+
+    // Check if existing user by phone
     let existingId = null;
     if (m.phone) {
-      const { data: pp } = await sb.from('profiles').select('id,org_id').eq('phone', m.phone).limit(1);
-      if (pp && pp.length > 0 && !pp.find(p => p.org_id === currentOrg.id)) existingId = pp[0].id;
+      const { data: pp } = await sb.from('profiles').select('id,org_id').eq('phone', m.phone);
+      const other = (pp||[]).find(p => p.org_id !== currentOrg.id);
+      if (other) existingId = other.id;
     }
+
     if (existingId) {
-      await sb.from('profiles').insert({ id: existingId, org_id: currentOrg.id, role: role.toLowerCase(), full_name: m.full_name, phone: m.phone });
-      toast(m.full_name + ' set as ' + role + ' — org linked to existing account');
+      const res = await linkUserToOrg(existingId, role.toLowerCase(), m.full_name, m.phone);
+      toast(res.success ? m.full_name + ' set as ' + role + ' — org linked' : 'Error: ' + res.error);
     } else {
       const tempPw = Math.random().toString(36).slice(2,10) + 'Aa1!';
-      const { data: authData, error: authErr } = await sb.auth.signUp({ email, password: tempPw, options: { data: { full_name: m.full_name } } });
+      const { data: authData, error: authErr } = await sb.auth.signUp({
+        email, password: tempPw, options: { data: { full_name: m.full_name } }
+      });
       if (authErr) { toast('Error: ' + authErr.message); return; }
       if (authData?.user?.id) {
-        await sb.from('profiles').insert({ id: authData.user.id, org_id: currentOrg.id, role: role.toLowerCase(), full_name: m.full_name, phone: m.phone });
+        await linkUserToOrg(authData.user.id, role.toLowerCase(), m.full_name, m.phone);
         await sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://app.groupyetu.org/' });
       }
-      toast(m.full_name + ' set as ' + role + ' — invite sent to ' + email);
+      toast(m.full_name + ' set as ' + role + ' — invite sent');
     }
   }
 
