@@ -3341,23 +3341,42 @@ tr:hover td{background:var(--maroon-pale)}
 
 <!-- MODALS -->
 <div class="modal-overlay" id="modal-addMember">
-  <div class="modal">
-    <div class="modal-header"><div class="modal-title">Add New Member</div><button class="modal-close" onclick="closeModal('addMember')">✕</button></div>
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <div class="modal-title">Add New Member</div>
+      <button class="modal-close" onclick="closeModal('addMember')">✕</button>
+    </div>
     <div class="modal-body">
-      <div class="form-row"><div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="nm-name" placeholder="Full name"/></div><div class="form-group"><label class="form-label">ID Number</label><input class="form-input" id="nm-id" placeholder="National ID"/></div></div>
-      <div class="form-row"><div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" id="nm-phone" placeholder="07XXXXXXXX"/></div><div class="form-group"><label class="form-label">Join Date</label><input class="form-input" type="date" id="nm-date"/></div></div>
-      <div class="form-row"><div class="form-group"><label class="form-label">Monthly Savings (Ksh)</label><input class="form-input" type="number" id="nm-savings" placeholder="e.g. 500 — as per org constitution"/><div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">Enter the member's monthly savings contribution</div></div><div class="form-group"><label class="form-label">Registration Status</label><select class="form-select" id="nm-reg"><option value="true">Registered ✓</option><option value="false">Unregistered — Fee Pending</option></select></div></div>
-      <div style="font-size:.72rem;font-weight:600;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem">Opening Balances (if transferring existing records)</div>
-      <div class="form-row"><div class="form-group"><label class="form-label">Opening Shares Balance (Ksh)</label><input class="form-input" type="number" id="nm-opening-shares" placeholder="0" value="0"/></div><div class="form-group"><label class="form-label">Opening Savings Balance (Ksh)</label><input class="form-input" type="number" id="nm-opening-savings" placeholder="0" value="0"/></div></div>
-    </div>
-      <div style="font-size:.72rem;font-weight:600;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin:.5rem 0">Member Portal Access (Optional)</div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Member Email</label><input class="form-input" type="email" id="nm-email" placeholder="member@email.com (for portal access)"/></div>
-        <div class="form-group"><label class="form-label">Temporary Password</label><input class="form-input" type="text" id="nm-password" placeholder="Min 6 chars (member can change)"/></div>
+      <div style="font-size:.78rem;color:var(--ink-faint);margin-bottom:1.1rem;line-height:1.6">
+        Enter the member's basic details. Full profile information (ID, balances, savings tier etc.) can be completed from the member's detail page.
       </div>
-      <div style="font-size:.68rem;color:var(--ink-faint);margin-bottom:.5rem">Leave blank if member does not need portal access yet</div>
+      <div class="form-group">
+        <label class="form-label">Full Name <span style="color:var(--maroon)">*</span></label>
+        <input class="form-input" id="nm-name" placeholder="e.g. Jane Achieng Omondi"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Phone Number</label>
+          <input class="form-input" id="nm-phone" placeholder="07XXXXXXXX"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email (for portal access)</label>
+          <input class="form-input" type="email" id="nm-email" placeholder="member@email.com"/>
+        </div>
+      </div>
+      <!-- Hidden fields kept for saveMember() compatibility -->
+      <input type="hidden" id="nm-id" value=""/>
+      <input type="hidden" id="nm-date" value=""/>
+      <input type="hidden" id="nm-savings" value="0"/>
+      <input type="hidden" id="nm-reg" value="false"/>
+      <input type="hidden" id="nm-opening-shares" value="0"/>
+      <input type="hidden" id="nm-opening-savings" value="0"/>
+      <input type="hidden" id="nm-password" value=""/>
     </div>
-    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('addMember')">Cancel</button><button class="btn btn-primary" onclick="saveMember()">Add Member</button></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('addMember')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMember()" style="background:var(--teal)">Add Member →</button>
+    </div>
   </div>
 </div>
 
@@ -4731,20 +4750,22 @@ async function registerNewOrg() {
   sucEl.textContent = '✓ Organisation created! Switching to it now…';
   sucEl.classList.add('show');
 
-  // Auto-create founder as Member #001
-  try {
-    await sb.from('members').insert({
-      org_id: org.id,
-      full_name: currentProfile?.full_name || '',
-      phone: currentProfile?.phone || null,
-      portal_email: currentUser.email,
-      member_number: '001',
-      status: 'active',
-      registration_paid: true,
-      join_date: new Date().toISOString().split('T')[0],
-      notes: 'Founding member — group administrator'
-    });
-  } catch(e) { console.log('Auto-member creation:', e.message); }
+  // Auto-create founder as Member #001 — use latest profile data
+  const founderName = currentProfile?.full_name || currentUser?.email?.split('@')[0] || 'Founder';
+  const founderPhone = currentProfile?.phone || null;
+  const { data: founderMember, error: founderErr } = await sb.from('members').insert({
+    org_id: org.id,
+    full_name: founderName,
+    phone: founderPhone,
+    portal_email: currentUser.email,
+    member_number: '001',
+    status: 'active',
+    registration_paid: true,
+    join_date: new Date().toISOString().split('T')[0],
+    notes: 'Founding member'
+  }).select().single();
+  if (founderErr) console.error('Founder member creation failed:', founderErr.message);
+  else console.log('Founder member created:', founderMember.id);
 
   // Log activity
   await logActivity('ORG CREATED', `New organisation created: ${name}`);
@@ -5222,8 +5243,10 @@ async function loadDashboard() {
 // ── MEMBERS ──
 async function loadMembers() {
   if (!currentOrg?.id) return;
+  // Always fetch fresh from DB — never use stale allMembers from previous org
   const { data } = await sb.from('members').select('*').eq('org_id', currentOrg.id).order('member_number');
   allMembers = data || [];
+  populateSelects(); // refresh dropdowns with new org's members
   document.getElementById('members-sub').textContent = allMembers.length + ' members registered';
   renderMemberGrid(allMembers);
 }
@@ -7373,6 +7396,8 @@ let currentMemberId = null;
 
 async function openMemberDetail(memberId) {
   currentMemberId = memberId;
+  // Check if viewing own record — hide admin-only actions
+  const isSelf = window._myMemberId === memberId || false;
   const { data: m } = await sb.from('members').select('*').eq('id', memberId).single();
   if (!m) return;
   document.getElementById('md-name').textContent = m.full_name;
@@ -7397,6 +7422,17 @@ async function openMemberDetail(memberId) {
   document.getElementById('md-edit-password').value = '';
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('adj-date').value = today;
+
+  // Hide admin-only fields when viewing own member record
+  const roleField = document.getElementById('md-role-field');
+  if (roleField) roleField.style.display = isSelf ? 'none' : '';
+  const portalBtn = document.getElementById('md-portal-btn');
+  if (portalBtn) portalBtn.style.display = isSelf ? 'none' : '';
+  const debitCreditTab = document.getElementById('debit-credit-tab');
+  if (debitCreditTab) debitCreditTab.style.display = isSelf ? 'none' : '';
+  const modalTitle = document.querySelector('#modal-memberDetail .modal-title');
+  if (modalTitle) modalTitle.textContent = isSelf ? '👤 My Member Record' : 'Member Details';
+
   // Load history
   loadMemberHistory(memberId);
   // Hide debit/credit tab for officers (not admin or treasurer)
@@ -7970,6 +8006,14 @@ async function loadMyProfile() {
   if (myRecord) {
     window._myMemberId = myRecord.id;
     document.getElementById('mp-number').textContent = '#' + (myRecord.member_number||'—');
+  // Update the NOT LINKED badge to show member number instead
+  const linkedBadge = document.querySelector('.card-header .badge-warn');
+  if (linkedBadge && linkedBadge.textContent.includes('NOT LINKED')) {
+    linkedBadge.textContent = 'MEMBER #' + (myRecord.member_number||'—');
+    linkedBadge.style.background = 'var(--teal-pale)';
+    linkedBadge.style.color = 'var(--teal-dk)';
+    linkedBadge.style.border = '1px solid var(--teal-mid)';
+  }
     document.getElementById('mp-status').innerHTML = `<span class="badge ${myRecord.status==='active'?'badge-green':myRecord.status==='arrears'?'badge-warn':'badge-grey'}">${myRecord.status}</span>`;
     document.getElementById('mp-savings-tier').textContent = 'Ksh ' + (myRecord.savings_tier||500).toLocaleString() + '/mo';
     document.getElementById('mp-reg-status').innerHTML = myRecord.registration_paid ?
