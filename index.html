@@ -3549,19 +3549,15 @@ tr:hover td{background:var(--maroon-pale)}
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Email Address</label>
-            <input class="form-input" type="email" id="md-edit-email" placeholder="member@email.com"/>
-            <div class="field-hint">Used for portal login. If they already have a GroupYetu360 account, this org will be added to their workspaces.</div>
+            <div style="display:flex;gap:.5rem;align-items:flex-start">
+              <input class="form-input" type="email" id="md-edit-email" placeholder="member@email.com" style="flex:1"/>
+              <button class="btn btn-secondary btn-sm" onclick="sendMemberPortalInvite()" style="white-space:nowrap;padding:.52rem .85rem;font-size:.75rem;flex-shrink:0">✉ Send Invite</button>
+            </div>
+            <div id="md-invite-status" style="display:none;font-size:.74rem;margin-top:.35rem"></div>
           </div>
-          <div id="md-invite-status" style="display:none;font-size:.75rem;margin-top:.25rem"></div>
-        </div>
-        <div class="alert alert-info" style="font-size:.72rem;margin-bottom:.5rem;line-height:1.6">
-          <strong>How portal access works:</strong> Enter the member's email and click <strong>Send Invite</strong>.
-          They'll receive a link to set their own password and log in — no admin-set password needed.
-          If they already have an account, this group is added to their workspaces automatically.
         </div>
         <div class="form-actions">
           <button class="btn btn-primary" onclick="saveMemberDetail()">Save Changes</button>
-          <button class="btn btn-secondary btn-sm" onclick="sendMemberPortalInvite()" id="md-invite-btn" style="margin-left:.5rem">✉ Send Invite</button>
           <button class="btn btn-secondary btn-sm" onclick="promoteToAdmin()" id="promote-btn" style="margin-left:.5rem">👤 Set Portal Role</button>
           <button class="btn btn-danger btn-sm" onclick="deleteMember()" style="margin-left:auto">Delete Member</button>
         </div>
@@ -3741,7 +3737,7 @@ tr:hover td{background:var(--maroon-pale)}
       <div class="alert alert-info">This person will receive an email with your organisation code and a link to set their password.</div>
       <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="invite-name" placeholder="Full name"/></div>
       <div class="form-group"><label class="form-label">Email Address</label><input class="form-input" type="email" id="invite-email" placeholder="their@email.com"/></div>
-      <div class="form-group"><label class="form-label">Temporary Password</label><input class="form-input" type="text" id="invite-password" placeholder="They can change this after first login"/><div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">System will also send them an email with your org code and a link to set their password.</div></div>
+      <div class="form-group"><label class="form-label">Temporary Password</label><input class="form-input" type="text" id="invite-password" placeholder="They can change this after first login"/><div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">System will also send them an email with your org code (${currentOrg?.org_code||'—'})</div></div>
       <div class="form-group"><label class="form-label">Role</label>
         <select class="form-select" id="invite-role">
           <option value="admin">Admin — Full access</option>
@@ -7607,7 +7603,7 @@ async function openMemberDetail(memberId) {
   if (regDateEl) regDateEl.value = m.registration_date||'';
   if (regRenewalEl) regRenewalEl.value = m.registration_renewal||'';
   document.getElementById('md-edit-email').value = m.portal_email||'';
-  // password field removed — invite flow used instead
+  document.getElementById('md-invite-status').style.display = 'none';
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('adj-date').value = today;
 
@@ -7688,119 +7684,107 @@ async function saveMemberDetail() {
     savings_balance: (current.savings_balance||0) + savingsDiff
   };
   const portalEmail = document.getElementById('md-edit-email')?.value?.trim();
-  const portalPassword = document.getElementById('md-edit-password')?.value?.trim();
-
-  // Save member record
   if (portalEmail) updates.portal_email = portalEmail;
   const { error } = await sb.from('members').update(updates).eq('id', currentMemberId);
   if (error) { toast('Error: '+error.message); return; }
-
-  // Portal email saved — invite sent separately via "Send Invite" button
-  if (portalEmail) {
-    toast('Member updated ✓ — use "Send Invite" to grant portal access');
-  } else {
-    toast('Member updated successfully');
-  }
+  toast('Member updated successfully');
 
   await logActivity('UPDATE MEMBER', `Updated member details for ${updates.full_name}${portalEmail?' (portal: '+portalEmail+')':''}`, 'member', currentMemberId);
   closeModal('memberDetail');
   loadMembers();
 }
 
-// Send portal invite — Supabase sends a password-set link to the member
-// If member email already exists as a GroupYetu360 user, their profile is
-// linked to this org so the org appears in their workspace switcher.
 async function sendMemberPortalInvite() {
   if (!currentMemberId) return;
   const emailInput = document.getElementById('md-edit-email');
   const statusEl   = document.getElementById('md-invite-status');
   const email = (emailInput?.value || '').trim().toLowerCase();
-  if (!email) { toast("Enter the member email address first, then Save Changes"); return; }
+  if (!email) { toast('Enter the email address first'); return; }
+
+  const setStatus = (msg, ok) => {
+    if (!statusEl) return;
+    statusEl.style.display = 'block';
+    statusEl.innerHTML = `<span style="color:${ok ? 'var(--teal)' : 'var(--maroon)'}">${msg}</span>`;
+  };
+
+  setStatus('⏳ Processing…', true);
 
   // Save email to member record first
   await sb.from('members').update({ portal_email: email }).eq('id', currentMemberId);
-
   const { data: m } = await sb.from('members').select('full_name,phone').eq('id', currentMemberId).single();
 
-  // Show loading
-  if (statusEl) {
-    statusEl.style.display = 'block';
-    statusEl.innerHTML = '<span style="color:var(--ink-faint)">⏳ Checking account…</span>';
-  }
-
   try {
-    // Check if profile for this email already exists in any org
-    const { data: existingProfiles } = await sb.from('profiles')
-      .select('id,org_id,role').eq('email', email);
+    // Check if this email is already used as portal_email in any org's members table
+    // This tells us a GroupYetu360 account already exists for this person
+    const { data: existingMembers } = await sb.from('members')
+      .select('id,org_id,portal_email')
+      .eq('portal_email', email)
+      .neq('id', currentMemberId);   // exclude this record
 
-    // Check if they already belong to THIS org
-    const alreadyInOrg = (existingProfiles||[]).some(p => p.org_id === currentOrg.id);
+    if (existingMembers && existingMembers.length > 0) {
+      // They have a GY360 account — find their profile and add this org
+      // Look up their profile by matching other orgs they belong to
+      const otherOrgIds = [...new Set(existingMembers.map(mm => mm.org_id))];
+      const { data: existingProfiles } = await sb.from('profiles')
+        .select('id,role').in('org_id', otherOrgIds).limit(1);
 
-    if (alreadyInOrg) {
-      if (statusEl) statusEl.innerHTML = '<span style="color:var(--teal)">✓ Already has access to this organisation</span>';
-      toast(`${m?.full_name||'Member'} already has portal access to this org`);
-      return;
-    }
-
-    if ((existingProfiles||[]).length > 0) {
-      // Existing GY360 user in another org — add this org to their profile
-      const existingId = existingProfiles[0].id;
-      await sb.from('profiles').insert({
-        id: existingId,
-        org_id: currentOrg.id,
-        role: 'member',
-        full_name: m?.full_name,
-        phone: m?.phone,
-      }).onConflict('id,org_id').ignore();
-      // Link member record
-      await sb.from('members').update({ portal_email: email }).eq('id', currentMemberId);
-      if (statusEl) statusEl.innerHTML = '<span style="color:var(--teal)">✓ Existing account — org added to their workspaces</span>';
-      toast(`✓ ${m?.full_name||'Member'} linked — this org now appears in their workspaces`);
-      await logActivity('PORTAL LINKED', `Linked existing account ${email} to this org`, 'member', currentMemberId);
-    } else {
-      // New user — send password-set email via Supabase
-      const { error: inviteErr } = await sb.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/#reset-password`
-      });
-      if (inviteErr) {
-        // resetPasswordForEmail returns error if email doesn't exist yet
-        // Fall back to signUp with a random temporary password — user will reset
-        const tempPw = Math.random().toString(36).slice(2,10) + 'Aa1!';
-        const { data: authData, error: signUpErr } = await sb.auth.signUp({
-          email,
-          password: tempPw,
-          options: { data: { full_name: m?.full_name || '' } }
-        });
-        if (signUpErr) {
-          if (statusEl) statusEl.innerHTML = `<span style="color:var(--maroon)">✗ ${signUpErr.message}</span>`;
-          toast('Could not create account: ' + signUpErr.message);
-          return;
-        }
-        // Create profile
-        if (authData?.user) {
-          await sb.from('profiles').upsert({
-            id: authData.user.id,
-            org_id: currentOrg.id,
-            role: 'member',
-            full_name: m?.full_name,
-            phone: m?.phone,
-          });
-        }
-        // Now send password reset so they set their own password
-        await sb.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/#reset-password`
-        });
-        if (statusEl) statusEl.innerHTML = '<span style="color:var(--teal)">✓ Invite sent — they will receive an email to set their password</span>';
-        toast('✓ Invite sent to ' + email + ' — they will receive a link to set their password');
-        await logActivity('PORTAL INVITE', `Sent portal invite to ${email} for ${m?.full_name}`, 'member', currentMemberId);
-      } else {
-        if (statusEl) statusEl.innerHTML = '<span style="color:var(--teal)">✓ Password-set link sent to their email</span>';
-        toast(`✓ Invite sent to ${email}`);
-        await logActivity('PORTAL INVITE', `Sent portal invite to ${email} for ${m?.full_name}`, 'member', currentMemberId);
+      if (existingProfiles && existingProfiles.length > 0) {
+        const userId = existingProfiles[0].id;
+        // Add a profile row for this org (upsert — safe to re-run)
+        await sb.from('profiles').upsert({
+          id: userId,
+          org_id: currentOrg.id,
+          role: 'member',
+          full_name: m?.full_name || '',
+          phone: m?.phone || '',
+        }, { onConflict: 'id,org_id', ignoreDuplicates: true });
+        setStatus('✓ Linked — this org added to their workspaces', true);
+        toast(`✓ ${m?.full_name||'Member'} linked — org added to their workspaces`);
+        await logActivity('PORTAL LINKED', `Linked ${email} to this org`, 'member', currentMemberId);
+        return;
       }
     }
+
+    // No existing account — send password-set link
+    // redirectTo must point to the app, not the marketing site
+    const appUrl = 'https://app.groupyetu.org/';
+    const { error: resetErr } = await sb.auth.resetPasswordForEmail(email, {
+      redirectTo: appUrl
+    });
+
+    if (resetErr) {
+      // resetPasswordForEmail can fail if email doesn't exist in Supabase auth yet.
+      // In that case, sign them up with a random password then send reset.
+      const tempPw = Math.random().toString(36).slice(2, 10) + 'Aa1!';
+      const { data: authData, error: signUpErr } = await sb.auth.signUp({
+        email,
+        password: tempPw,
+        options: { data: { full_name: m?.full_name || '' } }
+      });
+      if (signUpErr && !signUpErr.message.toLowerCase().includes('already')) {
+        setStatus('✗ ' + signUpErr.message, false);
+        toast('Error: ' + signUpErr.message);
+        return;
+      }
+      // Create profile for this org
+      if (authData?.user) {
+        await sb.from('profiles').upsert({
+          id: authData.user.id,
+          org_id: currentOrg.id,
+          role: 'member',
+          full_name: m?.full_name || '',
+          phone: m?.phone || '',
+        }, { onConflict: 'id,org_id', ignoreDuplicates: true });
+      }
+      // Now send the reset link so they set their own password
+      await sb.auth.resetPasswordForEmail(email, { redirectTo: appUrl });
+    }
+
+    setStatus('✓ Invite sent — check email for password-set link', true);
+    toast('✓ Invite sent to ' + email);
+    await logActivity('PORTAL INVITE', 'Sent invite to ' + email, 'member', currentMemberId);
   } catch(e) {
-    if (statusEl) statusEl.innerHTML = `<span style="color:var(--maroon)">✗ Error: ${e.message}</span>`;
+    setStatus('✗ Error: ' + e.message, false);
     toast('Error: ' + e.message);
   }
 }
@@ -7841,28 +7825,25 @@ Current: ${existingProfile?.role || 'no portal account'}`
     await sb.from('profiles').update({ role: role.toLowerCase() }).eq('id', existingProfile.id);
     toast(`${m.full_name} role updated to ${role}`);
   } else {
-    // No existing profile — need email, then send invite
-    const email = m.portal_email || prompt(`Enter ${m.full_name}'s email address:`);
+    // No existing profile — send invite first, then set role
+    const email = m.portal_email || prompt('Enter ' + m.full_name + ' email address:');
     if (!email) { toast('Email required to set portal role'); return; }
-    // Save email and send invite
     await sb.from('members').update({ portal_email: email }).eq('id', currentMemberId);
     const tempPw = Math.random().toString(36).slice(2,10) + 'Aa1!';
     const { data: authData, error: authErr } = await sb.auth.signUp({
-      email, password: tempPw,
-      options: { data: { full_name: m.full_name } }
+      email, password: tempPw, options: { data: { full_name: m.full_name } }
     });
-    if (authErr && !authErr.message.includes('already registered')) {
+    if (authErr && !authErr.message.toLowerCase().includes('already')) {
       toast('Error: ' + authErr.message); return;
     }
     if (authData?.user) {
       await sb.from('profiles').upsert({
         id: authData.user.id, org_id: currentOrg.id,
         role: role.toLowerCase(), full_name: m.full_name, phone: m.phone
-      });
+      }, { onConflict: 'id,org_id', ignoreDuplicates: true });
     }
-    // Send invite email so they set their own password
-    await sb.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/#reset-password` });
-    toast(`✓ ${m.full_name} set as ${role} — invite email sent to ${email}`);
+    await sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://app.groupyetu.org/' });
+    toast(m.full_name + ' set as ' + role + ' — invite email sent');
   }
 
   await logActivity('SET ROLE', `Set ${m.full_name} portal role to ${role}`, 'member', currentMemberId);
