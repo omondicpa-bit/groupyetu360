@@ -4728,6 +4728,21 @@ async function registerNewOrg() {
   sucEl.textContent = '✓ Organisation created! Switching to it now…';
   sucEl.classList.add('show');
 
+  // Auto-create founder as Member #001
+  try {
+    await sb.from('members').insert({
+      org_id: org.id,
+      full_name: currentProfile?.full_name || '',
+      phone: currentProfile?.phone || null,
+      portal_email: currentUser.email,
+      member_number: '001',
+      status: 'active',
+      registration_paid: true,
+      join_date: new Date().toISOString().split('T')[0],
+      notes: 'Founding member — group administrator'
+    });
+  } catch(e) { console.log('Auto-member creation:', e.message); }
+
   // Log activity
   await logActivity('ORG CREATED', `New organisation created: ${name}`);
 
