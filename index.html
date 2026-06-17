@@ -3498,11 +3498,11 @@ tr:hover td{background:var(--maroon-pale)}
       <button class="modal-close" onclick="closeModal('memberDetail')">✕</button>
     </div>
     <div class="modal-body">
-      <!-- Balance Summary -->
-      <div class="stats-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:1.25rem">
-        <div class="stat-card"><div class="stat-label">Shares Balance</div><div class="stat-value" id="md-shares-bal" style="font-size:1.3rem;color:var(--maroon)">—</div></div>
-        <div class="stat-card gold"><div class="stat-label">Savings Balance</div><div class="stat-value" id="md-savings-bal" style="font-size:1.3rem">—</div></div>
-        <div class="stat-card green"><div class="stat-label">Total Balance</div><div class="stat-value" id="md-total-bal" style="font-size:1.3rem">—</div></div>
+      <!-- Balance Summary — dynamic based on org type -->
+      <div class="stats-row" id="md-bal-cards" style="grid-template-columns:repeat(3,1fr);margin-bottom:1.25rem">
+        <div class="stat-card" id="md-shares-card"><div class="stat-label" id="md-shares-label">Shares Balance</div><div class="stat-value" id="md-shares-bal" style="font-size:1.3rem;color:var(--maroon)">—</div></div>
+        <div class="stat-card gold" id="md-savings-card"><div class="stat-label" id="md-savings-label">Savings Balance</div><div class="stat-value" id="md-savings-bal" style="font-size:1.3rem">—</div></div>
+        <div class="stat-card green" id="md-total-card"><div class="stat-label" id="md-total-label">Total Balance</div><div class="stat-value" id="md-total-bal" style="font-size:1.3rem">—</div></div>
       </div>
 
       <!-- Tabs -->
@@ -5261,6 +5261,20 @@ async function loadMembers() {
   const { data } = await sb.from('members').select('*').eq('org_id', currentOrg.id).order('member_number');
   allMembers = data || [];
   populateSelects(); // refresh dropdowns with new org's members
+
+  // For orgs without member balances (welfare/subscription), fetch total contributed per member
+  const fp = orgFinProfile;
+  if (!fp.hasShares && !fp.hasSavings && allMembers.length) {
+    try {
+      const { data: txnTotals } = await sb.from('transactions')
+        .select('member_id,amount').eq('org_id', currentOrg.id);
+      const totals = {};
+      (txnTotals||[]).forEach(t => {
+        totals[t.member_id] = (totals[t.member_id]||0) + Number(t.amount||0);
+      });
+      allMembers = allMembers.map(m => ({ ...m, total_contributed: totals[m.id]||0 }));
+    } catch(e) {}
+  }
   document.getElementById('members-sub').textContent = allMembers.length + ' members registered';
   renderMemberGrid(allMembers);
 }
@@ -7530,6 +7544,50 @@ async function openMemberDetail(memberId) {
   document.getElementById('md-shares-bal').textContent = 'Ksh ' + (m.shares_balance||0).toLocaleString();
   document.getElementById('md-savings-bal').textContent = 'Ksh ' + (m.savings_balance||0).toLocaleString();
   document.getElementById('md-total-bal').textContent = 'Ksh ' + ((m.shares_balance||0)+(m.savings_balance||0)).toLocaleString();
+
+  // Dynamic balance cards based on org type
+  const fp = orgFinProfile;
+  const sharesCard = document.getElementById('md-shares-card');
+  const savingsCard = document.getElementById('md-savings-card');
+  const totalCard = document.getElementById('md-total-card');
+  const balRow = document.getElementById('md-bal-cards');
+
+  if (fp.hasShares || fp.hasSavings) {
+    // Show relevant cards
+    if (sharesCard) sharesCard.style.display = fp.hasShares ? '' : 'none';
+    if (savingsCard) savingsCard.style.display = fp.hasSavings ? '' : 'none';
+    // Update labels
+    const sharesLabel = document.getElementById('md-shares-label');
+    const savingsLabel = document.getElementById('md-savings-label');
+    const totalLabel = document.getElementById('md-total-label');
+    if (sharesLabel) sharesLabel.textContent = fp.sharesLabel || 'Shares Balance';
+    if (savingsLabel) savingsLabel.textContent = fp.savingsLabel || 'Savings Balance';
+    // Total card: only show if BOTH shares and savings exist
+    if (totalCard) totalCard.style.display = (fp.hasShares && fp.hasSavings) ? '' : 'none';
+    if (totalLabel) totalLabel.textContent = 'Total Holdings';
+    // Adjust grid columns
+    if (balRow) {
+      const visibleCount = (fp.hasShares ? 1 : 0) + (fp.hasSavings ? 1 : 0) + (fp.hasShares && fp.hasSavings ? 1 : 0);
+      balRow.style.gridTemplateColumns = `repeat(${visibleCount}, 1fr)`;
+    }
+  } else {
+    // Welfare / admin income only — replace with "Total Contributed"
+    // Fetch total contributed from transactions
+    sb.from('transactions').select('amount').eq('member_id', memberId).eq('org_id', currentOrg.id)
+      .then(({ data: txns }) => {
+        const total = (txns||[]).reduce((s,t)=>s+Number(t.amount||0),0);
+        if (sharesCard) sharesCard.style.display = 'none';
+        if (savingsCard) savingsCard.style.display = 'none';
+        if (totalCard) {
+          totalCard.style.display = '';
+          totalCard.style.gridColumn = '1 / -1';
+        }
+        const totalLabel = document.getElementById('md-total-label');
+        if (totalLabel) totalLabel.textContent = 'Total Contributed';
+        document.getElementById('md-total-bal').textContent = 'Ksh ' + total.toLocaleString();
+        if (balRow) balRow.style.gridTemplateColumns = '1fr';
+      });
+  }
   document.getElementById('md-edit-name').value = m.full_name||''
   document.getElementById('md-edit-phone').value = m.phone||'';
   document.getElementById('md-edit-id').value = m.id_number||'';
