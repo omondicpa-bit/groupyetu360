@@ -1,15 +1,24 @@
-// GroupYetu360 Service Worker v2.0 — groupyetu.org
-const CACHE_NAME = 'gy360-v2';
+// GroupYetu360 Service Worker v3.0 — groupyetu.org
+const CACHE_NAME = 'gy360-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
+  '/style.css',
+  '/js/auth.js',
+  '/js/utils.js',
+  '/js/dashboard.js',
+  '/js/members.js',
+  '/js/finance.js',
+  '/js/settings.js',
+  '/js/portal.js',
+  '/js/modules.js',
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
 ];
 
 self.addEventListener('install', event => {
-  console.log('[GY360 SW] Installing v2...');
+  console.log('[GY360 SW] Installing v3...');
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache =>
       cache.addAll(STATIC_ASSETS).catch(err =>
@@ -30,45 +39,20 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
-  if (
-    url.hostname.includes('supabase.co') ||
-    url.hostname.includes('africastalking.com') ||
-    url.hostname.includes('safaricom.co.ke') ||
-    url.hostname.includes('fonts.googleapis.com') ||
-    url.hostname.includes('jsdelivr.net')
-  ) return;
-
+  // Only cache same-origin requests
+  if (url.origin !== location.origin) return;
   event.respondWith(
-    fetch(event.request)
-      .then(response => {
+    caches.match(event.request).then(cached => {
+      const networkFetch = fetch(event.request).then(response => {
         if (response.ok) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
         }
         return response;
-      })
-      .catch(() =>
-        caches.match(event.request).then(cached => {
-          if (cached) return cached;
-          if (event.request.mode === 'navigate') return caches.match('/index.html');
-        })
-      )
+      });
+      return cached || networkFetch;
+    })
   );
-});
-
-self.addEventListener('push', event => {
-  if (!event.data) return;
-  const data = event.data.json();
-  self.registration.showNotification(data.title || 'GroupYetu360', {
-    body: data.body || 'You have a new notification',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-96x96.png',
-    data: data.url || '/',
-  });
-});
-
-self.addEventListener('notificationclick', event => {
-  event.notification.close();
-  event.waitUntil(clients.openWindow(event.notification.data || '/'));
 });
