@@ -4794,6 +4794,71 @@ function showApp() {
   }));
 }
 
+
+function updateTopbarActions(page) {
+  const topbar = document.getElementById('topbar-actions');
+  if (!topbar) return;
+  const role = currentProfile?.role || 'member';
+  const isSuperAdmin = role === 'superadmin';
+  const isAdmin = ['admin','officer','treasurer'].includes(role);
+
+  if (isSuperAdmin) {
+    topbar.innerHTML = `<button class="topbar-btn" onclick="showModal('addOrg')">+ Onboard Organisation</button>`;
+    return;
+  }
+
+  // Member portal pages — show Make Payment
+  const memberPages = ['my_profile','my_contributions','my_meetings','my_notices','my_account'];
+  if (memberPages.includes(page) || role === 'member') {
+    topbar.innerHTML = `
+      <span style="font-size:.75rem;color:var(--maroon);font-weight:600;padding:.4rem .75rem;background:var(--maroon-pale);border:1px solid var(--maroon-muted)">${currentOrg?.name||''}</span>
+      <button class="topbar-btn" onclick="openMemberPaymentModal();showModal('memberPayment')" style="margin-left:.75rem">💳 Make Payment</button>`;
+    return;
+  }
+
+  // Admin pages — contextual actions per page
+  if (isAdmin) {
+    switch(page) {
+      case 'members':
+        topbar.innerHTML = `
+          <button class="topbar-btn outline" onclick="showModal('recordPayment')">+ Record Payment</button>
+          <button class="topbar-btn" onclick="showModal('addMember')">+ Add Member</button>`;
+        break;
+      case 'finance':
+        topbar.innerHTML = `
+          <button class="topbar-btn outline" onclick="switchFinTab(document.querySelector('[onclick*=tab-expense-record]'),'tab-expense-record')">+ Expense</button>
+          <button class="topbar-btn" onclick="showModal('recordPayment')">+ Record Payment</button>`;
+        break;
+      case 'meetings':
+        topbar.innerHTML = `
+          <button class="topbar-btn outline" onclick="sendMeetingReminders()">📱 Send Reminders</button>
+          <button class="topbar-btn" onclick="showModal('scheduleMeeting')">+ Schedule Meeting</button>`;
+        break;
+      case 'welfare':
+        topbar.innerHTML = `<button class="topbar-btn" onclick="showModal('welfareEvent')">+ New Welfare Event</button>`;
+        break;
+      case 'projects':
+        topbar.innerHTML = `<button class="topbar-btn" onclick="showModal('addProject')">+ Add Project</button>`;
+        break;
+      case 'messages':
+        topbar.innerHTML = `<button class="topbar-btn outline" onclick="testSms()">Test SMS</button>
+          <button class="topbar-btn" onclick="sendSms()">📤 Send SMS</button>`;
+        break;
+      case 'mgr':
+        topbar.innerHTML = `<button class="topbar-btn" onclick="showModal('createRound')">+ New Cycle</button>`;
+        break;
+      case 'approvals':
+        topbar.innerHTML = `<span id="topbar-approvals-count" style="font-size:.78rem;color:var(--ink-faint)"></span>`;
+        break;
+      default:
+        // Dashboard and other pages — no clutter
+        topbar.innerHTML = `
+          <button class="topbar-btn outline" onclick="showModal('recordPayment')">+ Record Payment</button>
+          <button class="topbar-btn" onclick="showModal('addMember')">+ Add Member</button>`;
+    }
+  }
+}
+
 function buildNav() {
   const role = currentProfile?.role || 'member';
   const isSuperAdmin = role === 'superadmin';
@@ -4826,6 +4891,9 @@ function buildNav() {
     ${welfareLink}
     ${projectsLink}
     <a class="nav-item" onclick="showPage('messages')" href="#"><span class="nav-icon">✉</span> Messages</a>
+    <div class="nav-label" style="margin-top:.5rem">My Portal</div>
+    <a class="nav-item" onclick="showPage('my_profile')" href="#"><span class="nav-icon">◉</span> My Profile</a>
+    <a class="nav-item" onclick="showPage('my_contributions')" href="#"><span class="nav-icon">₭</span> My Contributions</a>
     <div class="nav-label" style="margin-top:.5rem">Admin</div>
     <a class="nav-item" onclick="showPage('approvals')" href="#"><span class="nav-icon">✓</span> Approvals <span class="nav-badge" id="approvals-badge" style="display:none">0</span></a>
     <a class="nav-item" onclick="showPage('settings')" href="#"><span class="nav-icon">⚙</span> Settings</a>
@@ -4847,7 +4915,7 @@ function buildNav() {
   document.getElementById('sidebar-nav').innerHTML = nav;
   const topbar = document.getElementById('topbar-actions');
   if (isSuperAdmin) {
-    topbar.innerHTML = '<button class="topbar-btn" onclick="showModal(\'addOrg\')">+ Onboard Organisation</button>';
+    topbar.innerHTML = `<button class="topbar-btn" onclick="showModal('addOrg')">+ Onboard Organisation</button>`;
   } else if (role === 'admin' || role === 'officer') {
     topbar.innerHTML = `
       <button class="topbar-btn outline" onclick="showModal('recordPayment')">+ Record Payment</button>
@@ -4928,7 +4996,9 @@ const pageTitles = {
   superadmin: ['Platform Control', 'EPH Technologies — Super Admin'],
 };
 
+let currentPage = 'dashboard';
 function showPage(id) {
+  currentPage = id;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const page = document.getElementById('page-'+id);
@@ -4939,6 +5009,7 @@ function showPage(id) {
   document.getElementById('page-sub').textContent = info[1] || currentOrg?.name || '';
   const loaders = { members: loadMembers, finance: loadFinance, meetings: loadMeetings, welfare: loadWelfare, projects: loadProjects, mgr: loadMGR, messages: loadMessages, settings: loadSettings, superadmin: loadSuperAdmin, sa_members: loadSAMembers, sa_finance: loadSAFinance, my_profile: loadMyProfile, my_contributions: loadMyContributions, approvals: loadApprovals, my_account: loadMyAccount, billing: loadBilling, support: loadSupport, sa_billing: loadSABilling, sa_support: loadSASupport, sa_activity: loadSAActivity, my_meetings: loadMyMeetings, my_notices: loadMyNotices };
   if (loaders[id]) loaders[id]();
+  updateTopbarActions(id);
 }
 
 // ── DASHBOARD ──
