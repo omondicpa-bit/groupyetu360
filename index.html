@@ -4922,17 +4922,22 @@ function buildNav() {
       <a class="nav-item" onclick="showPage('members')" href="#"><span class="nav-icon">◉</span> Members</a>`;
     }
     if (isAdmin) {
-      const plan = currentOrg?.subscription_plan || 'starter';
-      const isPaid = ['basic','standard','pro'].includes(plan);
-      const welfareLink = isPaid ? `<a class="nav-item" onclick="showPage('welfare')" href="#"><span class="nav-icon">♡</span> Welfare</a>` : '';
-      const projectsLink = isPaid ? `<a class="nav-item" onclick="showPage('projects')" href="#"><span class="nav-icon">⚑</span> Projects</a>` : '';
+      // plan field is 'plan' on the org object
+      const plan = currentOrg?.plan || 'starter';
+      // Helper: nav link that shows 🔒 and goes to upgrade prompt if not on right plan
+      const gatedLink = (page, icon, label, allowed) => allowed
+        ? `<a class="nav-item" onclick="showPage('${page}')" href="#"><span class="nav-icon">${icon}</span> ${label}</a>`
+        : `<a class="nav-item" style="opacity:.5;cursor:default" onclick="showUpgradePrompt('${page}');return false" href="#" title="Upgrade to unlock"><span class="nav-icon">${icon}</span> ${label} <span style="margin-left:auto;font-size:.7rem">🔒</span></a>`;
+      const hasBasic    = ['basic','standard','pro'].includes(plan);
+      const hasStandard = ['standard','pro'].includes(plan);
       nav += `
     <a class="nav-item" onclick="showPage('finance')" href="#"><span class="nav-icon">₭</span> Finance</a>
     <a class="nav-item" onclick="showPage('meetings')" href="#"><span class="nav-icon">◷</span> Meetings</a>
-    <a class="nav-item" onclick="showPage('mgr')" href="#"><span class="nav-icon">🔄</span> Rotating Savings</a>
-    <a class="nav-item" onclick="showPage('table_banking')" href="#"><span class="nav-icon">🏦</span> Table Banking</a>
-    ${welfareLink}
-    ${projectsLink}
+    <a class="nav-item" onclick="showPage('mgr')" href="#"><span class="nav-icon">🔄</span> Rotating Savings</a>`;
+      nav += gatedLink('welfare',       '♡',  'Welfare',       hasBasic);
+      nav += gatedLink('projects',      '⚑',  'Projects',      hasBasic);
+      nav += gatedLink('table_banking', '🏦', 'Table Banking', hasBasic);
+      nav += `
     <a class="nav-item" onclick="showPage('messages')" href="#"><span class="nav-icon">✉</span> Messages</a>
     <div class="nav-label" style="margin-top:.5rem">My Portal</div>
     <a class="nav-item" onclick="showPage('my_profile')" href="#"><span class="nav-icon">◉</span> My Profile</a>
@@ -5041,6 +5046,12 @@ const pageTitles = {
 
 let currentPage = 'dashboard';
 function showPage(id) {
+  // Feature gating — redirect to upgrade prompt if page requires higher plan
+  const gatedPages = { welfare:'welfare', projects:'projects', table_banking:'table_banking' };
+  if (gatedPages[id] && typeof planHas === 'function' && !planHas(gatedPages[id])) {
+    showUpgradePrompt(id);
+    return;
+  }
   currentPage = id;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -9087,6 +9098,105 @@ async function saveSupportSettings() {
 }
 
 // ── SUBSCRIPTION LIMIT ENFORCEMENT ──
+/* ═══════════════════════════════════════════════════
+   SUBSCRIPTION FEATURE MATRIX
+   basic: welfare, projects, table_banking
+   standard: + stk_push
+   pro: + unlimited members, custom features
+═══════════════════════════════════════════════════ */
+const PLAN_FEATURES = {
+  starter:  { welfare:false, projects:false, table_banking:false, stk_push:false },
+  basic:    { welfare:true,  projects:true,  table_banking:true,  stk_push:false },
+  standard: { welfare:true,  projects:true,  table_banking:true,  stk_push:true  },
+  pro:      { welfare:true,  projects:true,  table_banking:true,  stk_push:true  },
+};
+
+function planHas(feature) {
+  if (currentProfile?.role === 'superadmin') return true;
+  const plan = currentOrg?._effectivePlan || currentOrg?.plan || 'starter';
+  return !!(PLAN_FEATURES[plan]?.[feature]);
+}
+
+function planRequired(feature) {
+  for (const plan of ['starter','basic','standard','pro']) {
+    if (PLAN_FEATURES[plan]?.[feature]) {
+      return plan.charAt(0).toUpperCase() + plan.slice(1);
+    }
+  }
+  return 'Pro';
+}
+
+// In-app upgrade prompt shown when a locked feature is accessed
+function showUpgradePrompt(page) {
+  const featureMap = {
+    welfare:       { feature:'welfare',       label:'Welfare Management' },
+    projects:      { feature:'projects',      label:'Projects & Investments' },
+    table_banking: { feature:'table_banking', label:'Table Banking' },
+  };
+  const info = featureMap[page] || { feature: page, label: page };
+  const requiredPlan = planRequired(info.feature);
+  const currentPlan  = currentOrg?._effectivePlan || currentOrg?.plan || 'starter';
+  const currentPlanLabel = currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1);
+
+  // Hide all pages, show upgrade panel
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  let el = document.getElementById('page-upgrade-prompt');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'page-upgrade-prompt';
+    el.className = 'page';
+    const content = document.querySelector('.content');
+    if (content) content.appendChild(el);
+  }
+  el.className = 'page active';
+
+  const isBasic = requiredPlan === 'Basic';
+  el.innerHTML = `
+    <div style="max-width:500px;margin:3rem auto;text-align:center;padding:0 1.25rem">
+      <div style="width:76px;height:76px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;font-size:2rem">🔒</div>
+      <div style="font-family:'Crimson Pro',serif;font-size:1.75rem;font-weight:700;color:var(--maroon);margin-bottom:.5rem">${info.label}</div>
+      <p style="font-size:.88rem;color:var(--ink-faint);line-height:1.75;margin-bottom:.4rem">
+        Not available on your current <strong>${currentPlanLabel}</strong> plan.
+      </p>
+      <p style="font-size:.88rem;color:var(--ink-soft);line-height:1.75;margin-bottom:1.75rem">
+        Upgrade to <strong style="color:var(--teal)">${requiredPlan}</strong> or above to unlock <strong>${info.label}</strong>.
+      </p>
+      <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;text-align:left">
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.75rem">${requiredPlan} Plan — included features</div>
+        <div style="display:flex;flex-direction:column;gap:.45rem">
+          <div style="font-size:.82rem;color:var(--ink-soft);display:flex;gap:.6rem"><span style="color:var(--teal);font-weight:700;flex-shrink:0">✓</span> Welfare management — bereavements & community events</div>
+          <div style="font-size:.82rem;color:var(--ink-soft);display:flex;gap:.6rem"><span style="color:var(--teal);font-weight:700;flex-shrink:0">✓</span> Projects & investments tracking</div>
+          <div style="font-size:.82rem;color:var(--ink-soft);display:flex;gap:.6rem"><span style="color:var(--teal);font-weight:700;flex-shrink:0">✓</span> Table Banking — pool contributions & member loans</div>
+          <div style="font-size:.82rem;color:var(--ink-soft);display:flex;gap:.6rem"><span style="color:var(--teal);font-weight:700;flex-shrink:0">✓</span> Up to ${isBasic?'30':'75'} members · Priority support</div>
+          ${!isBasic ? '<div style="font-size:.82rem;color:var(--ink-soft);display:flex;gap:.6rem"><span style="color:var(--teal);font-weight:700;flex-shrink:0">✓</span> M-Pesa STK Push payments · On-site training</div>' : ''}
+          <div style="font-size:.84rem;font-weight:700;color:var(--maroon);display:flex;gap:.6rem;margin-top:.35rem;padding-top:.6rem;border-top:1px solid var(--border)">
+            <span style="color:var(--gold)">→</span>
+            ${isBasic ? 'Ksh 3,000/year · less than Ksh 250/month' : 'Ksh 6,000/year · less than Ksh 500/month'}
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="showPage('billing')" style="background:var(--teal);padding:.72rem 1.5rem;font-size:.85rem;border-radius:4px">
+          💳 Upgrade Now →
+        </button>
+        <button class="btn btn-secondary" onclick="showPage('dashboard')" style="padding:.72rem 1.25rem;font-size:.85rem;border-radius:4px">
+          ← Dashboard
+        </button>
+      </div>
+      <div style="margin-top:1.1rem;font-size:.72rem;color:var(--ink-faint)">
+        2-month free trial on all paid plans ·
+        <a href="https://wa.me/254792385970" style="color:var(--teal)" target="_blank">Chat on WhatsApp</a>
+      </div>
+    </div>`;
+
+  const titleEl = document.getElementById('page-title');
+  const subEl   = document.getElementById('page-sub');
+  if (titleEl) titleEl.textContent = 'Upgrade Required';
+  if (subEl)   subEl.textContent   = info.label + ' · ' + requiredPlan + ' plan and above';
+}
+
 async function checkSubscriptionAccess() {
   if (!currentOrg?.id || currentProfile?.role === 'superadmin') return true;
   try {
@@ -9102,8 +9212,16 @@ async function checkSubscriptionAccess() {
     const now = new Date();
     const expDate = expires ? new Date(expires) : null;
     const daysLeft = expDate ? Math.ceil((expDate - now)/(1000*60*60*24)) : null;
-    const isExpired = expDate && expDate < now && org.plan !== 'starter';
-    const isExpiringSoon = daysLeft !== null && daysLeft <= 14 && daysLeft > 0;
+    const isPaidPlan = org.plan && org.plan !== 'starter';
+    const isExpired = isPaidPlan && expDate && expDate < now;
+    const isExpiringSoon = !isExpired && daysLeft !== null && daysLeft <= 14 && daysLeft > 0;
+
+    // Sync plan to currentOrg and set effective plan (reverts to starter if expired)
+    if (org.plan) currentOrg.plan = org.plan;
+    currentOrg._effectivePlan = isExpired ? 'starter' : (org.plan || 'starter');
+
+    // Re-build nav so lock icons reflect current plan
+    buildNav();
 
     if (isExpired) {
       // Admins see a banner; members see a full lock screen
