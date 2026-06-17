@@ -4711,8 +4711,7 @@ async function registerNewOrg() {
 
   const orgCode = 'GY' + Math.random().toString(36).toUpperCase().slice(2,6);
   const { data: org, error: orgErr } = await sb.from('organisations')
-    .insert({ name, plan, status:'active', org_code: orgCode, subscription_status:'trial',
-      trial_ends_at: new Date(Date.now() + 60*24*60*60*1000).toISOString() })
+    .insert({ name, plan, status:'active', org_code: orgCode, subscription_status:'trial' })
     .select().single();
 
   if (orgErr) { errEl.textContent='Error: '+orgErr.message; errEl.classList.add('show'); return; }
