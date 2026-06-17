@@ -1897,9 +1897,9 @@ tr:hover td{background:var(--maroon-pale)}
           <div class="fin-hero-title">Finance Overview</div>
           <div class="fin-hero-sub" id="fin-hero-org">—</div>
         </div>
-        <div class="fin-hero-controls">
-          <button class="btn fin-ctrl-btn" onclick="showShareoutModal()">💰 Year-End Shareout</button>
-          <div class="fin-withdraw-pill">
+        <div class="fin-hero-controls" id="fin-hero-controls">
+          <button class="btn fin-ctrl-btn" id="fin-shareout-btn" onclick="showShareoutModal()">💰 Year-End Shareout</button>
+          <div class="fin-withdraw-pill" id="fin-withdraw-pill">
             <span class="fin-withdraw-dot" id="fin-withdraw-dot"></span>
             <span style="font-size:.75rem;color:rgba(255,255,255,.7)">Withdraw:</span>
             <span id="withdraw-status-label" style="font-size:.75rem;font-weight:600;color:#fff">Closed</span>
@@ -1919,12 +1919,12 @@ tr:hover td{background:var(--maroon-pale)}
             <div class="fin-score-bar-fill" id="fin-bank-bar" style="width:100%;background:var(--maroon)"></div>
           </div>
         </div>
-        <!-- Member split -->
-        <div class="fin-score-split">
-          <div class="fin-score-item teal">
-            <div class="fin-score-item-label">👥 Member Balances</div>
+        <!-- Member split — dynamically shown/hidden based on org type -->
+        <div class="fin-score-split" id="fin-score-split">
+          <div class="fin-score-item teal" id="fin-member-card">
+            <div class="fin-score-item-label" id="fin-member-label">👥 Member Balances</div>
             <div class="fin-score-item-value" id="fin-member-balance">—</div>
-            <div class="fin-score-item-note">Savings + shares</div>
+            <div class="fin-score-item-note" id="fin-member-note">Savings + shares</div>
           </div>
           <div class="fin-score-item" id="fin-admin-card">
             <div class="fin-score-item-label">🏛 Admin Balance</div>
@@ -5462,6 +5462,14 @@ async function loadFinance() {
   // Hero org name
   const heroOrg = document.getElementById('fin-hero-org');
   if (heroOrg) heroOrg.textContent = currentOrg.name + ' — ' + new Date().getFullYear() + ' Financial Year';
+
+  // Dynamic finance controls — hide shareout/withdraw if no member savings
+  const fp = orgFinProfile;
+  const shareoutBtn = document.getElementById('fin-shareout-btn');
+  const withdrawPill = document.getElementById('fin-withdraw-pill');
+  if (shareoutBtn) shareoutBtn.style.display = fp.hasSavings ? '' : 'none';
+  if (withdrawPill) withdrawPill.style.display = fp.hasSavings ? '' : 'none';
+
   // Withdraw window status
   const wBtn = document.getElementById('withdraw-toggle-btn');
   const wLabel = document.getElementById('withdraw-status-label');
@@ -5500,28 +5508,66 @@ async function loadFinance() {
     netEl.style.color = net >= 0 ? 'var(--success)' : 'var(--danger)';
   }
 
-  // ── Balance breakdown: Bank / Member / Admin ──
-  // Member balances = sum of all members' shares + savings
+  // ── Balance breakdown — dynamic based on org type ──
+  const hasMemberBalances = fp.hasShares || fp.hasSavings;
+
+  // Member balances card — only show if org has shares or savings types
+  const memberCard = document.getElementById('fin-member-card');
+  const memberEl = document.getElementById('fin-member-balance');
+  const memberLabel = document.getElementById('fin-member-label');
+  const memberNote = document.getElementById('fin-member-note');
+
+  if (memberCard) memberCard.style.display = hasMemberBalances ? '' : 'none';
+
   const { data: memberBals } = await sb.from('members')
     .select('shares_balance,savings_balance').eq('org_id', currentOrg.id);
-  const totalMemberBal = (memberBals||[]).reduce((s,m) => s + Number(m.shares_balance||0) + Number(m.savings_balance||0), 0);
-  // Bank balance from org record (manually set) or computed from net
+  const totalMemberBal = hasMemberBalances
+    ? (memberBals||[]).reduce((s,m) => s + Number(m.shares_balance||0) + Number(m.savings_balance||0), 0)
+    : 0;
+
+  if (hasMemberBalances && memberEl) {
+    memberEl.textContent = 'Ksh ' + totalMemberBal.toLocaleString();
+    // Update label and note to be specific
+    if (memberLabel) {
+      memberLabel.textContent = fp.hasShares && fp.hasSavings ? '👥 Member Balances'
+        : fp.hasShares ? `👥 ${fp.sharesLabel} Balances`
+        : `👥 ${fp.savingsLabel} Balances`;
+    }
+    if (memberNote) {
+      memberNote.textContent = fp.hasShares && fp.hasSavings ? 'Savings + shares'
+        : fp.hasShares ? 'Member equity'
+        : 'Member deposits';
+    }
+  }
+
+  // Admin balance card — always show, but label changes by org type
   const bankBalance = currentOrg?.bank_balance || net;
   const adminBalance = bankBalance - totalMemberBal;
-  const bankEl = document.getElementById('fin-bank-balance');
-  const memberEl = document.getElementById('fin-member-balance');
   const adminEl = document.getElementById('fin-admin-balance');
   const adminCard = document.getElementById('fin-admin-card');
   const adminNote = document.getElementById('fin-admin-note');
+
+  const bankEl = document.getElementById('fin-bank-balance');
   if (bankEl) bankEl.textContent = 'Ksh ' + Math.abs(bankBalance).toLocaleString();
-  if (memberEl) memberEl.textContent = 'Ksh ' + totalMemberBal.toLocaleString();
+  if (memberEl && hasMemberBalances) memberEl.textContent = 'Ksh ' + totalMemberBal.toLocaleString();
+
   if (adminEl) {
-    adminEl.textContent = (adminBalance < 0 ? '-' : '') + 'Ksh ' + Math.abs(adminBalance).toLocaleString();
-    adminEl.style.color = adminBalance < 0 ? 'var(--danger)' : 'var(--success)';
-    if (adminCard) adminCard.style.borderTopColor = adminBalance < 0 ? 'var(--danger)' : 'var(--gold)';
-    if (adminNote) adminNote.textContent = adminBalance < 0
-      ? '⚠ Negative — member funds used for group expenses'
-      : 'Group-retained earnings above member balances';
+    if (!hasMemberBalances) {
+      // Welfare / subscription only — admin balance = total bank balance
+      adminEl.textContent = 'Ksh ' + Math.abs(bankBalance).toLocaleString();
+      adminEl.style.color = 'var(--teal)';
+      if (adminCard) adminCard.style.borderTopColor = 'var(--teal)';
+      if (adminNote) adminNote.textContent = fp.hasAdminIncome
+        ? `Total ${fp.adminIncomeLabel} collected`
+        : 'Group funds';
+    } else {
+      adminEl.textContent = (adminBalance < 0 ? '-' : '') + 'Ksh ' + Math.abs(adminBalance).toLocaleString();
+      adminEl.style.color = adminBalance < 0 ? 'var(--danger)' : 'var(--success)';
+      if (adminCard) adminCard.style.borderTopColor = adminBalance < 0 ? 'var(--danger)' : 'var(--gold)';
+      if (adminNote) adminNote.textContent = adminBalance < 0
+        ? '⚠ Negative — member funds used for group expenses'
+        : 'Group-retained earnings above member balances';
+    }
   }
 
   // Contributions table
