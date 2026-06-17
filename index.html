@@ -1790,8 +1790,11 @@ tr:hover td{background:var(--maroon-pale)}
               <button class="btn btn-secondary" onclick="showModal('welfareEvent')" style="font-size:.75rem;padding:.55rem .5rem">
                 ♡ Welfare Event
               </button>
-              <button class="btn btn-secondary" onclick="showPage('finance');setTimeout(()=>switchTab(document.querySelector('[onclick*=tab-expense-record]'),'tab-expense-record'),100)" style="font-size:.75rem;padding:.55rem .5rem">
+              <button class="btn btn-secondary" onclick="showPage('finance');setTimeout(()=>switchFinTab(document.querySelector('[onclick*=tab-expense-record]'),'tab-expense-record'),100)" style="font-size:.75rem;padding:.55rem .5rem">
                 − Record Expense
+              </button>
+              <button class="btn btn-secondary" onclick="showPage('finance');setTimeout(()=>switchFinTab(document.querySelector('[onclick*=tab-fine-record]'),'tab-fine-record'),100)" style="font-size:.75rem;padding:.55rem .5rem">
+                ⚠ Issue Fine
               </button>
             </div>
           </div>
@@ -1970,9 +1973,11 @@ tr:hover td{background:var(--maroon-pale)}
       <div class="fin-tabs">
         <button class="fin-tab active" onclick="switchFinTab(this,'tab-transactions')">📋 Ledger</button>
         <button class="fin-tab" onclick="switchFinTab(this,'tab-expenses')">📤 Expenses</button>
+        <button class="fin-tab" onclick="switchFinTab(this,'tab-fines');loadFinesLedger()">⚠ Fines</button>
         <button class="fin-tab record" onclick="switchFinTab(this,'tab-record')">＋ Record Payment</button>
         <button class="fin-tab record" onclick="switchFinTab(this,'tab-income-record')">＋ Record Income</button>
         <button class="fin-tab record" onclick="switchFinTab(this,'tab-expense-record')">＋ Record Expense</button>
+        <button class="fin-tab record" onclick="switchFinTab(this,'tab-fine-record')">⚠ Issue Fine</button>
       </div>
 
       <!-- TAB: LEDGER -->
@@ -2105,6 +2110,97 @@ tr:hover td{background:var(--maroon-pale)}
           <div class="fin-form-actions">
             <button class="btn btn-primary" onclick="saveExpense()" style="background:var(--warning);box-shadow:0 3px 10px rgba(160,96,16,.2)">Save Expense →</button>
             <button class="btn btn-secondary" onclick="clearExpForm()">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: FINES LEDGER -->
+      <div class="tab-panel" id="tab-fines">
+        <div class="table-wrap card" style="margin-top:.75rem">
+          <div class="card-header">
+            <div>
+              <div class="card-title">⚠ Fines & Penalties Ledger</div>
+              <div class="card-sub" id="fines-ledger-count">All fines issued to members</div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="switchFinTab(document.querySelector('[onclick*=tab-fine-record]'),'tab-fine-record')"
+              style="background:var(--maroon);font-size:.75rem">+ Issue Fine</button>
+          </div>
+          <div id="fines-ledger-content">
+            <div class="loading"><div class="spinner"></div>Loading…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: ISSUE FINE -->
+      <div class="tab-panel" id="tab-fine-record">
+        <div class="fin-form-card">
+          <div class="fin-form-heading">
+            <div class="fin-form-icon" style="background:var(--maroon-pale);color:var(--maroon);font-size:1.2rem">⚠</div>
+            <div>
+              <div class="fin-form-title">Issue Fine / Penalty</div>
+              <div class="fin-form-sub">Fine a member for absence, lateness, late contribution or other reason</div>
+            </div>
+          </div>
+
+          <!-- Quick reason presets -->
+          <div class="form-group">
+            <label class="form-label">Fine Reason — Quick Presets</label>
+            <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.5rem">
+              <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="setFineReason('Absent from meeting')">📅 Absent</button>
+              <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="setFineReason('Late to meeting')">⏰ Late to meeting</button>
+              <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="setFineReason('Late contribution')">₭ Late contribution</button>
+              <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="setFineReason('Phone ringing in meeting')">📵 Phone in meeting</button>
+              <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="setFineReason('Disorderly conduct')">⚑ Misconduct</button>
+              <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="setFineReason('Defaulted on MGR round')">🔄 MGR default</button>
+              <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="setFineReason('Table banking loan overdue')">🏦 Loan overdue</button>
+            </div>
+            <input class="form-input" id="fine-reason" placeholder="Or type a custom reason…"/>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Member to Fine</label>
+              <select class="form-select" id="fine-member"><option value="">Select member…</option></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date</label>
+              <input class="form-input" type="date" id="fine-date"/>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Fine Amount (Ksh)</label>
+              <input class="form-input" type="number" id="fine-amount" placeholder="0"/>
+              <div class="field-hint">Fine goes to the group's admin income — does not affect member personal balance</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Quick Amounts</label>
+              <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.2rem">
+                <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="document.getElementById('fine-amount').value=50">50</button>
+                <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="document.getElementById('fine-amount').value=100">100</button>
+                <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="document.getElementById('fine-amount').value=200">200</button>
+                <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="document.getElementById('fine-amount').value=500">500</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Additional Notes (optional)</label>
+            <input class="form-input" id="fine-notes" placeholder="e.g. 3rd consecutive absence, warned at last meeting…"/>
+          </div>
+
+          <div class="fin-form-actions">
+            <button class="btn btn-primary" onclick="saveFine()" style="background:var(--maroon);box-shadow:0 3px 10px rgba(128,0,32,.2)">⚠ Issue Fine →</button>
+            <button class="btn btn-secondary" onclick="clearFineForm()">Clear</button>
+          </div>
+        </div>
+
+        <!-- Recent fines preview below the form -->
+        <div class="card" style="margin-top:1rem" id="recent-fines-preview">
+          <div class="card-header"><div class="card-title">Recent Fines</div></div>
+          <div id="recent-fines-list">
+            <div style="padding:1.25rem;text-align:center;font-size:.82rem;color:var(--ink-faint)">No fines recorded yet</div>
           </div>
         </div>
       </div>
@@ -2762,6 +2858,7 @@ tr:hover td{background:var(--maroon-pale)}
                 </div>
               </div>
             </div>
+            <div class="form-row single"><div class="form-group"><label class="form-label">Account Format</label><input class="form-input" id="settings-account" placeholder="e.g. ADA-[MEMBER NAME]"/></div></div>
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Bank Balance (Ksh)</label>
@@ -4822,6 +4919,8 @@ function showApp() {
   updateSidebar();
   const today = new Date().toISOString().split('T')[0];
   document.querySelectorAll('input[type="date"]').forEach(el => { if(!el.value) el.value = today; });
+  // Pre-load recent fines preview when page opens
+  setTimeout(() => { try { loadRecentFinesPreview(); } catch(e) {} }, 2000);
   requestAnimationFrame(() => requestAnimationFrame(() => {
     try { loadDashboard(); } catch(e) { console.error('[GY360] Dashboard error:', e); }
     try { prefetchData(); } catch(e) { console.error('[GY360] Prefetch error:', e); }
@@ -4921,21 +5020,17 @@ function buildNav() {
       <a class="nav-item" onclick="showPage('members')" href="#"><span class="nav-icon">◉</span> Members</a>`;
     }
     if (isAdmin) {
-      // Use 'plan' field (not subscription_plan) — the correct DB column name
-      const plan = currentOrg?._effectivePlan || currentOrg?.plan || 'starter';
-      const hasBasic = ['basic','standard','pro'].includes(plan);
-      // Show locked items with 🔒 instead of hiding them — better UX
-      const gatedLink = (page, icon, label, allowed) => allowed
-        ? `<a class="nav-item" onclick="showPage('${page}')" href="#"><span class="nav-icon">${icon}</span> ${label}</a>`
-        : `<a class="nav-item" style="opacity:.5;pointer-events:auto;cursor:default" onclick="showUpgradePrompt('${page}');return false" href="#" title="Upgrade to unlock"><span class="nav-icon">${icon}</span> ${label} <span style="margin-left:auto;font-size:.7rem">🔒</span></a>`;
+      const plan = currentOrg?.subscription_plan || 'starter';
+      const isPaid = ['basic','standard','pro'].includes(plan);
+      const welfareLink = isPaid ? `<a class="nav-item" onclick="showPage('welfare')" href="#"><span class="nav-icon">♡</span> Welfare</a>` : '';
+      const projectsLink = isPaid ? `<a class="nav-item" onclick="showPage('projects')" href="#"><span class="nav-icon">⚑</span> Projects</a>` : '';
       nav += `
     <a class="nav-item" onclick="showPage('finance')" href="#"><span class="nav-icon">₭</span> Finance</a>
     <a class="nav-item" onclick="showPage('meetings')" href="#"><span class="nav-icon">◷</span> Meetings</a>
-    <a class="nav-item" onclick="showPage('mgr')" href="#"><span class="nav-icon">🔄</span> Rotating Savings</a>`;
-      nav += gatedLink('welfare',       '♡',  'Welfare',       hasBasic);
-      nav += gatedLink('projects',      '⚑',  'Projects',      hasBasic);
-      nav += gatedLink('table_banking', '🏦', 'Table Banking', hasBasic);
-      nav += `
+    <a class="nav-item" onclick="showPage('mgr')" href="#"><span class="nav-icon">🔄</span> Rotating Savings</a>
+    <a class="nav-item" onclick="showPage('table_banking')" href="#"><span class="nav-icon">🏦</span> Table Banking</a>
+    ${welfareLink}
+    ${projectsLink}
     <a class="nav-item" onclick="showPage('messages')" href="#"><span class="nav-icon">✉</span> Messages</a>
     <div class="nav-label" style="margin-top:.5rem">My Portal</div>
     <a class="nav-item" onclick="showPage('my_profile')" href="#"><span class="nav-icon">◉</span> My Profile</a>
@@ -5010,7 +5105,7 @@ async function prefetchData() {
 function populateSelects() {
   const memberOpts = '<option value="">Select member…</option>' + allMembers.map(m => `<option value="${m.id}">${m.full_name}</option>`).join('');
   const typeOpts = '<option value="">Select type…</option>' + allContribTypes.map(t => `<option value="${t.id}">${t.name} ${t.is_variable?'(variable)':'(Ksh '+t.amount+')'}</option>`).join('');
-  ['pay-member','modal-pay-member','wel-member'].forEach(id => { const el=document.getElementById(id); if(el) el.innerHTML=memberOpts; });
+  ['pay-member','modal-pay-member','wel-member','fine-member'].forEach(id => { const el=document.getElementById(id); if(el) el.innerHTML=memberOpts; });
   ['pay-type','modal-pay-type'].forEach(id => { const el=document.getElementById(id); if(el) el.innerHTML=typeOpts; });
   const projOpts = '<option value="">None</option>' + allProjects.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
   const ep = document.getElementById('exp-project'); if(ep) ep.innerHTML = projOpts;
@@ -5044,12 +5139,6 @@ const pageTitles = {
 
 let currentPage = 'dashboard';
 function showPage(id) {
-  // Feature gating — intercept locked pages
-  const gatedPages = { welfare:'welfare', projects:'projects', table_banking:'table_banking' };
-  if (gatedPages[id] && typeof planHas === 'function' && !planHas(gatedPages[id])) {
-    showUpgradePrompt(id);
-    return;
-  }
   currentPage = id;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -5772,6 +5861,169 @@ async function saveExpense() {
 
 function clearPayForm() { ['pay-member','pay-type','pay-amount','pay-ref','pay-notes'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; }); }
 function clearExpForm() { ['exp-category','exp-desc','exp-amount','exp-ref','exp-project'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; }); }
+
+/* ═══════════════════════════════════════════════════
+   FINES & PENALTIES
+═══════════════════════════════════════════════════ */
+
+function setFineReason(reason) {
+  const el = document.getElementById('fine-reason');
+  if (el) el.value = reason;
+}
+
+function clearFineForm() {
+  ['fine-member','fine-amount','fine-notes'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const reasonEl = document.getElementById('fine-reason');
+  if (reasonEl) reasonEl.value = '';
+}
+
+async function saveFine() {
+  if (!currentOrg?.id) return;
+  const memberId = document.getElementById('fine-member')?.value;
+  const reason   = document.getElementById('fine-reason')?.value?.trim();
+  const amount   = parseFloat(document.getElementById('fine-amount')?.value);
+  const date     = document.getElementById('fine-date')?.value;
+  const notes    = document.getElementById('fine-notes')?.value?.trim();
+
+  if (!memberId) { toast('Please select a member to fine'); return; }
+  if (!reason)   { toast('Please enter a reason for the fine'); return; }
+  if (!amount || amount <= 0) { toast('Please enter a fine amount'); return; }
+
+  const member = allMembers.find(m => m.id === memberId);
+
+  // Record as a transaction (admin_income — goes to group not member balance)
+  const { error } = await sb.from('transactions').insert({
+    org_id:           currentOrg.id,
+    member_id:        memberId,
+    amount,
+    transaction_date: date || new Date().toISOString().split('T')[0],
+    notes:            `FINE: ${reason}${notes ? ' — ' + notes : ''}`,
+    recorded_by:      currentUser.id,
+    // No type_id — fines are standalone admin_income
+  });
+
+  if (error) { toast('Error: ' + error.message); return; }
+
+  // Update bank balance (fine is income to the group)
+  await updateBankBalance(currentOrg.id, amount, 'credit');
+
+  // Log activity
+  await logActivity('FINE ISSUED', `Fined ${member?.full_name || 'member'} Ksh ${amount.toLocaleString()} — ${reason}`, 'member', memberId);
+
+  toast(`✓ Fine of Ksh ${amount.toLocaleString()} issued to ${member?.full_name || 'member'}`);
+  clearFineForm();
+  loadRecentFinesPreview();
+  loadFinance();
+  loadDashboard();
+}
+
+async function loadFinesLedger() {
+  const contentEl = document.getElementById('fines-ledger-content');
+  const countEl   = document.getElementById('fines-ledger-count');
+  if (!contentEl || !currentOrg?.id) return;
+  contentEl.innerHTML = '<div class="loading"><div class="spinner"></div>Loading…</div>';
+
+  // Fines are stored in transactions with notes starting with "FINE:"
+  const { data: txns } = await sb.from('transactions')
+    .select('*,members(full_name,member_number)')
+    .eq('org_id', currentOrg.id)
+    .ilike('notes', 'FINE:%')
+    .order('transaction_date', { ascending: false });
+
+  const fines = txns || [];
+  if (countEl) countEl.textContent = `${fines.length} fine${fines.length !== 1 ? 's' : ''} issued · Total: Ksh ${fines.reduce((s,f)=>s+Number(f.amount||0),0).toLocaleString()}`;
+
+  if (!fines.length) {
+    contentEl.innerHTML = `<div style="padding:3rem;text-align:center">
+      <div style="font-size:2rem;margin-bottom:.75rem">⚠</div>
+      <div style="font-size:.88rem;font-weight:600;color:var(--ink);margin-bottom:.35rem">No fines recorded yet</div>
+      <div style="font-size:.78rem;color:var(--ink-faint);margin-bottom:1rem">Issue a fine from the <strong>⚠ Issue Fine</strong> tab</div>
+    </div>`;
+    return;
+  }
+
+  contentEl.innerHTML = `<table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Member</th>
+        <th>Reason</th>
+        <th>Amount</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      ${fines.map(f => {
+        const reason = (f.notes || '').replace(/^FINE:\s*/i, '');
+        const dateStr = f.transaction_date || f.created_at?.split('T')[0] || '—';
+        const initials = (f.members?.full_name || '?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+        return `<tr>
+          <td style="font-size:.78rem;color:var(--ink-faint)">${dateStr}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:.6rem">
+              <div style="width:28px;height:28px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700;color:var(--maroon);flex-shrink:0">${initials}</div>
+              <div>
+                <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${f.members?.full_name || '—'}</div>
+                <div style="font-size:.68rem;color:var(--ink-faint)">#${f.members?.member_number || '—'}</div>
+              </div>
+            </div>
+          </td>
+          <td style="font-size:.8rem;color:var(--ink-soft);max-width:280px">${reason}</td>
+          <td><strong style="color:var(--maroon)">Ksh ${Number(f.amount).toLocaleString()}</strong></td>
+          <td>
+            <button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteFine('${f.id}')">✕</button>
+          </td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>`;
+}
+
+async function loadRecentFinesPreview() {
+  const listEl = document.getElementById('recent-fines-list');
+  if (!listEl || !currentOrg?.id) return;
+
+  const { data: txns } = await sb.from('transactions')
+    .select('*,members(full_name)')
+    .eq('org_id', currentOrg.id)
+    .ilike('notes', 'FINE:%')
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  const fines = txns || [];
+  if (!fines.length) {
+    listEl.innerHTML = '<div style="padding:1.25rem;text-align:center;font-size:.82rem;color:var(--ink-faint)">No fines yet</div>';
+    return;
+  }
+
+  listEl.innerHTML = fines.map(f => {
+    const reason = (f.notes || '').replace(/^FINE:\s*/i, '');
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem 1.25rem;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${f.members?.full_name || '—'}</div>
+        <div style="font-size:.7rem;color:var(--ink-faint)">${reason} · ${f.transaction_date || '—'}</div>
+      </div>
+      <strong style="color:var(--maroon);font-size:.85rem">Ksh ${Number(f.amount).toLocaleString()}</strong>
+    </div>`;
+  }).join('');
+}
+
+async function deleteFine(transactionId) {
+  if (!confirm('Delete this fine record? This will also reverse the bank balance.')) return;
+  // Get the amount first
+  const { data: txn } = await sb.from('transactions').select('amount').eq('id', transactionId).maybeSingle();
+  const { error } = await sb.from('transactions').delete().eq('id', transactionId);
+  if (error) { toast('Error: ' + error.message); return; }
+  // Reverse bank balance
+  if (txn?.amount) await updateBankBalance(currentOrg.id, txn.amount, 'debit');
+  toast('Fine deleted and balance reversed');
+  loadFinesLedger();
+  loadFinance();
+  loadDashboard();
+}
 
 // ── MEETINGS ──
 async function loadMeetings() {
@@ -6742,6 +6994,8 @@ async function loadSettings() {
   setVal('settings-org-code', currentOrg.org_code || 'Not set — contact support');
   loadPaymentMethodsSettings(currentOrg);
   setVal('settings-reg', currentOrg.reg_number);
+  setVal('settings-paybill', currentOrg.paybill);
+  setVal('settings-account', currentOrg.account_format);
   const bbVal = currentOrg.bank_balance;
   const bbLocked = currentOrg.bank_balance_locked || (bbVal !== null && bbVal !== undefined && bbVal > 0);
   const bbInput = document.getElementById('settings-bank-balance');
@@ -9094,98 +9348,6 @@ async function saveSupportSettings() {
 }
 
 // ── SUBSCRIPTION LIMIT ENFORCEMENT ──
-/* ═══════════════════════════════════════════════════
-   SUBSCRIPTION FEATURE MATRIX
-   starter: core only  |  basic+: welfare, projects, table_banking
-   standard+: stk_push |  pro: unlimited members
-═══════════════════════════════════════════════════ */
-const PLAN_FEATURES = {
-  starter:  { welfare:false, projects:false, table_banking:false, stk_push:false },
-  basic:    { welfare:true,  projects:true,  table_banking:true,  stk_push:false },
-  standard: { welfare:true,  projects:true,  table_banking:true,  stk_push:true  },
-  pro:      { welfare:true,  projects:true,  table_banking:true,  stk_push:true  },
-};
-
-function planHas(feature) {
-  if (currentProfile?.role === 'superadmin') return true;
-  const plan = currentOrg?._effectivePlan || currentOrg?.plan || 'starter';
-  return !!(PLAN_FEATURES[plan]?.[feature]);
-}
-
-function planRequired(feature) {
-  for (const plan of ['starter','basic','standard','pro']) {
-    if (PLAN_FEATURES[plan]?.[feature]) {
-      return plan.charAt(0).toUpperCase() + plan.slice(1);
-    }
-  }
-  return 'Pro';
-}
-
-function showUpgradePrompt(page) {
-  const featureMap = {
-    welfare:       { feature:'welfare',       label:'Welfare Management' },
-    projects:      { feature:'projects',      label:'Projects & Investments' },
-    table_banking: { feature:'table_banking', label:'Table Banking' },
-  };
-  const info = featureMap[page] || { feature: page, label: page };
-  const requiredPlan = planRequired(info.feature);
-  const currentPlan  = currentOrg?._effectivePlan || currentOrg?.plan || 'starter';
-  const currentPlanLabel = currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1);
-
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-
-  let el = document.getElementById('page-upgrade-prompt');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'page-upgrade-prompt';
-    el.className = 'page';
-    const content = document.querySelector('.content');
-    if (content) content.appendChild(el);
-  }
-  el.className = 'page active';
-
-  const isBasic = requiredPlan === 'Basic';
-  el.innerHTML = `
-    <div style="max-width:500px;margin:3rem auto;text-align:center;padding:0 1.25rem">
-      <div style="width:76px;height:76px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;font-size:2rem">🔒</div>
-      <div style="font-family:'Crimson Pro',serif;font-size:1.75rem;font-weight:700;color:var(--maroon);margin-bottom:.5rem">${info.label}</div>
-      <p style="font-size:.88rem;color:var(--ink-faint);line-height:1.75;margin-bottom:.4rem">
-        Not available on your current <strong>${currentPlanLabel}</strong> plan.
-      </p>
-      <p style="font-size:.88rem;color:var(--ink-soft);line-height:1.75;margin-bottom:1.75rem">
-        Upgrade to <strong style="color:var(--teal)">${requiredPlan}</strong> or above to unlock <strong>${info.label}</strong>.
-      </p>
-      <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;text-align:left">
-        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.75rem">${requiredPlan} Plan — included features</div>
-        <div style="display:flex;flex-direction:column;gap:.45rem">
-          <div style="font-size:.82rem;color:var(--ink-soft);display:flex;gap:.6rem"><span style="color:var(--teal);font-weight:700;flex-shrink:0">✓</span> Welfare management — bereavements &amp; community events</div>
-          <div style="font-size:.82rem;color:var(--ink-soft);display:flex;gap:.6rem"><span style="color:var(--teal);font-weight:700;flex-shrink:0">✓</span> Projects &amp; investments tracking</div>
-          <div style="font-size:.82rem;color:var(--ink-soft);display:flex;gap:.6rem"><span style="color:var(--teal);font-weight:700;flex-shrink:0">✓</span> Table Banking — pool contributions &amp; member loans</div>
-          <div style="font-size:.82rem;color:var(--ink-soft);display:flex;gap:.6rem"><span style="color:var(--teal);font-weight:700;flex-shrink:0">✓</span> Up to ${isBasic?'30':'75'} members · Priority support</div>
-          ${!isBasic ? '<div style="font-size:.82rem;color:var(--ink-soft);display:flex;gap:.6rem"><span style="color:var(--teal);font-weight:700;flex-shrink:0">✓</span> M-Pesa STK Push · On-site training</div>' : ''}
-          <div style="font-size:.84rem;font-weight:700;color:var(--maroon);display:flex;gap:.6rem;margin-top:.35rem;padding-top:.6rem;border-top:1px solid var(--border)">
-            <span style="color:var(--gold)">→</span>
-            ${isBasic ? 'Ksh 3,000/year · less than Ksh 250/month' : 'Ksh 6,000/year · less than Ksh 500/month'}
-          </div>
-        </div>
-      </div>
-      <div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="showPage('billing')" style="background:var(--teal);padding:.72rem 1.5rem;font-size:.85rem;border-radius:4px">💳 Upgrade Now →</button>
-        <button class="btn btn-secondary" onclick="showPage('dashboard')" style="padding:.72rem 1.25rem;font-size:.85rem;border-radius:4px">← Dashboard</button>
-      </div>
-      <div style="margin-top:1.1rem;font-size:.72rem;color:var(--ink-faint)">
-        2-month free trial on all paid plans ·
-        <a href="https://wa.me/254792385970" style="color:var(--teal)" target="_blank">Chat on WhatsApp</a>
-      </div>
-    </div>`;
-
-  const titleEl = document.getElementById('page-title');
-  const subEl   = document.getElementById('page-sub');
-  if (titleEl) titleEl.textContent = 'Upgrade Required';
-  if (subEl)   subEl.textContent   = info.label + ' · ' + requiredPlan + ' plan and above';
-}
-
 async function checkSubscriptionAccess() {
   if (!currentOrg?.id || currentProfile?.role === 'superadmin') return true;
   try {
@@ -9201,14 +9363,8 @@ async function checkSubscriptionAccess() {
     const now = new Date();
     const expDate = expires ? new Date(expires) : null;
     const daysLeft = expDate ? Math.ceil((expDate - now)/(1000*60*60*24)) : null;
-    const isPaidPlan = org.plan && org.plan !== 'starter';
-    const isExpired = isPaidPlan && expDate && expDate < now;
-    const isExpiringSoon = !isExpired && daysLeft !== null && daysLeft <= 14 && daysLeft > 0;
-
-    // Sync plan field and set effective plan (drops to starter when expired)
-    if (org.plan) currentOrg.plan = org.plan;
-    currentOrg._effectivePlan = isExpired ? 'starter' : (org.plan || 'starter');
-    buildNav(); // re-render nav with correct lock state
+    const isExpired = expDate && expDate < now && org.plan !== 'starter';
+    const isExpiringSoon = daysLeft !== null && daysLeft <= 14 && daysLeft > 0;
 
     if (isExpired) {
       // Admins see a banner; members see a full lock screen
