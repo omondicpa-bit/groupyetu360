@@ -1881,7 +1881,7 @@ tr:hover td{background:var(--maroon-pale)}
       <div id="member-list-view" style="display:none">
         <div class="table-wrap card">
           <table>
-            <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>Shares</th><th>Savings</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>#</th><th>Name</th><th>Phone</th><th id="export-col-shares" style="display:none">Shares</th><th id="export-col-savings" style="display:none">Savings</th><th id="export-col-contrib">Total Contributed</th><th>Status</th><th></th></tr></thead>
             <tbody id="member-list-table"></tbody>
           </table>
         </div>
@@ -3523,7 +3523,7 @@ tr:hover td{background:var(--maroon-pale)}
           <div class="form-group"><label class="form-label">Join Date</label><input class="form-input" type="date" id="md-edit-date"/></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Savings/mo (Ksh)</label>
+          <div class="form-group" id="md-savings-tier-row"><label class="form-label">Savings/mo (Ksh)</label>
             <input class="form-input" type="number" id="md-edit-savings" placeholder="Monthly savings amount"/>
           </div>
           <div class="form-group"><label class="form-label">Status</label>
@@ -3535,9 +3535,9 @@ tr:hover td{background:var(--maroon-pale)}
             </select>
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Opening Shares Balance</label><input class="form-input" type="number" id="md-edit-opening-shares"/></div>
-          <div class="form-group"><label class="form-label">Opening Savings Balance</label><input class="form-input" type="number" id="md-edit-opening-savings"/></div>
+        <div class="form-row" id="md-opening-balances-row">
+          <div class="form-group"><label class="form-label" id="md-opening-shares-label">Opening Shares Balance</label><input class="form-input" type="number" id="md-edit-opening-shares"/></div>
+          <div class="form-group"><label class="form-label" id="md-opening-savings-label">Opening Savings Balance</label><input class="form-input" type="number" id="md-edit-opening-savings"/></div>
         </div>
         <div class="form-group"><label class="form-label">Registration Fee</label>
           <select class="form-select" id="md-edit-reg">
@@ -3569,30 +3569,35 @@ tr:hover td{background:var(--maroon-pale)}
 
       <!-- Debit/Credit Tab -->
       <div class="tab-panel" id="md-tab-adjust">
-        <div class="alert alert-info">Use this to manually adjust a member's balance — for welfare deductions, withdrawals, corrections, or transfers.</div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Account</label>
-            <select class="form-select" id="adj-type">
-              <option value="shares">Shares</option>
-              <option value="savings">Savings</option>
-            </select>
+        <div class="alert alert-info" id="adj-info-text">Use this to manually adjust a member's balance — for withdrawals, corrections, or transfers.</div>
+        <div id="md-no-balances-msg" style="display:none;padding:1.25rem;text-align:center;color:var(--ink-faint);font-size:.85rem">
+          This organisation does not track individual member balances. Use Finance → Record Payment to record contributions.
+        </div>
+        <div id="md-adj-form">
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Account</label>
+              <select class="form-select" id="adj-type">
+                <option value="shares">Shares</option>
+                <option value="savings">Savings</option>
+              </select>
+            </div>
+            <div class="form-group"><label class="form-label">Action</label>
+              <select class="form-select" id="adj-direction">
+                <option value="credit">Credit (Add funds ↑)</option>
+                <option value="debit">Debit (Deduct funds ↓)</option>
+              </select>
+            </div>
           </div>
-          <div class="form-group"><label class="form-label">Action</label>
-            <select class="form-select" id="adj-direction">
-              <option value="credit">Credit (Add funds ↑)</option>
-              <option value="debit">Debit (Deduct funds ↓)</option>
-            </select>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Amount (Ksh)</label><input class="form-input" type="number" id="adj-amount" placeholder="e.g. 500"/></div>
+            <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="adj-date"/></div>
           </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Amount (Ksh)</label><input class="form-input" type="number" id="adj-amount" placeholder="e.g. 500"/></div>
-          <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="adj-date"/></div>
-        </div>
-        <div class="form-row single">
-          <div class="form-group"><label class="form-label">Reason / Notes</label><input class="form-input" id="adj-reason" placeholder="e.g. Welfare deduction — member death, Partial withdrawal, Correction…"/></div>
-        </div>
-        <div class="form-actions">
-          <button class="btn btn-primary" onclick="saveAdjustment()">Apply Adjustment</button>
+          <div class="form-row single">
+            <div class="form-group"><label class="form-label">Reason / Notes</label><input class="form-input" id="adj-reason" placeholder="e.g. Welfare deduction — member death, Partial withdrawal, Correction…"/></div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="saveAdjustment()">Apply Adjustment</button>
+          </div>
         </div>
       </div>
 
@@ -6501,7 +6506,7 @@ function loadSmsTemplate(t) {
   const orgName = currentOrg?.name || 'ADA';
   const templates = {
     meeting: `Dear Member, the next ${orgName} meeting is coming up. Please check your calendar and be available. Regards, ${orgName}.`,
-    contribution: `Dear Member, kindly ensure your monthly contributions (Shares + Savings) are paid. Paybill: ${currentOrg?.paybill||'—'}. Regards, ${orgName}.`,
+    contribution: `Dear Member, kindly ensure your monthly contributions are up to date. Paybill: ${currentOrg?.paybill||'—'}. Regards, ${orgName}.`,
     welfare: `Dear Member, there is an active welfare event. Kindly contribute as per constitution. Send to Paybill ${currentOrg?.paybill||'—'}. Regards, ${orgName}.`,
     agm: `Dear Member, the ${orgName} Annual General Meeting has been scheduled. Details to follow. Please mark your diary. Regards.`
   };
@@ -7616,6 +7621,13 @@ async function openMemberDetail(memberId) {
   const modalTitle = document.querySelector('#modal-memberDetail .modal-title');
   if (modalTitle) modalTitle.textContent = isSelf ? '👤 My Member Record' : 'Member Details';
 
+  // Dynamic Debit/Credit account options based on org type
+  populateMemberAdjOptions();
+
+  // Hide savings/mo field if org has no savings
+  const savingsTierRow = document.getElementById('md-savings-tier-row');
+  if (savingsTierRow) savingsTierRow.style.display = orgFinProfile.hasSavings ? '' : 'none';
+
   // Load history
   loadMemberHistory(memberId);
   // Hide debit/credit tab for officers (not admin or treasurer)
@@ -7804,8 +7816,8 @@ async function saveAdjustment() {
   if (adjErr) { toast('Error: '+adjErr.message); return; }
   // Update member balance
   const { data: member } = await sb.from('members').select('shares_balance,savings_balance').eq('id', currentMemberId).single();
-  const balField = adjType==='shares'?'shares_balance':'savings_balance';
-  const currentBal = adjType==='shares'?(member.shares_balance||0):(member.savings_balance||0);
+  const balField = balFieldMap[adjType] || 'savings_balance';
+  const currentBal = member[balField] || 0;
   const newBal = direction==='credit'?currentBal+amount:Math.max(0,currentBal-amount);
   await sb.from('members').update({ [balField]: newBal }).eq('id', currentMemberId);
   toast(`${direction==='credit'?'Credit':'Debit'} of Ksh ${amount.toLocaleString()} applied to ${adjType}`);
@@ -11266,6 +11278,51 @@ async function markLoanRepaid(loanId) {
   toast('✓ Loan marked as repaid');
   await loadTBLoans();
   await loadTableBanking();
+}
+
+
+/* ════════════════════════════════════════════════════
+   DYNAMIC MEMBER DETAIL — based on org financial profile
+════════════════════════════════════════════════════ */
+function populateMemberAdjOptions() {
+  const fp = orgFinProfile;
+  const adjType = document.getElementById('adj-type');
+  const adjForm = document.getElementById('md-adj-form');
+  const noBalMsg = document.getElementById('md-no-balances-msg');
+  const savingsTierRow = document.getElementById('md-savings-tier-row');
+  const openingRow = document.getElementById('md-opening-balances-row');
+  const openingSharesLabel = document.getElementById('md-opening-shares-label');
+  const openingSavingsLabel = document.getElementById('md-opening-savings-label');
+
+  // Debit/Credit form visibility
+  const hasMemberBalance = fp.hasShares || fp.hasSavings;
+  if (adjForm) adjForm.style.display = hasMemberBalance ? '' : 'none';
+  if (noBalMsg) noBalMsg.style.display = hasMemberBalance ? 'none' : 'block';
+
+  // Dynamic account type options
+  if (adjType && hasMemberBalance) {
+    const opts = [];
+    if (fp.hasShares) opts.push(`<option value="shares">${fp.sharesLabel || 'Shares'}</option>`);
+    if (fp.hasSavings) opts.push(`<option value="savings">${fp.savingsLabel || 'Savings'}</option>`);
+    adjType.innerHTML = opts.join('');
+  }
+
+  // Savings/mo field — only for savings orgs
+  if (savingsTierRow) savingsTierRow.style.display = fp.hasSavings ? '' : 'none';
+
+  // Opening balances — only show relevant ones
+  if (openingRow) {
+    openingRow.style.display = hasMemberBalance ? '' : 'none';
+    // Show only shares column if no savings
+    const sharesInput = document.getElementById('md-edit-opening-shares');
+    const savingsInput = document.getElementById('md-edit-opening-savings');
+    const sharesGroup = sharesInput?.parentElement;
+    const savingsGroup = savingsInput?.parentElement;
+    if (sharesGroup) sharesGroup.style.display = fp.hasShares ? '' : 'none';
+    if (savingsGroup) savingsGroup.style.display = fp.hasSavings ? '' : 'none';
+    if (openingSharesLabel) openingSharesLabel.textContent = 'Opening ' + (fp.sharesLabel || 'Shares') + ' Balance';
+    if (openingSavingsLabel) openingSavingsLabel.textContent = 'Opening ' + (fp.savingsLabel || 'Savings') + ' Balance';
+  }
 }
 
 </script>
