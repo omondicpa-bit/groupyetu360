@@ -7351,28 +7351,64 @@ async function deleteOrg() {
   if (!currentDetailOrgId) return;
   const { data: org } = await sb.from('organisations').select('name').eq('id', currentDetailOrgId).single();
   if (!org) { toast('Organisation not found'); return; }
-  const typedName = prompt('Type the organisation name to confirm deletion:\n' + org.name);
+  const typedName = prompt('Type the organisation name to confirm deletion:\n\n' + org.name + '\n\nThis will permanently delete ALL data for this organisation.');
   if (!typedName || typedName.trim().toLowerCase() !== org.name.toLowerCase()) {
-    toast('Name did not match. Deletion cancelled.'); return;
+    toast('Name did not match — deletion cancelled.'); return;
   }
   toast('Deleting ' + org.name + '…');
+  const id = currentDetailOrgId;
+  const del = async (table, col='org_id') => {
+    try { await sb.from(table).delete().eq(col, id); } catch(e) { console.warn(table, e.message); }
+  };
   try {
-    // 1. Attendance (FK to meetings + members)
-    const { data: mtgs } = await sb.from('meetings').select('id').eq('org_id', currentDetailOrgId);
-    if (mtgs?.length) await sb.from('attendance').delete().in('meeting_id', mtgs.map(m=>m.id));
-    // 2. Child tables
-    const tables = ['transactions','expenses','contribution_types','welfare_events','messages_log','projects','activity_log','sms_usage','payment_requests'];
-    for (const t of tables) {
-      try { await sb.from(t).delete().eq('org_id', currentDetailOrgId); } catch(e) {}
+    // 1. Attendance — FK to meetings
+    const { data: mtgs } = await sb.from('meetings').select('id').eq('org_id', id);
+    if (mtgs?.length) {
+      try { await sb.from('attendance').delete().in('meeting_id', mtgs.map(m=>m.id)); } catch(e) {}
     }
-    // 3. Meetings
-    await sb.from('meetings').delete().eq('org_id', currentDetailOrgId);
-    // 4. Members
-    await sb.from('members').delete().eq('org_id', currentDetailOrgId);
-    // 5. Profiles — null out their org_id and demote
-    await sb.from('profiles').update({ org_id: null, role: 'member' }).eq('org_id', currentDetailOrgId);
-    // 6. Finally delete the org
-    const { error } = await sb.from('organisations').delete().eq('id', currentDetailOrgId);
+    // 2. Rotating savings — child tables first
+    const { data: rounds } = await sb.from('savings_rounds').select('id').eq('org_id', id).catch(()=>({data:[]}));
+    if (rounds?.length) {
+      const rids = rounds.map(r=>r.id);
+      try { await sb.from('round_contributions').delete().in('round_id', rids); } catch(e) {}
+      try { await sb.from('round_disbursements').delete().in('round_id', rids); } catch(e) {}
+      try { await sb.from('round_slots').delete().in('round_id', rids); } catch(e) {}
+    }
+    await del('savings_rounds');
+    // 3. Payment requests
+    await del('payment_requests');
+    // 4. Welfare contributions then events
+    try { await sb.from('welfare_contributions').delete().eq('org_id', id); } catch(e) {}
+    await del('welfare_events');
+    // 5. All org_id child tables
+    for (const t of ['transactions','expenses','contribution_types','messages_log','projects','activity_log','sms_usage','pending_members']) {
+      await del(t);
+    }
+    // 6. Meetings
+    await del('meetings');
+    // 7. Members (FK to profiles via portal_email — no constraint, safe to delete)
+    await del('members');
+    // 8. user_orgs — removes user membership links
+    await del('user_orgs');
+    // 9. Profiles — unlink from org first (set org_id to null via raw SQL workaround)
+    // We can't null org_id directly due to FK, so just delete profiles for this org
+    // (users can re-join another org — their auth account remains)
+    const { data: orgProfiles } = await sb.from('profiles').select('id').eq('org_id', id);
+    if (orgProfiles?.length) {
+      // For each profile, check if they have other orgs — if yes keep profile, just null org_id
+      for (const p of orgProfiles) {
+        const { data: otherOrgs } = await sb.from('user_orgs').select('org_id').eq('user_id', p.id).neq('org_id', id);
+        if (otherOrgs?.length) {
+          // User has other orgs — set their active org to the first other one
+          await sb.from('profiles').update({ org_id: otherOrgs[0].org_id }).eq('id', p.id);
+        } else {
+          // No other orgs — null out their org
+          try { await sb.from('profiles').update({ org_id: null, role: 'member' }).eq('id', p.id); } catch(e) {}
+        }
+      }
+    }
+    // 10. Finally delete the organisation
+    const { error } = await sb.from('organisations').delete().eq('id', id);
     if (error) { toast('Error deleting org: ' + error.message); return; }
     toast('✓ ' + org.name + ' deleted successfully');
     closeModal('orgDetail');
@@ -7380,6 +7416,7 @@ async function deleteOrg() {
     loadSuperAdmin();
   } catch(e) {
     toast('Deletion error: ' + e.message);
+    console.error('deleteOrg error:', e);
   }
 }
 
