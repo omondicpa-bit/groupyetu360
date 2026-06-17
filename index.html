@@ -7706,9 +7706,9 @@ async function sendMemberPortalInvite() {
     statusEl.style.display = 'block';
     statusEl.innerHTML = '<span style="color:' + (ok ? 'var(--teal)' : 'var(--maroon)') + '">' + msg + '</span>';
   };
-  setStatus('⏳ Checking account…', true);
+  setStatus('⏳ Processing…', true);
 
-  // Save email to member record
+  // Save email to member record first
   await sb.from('members').update({ portal_email: email }).eq('id', currentMemberId);
   const { data: m } = await sb.from('members').select('full_name,phone').eq('id', currentMemberId).single();
 
@@ -7716,65 +7716,52 @@ async function sendMemberPortalInvite() {
     const appUrl = 'https://app.groupyetu.org/';
     const tempPw = Math.random().toString(36).slice(2, 10) + 'Aa1!';
 
-    // Attempt signUp — Supabase's response tells us if account exists:
-    // - New user:      data.user exists, data.user.identities.length > 0
-    // - Existing user: data.user exists BUT data.user.identities.length === 0
-    //   (Supabase silently returns the stub without creating a new account)
+    // signUp returns:
+    //   Existing user → user.id = their REAL id, user.identities = []  (no new account created)
+    //   New user      → user.id = new id,        user.identities = [{...}]
     const { data: signUpData, error: signUpErr } = await sb.auth.signUp({
       email,
       password: tempPw,
       options: { data: { full_name: m?.full_name || '' } }
     });
 
-    const userAlreadyExists = !signUpErr
-      && signUpData?.user
-      && Array.isArray(signUpData.user.identities)
+    if (signUpErr) {
+      setStatus('✗ ' + signUpErr.message, false);
+      toast('Error: ' + signUpErr.message);
+      return;
+    }
+
+    const userId = signUpData?.user?.id;
+    if (!userId) {
+      setStatus('✗ Could not resolve user — try again', false);
+      return;
+    }
+
+    const isExistingUser = Array.isArray(signUpData.user.identities)
       && signUpData.user.identities.length === 0;
 
-    if (userAlreadyExists) {
+    if (isExistingUser) {
       // ── EXISTING ACCOUNT ─────────────────────────────────────────────
-      // Find their profile row — match by full_name or phone across all orgs
-      const { data: matchedProfiles } = await sb.from('profiles')
-        .select('id, org_id, role')
-        .or('full_name.eq.' + (m?.full_name||'__') + ',phone.eq.' + (m?.phone||'__'));
+      // userId IS their real Supabase auth id — use it directly to upsert profile
+      const { error: profileErr } = await sb.from('profiles').upsert({
+        id: userId,
+        org_id: currentOrg.id,
+        role: 'member',
+        full_name: m?.full_name || '',
+        phone: m?.phone || '',
+      }, { onConflict: 'id,org_id', ignoreDuplicates: true });
 
-      let userId = null;
-
-      // Prefer a profile not in this org (to get their real user id)
-      if (matchedProfiles && matchedProfiles.length > 0) {
-        const other = matchedProfiles.find(p => p.org_id !== currentOrg.id) || matchedProfiles[0];
-        userId = other.id;
+      if (profileErr) {
+        // upsert with ignoreDuplicates may error if row already exists — that's fine
+        console.log('Profile upsert note:', profileErr.message);
       }
 
-      // If still not found, try matching via signUpData (Supabase returns the
-      // existing user's id even when identities is empty in some versions)
-      if (!userId && signUpData?.user?.id) {
-        userId = signUpData.user.id;
-      }
+      setStatus('✓ Linked — this org has been added to their workspaces', true);
+      toast('✓ ' + (m?.full_name || 'Member') + ' linked — they can now switch to this org');
+      await logActivity('PORTAL LINKED', 'Linked existing account ' + email, 'member', currentMemberId);
 
-      if (!userId) {
-        // Last resort: check if they already have a profile in THIS org
-        const { data: thisOrgProfile } = await sb.from('profiles')
-          .select('id').eq('org_id', currentOrg.id)
-          .eq('full_name', m?.full_name || '').maybeSingle();
-        if (thisOrgProfile) {
-          setStatus('✓ Already has access to this organisation', true);
-          toast(m?.full_name + ' already has portal access');
-          return;
-        }
-        setStatus('✗ Could not locate account — contact support', false);
-        return;
-      }
-
-      // Check if already in this org
-      const alreadyHere = matchedProfiles?.some(p => p.org_id === currentOrg.id);
-      if (alreadyHere) {
-        setStatus('✓ Already has access to this organisation', true);
-        toast(m?.full_name + ' already has portal access here');
-        return;
-      }
-
-      // Add this org to their workspaces
+    } else {
+      // ── NEW ACCOUNT ──────────────────────────────────────────────────
       await sb.from('profiles').upsert({
         id: userId,
         org_id: currentOrg.id,
@@ -7783,32 +7770,12 @@ async function sendMemberPortalInvite() {
         phone: m?.phone || '',
       }, { onConflict: 'id,org_id', ignoreDuplicates: true });
 
-      setStatus('✓ Linked — this org added to their workspaces', true);
-      toast('✓ ' + (m?.full_name||'Member') + ' linked — org added to their workspaces');
-      await logActivity('PORTAL LINKED', 'Linked existing account ' + email + ' to this org', 'member', currentMemberId);
-
-    } else if (!signUpErr && signUpData?.user) {
-      // ── NEW ACCOUNT CREATED ──────────────────────────────────────────
-      await sb.from('profiles').upsert({
-        id: signUpData.user.id,
-        org_id: currentOrg.id,
-        role: 'member',
-        full_name: m?.full_name || '',
-        phone: m?.phone || '',
-      }, { onConflict: 'id,org_id', ignoreDuplicates: true });
-
-      // Send password-set link so they choose their own password
+      // Send password-set link
       await sb.auth.resetPasswordForEmail(email, { redirectTo: appUrl });
 
-      setStatus('✓ Invite sent — check email for password-set link', true);
+      setStatus('✓ Invite sent — they will receive an email to set their password', true);
       toast('✓ Invite sent to ' + email);
       await logActivity('PORTAL INVITE', 'Sent invite to ' + email, 'member', currentMemberId);
-
-    } else {
-      // Unexpected error
-      const msg = signUpErr?.message || 'Unexpected error';
-      setStatus('✗ ' + msg, false);
-      toast('Error: ' + msg);
     }
 
   } catch(e) {
@@ -7860,17 +7827,16 @@ Current: ${existingProfile?.role || 'no portal account'}`
     const { data: authData, error: authErr } = await sb.auth.signUp({
       email, password: tempPw, options: { data: { full_name: m.full_name } }
     });
-    if (authErr && !authErr.message.toLowerCase().includes('already')) {
-      toast('Error: ' + authErr.message); return;
-    }
+    if (authErr) { toast('Error: ' + authErr.message); return; }
     if (authData?.user?.id) {
       await sb.from('profiles').upsert({
         id: authData.user.id, org_id: currentOrg.id,
         role: role.toLowerCase(), full_name: m.full_name, phone: m.phone
       }, { onConflict: 'id,org_id', ignoreDuplicates: true });
+      const isNew = authData.user.identities?.length > 0;
+      if (isNew) await sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://app.groupyetu.org/' });
     }
-    await sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://app.groupyetu.org/' });
-    toast(m.full_name + ' set as ' + role + ' — invite sent to ' + email);
+    toast(m.full_name + ' set as ' + role + (authData?.user?.identities?.length > 0 ? ' — invite sent' : ' — org linked'));
   }
 
   await logActivity('SET ROLE', `Set ${m.full_name} portal role to ${role}`, 'member', currentMemberId);
