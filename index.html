@@ -2148,11 +2148,9 @@ tr:hover td{background:var(--maroon-pale)}
             <div class="fin-form-icon" style="background:var(--maroon-pale);color:var(--maroon)">⚠</div>
             <div>
               <div class="fin-form-title">Issue Fine / Penalty</div>
-              <div class="fin-form-sub">Fine is recorded as pending — member must pay or admin can recover from savings</div>
+              <div class="fin-form-sub">Fine stays pending until admin marks paid or recovers from member balance</div>
             </div>
           </div>
-
-          <!-- Quick reason presets -->
           <div class="form-group">
             <label class="form-label">Reason — Quick Presets</label>
             <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.5rem">
@@ -2166,7 +2164,6 @@ tr:hover td{background:var(--maroon-pale)}
             </div>
             <input class="form-input" id="fine-reason" placeholder="Or type a custom reason…"/>
           </div>
-
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Member</label>
@@ -2177,7 +2174,6 @@ tr:hover td{background:var(--maroon-pale)}
               <input class="form-input" type="date" id="fine-date"/>
             </div>
           </div>
-
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Fine Amount (Ksh)</label>
@@ -2194,12 +2190,10 @@ tr:hover td{background:var(--maroon-pale)}
               </div>
             </div>
           </div>
-
           <div class="form-group">
             <label class="form-label">Notes (optional)</label>
             <input class="form-input" id="fine-notes" placeholder="e.g. 3rd consecutive absence, warned at last meeting…"/>
           </div>
-
           <div class="fin-form-actions">
             <button class="btn btn-primary" onclick="saveFine()" style="background:var(--maroon)">⚠ Issue Fine →</button>
             <button class="btn btn-secondary" onclick="clearFineForm()">Clear</button>
@@ -2858,7 +2852,6 @@ tr:hover td{background:var(--maroon-pale)}
                 </div>
               </div>
             </div>
-            <div class="form-row single"><div class="form-group"><label class="form-label">Account Format</label><input class="form-input" id="settings-account" placeholder="e.g. ADA-[MEMBER NAME]"/></div></div>
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Bank Balance (Ksh)</label>
@@ -3227,7 +3220,7 @@ tr:hover td{background:var(--maroon-pale)}
               <div style="font-size:.88rem;font-weight:700;color:var(--maroon);margin-bottom:.3rem">⚠ Outstanding Fine</div>
               <div id="mp-fines-alert-text" style="font-size:.82rem;color:var(--ink-soft);line-height:1.65"></div>
             </div>
-            <button class="btn btn-primary btn-sm" onclick="showPage('my_contributions')" style="background:var(--maroon);font-size:.75rem;flex-shrink:0">View & Pay →</button>
+            <button class="btn btn-primary btn-sm" onclick="showPage('my_contributions')" style="background:var(--maroon);font-size:.75rem;flex-shrink:0">View Details →</button>
           </div>
         </div>
       </div>
@@ -5033,17 +5026,19 @@ function buildNav() {
       <a class="nav-item" onclick="showPage('members')" href="#"><span class="nav-icon">◉</span> Members</a>`;
     }
     if (isAdmin) {
-      const plan = currentOrg?.subscription_plan || 'starter';
-      const isPaid = ['basic','standard','pro'].includes(plan);
-      const welfareLink = isPaid ? `<a class="nav-item" onclick="showPage('welfare')" href="#"><span class="nav-icon">♡</span> Welfare</a>` : '';
-      const projectsLink = isPaid ? `<a class="nav-item" onclick="showPage('projects')" href="#"><span class="nav-icon">⚑</span> Projects</a>` : '';
+      const plan = currentOrg?._effectivePlan || currentOrg?.plan || 'starter';
+      const hasBasic = ['basic','standard','pro'].includes(plan);
+      const gatedLink = (page, icon, label, allowed) => allowed
+        ? `<a class="nav-item" onclick="showPage('${page}')" href="#"><span class="nav-icon">${icon}</span> ${label}</a>`
+        : `<a class="nav-item" style="opacity:.5;pointer-events:auto;cursor:default" onclick="showUpgradePrompt('${page}');return false" href="#" title="Upgrade to unlock"><span class="nav-icon">${icon}</span> ${label} <span style="margin-left:auto;font-size:.7rem">🔒</span></a>`;
       nav += `
     <a class="nav-item" onclick="showPage('finance')" href="#"><span class="nav-icon">₭</span> Finance</a>
     <a class="nav-item" onclick="showPage('meetings')" href="#"><span class="nav-icon">◷</span> Meetings</a>
-    <a class="nav-item" onclick="showPage('mgr')" href="#"><span class="nav-icon">🔄</span> Rotating Savings</a>
-    <a class="nav-item" onclick="showPage('table_banking')" href="#"><span class="nav-icon">🏦</span> Table Banking</a>
-    ${welfareLink}
-    ${projectsLink}
+    <a class="nav-item" onclick="showPage('mgr')" href="#"><span class="nav-icon">🔄</span> Rotating Savings</a>`;
+      nav += gatedLink('welfare',       '♡',  'Welfare',       hasBasic);
+      nav += gatedLink('projects',      '⚑',  'Projects',      hasBasic);
+      nav += gatedLink('table_banking', '🏦', 'Table Banking', hasBasic);
+      nav += `
     <a class="nav-item" onclick="showPage('messages')" href="#"><span class="nav-icon">✉</span> Messages</a>
     <div class="nav-label" style="margin-top:.5rem">My Portal</div>
     <a class="nav-item" onclick="showPage('my_profile')" href="#"><span class="nav-icon">◉</span> My Profile</a>
@@ -5152,6 +5147,8 @@ const pageTitles = {
 
 let currentPage = 'dashboard';
 function showPage(id) {
+  const gatedPages = { welfare:'welfare', projects:'projects', table_banking:'table_banking' };
+  if (gatedPages[id] && typeof planHas === 'function' && !planHas(gatedPages[id])) { showUpgradePrompt(id); return; }
   currentPage = id;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -5874,8 +5871,6 @@ async function saveExpense() {
 
 /* ═══════════════════════════════════════════════════
    FINES & PENALTIES SYSTEM
-   Flow: issue (pending) → member pays / admin recovers → paid/recovered
-   Paid fines post to Other Income (expenses table, entry_type=income, category=Fine)
 ═══════════════════════════════════════════════════ */
 
 function setFineReason(reason) {
@@ -5896,24 +5891,16 @@ async function saveFine() {
   const amount   = parseFloat(document.getElementById('fine-amount')?.value);
   const date     = document.getElementById('fine-date')?.value;
   const notes    = document.getElementById('fine-notes')?.value?.trim();
-
   if (!memberId) { toast('Please select a member to fine'); return; }
   if (!reason)   { toast('Please enter a reason for the fine'); return; }
   if (!amount || amount <= 0) { toast('Please enter a fine amount'); return; }
-
   const { error } = await sb.from('fines').insert({
-    org_id:      currentOrg.id,
-    member_id:   memberId,
-    reason,
-    amount,
-    status:      'pending',
-    notes:       notes || null,
+    org_id: currentOrg.id, member_id: memberId, reason, amount,
+    status: 'pending', notes: notes || null,
     issued_date: date || new Date().toISOString().split('T')[0],
-    issued_by:   currentUser.id,
+    issued_by: currentUser.id,
   });
-
-  if (error) { toast('Error issuing fine: ' + error.message); return; }
-
+  if (error) { toast('Error: ' + error.message); return; }
   const member = allMembers.find(m => m.id === memberId);
   await logActivity('FINE ISSUED', `Fined ${member?.full_name||'member'} Ksh ${amount.toLocaleString()} — ${reason}`, 'member', memberId);
   toast(`✓ Fine of Ksh ${amount.toLocaleString()} issued to ${member?.full_name||'member'} — status: PENDING`);
@@ -5926,20 +5913,17 @@ async function loadFinesLedger() {
   const subEl     = document.getElementById('fines-ledger-sub');
   if (!contentEl || !currentOrg?.id) return;
   contentEl.innerHTML = '<div class="loading"><div class="spinner"></div>Loading…</div>';
-
   const filter = document.getElementById('fines-filter')?.value || 'all';
-  let query = sb.from('fines').select('*,members(full_name,member_number,shares_balance,savings_balance)')
+  let query = sb.from('fines')
+    .select('*,members(full_name,member_number,shares_balance,savings_balance)')
     .eq('org_id', currentOrg.id).order('created_at', { ascending: false });
   if (filter !== 'all') query = query.eq('status', filter);
-
-  const { data: fines } = await query;
-  const all = fines || [];
-
+  const { data } = await query;
+  const all = data || [];
   const pending   = all.filter(f => f.status === 'pending');
   const totalOwed = pending.reduce((s,f) => s + Number(f.amount||0), 0);
   const totalAll  = all.reduce((s,f) => s + Number(f.amount||0), 0);
-  if (subEl) subEl.textContent = `${all.length} fine${all.length!==1?'s':''} · ${pending.length} pending (Ksh ${totalOwed.toLocaleString()} outstanding) · Ksh ${totalAll.toLocaleString()} total issued`;
-
+  if (subEl) subEl.textContent = `${all.length} fine${all.length!==1?'s':''} · ${pending.length} pending (Ksh ${totalOwed.toLocaleString()} outstanding) · Ksh ${totalAll.toLocaleString()} total`;
   if (!all.length) {
     contentEl.innerHTML = `<div style="padding:3rem;text-align:center">
       <div style="font-size:2.5rem;margin-bottom:.75rem">⚠</div>
@@ -5948,219 +5932,162 @@ async function loadFinesLedger() {
     </div>`;
     return;
   }
-
   const fp = orgFinProfile;
   const hasMemberBal = fp.hasShares || fp.hasSavings;
-
   contentEl.innerHTML = `<div class="table-wrap"><table>
-    <thead><tr>
-      <th>Date</th><th>Member</th><th>Reason</th><th>Amount</th><th>Status</th><th>Actions</th>
-    </tr></thead>
-    <tbody>
-      ${all.map(f => {
-        const initials = (f.members?.full_name||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
-        const dateStr  = f.issued_date || f.created_at?.split('T')[0] || '—';
-        const paidDate = f.paid_date ? ` · ${f.paid_date}` : '';
-        const statusBadge = {
-          pending:   '<span class="badge badge-warn">⏳ Pending</span>',
-          paid:      '<span class="badge badge-green">✓ Paid</span>',
-          recovered: '<span class="badge badge-maroon">↩ Recovered</span>',
-          waived:    '<span class="badge badge-grey">— Waived</span>',
-        }[f.status] || f.status;
-
-        const memberBal = Number(f.members?.shares_balance||0) + Number(f.members?.savings_balance||0);
-        const canRecover = hasMemberBal && f.status === 'pending' && memberBal >= Number(f.amount);
-
-        const actions = f.status === 'pending' ? `
-          <div style="display:flex;gap:.35rem;flex-wrap:wrap">
+    <thead><tr><th>Date</th><th>Member</th><th>Reason</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>${all.map(f => {
+      const initials = (f.members?.full_name||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+      const dateStr  = f.issued_date || f.created_at?.split('T')[0] || '—';
+      const paidDate = f.paid_date ? ` · ${f.paid_date}` : '';
+      const statusBadge = {
+        pending:   '<span class="badge badge-warn">⏳ Pending</span>',
+        paid:      '<span class="badge badge-green">✓ Paid</span>',
+        recovered: '<span class="badge badge-maroon">↩ Recovered</span>',
+        waived:    '<span class="badge badge-grey">— Waived</span>',
+      }[f.status] || f.status;
+      const memberBal = Number(f.members?.shares_balance||0) + Number(f.members?.savings_balance||0);
+      const canRecover = hasMemberBal && f.status === 'pending' && memberBal >= Number(f.amount);
+      const actions = f.status === 'pending'
+        ? `<div style="display:flex;gap:.35rem;flex-wrap:wrap">
             <button class="btn btn-primary btn-sm" style="font-size:.68rem;background:var(--teal)" onclick="markFinePaid('${f.id}')">✓ Mark Paid</button>
-            ${canRecover ? `
-            <button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="showFineRecoverModal('${f.id}','${f.members?.full_name?.replace(/'/g,"&apos;")||""}',${f.amount})">↩ Recover</button>` : ''}
+            ${canRecover ? `<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="recoverFineFromBalance('${f.id}')">↩ Recover Balance</button>` : ''}
             <button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="waiveFine('${f.id}')">— Waive</button>
             <button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteFine('${f.id}')">✕</button>
-          </div>` :
-          `<div style="font-size:.72rem;color:var(--ink-faint)">${f.recovery_method ? 'via ' + f.recovery_method : ''}${paidDate}</div>`;
-
-        return `<tr>
-          <td style="font-size:.78rem;color:var(--ink-faint);white-space:nowrap">${dateStr}</td>
-          <td>
-            <div style="display:flex;align-items:center;gap:.55rem">
-              <div style="width:28px;height:28px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:var(--maroon);flex-shrink:0">${initials}</div>
-              <div>
-                <div style="font-size:.82rem;font-weight:600">${f.members?.full_name||'—'}</div>
-                <div style="font-size:.67rem;color:var(--ink-faint)">#${f.members?.member_number||'—'}</div>
-              </div>
-            </div>
-          </td>
-          <td style="font-size:.8rem;color:var(--ink-soft);max-width:240px">${f.reason}${f.notes?`<div style="font-size:.7rem;color:var(--ink-faint)">${f.notes}</div>`:''}</td>
-          <td><strong style="color:var(--maroon)">Ksh ${Number(f.amount).toLocaleString()}</strong></td>
-          <td>${statusBadge}</td>
-          <td>${actions}</td>
-        </tr>`;
-      }).join('')}
-    </tbody>
-  </table></div>`;
+           </div>`
+        : `<div style="font-size:.72rem;color:var(--ink-faint)">${f.recovery_method ? 'via ' + f.recovery_method : ''}${paidDate}</div>`;
+      return `<tr>
+        <td style="font-size:.78rem;color:var(--ink-faint);white-space:nowrap">${dateStr}</td>
+        <td><div style="display:flex;align-items:center;gap:.55rem">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:var(--maroon);flex-shrink:0">${initials}</div>
+          <div><div style="font-size:.82rem;font-weight:600">${f.members?.full_name||'—'}</div>
+          <div style="font-size:.67rem;color:var(--ink-faint)">#${f.members?.member_number||'—'}</div></div>
+        </div></td>
+        <td style="font-size:.8rem;color:var(--ink-soft);max-width:220px">${f.reason}${f.notes?`<div style="font-size:.7rem;color:var(--ink-faint)">${f.notes}</div>`:''}</td>
+        <td><strong style="color:var(--maroon)">Ksh ${Number(f.amount).toLocaleString()}</strong></td>
+        <td>${statusBadge}</td>
+        <td>${actions}</td>
+      </tr>`;
+    }).join('')}</tbody></table></div>`;
 }
 
-// Mark a fine as manually paid (cash) — posts to Other Income
 async function markFinePaid(fineId) {
   const { data: fine } = await sb.from('fines').select('*,members(full_name)').eq('id', fineId).maybeSingle();
   if (!fine) return;
-
-  // 1. Update fine status
   await sb.from('fines').update({
     status: 'paid', paid_date: new Date().toISOString().split('T')[0],
     recovery_method: 'cash', approved_by: currentUser.id
   }).eq('id', fineId);
-
-  // 2. Post to Other Income (expenses table, entry_type=income)
   await sb.from('expenses').insert({
-    org_id:       currentOrg.id,
-    category:     'Fine',
-    description:  `Fine: ${fine.reason} — ${fine.members?.full_name||'member'}`,
-    amount:       fine.amount,
-    expense_date: new Date().toISOString().split('T')[0],
-    entry_type:   'income',
-    recorded_by:  currentUser.id,
+    org_id: currentOrg.id, category: 'Fine',
+    description: `Fine paid: ${fine.reason} — ${fine.members?.full_name||'member'}`,
+    amount: fine.amount, expense_date: new Date().toISOString().split('T')[0],
+    entry_type: 'income', recorded_by: currentUser.id,
   });
-
-  // 3. Credit bank balance
   await updateBankBalance(currentOrg.id, fine.amount, 'credit');
-  await logActivity('FINE PAID', `Fine paid: ${fine.members?.full_name||'member'} Ksh ${Number(fine.amount).toLocaleString()} — ${fine.reason}`);
+  await logActivity('FINE PAID', `Fine paid: ${fine.members?.full_name||'member'} Ksh ${Number(fine.amount).toLocaleString()}`);
   toast(`✓ Fine marked paid — Ksh ${Number(fine.amount).toLocaleString()} posted to Other Income`);
-  loadFinesLedger();
-  loadFinance();
-  loadDashboard();
+  loadFinesLedger(); loadFinance(); loadDashboard();
 }
 
-// Recover fine from member savings or shares balance
-async function showFineRecoverModal(fineId, memberName, amount) {
-  const fp = orgFinProfile;
-  const method = fp.hasShares && fp.hasSavings
-    ? await new Promise(resolve => {
-        const choice = confirm(
-          `Recover Ksh ${Number(amount).toLocaleString()} fine from ${memberName}'s balance?
-
-` +
-          `Click OK to recover from Savings
-Click Cancel then use the form to choose Shares`
-        );
-        resolve(choice ? 'savings' : null);
-      })
-    : fp.hasShares ? 'shares' : 'savings';
-
-  if (!method) return;
-  recoverFineFromBalance(fineId, method);
-}
-
-async function recoverFineFromBalance(fineId, method) {
-  const { data: fine } = await sb.from('fines').select('*,members(full_name,shares_balance,savings_balance)').eq('id', fineId).maybeSingle();
+async function recoverFineFromBalance(fineId) {
+  const { data: fine } = await sb.from('fines')
+    .select('*,members(full_name,shares_balance,savings_balance)')
+    .eq('id', fineId).maybeSingle();
   if (!fine) return;
-
+  const fp = orgFinProfile;
+  // Pick the best available balance to recover from
+  const savingsBal = Number(fine.members?.savings_balance||0);
+  const sharesBal  = Number(fine.members?.shares_balance||0);
+  const fineAmt    = Number(fine.amount);
+  let method = null;
+  if (fp.hasSavings && savingsBal >= fineAmt)      method = 'savings';
+  else if (fp.hasShares && sharesBal >= fineAmt)   method = 'shares';
+  if (!method) { toast('Insufficient member balance to recover this fine'); return; }
+  if (!confirm(`Recover Ksh ${fineAmt.toLocaleString()} from ${fine.members?.full_name}'s ${method} balance?`)) return;
   const balField = method === 'shares' ? 'shares_balance' : 'savings_balance';
-  const currentBal = Number(fine.members?.[balField]||0);
-
-  if (currentBal < Number(fine.amount)) {
-    toast(`Insufficient ${method} balance to recover fine`); return;
-  }
-
-  // 1. Deduct from member balance
-  await sb.from('members').update({ [balField]: currentBal - Number(fine.amount) }).eq('id', fine.member_id);
-
-  // 2. Update fine status
+  const currentBal = method === 'shares' ? sharesBal : savingsBal;
+  await sb.from('members').update({ [balField]: currentBal - fineAmt }).eq('id', fine.member_id);
   await sb.from('fines').update({
     status: 'recovered', paid_date: new Date().toISOString().split('T')[0],
     recovery_method: method, approved_by: currentUser.id
   }).eq('id', fineId);
-
-  // 3. Post to Other Income
   await sb.from('expenses').insert({
-    org_id:       currentOrg.id,
-    category:     'Fine',
-    description:  `Fine recovered from ${method}: ${fine.reason} — ${fine.members?.full_name||'member'}`,
-    amount:       fine.amount,
-    expense_date: new Date().toISOString().split('T')[0],
-    entry_type:   'income',
-    recorded_by:  currentUser.id,
+    org_id: currentOrg.id, category: 'Fine',
+    description: `Fine recovered from ${method}: ${fine.reason} — ${fine.members?.full_name||'member'}`,
+    amount: fineAmt, expense_date: new Date().toISOString().split('T')[0],
+    entry_type: 'income', recorded_by: currentUser.id,
   });
-
-  // 4. Credit bank balance
-  await updateBankBalance(currentOrg.id, fine.amount, 'credit');
-  await logActivity('FINE RECOVERED', `Fine recovered from ${method}: ${fine.members?.full_name||'member'} Ksh ${Number(fine.amount).toLocaleString()}`);
-  toast(`✓ Ksh ${Number(fine.amount).toLocaleString()} recovered from ${fine.members?.full_name}'s ${method}`);
-  loadFinesLedger();
-  loadFinance();
-  loadMembers();
-  loadDashboard();
+  await updateBankBalance(currentOrg.id, fineAmt, 'credit');
+  await logActivity('FINE RECOVERED', `Fine recovered from ${method}: ${fine.members?.full_name||'member'} Ksh ${fineAmt.toLocaleString()}`);
+  toast(`✓ Ksh ${fineAmt.toLocaleString()} recovered from ${fine.members?.full_name}'s ${method}`);
+  loadFinesLedger(); loadFinance(); loadMembers(); loadDashboard();
 }
 
 async function waiveFine(fineId) {
   if (!confirm('Waive this fine? The member will no longer owe it.')) return;
   await sb.from('fines').update({ status: 'waived', approved_by: currentUser.id }).eq('id', fineId);
   await logActivity('FINE WAIVED', 'Fine waived by admin');
-  toast('Fine waived');
-  loadFinesLedger();
+  toast('Fine waived'); loadFinesLedger();
 }
 
 async function deleteFine(fineId) {
   if (!confirm('Delete this fine record entirely?')) return;
   await sb.from('fines').delete().eq('id', fineId);
-  toast('Fine deleted');
-  loadFinesLedger();
+  toast('Fine deleted'); loadFinesLedger();
 }
 
-// Load pending fines for a member — used in member portal
+// Member portal — shows pending fines cleanly (pay prompt only, no admin options)
 async function loadMemberPendingFines(memberId) {
   if (!memberId || !currentOrg?.id) return;
   try {
-    const { data: fines } = await sb.from('fines')
-      .select('*')
-      .eq('org_id', currentOrg.id)
-      .eq('member_id', memberId)
-      .eq('status', 'pending')
+    const { data } = await sb.from('fines')
+      .select('id,reason,amount,issued_date')
+      .eq('org_id', currentOrg.id).eq('member_id', memberId).eq('status', 'pending')
       .order('created_at', { ascending: false });
-
-    const pending = fines || [];
+    const pending = data || [];
     const total   = pending.reduce((s,f) => s + Number(f.amount||0), 0);
 
-    // Alert on My Profile
-    const alertEl = document.getElementById('mp-fines-alert');
+    // My Profile alert
+    const alertEl   = document.getElementById('mp-fines-alert');
     const alertText = document.getElementById('mp-fines-alert-text');
     if (alertEl) {
       if (pending.length) {
         alertEl.style.display = 'block';
-        alertText.innerHTML = `You have <strong>${pending.length} outstanding fine${pending.length!==1?'s':''}</strong> totalling <strong style="color:var(--maroon)">Ksh ${total.toLocaleString()}</strong>.<br>
+        alertText.innerHTML = `You have <strong>${pending.length} outstanding fine${pending.length!==1?'s':''}</strong> totalling
+          <strong style="color:var(--maroon)">Ksh ${total.toLocaleString()}</strong>.<br>
           <span style="font-size:.78rem;color:var(--ink-faint)">${pending.map(f => f.reason).join(' · ')}</span>`;
       } else {
         alertEl.style.display = 'none';
       }
     }
 
-    // Notice on My Contributions
+    // My Contributions detailed notice
     const noticeEl = document.getElementById('mc-fines-notice');
     if (noticeEl) {
       if (pending.length) {
         noticeEl.style.display = 'block';
-        noticeEl.innerHTML = `<div style="background:var(--maroon-pale);border:1px solid var(--maroon-muted);border-left:4px solid var(--maroon);padding:.75rem 1rem;border-radius:4px">
-          <div style="font-size:.85rem;font-weight:700;color:var(--maroon);margin-bottom:.35rem">⚠ Outstanding Fine${pending.length!==1?'s':''}</div>
-          ${pending.map(f => `<div style="display:flex;justify-content:space-between;align-items:center;font-size:.8rem;padding:.3rem 0;border-bottom:1px solid rgba(128,0,32,.1)">
-            <span style="color:var(--ink-soft)">${f.reason}</span>
-            <strong style="color:var(--maroon)">Ksh ${Number(f.amount).toLocaleString()}</strong>
-          </div>`).join('')}
-          <div style="font-size:.75rem;color:var(--ink-faint);margin-top:.5rem">
-            Contact your group admin to pay. Alternatively your admin may recover fines from your savings balance.
+        noticeEl.innerHTML = `<div style="background:var(--maroon-pale);border:1px solid var(--maroon-muted);border-left:4px solid var(--maroon);padding:.85rem 1rem;border-radius:4px">
+          <div style="font-size:.85rem;font-weight:700;color:var(--maroon);margin-bottom:.5rem">⚠ Outstanding Fine${pending.length!==1?'s':''} — Ksh ${total.toLocaleString()}</div>
+          ${pending.map(f => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:.35rem 0;border-bottom:1px solid rgba(128,0,32,.1)">
+              <div>
+                <div style="font-size:.82rem;color:var(--ink-soft)">${f.reason}</div>
+                <div style="font-size:.7rem;color:var(--ink-faint)">${f.issued_date||''}</div>
+              </div>
+              <strong style="color:var(--maroon);flex-shrink:0;margin-left:.75rem">Ksh ${Number(f.amount).toLocaleString()}</strong>
+            </div>`).join('')}
+          <div style="margin-top:.75rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+            <span style="font-size:.75rem;color:var(--ink-faint)">Pay via M-Pesa to your group payment details and inform your admin.</span>
+            <button class="btn btn-primary btn-sm" onclick="openMemberPaymentModal();showModal('memberPayment')"
+              style="background:var(--maroon);font-size:.78rem;flex-shrink:0">💳 Make Payment</button>
           </div>
         </div>`;
       } else {
         noticeEl.style.display = 'none';
       }
     }
-
-    return pending;
-  } catch(e) {
-    console.log('Fines load skipped:', e.message);
-    return [];
-  }
+  } catch(e) { console.log('Fines load skipped:', e.message); }
 }
 
 function clearPayForm() { ['pay-member','pay-type','pay-amount','pay-ref','pay-notes'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; }); }
@@ -8628,7 +8555,7 @@ async function loadMyProfile() {
     if (sharesEl) sharesEl.textContent = 'Ksh ' + (myRecord.shares_balance||0).toLocaleString();
     if (savingsEl) savingsEl.textContent = 'Ksh ' + (myRecord.savings_balance||0).toLocaleString();
 
-    // Load pending fines for this member
+    // Load pending fines for member
     loadMemberPendingFines(myRecord.id);
 
     // Load contribution summary
@@ -8730,7 +8657,6 @@ async function loadMyContributions() {
     return;
   }
 
-  // Load pending fines notification
   loadMemberPendingFines(memberId);
 
   const [txnRes, adjRes, memRes] = await Promise.all([
@@ -9495,6 +9421,44 @@ async function saveSupportSettings() {
 }
 
 // ── SUBSCRIPTION LIMIT ENFORCEMENT ──
+const PLAN_FEATURES = {
+  starter:  { welfare:false, projects:false, table_banking:false, stk_push:false },
+  basic:    { welfare:true,  projects:true,  table_banking:true,  stk_push:false },
+  standard: { welfare:true,  projects:true,  table_banking:true,  stk_push:true  },
+  pro:      { welfare:true,  projects:true,  table_banking:true,  stk_push:true  },
+};
+const PAGE_PLAN_REQUIREMENTS = { welfare:'welfare', projects:'projects', table_banking:'table_banking' };
+function planHas(feature) {
+  if (currentProfile?.role === 'superadmin') return true;
+  const plan = currentOrg?._effectivePlan || currentOrg?.plan || 'starter';
+  return !!(PLAN_FEATURES[plan]?.[feature]);
+}
+function planRequired(feature) {
+  for (const plan of ['starter','basic','standard','pro']) {
+    if (PLAN_FEATURES[plan]?.[feature]) return plan.charAt(0).toUpperCase()+plan.slice(1);
+  }
+  return 'Pro';
+}
+function showUpgradePrompt(page) {
+  const featureMap = { welfare:{feature:'welfare',label:'Welfare Management'}, projects:{feature:'projects',label:'Projects & Investments'}, table_banking:{feature:'table_banking',label:'Table Banking'} };
+  const info = featureMap[page] || {feature:page,label:page};
+  const requiredPlan = planRequired(info.feature);
+  const currentPlan = currentOrg?._effectivePlan || currentOrg?.plan || 'starter';
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  let el = document.getElementById('page-upgrade-prompt');
+  if (!el) { el=document.createElement('div'); el.id='page-upgrade-prompt'; el.className='page'; document.querySelector('.content')?.appendChild(el); }
+  el.className='page active';
+  el.innerHTML=`<div style="max-width:500px;margin:3rem auto;text-align:center;padding:0 1.25rem">
+    <div style="width:76px;height:76px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;font-size:2rem">🔒</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:1.75rem;font-weight:700;color:var(--maroon);margin-bottom:.5rem">${info.label}</div>
+    <p style="font-size:.88rem;color:var(--ink-faint);line-height:1.75;margin-bottom:1.75rem">Not available on your current <strong>${currentPlan.charAt(0).toUpperCase()+currentPlan.slice(1)}</strong> plan. Upgrade to <strong style="color:var(--teal)">${requiredPlan}</strong> to unlock.</p>
+    <div style="display:flex;gap:.75rem;justify-content:center">
+      <button class="btn btn-primary" onclick="showPage('billing')" style="background:var(--teal);padding:.72rem 1.5rem">💳 Upgrade Now →</button>
+      <button class="btn btn-secondary" onclick="showPage('dashboard')" style="padding:.72rem 1.25rem">← Dashboard</button>
+    </div></div>`;
+  document.getElementById('page-title').textContent='Upgrade Required';
+}
 async function checkSubscriptionAccess() {
   if (!currentOrg?.id || currentProfile?.role === 'superadmin') return true;
   try {
