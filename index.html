@@ -4577,6 +4577,7 @@ async function registerOrg() {
 ════════════════════════════════════════════════ */
 
 let _userOrgs = []; // all orgs this user belongs to
+let currentOrgRole = 'member'; // role in the CURRENT org (from user_orgs, not profiles)
 
 async function loadUserOrgs() {
   if (!currentUser?.id) return [];
@@ -4659,13 +4660,16 @@ async function selectOrg(orgId) {
   const { data: profile } = await sb.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
   currentProfile = profile;
 
-  // Override role from user_orgs if this org was linked via the multi-org system
-  // (prevents carrying over admin role from another org)
+  // Always resolve role from user_orgs for this specific org
+  // This prevents admin role from one org bleeding into another org
+  currentOrgRole = profile?.role || 'member'; // start with profile role
   try {
     const { data: uoRow } = await sb.from('user_orgs')
       .select('role').eq('user_id', currentUser.id).eq('org_id', orgId).maybeSingle();
-    if (uoRow?.role && currentProfile) {
-      currentProfile = { ...currentProfile, role: uoRow.role };
+    if (uoRow?.role) {
+      currentOrgRole = uoRow.role; // override with org-specific role
+      // Also patch currentProfile so all existing code reading currentProfile.role works
+      if (currentProfile) currentProfile = { ...currentProfile, role: uoRow.role };
     }
   } catch(e) {}
 
@@ -4825,6 +4829,27 @@ function showApp() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('pending-screen').style.display = 'none';
   document.getElementById('app-screen').classList.add('visible');
+  // Ensure currentOrgRole is set — selectOrg sets it for workspace switches.
+  // On initial load it may not be set yet, so resolve from user_orgs async
+  // then rebuild nav. For instant display we use currentProfile.role as fallback.
+  if (!currentOrgRole || currentOrgRole === 'member') {
+    // Check if profile says admin — if so, verify against user_orgs for this org
+    if (currentProfile?.role && currentProfile.role !== 'member' && currentOrg?.id) {
+      sb.from('user_orgs').select('role')
+        .eq('user_id', currentProfile.id || '').eq('org_id', currentOrg.id)
+        .maybeSingle().then(({ data: uoRow }) => {
+          if (uoRow?.role) {
+            currentOrgRole = uoRow.role;
+            if (currentProfile) currentProfile = { ...currentProfile, role: uoRow.role };
+          } else {
+            currentOrgRole = currentProfile?.role || 'member';
+          }
+          buildNav(); // rebuild with correct role
+        }).catch(() => { currentOrgRole = currentProfile?.role || 'member'; });
+    } else {
+      currentOrgRole = currentProfile?.role || 'member';
+    }
+  }
   buildNav();
   updateSidebar();
   const today = new Date().toISOString().split('T')[0];
@@ -4908,7 +4933,10 @@ function updateTopbarActions(page) {
 }
 
 function buildNav() {
-  const role = currentProfile?.role || 'member';
+  // Use currentOrgRole (set by selectOrg from user_orgs) — NOT currentProfile.role
+  // currentProfile.role reflects the user's role in their ORIGINAL/primary org
+  // currentOrgRole is always the role for the currently active org
+  const role = currentOrgRole || currentProfile?.role || 'member';
   const isSuperAdmin = role === 'superadmin';
   const isAdmin = role === 'admin' || role === 'officer' || role === 'treasurer' || isSuperAdmin;
   const isTreasurer = role === 'treasurer';
