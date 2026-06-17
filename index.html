@@ -3248,5 +3248,22 @@
   <script src="js/settings.js"></script>
   <script src="js/portal.js"></script>
   <script src="js/modules.js"></script>
+  <script>
+    // Bootstrap — runs after all JS files are loaded
+    async function start() {
+      const isReset = await handleAuthRedirect();
+      if (!isReset) init();
+    }
+    start();
+
+    // PWA service worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(r => console.log('[GY360] SW registered'))
+          .catch(e => console.log('[GY360] SW error:', e));
+      });
+    }
+  </script>
 </body>
 </html>
