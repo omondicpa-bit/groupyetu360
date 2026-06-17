@@ -7367,8 +7367,12 @@ async function deleteOrg() {
       try { await sb.from('attendance').delete().in('meeting_id', mtgs.map(m=>m.id)); } catch(e) {}
     }
     // 2. Rotating savings — child tables first
-    const { data: rounds } = await sb.from('savings_rounds').select('id').eq('org_id', id).catch(()=>({data:[]}));
-    if (rounds?.length) {
+    let rounds = [];
+    try {
+      const { data: rData } = await sb.from('savings_rounds').select('id').eq('org_id', id);
+      rounds = rData || [];
+    } catch(e) {}
+    if (rounds.length) {
       const rids = rounds.map(r=>r.id);
       try { await sb.from('round_contributions').delete().in('round_id', rids); } catch(e) {}
       try { await sb.from('round_disbursements').delete().in('round_id', rids); } catch(e) {}
@@ -8161,7 +8165,7 @@ async function loadMyContributions() {
       .eq('member_id', memberId).eq('org_id', currentOrg.id)
       .order('transaction_date',{ascending:false}),
     sb.from('balance_adjustments').select('*').eq('member_id', memberId)
-      .order('created_at',{ascending:false}).catch(()=>({data:[]})),
+      .order('created_at',{ascending:false}).then(r=>r).catch(()=>({data:[]})),
     sb.from('members').select('shares_balance,savings_balance,status,member_number,full_name,join_date')
       .eq('id', memberId).eq('org_id', currentOrg.id).maybeSingle()
   ]);
