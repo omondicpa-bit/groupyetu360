@@ -4659,6 +4659,16 @@ async function selectOrg(orgId) {
   const { data: profile } = await sb.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
   currentProfile = profile;
 
+  // Override role from user_orgs if this org was linked via the multi-org system
+  // (prevents carrying over admin role from another org)
+  try {
+    const { data: uoRow } = await sb.from('user_orgs')
+      .select('role').eq('user_id', currentUser.id).eq('org_id', orgId).maybeSingle();
+    if (uoRow?.role && currentProfile) {
+      currentProfile = { ...currentProfile, role: uoRow.role };
+    }
+  } catch(e) {}
+
   // Hide picker, show app
   const picker = document.getElementById('org-picker-screen');
   if (picker) picker.style.display = 'none';
