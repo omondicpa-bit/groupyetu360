@@ -3123,8 +3123,8 @@ tr:hover td{background:var(--maroon-pale)}
         </div>
       </div>
 
-      <!-- ── BALANCE CARDS ── -->
-      <div class="mp-balances">
+      <!-- ── BALANCE CARDS — rendered dynamically by renderMemberBalanceCards() ── -->
+      <div class="mp-balances" id="mp-bal-cards-container">
         <div class="mp-bal-card" style="animation-delay:.0s">
           <div class="mp-bal-label">Shares Balance</div>
           <div class="mp-bal-value" id="mp-shares-bal-display">—</div>
@@ -3795,14 +3795,19 @@ tr:hover td{background:var(--maroon-pale)}
           </select>
         </div>
       </div>
-      <!-- KEY: Admin income vs Member balance -->
+      <!-- KEY: Income type drives dynamic UI everywhere -->
       <div class="form-row single" style="margin-bottom:.25rem">
         <div class="form-group">
-          <label class="form-label">Income Type</label>
+          <label class="form-label">Income Type <span style="color:var(--maroon)">*</span></label>
           <select class="form-select" id="ct-income-type" onchange="updateContribTypeHint(this.value)">
-            <option value="member_income">Member Balance — adds to individual member balances (e.g. Savings, Shares)</option>
-            <option value="admin_income">Admin/Group Income — goes to group funds, not member balances (e.g. Reg Fee, Annual Dues)</option>
+            <option value="admin_income">📋 Admin / Group Income — subscription, levy, dues, fines (goes to group account)</option>
+            <option value="member_savings">💰 Member Savings — deposited by member, withdrawable at year end</option>
+            <option value="member_shares">📈 Member Shares — equity contribution, tracked as member holdings</option>
+            <option value="welfare">♡ Welfare — contributions to welfare fund events</option>
+            <option value="mgr">🔄 Rotating Savings — merry-go-round contributions</option>
+            <option value="table_banking">🏦 Table Banking — pool contributions</option>
           </select>
+          <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">This determines how this contribution appears on member profiles and dashboards</div>
         </div>
       </div>
       <div id="ct-income-hint" style="font-size:.72rem;padding:.5rem .75rem;border-radius:3px;margin-bottom:.75rem;background:var(--success-pale);color:var(--success);border-left:3px solid var(--success)">
@@ -4658,6 +4663,8 @@ async function selectOrg(orgId) {
   if (picker) picker.style.display = 'none';
   showApp();
   buildOrgSwitcherDropdown();
+  // Reload financial profile for new org
+  try { await loadOrgFinancialProfile(); } catch(e) {}
 }
 
 async function switchOrg(orgId) {
@@ -4814,6 +4821,7 @@ function showApp() {
   requestAnimationFrame(() => requestAnimationFrame(() => {
     try { loadDashboard(); } catch(e) { console.error('[GY360] Dashboard error:', e); }
     try { prefetchData(); } catch(e) { console.error('[GY360] Prefetch error:', e); }
+  try { loadOrgFinancialProfile(); } catch(e) { console.error('[GY360] FinProfile error:', e); }
     try { checkSubscriptionAccess(); } catch(e) { console.error('[GY360] Sub check error:', e); }
   }));
 }
@@ -4871,6 +4879,11 @@ function updateTopbarActions(page) {
       case 'mgr':
         topbar.innerHTML = `<button class="topbar-btn" onclick="showModal('createRound')">+ New Cycle</button>`;
         break;
+      case 'table_banking':
+        topbar.innerHTML = `
+          <button class="topbar-btn outline" onclick="showModal('tbNewPool')">+ New Pool</button>
+          <button class="topbar-btn" onclick="showModal('tbNewLoan')">+ Issue Loan</button>`;
+        break;
       case 'approvals':
         topbar.innerHTML = `<span id="topbar-approvals-count" style="font-size:.78rem;color:var(--ink-faint)"></span>`;
         break;
@@ -4912,6 +4925,7 @@ function buildNav() {
     <a class="nav-item" onclick="showPage('finance')" href="#"><span class="nav-icon">₭</span> Finance</a>
     <a class="nav-item" onclick="showPage('meetings')" href="#"><span class="nav-icon">◷</span> Meetings</a>
     <a class="nav-item" onclick="showPage('mgr')" href="#"><span class="nav-icon">🔄</span> Rotating Savings</a>
+    <a class="nav-item" onclick="showPage('table_banking')" href="#"><span class="nav-icon">🏦</span> Table Banking</a>
     ${welfareLink}
     ${projectsLink}
     <a class="nav-item" onclick="showPage('messages')" href="#"><span class="nav-icon">✉</span> Messages</a>
@@ -5031,7 +5045,7 @@ function showPage(id) {
   const info = pageTitles[id] || [id, ''];
   document.getElementById('page-title').textContent = info[0];
   document.getElementById('page-sub').textContent = info[1] || currentOrg?.name || '';
-  const loaders = { members: loadMembers, finance: loadFinance, meetings: loadMeetings, welfare: loadWelfare, projects: loadProjects, mgr: loadMGR, messages: loadMessages, settings: loadSettings, superadmin: loadSuperAdmin, sa_members: loadSAMembers, sa_finance: loadSAFinance, my_profile: loadMyProfile, my_contributions: loadMyContributions, approvals: loadApprovals, my_account: loadMyAccount, billing: loadBilling, support: loadSupport, sa_billing: loadSABilling, sa_support: loadSASupport, sa_activity: loadSAActivity, my_meetings: loadMyMeetings, my_notices: loadMyNotices };
+  const loaders = { members: loadMembers, finance: loadFinance, meetings: loadMeetings, welfare: loadWelfare, projects: loadProjects, mgr: loadMGR, table_banking: loadTableBanking, messages: loadMessages, settings: loadSettings, superadmin: loadSuperAdmin, sa_members: loadSAMembers, sa_finance: loadSAFinance, my_profile: loadMyProfile, my_contributions: loadMyContributions, approvals: loadApprovals, my_account: loadMyAccount, billing: loadBilling, support: loadSupport, sa_billing: loadSABilling, sa_support: loadSASupport, sa_activity: loadSAActivity, my_meetings: loadMyMeetings, my_notices: loadMyNotices };
   if (loaders[id]) loaders[id]();
   updateTopbarActions(id);
 }
@@ -5334,13 +5348,39 @@ function renderMemberGrid(list) {
   }
   const countEl = document.getElementById('members-count-label');
   if (countEl) countEl.textContent = list.length + ' of ' + allMembers.length + ' members';
+  const fp = orgFinProfile;
   grid.innerHTML = list.map((m,i) => {
     const initials = (m.full_name||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
-    const totalBal = Number(m.shares_balance||0) + Number(m.savings_balance||0);
     const statusClass = 'status-' + (m.status||'inactive');
     const badgeClass = m.status==='active'?'badge-green':m.status==='arrears'?'badge-warn':'badge-grey';
     const regOk = m.registration_paid;
     const renewalDue = m.registration_renewal && new Date(m.registration_renewal) < new Date();
+
+    // Dynamic balance columns — only show what this org uses
+    let balanceCols = '';
+    if (fp.hasShares && fp.hasSavings) {
+      const total = Number(m.shares_balance||0) + Number(m.savings_balance||0);
+      balanceCols = `
+        <div class="mc-bal"><div class="mc-bal-label">${fp.sharesLabel}</div><div class="mc-bal-value" style="color:var(--maroon)">Ksh ${Number(m.shares_balance||0).toLocaleString()}</div></div>
+        <div class="mc-bal"><div class="mc-bal-label">${fp.savingsLabel}</div><div class="mc-bal-value" style="color:var(--teal)">Ksh ${Number(m.savings_balance||0).toLocaleString()}</div></div>
+        <div class="mc-bal"><div class="mc-bal-label">Total</div><div class="mc-bal-value" style="color:var(--ink)">Ksh ${total.toLocaleString()}</div></div>`;
+    } else if (fp.hasShares) {
+      balanceCols = `
+        <div class="mc-bal"><div class="mc-bal-label">${fp.sharesLabel}</div><div class="mc-bal-value" style="color:var(--maroon)">Ksh ${Number(m.shares_balance||0).toLocaleString()}</div></div>`;
+    } else if (fp.hasSavings) {
+      balanceCols = `
+        <div class="mc-bal"><div class="mc-bal-label">${fp.savingsLabel}</div><div class="mc-bal-value" style="color:var(--teal)">Ksh ${Number(m.savings_balance||0).toLocaleString()}</div></div>`;
+    } else {
+      // Welfare / subscription only — show total contributed from transactions
+      balanceCols = `
+        <div class="mc-bal" style="grid-column:1/-1"><div class="mc-bal-label">Total Contributed</div><div class="mc-bal-value" style="color:var(--teal)">Ksh ${Number(m.total_contributed||0).toLocaleString()}</div></div>`;
+    }
+
+    // Footer — only show savings/mo if org has savings or shares
+    const footerLeft = (fp.hasSavings || fp.hasShares) && m.savings_tier
+      ? `Ksh ${Number(m.savings_tier).toLocaleString()}/mo`
+      : fp.hasAdminIncome ? `${fp.adminIncomeLabel}` : '';
+
     return `<div class="member-card ${statusClass}" onclick="openMemberDetail('${m.id}')" style="animation-delay:${i*0.04}s">
       <div class="mc-header">
         <div class="mc-avatar">${initials}</div>
@@ -5351,22 +5391,9 @@ function renderMemberGrid(list) {
         </div>
         <span class="badge ${badgeClass}" style="font-size:.6rem;flex-shrink:0">${m.status||'—'}</span>
       </div>
-      <div class="mc-balances">
-        <div class="mc-bal">
-          <div class="mc-bal-label">Shares</div>
-          <div class="mc-bal-value" style="color:var(--maroon)">Ksh ${Number(m.shares_balance||0).toLocaleString()}</div>
-        </div>
-        <div class="mc-bal">
-          <div class="mc-bal-label">Savings</div>
-          <div class="mc-bal-value" style="color:var(--teal)">Ksh ${Number(m.savings_balance||0).toLocaleString()}</div>
-        </div>
-        <div class="mc-bal">
-          <div class="mc-bal-label">Total</div>
-          <div class="mc-bal-value" style="color:var(--ink)">Ksh ${totalBal.toLocaleString()}</div>
-        </div>
-      </div>
+      ${balanceCols ? `<div class="mc-balances">${balanceCols}</div>` : ''}
       <div class="mc-footer">
-        <span>Ksh ${(m.savings_tier||0).toLocaleString()}/mo</span>
+        <span>${footerLeft}</span>
         <span class="${regOk&&!renewalDue?'mc-reg-ok':'mc-reg-warn'}">${regOk&&!renewalDue?'✓ Registered':renewalDue?'⚠ Renewal due':'⚠ Unregistered'}</span>
       </div>
     </div>`;
@@ -5552,18 +5579,18 @@ async function saveTransaction() {
   if (!amount) { toast('Please enter an amount'); return; }
   const { error } = await sb.from('transactions').insert(payload);
   if (error) { toast('Error: ' + error.message); return; }
-  // Update member balance if member and type selected — only for member_income types
+  // Update member balance — use income_type to determine what to update
   if (memberId && typeId) {
     const contribType = allContribTypes.find(t => t.id === typeId);
-    // is_member_income defaults to true if not set (legacy types)
-    const isMemberIncome = contribType?.is_member_income !== false;
-    if (contribType && isMemberIncome) {
+    const incomeType = contribType?.income_type || (contribType?.is_member_income !== false ? 'member_savings' : 'admin_income');
+    const isMemberBalance = ['member_shares','member_savings'].includes(incomeType);
+    if (contribType && isMemberBalance) {
       const { data: member } = await sb.from('members').select('shares_balance,savings_balance').eq('id', memberId).single();
       if (member) {
         const updates = {};
-        if (contribType.name.toLowerCase().includes('share')) {
+        if (incomeType === 'member_shares' || contribType.name.toLowerCase().includes('share')) {
           updates.shares_balance = (member.shares_balance||0) + amount;
-        } else if (contribType.name.toLowerCase().includes('saving')) {
+        } else if (incomeType === 'member_savings' || contribType.name.toLowerCase().includes('saving')) {
           updates.savings_balance = (member.savings_balance||0) + amount;
         }
         if (Object.keys(updates).length) {
@@ -6983,25 +7010,33 @@ function editContribType(typeId) {
 function updateContribTypeHint(val) {
   const hint = document.getElementById('ct-income-hint');
   if (!hint) return;
-  if (val === 'admin_income') {
-    hint.style.background = 'var(--warning-pale)'; hint.style.color = 'var(--warning)'; hint.style.borderLeftColor = 'var(--warning)';
-    hint.textContent = '⚠ Payments go to the group bank balance only. Member personal balances are NOT affected (e.g. Registration Fee, Annual Dues, Welfare Levy).';
-  } else {
-    hint.style.background = 'var(--success-pale)'; hint.style.color = 'var(--success)'; hint.style.borderLeftColor = 'var(--success)';
-    hint.textContent = '✓ Payments will be added to each member\'s personal balance AND the group bank balance (e.g. Monthly Savings, Shares).';
-  }
+  const hints = {
+    admin_income: { bg:'var(--warning-pale)', c:'var(--warning)', msg:'📋 Goes to the group account only. Does NOT add to member personal balances. Shown as "Total Contributed" on member profiles.' },
+    member_savings: { bg:'var(--teal-pale)', c:'var(--teal-dk)', msg:'💰 Added to each member\'s Savings balance. Shown on member card and profile. Withdrawable at year end.' },
+    member_shares: { bg:'var(--maroon-pale)', c:'var(--maroon)', msg:'📈 Added to each member\'s Shares balance. Represents equity in the group.' },
+    welfare: { bg:'var(--surface-2)', c:'var(--ink-faint)', msg:'♡ Welfare fund contribution. Linked to welfare events on the platform.' },
+    mgr: { bg:'var(--teal-pale)', c:'var(--teal-dk)', msg:'🔄 Tracked under Rotating Savings. Links to merry-go-round cycles.' },
+    table_banking: { bg:'var(--surface-2)', c:'var(--ink-faint)', msg:'🏦 Tracked under Table Banking. Adds to the pool balance.' },
+  };
+  const h = hints[val] || hints.admin_income;
+  hint.style.background = h.bg;
+  hint.style.color = h.c;
+  hint.style.borderLeftColor = h.c;
+  hint.textContent = h.msg;
 }
 
 async function saveContribType() {
   if (!currentOrg?.id) return;
-  const incomeType = document.getElementById('ct-income-type')?.value || 'member_income';
+  const incomeType = document.getElementById('ct-income-type')?.value || 'admin_income';
+  const isMemberBalance = ['member_savings','member_shares'].includes(incomeType);
   const payload = {
     org_id: currentOrg.id,
     name: document.getElementById('ct-name').value.trim(),
     amount: parseFloat(document.getElementById('ct-amount').value)||0,
     frequency: document.getElementById('ct-freq').value,
     is_variable: document.getElementById('ct-variable').value === 'true',
-    is_member_income: incomeType === 'member_income',
+    income_type: incomeType,
+    is_member_income: isMemberBalance, // legacy compat
     notes: document.getElementById('ct-notes')?.value.trim() || null
   };
   if (!payload.name) { toast('Please enter a type name'); return; }
@@ -7019,11 +7054,14 @@ async function saveContribType() {
 
   if (error) { toast('Error: '+error.message); return; }
 
+  // Reload org financial profile to reflect new type
+  try { await loadOrgFinancialProfile(); } catch(e) {}
+
   // Reset
   _editingContribTypeId = null;
   ['ct-name','ct-amount','ct-notes'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-  const itEl = document.getElementById('ct-income-type'); if(itEl) itEl.value='member_income';
-  updateContribTypeHint('member_income');
+  const itEl = document.getElementById('ct-income-type'); if(itEl) itEl.value='admin_income';
+  updateContribTypeHint('admin_income');
   const titleEl = document.getElementById('contrib-modal-title');
   const btnEl = document.getElementById('contrib-save-btn');
   if (titleEl) titleEl.textContent = 'Add Contribution Type';
@@ -8183,8 +8221,24 @@ async function loadMyContributions() {
   setEl('mc-year', 'Ksh ' + yearTotal.toLocaleString());
   const countLabel = document.getElementById('mc-count-label');
   if (countLabel) countLabel.textContent = txns.length + ' payments recorded';
-  setEl('mc-shares-bal', 'Ksh ' + Number(mem?.shares_balance||0).toLocaleString());
-  setEl('mc-savings-bal', 'Ksh ' + Number(mem?.savings_balance||0).toLocaleString());
+  // Dynamic stat cards based on org type
+  const fp2 = orgFinProfile;
+  if (fp2.hasShares) {
+    setEl('mc-shares-bal', 'Ksh ' + Number(mem?.shares_balance||0).toLocaleString());
+    const sharesCard = document.getElementById('mc-shares-card');
+    if (sharesCard) { sharesCard.style.display=''; document.querySelector('#mc-shares-card .mc-stat-label').textContent = fp2.sharesLabel; }
+  } else {
+    const sharesCard = document.getElementById('mc-shares-card');
+    if (sharesCard) sharesCard.style.display = 'none';
+  }
+  if (fp2.hasSavings) {
+    setEl('mc-savings-bal', 'Ksh ' + Number(mem?.savings_balance||0).toLocaleString());
+    const savingsCard = document.getElementById('mc-savings-card');
+    if (savingsCard) { savingsCard.style.display=''; document.querySelector('#mc-savings-card .mc-stat-label').textContent = fp2.savingsLabel; }
+  } else {
+    const savingsCard = document.getElementById('mc-savings-card');
+    if (savingsCard) savingsCard.style.display = 'none';
+  }
 
   // Check for pending payment requests
   try {
@@ -10226,6 +10280,22 @@ function clearMgrDisForm() {
 .osd-add{color:rgba(196,154,48,.7) !important;font-style:italic}
 .osd-add:hover{color:var(--gold-lt) !important}
 
+
+/* ════════════════════════════════════════════════════
+   TABLE BANKING
+════════════════════════════════════════════════════ */
+.tb-hero{background:linear-gradient(135deg,#1a0a00 0%,#3d2000 50%,#0d3d2e 100%);padding:1.25rem 1.5rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+.tb-hero-title{font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:#fff}
+.tb-hero-sub{font-size:.72rem;color:rgba(255,255,255,.5);margin-top:.15rem}
+.tb-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1.25rem}
+.tb-stat{background:var(--surface);border:1px solid var(--border);padding:.85rem 1rem;text-align:center}
+.tb-stat-val{font-family:'Crimson Pro',serif;font-size:1.5rem;font-weight:700;color:var(--teal)}
+.tb-stat-label{font-size:.62rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem}
+.loan-card{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--teal);padding:1rem 1.25rem;margin-bottom:.65rem}
+.loan-card.overdue{border-left-color:var(--danger)}
+.loan-card.repaid{border-left-color:var(--border);opacity:.7}
+.loan-progress{height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:.5rem}
+.loan-progress-fill{height:100%;background:var(--teal);border-radius:3px;transition:width .6s ease}
 </style>
 <div id="support-fab">
   <div id="support-fab-menu">
@@ -10598,6 +10668,502 @@ async function autoLinkAdminMember() {
   await loadMyContributions();
 }
 
+
+/* ════════════════════════════════════════════════════
+   DYNAMIC ORG FINANCIAL PROFILE
+   Reads contribution_types to determine what this org uses
+════════════════════════════════════════════════════ */
+let orgFinProfile = {
+  hasShares: false,
+  hasSavings: false,
+  hasAdminIncome: false,
+  hasWelfare: false,
+  hasMGR: false,
+  hasTableBanking: false,
+  // labels
+  sharesLabel: 'Shares',
+  savingsLabel: 'Savings',
+  adminIncomeLabel: 'Contributions',
+  // type IDs for filtering
+  shareTypeIds: [],
+  savingsTypeIds: [],
+  adminIncomeTypeIds: [],
+  welfareTypeIds: [],
+  allLoaded: false
+};
+
+async function loadOrgFinancialProfile() {
+  if (!currentOrg?.id) return;
+
+  const { data: types } = await sb.from('contribution_types')
+    .select('*').eq('org_id', currentOrg.id);
+  const allTypes = types || [];
+
+  // Reset
+  orgFinProfile = {
+    hasShares: false, hasSavings: false, hasAdminIncome: false,
+    hasWelfare: false, hasMGR: false, hasTableBanking: false,
+    sharesLabel: 'Shares', savingsLabel: 'Savings', adminIncomeLabel: 'Contributions',
+    shareTypeIds: [], savingsTypeIds: [], adminIncomeTypeIds: [], welfareTypeIds: [],
+    allLoaded: false
+  };
+
+  allTypes.forEach(t => {
+    const it = t.income_type || 'admin_income';
+    if (it === 'member_shares') {
+      orgFinProfile.hasShares = true;
+      orgFinProfile.shareTypeIds.push(t.id);
+      orgFinProfile.sharesLabel = t.name || 'Shares';
+    } else if (it === 'member_savings') {
+      orgFinProfile.hasSavings = true;
+      orgFinProfile.savingsTypeIds.push(t.id);
+      orgFinProfile.savingsLabel = t.name || 'Savings';
+    } else if (it === 'welfare') {
+      orgFinProfile.hasWelfare = true;
+      orgFinProfile.welfareTypeIds.push(t.id);
+    } else if (it === 'mgr') {
+      orgFinProfile.hasMGR = true;
+    } else if (it === 'table_banking') {
+      orgFinProfile.hasTableBanking = true;
+    } else {
+      // admin_income, fine, fee, subscription etc
+      orgFinProfile.hasAdminIncome = true;
+      orgFinProfile.adminIncomeTypeIds.push(t.id);
+      if (!orgFinProfile.adminIncomeLabel || orgFinProfile.adminIncomeLabel === 'Contributions') {
+        orgFinProfile.adminIncomeLabel = t.name || 'Contributions';
+      }
+    }
+  });
+
+  // Check for MGR cycles
+  if (!orgFinProfile.hasMGR) {
+    try {
+      const { data: rounds } = await sb.from('savings_rounds').select('id').eq('org_id', currentOrg.id).limit(1);
+      if (rounds?.length) orgFinProfile.hasMGR = true;
+    } catch(e) {}
+  }
+
+  // Check for table banking
+  if (!orgFinProfile.hasTableBanking) {
+    try {
+      const { data: pools } = await sb.from('table_banking_pools').select('id').eq('org_id', currentOrg.id).limit(1);
+      if (pools?.length) orgFinProfile.hasTableBanking = true;
+    } catch(e) {}
+  }
+
+  orgFinProfile.allLoaded = true;
+  console.log('[GY360] Org Financial Profile:', orgFinProfile);
+}
+
+
+/* ════════════════════════════════════════════════════
+   DYNAMIC BALANCE CARDS — My Profile
+════════════════════════════════════════════════════ */
+function renderMemberBalanceCards(myRecord, totalContributed) {
+  const fp = orgFinProfile;
+  const container = document.getElementById('mp-bal-cards-container');
+  if (!container || !myRecord) return;
+
+  const cards = [];
+
+  if (fp.hasShares) {
+    cards.push({ label: fp.sharesLabel, value: 'Ksh ' + Number(myRecord.shares_balance||0).toLocaleString(), meta: 'Equity in the group', delay: 0 });
+  }
+  if (fp.hasSavings) {
+    cards.push({ label: fp.savingsLabel, value: 'Ksh ' + Number(myRecord.savings_balance||0).toLocaleString(), meta: 'Monthly deposits', delay: .08 });
+  }
+  if (!fp.hasShares && !fp.hasSavings) {
+    // Welfare / subscription only — show total contributed
+    cards.push({ label: 'Total Contributed', value: 'Ksh ' + Number(totalContributed||0).toLocaleString(), meta: 'Your group involvement', delay: 0 });
+  }
+  if (fp.hasShares || fp.hasSavings) {
+    const total = Number(myRecord.shares_balance||0) + Number(myRecord.savings_balance||0);
+    cards.push({ label: 'Total Holdings', value: 'Ksh ' + total.toLocaleString(), meta: 'Combined balance', delay: .16 });
+  }
+  if (fp.hasAdminIncome && totalContributed > 0) {
+    cards.push({ label: fp.adminIncomeLabel + ' Paid', value: 'Ksh ' + Number(totalContributed||0).toLocaleString(), meta: 'Total contributions to group', delay: .24 });
+  }
+
+  container.innerHTML = cards.map((c, i) => `
+    <div class="mp-bal-card" style="animation-delay:${c.delay}s">
+      <div class="mp-bal-label">${c.label}</div>
+      <div class="mp-bal-value" style="color:${i===0?'var(--maroon)':i===1?'var(--teal)':'var(--gold)'}">${c.value}</div>
+      <div class="mp-bal-meta">${c.meta}</div>
+    </div>`).join('');
+}
+
+/* ════════════════════════════════════════════════════
+   DYNAMIC DASHBOARD STAT CARDS
+════════════════════════════════════════════════════ */
+function renderDashboardModules(members, txns, projs) {
+  const fp = orgFinProfile;
+  // Update the "Active Projects" card visibility
+  const projCard = document.getElementById('dash-projects-card');
+  if (projCard) {
+    const shouldShow = fp.hasShares || fp.hasSavings || fp.hasAdminIncome;
+    // Projects always show if org uses them
+    projCard.style.display = projs?.length === 0 && !fp.hasShares && !fp.hasSavings ? 'none' : '';
+  }
+
+  // Update MGR dashboard card
+  const mgrCard = document.getElementById('dash-mgr-card');
+  if (mgrCard) mgrCard.style.display = fp.hasMGR ? '' : 'none';
+
+  // Update Table Banking dashboard card
+  const tbCard = document.getElementById('dash-tb-card');
+  if (tbCard) tbCard.style.display = fp.hasTableBanking ? '' : 'none';
+}
+
+
+/* ════════════════════════════════════════════════════
+   TABLE BANKING FUNCTIONS
+════════════════════════════════════════════════════ */
+
+let allTBPools = [];
+
+async function loadTableBanking() {
+  if (!currentOrg?.id) return;
+
+  // Load pools
+  try {
+    const { data } = await sb.from('table_banking_pools')
+      .select('*').eq('org_id', currentOrg.id).order('created_at', {ascending: false});
+    allTBPools = data || [];
+  } catch(e) {
+    allTBPools = [];
+  }
+
+  // Populate pool selects
+  const poolOpts = '<option value="">Select pool…</option>' +
+    allTBPools.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  ['tb-pool-select','tb-rec-pool','tb-loan-pool'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.innerHTML = poolOpts;
+  });
+
+  // Member selects
+  const memberOpts = '<option value="">Select member…</option>' +
+    allMembers.map(m => `<option value="${m.id}">${m.full_name}</option>`).join('');
+  ['tb-rec-member','tb-loan-member'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.innerHTML = memberOpts;
+  });
+
+  // Set dates
+  const today = new Date().toISOString().split('T')[0];
+  ['tb-rec-date','tb-loan-date','tb-pool-date','tb-repay-date'].forEach(id => {
+    const el = document.getElementById(id); if (el && !el.value) el.value = today;
+  });
+
+  if (!allTBPools.length) {
+    document.getElementById('tb-overview-content').innerHTML = `
+      <div style="text-align:center;padding:3rem">
+        <div style="font-size:2rem;margin-bottom:.75rem">🏦</div>
+        <div style="font-size:.9rem;font-weight:700;color:var(--ink);margin-bottom:.4rem">No table banking pools yet</div>
+        <div style="font-size:.8rem;color:var(--ink-faint);margin-bottom:1.25rem">Create your first pool to start tracking contributions and loans</div>
+        <button class="btn btn-primary" onclick="showModal('tbNewPool')" style="background:var(--teal);width:auto">+ Create First Pool</button>
+      </div>`;
+    ['tb-stat-pool','tb-stat-loans','tb-stat-outstanding','tb-stat-interest'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.textContent = '—';
+    });
+    document.getElementById('tb-hero-sub').textContent = 'No pools yet — create one to get started';
+    return;
+  }
+
+  // Load stats across all pools
+  const poolIds = allTBPools.map(p => p.id);
+
+  const [contribRes, loanRes] = await Promise.all([
+    sb.from('table_banking_contributions').select('amount').in('pool_id', poolIds),
+    sb.from('table_banking_loans').select('*,members(full_name)').in('pool_id', poolIds).eq('status','active')
+  ]);
+
+  const totalContrib = (contribRes.data||[]).reduce((s,c)=>s+Number(c.amount||0),0);
+  const activeLoans = loanRes.data || [];
+  const totalLoaned = activeLoans.reduce((s,l)=>s+Number(l.principal||0),0);
+  const totalRepaid = activeLoans.reduce((s,l)=>s+Number(l.total_repaid||0),0);
+  const outstanding = totalLoaned - totalRepaid;
+
+  // Interest earned (simplified: repaid - principal portions)
+  let interestEarned = 0;
+  try {
+    const { data: repayments } = await sb.from('table_banking_repayments').select('interest_paid').in('loan_id', activeLoans.map(l=>l.id));
+    interestEarned = (repayments||[]).reduce((s,r)=>s+Number(r.interest_paid||0),0);
+  } catch(e) {}
+
+  const poolBalance = totalContrib - totalLoaned + totalRepaid;
+
+  const setEl = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  setEl('tb-stat-pool', 'Ksh ' + poolBalance.toLocaleString());
+  setEl('tb-stat-loans', activeLoans.length);
+  setEl('tb-stat-outstanding', 'Ksh ' + outstanding.toLocaleString());
+  setEl('tb-stat-interest', 'Ksh ' + interestEarned.toLocaleString());
+  setEl('tb-hero-sub', `${allTBPools.length} pool${allTBPools.length!==1?'s':''} · ${activeLoans.length} active loan${activeLoans.length!==1?'s':''}`);
+
+  // Load repay loan select
+  const loanOpts = '<option value="">Select loan…</option>' +
+    activeLoans.map(l => {
+      const bal = Number(l.principal||0) - Number(l.total_repaid||0);
+      return `<option value="${l.id}">${l.members?.full_name||'—'} — Ksh ${bal.toLocaleString()} outstanding</option>`;
+    }).join('');
+  const repayLoanEl = document.getElementById('tb-repay-loan');
+  if (repayLoanEl) repayLoanEl.innerHTML = loanOpts;
+
+  // Show first pool overview
+  if (allTBPools.length) {
+    const poolSel = document.getElementById('tb-pool-select');
+    if (poolSel && !poolSel.value) {
+      poolSel.value = allTBPools[0].id;
+      await loadTBOverview(allTBPools[0].id);
+    }
+  }
+}
+
+async function loadTBOverview(poolId) {
+  const contentEl = document.getElementById('tb-overview-content');
+  if (!contentEl || !poolId) return;
+  contentEl.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+  const pool = allTBPools.find(p => p.id === poolId);
+  if (!pool) return;
+
+  const [contribRes, loanRes] = await Promise.all([
+    sb.from('table_banking_contributions').select('*,members(full_name)').eq('pool_id', poolId).order('payment_date',{ascending:false}),
+    sb.from('table_banking_loans').select('*,members(full_name)').eq('pool_id', poolId).order('created_at',{ascending:false})
+  ]);
+
+  const contribs = contribRes.data || [];
+  const loans = loanRes.data || [];
+  const totalIn = contribs.reduce((s,c)=>s+Number(c.amount||0),0);
+  const activeLoans = loans.filter(l=>l.status==='active');
+  const totalLoaned = activeLoans.reduce((s,l)=>s+Number(l.principal||0),0);
+  const poolBal = totalIn - totalLoaned;
+
+  contentEl.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;margin-bottom:1.25rem">
+      <div style="background:var(--surface);border:1px solid var(--border);padding:.85rem;text-align:center">
+        <div style="font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:var(--teal)">Ksh ${totalIn.toLocaleString()}</div>
+        <div style="font-size:.62rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem">Total Contributions</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);padding:.85rem;text-align:center">
+        <div style="font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:var(--maroon)">Ksh ${totalLoaned.toLocaleString()}</div>
+        <div style="font-size:.62rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem">Total Loaned Out</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);padding:.85rem;text-align:center">
+        <div style="font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:var(--gold)">Ksh ${poolBal.toLocaleString()}</div>
+        <div style="font-size:.62rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem">Available in Pool</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <!-- Contributions -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">Recent Contributions</div></div>
+        <div class="table-wrap">
+          <table><thead><tr><th>Member</th><th>Date</th><th>Amount</th></tr></thead>
+          <tbody>${contribs.slice(0,8).map(c=>`<tr>
+            <td>${c.members?.full_name||'—'}</td>
+            <td>${c.payment_date||'—'}</td>
+            <td><strong>Ksh ${Number(c.amount).toLocaleString()}</strong></td>
+          </tr>`).join('') || '<tr><td colspan="3" style="text-align:center;padding:1.5rem;color:var(--ink-faint)">No contributions yet</td></tr>'}</tbody></table>
+        </div>
+      </div>
+      <!-- Active Loans -->
+      <div>
+        <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.65rem">Active Loans</div>
+        ${activeLoans.length ? activeLoans.map(l => {
+          const outstanding = Number(l.principal||0) - Number(l.total_repaid||0);
+          const pct = Math.round((Number(l.total_repaid||0)/Number(l.principal||1))*100);
+          const overdue = l.due_date && new Date(l.due_date) < new Date();
+          return `<div class="loan-card ${overdue?'overdue':''}">
+            <div style="display:flex;justify-content:space-between;margin-bottom:.3rem">
+              <strong style="font-size:.85rem">${l.members?.full_name||'—'}</strong>
+              <span class="badge ${overdue?'badge-red':'badge-green'}" style="font-size:.6rem">${overdue?'Overdue':'Active'}</span>
+            </div>
+            <div style="font-size:.75rem;color:var(--ink-faint)">Principal: Ksh ${Number(l.principal).toLocaleString()} · ${l.interest_rate}%/mo · Due: ${l.due_date||'—'}</div>
+            <div style="font-size:.82rem;color:var(--maroon);font-weight:600;margin-top:.2rem">Outstanding: Ksh ${outstanding.toLocaleString()}</div>
+            <div class="loan-progress"><div class="loan-progress-fill" style="width:${pct}%"></div></div>
+            <div style="font-size:.62rem;color:var(--ink-faint);margin-top:.2rem">${pct}% repaid</div>
+          </div>`;
+        }).join('') : '<div style="color:var(--ink-faint);font-size:.82rem;padding:.5rem">No active loans</div>'}
+      </div>
+    </div>`;
+}
+
+async function loadTBLoans() {
+  const listEl = document.getElementById('tb-loans-list');
+  if (!listEl) return;
+  if (!allTBPools.length) { listEl.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--ink-faint)">No pools yet</div>'; return; }
+
+  const { data: loans } = await sb.from('table_banking_loans')
+    .select('*,members(full_name),table_banking_pools(name)')
+    .in('pool_id', allTBPools.map(p=>p.id))
+    .order('created_at',{ascending:false});
+
+  if (!loans?.length) {
+    listEl.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--ink-faint)">No loans yet — issue your first loan</div>';
+    return;
+  }
+
+  listEl.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>Member</th><th>Pool</th><th>Principal</th><th>Rate</th><th>Due Date</th><th>Outstanding</th><th>Status</th><th></th></tr></thead>
+    <tbody>${loans.map(l => {
+      const outstanding = Math.max(0, Number(l.principal||0) - Number(l.total_repaid||0));
+      const overdue = l.due_date && new Date(l.due_date) < new Date() && l.status === 'active';
+      const badgeClass = l.status==='repaid'?'badge-green':overdue?'badge-red':'badge-warn';
+      return `<tr>
+        <td><strong>${l.members?.full_name||'—'}</strong></td>
+        <td>${l.table_banking_pools?.name||'—'}</td>
+        <td>Ksh ${Number(l.principal).toLocaleString()}</td>
+        <td>${l.interest_rate}%/mo</td>
+        <td>${l.due_date||'—'}</td>
+        <td><strong style="color:var(--maroon)">Ksh ${outstanding.toLocaleString()}</strong></td>
+        <td><span class="badge ${badgeClass}">${overdue?'Overdue':l.status}</span></td>
+        <td><button class="btn btn-secondary btn-sm" style="font-size:.68rem"
+          onclick="markLoanRepaid('${l.id}')">Mark Repaid</button></td>
+      </tr>`;
+    }).join('')}</tbody></table></div>`;
+}
+
+async function saveTBPool() {
+  const name = document.getElementById('tb-pool-name').value.trim();
+  const rate = Number(document.getElementById('tb-pool-rate').value) || 10;
+  const date = document.getElementById('tb-pool-date').value;
+  const notes = document.getElementById('tb-pool-notes').value.trim();
+  if (!name) { toast('Please enter a pool name'); return; }
+
+  const { error } = await sb.from('table_banking_pools').insert({
+    org_id: currentOrg.id, name, interest_rate: rate,
+    start_date: date || new Date().toISOString().split('T')[0],
+    notes: notes || null, status: 'active', created_by: currentUser.id
+  });
+  if (error) { toast('Error: ' + error.message); return; }
+  toast('✓ Pool created: ' + name);
+  closeModal('tbNewPool');
+  document.getElementById('tb-pool-name').value = '';
+  await loadTableBanking();
+}
+
+async function saveTBContribution() {
+  const poolId = document.getElementById('tb-rec-pool').value;
+  const memberId = document.getElementById('tb-rec-member').value;
+  const amount = Number(document.getElementById('tb-rec-amount').value);
+  const date = document.getElementById('tb-rec-date').value;
+  const ref = document.getElementById('tb-rec-ref').value.trim();
+  if (!poolId || !memberId) { toast('Please select pool and member'); return; }
+  if (!amount || amount <= 0) { toast('Please enter an amount'); return; }
+
+  const { error } = await sb.from('table_banking_contributions').insert({
+    pool_id: poolId, org_id: currentOrg.id, member_id: memberId,
+    amount, payment_date: date, mpesa_ref: ref || null,
+    recorded_by: currentUser.id
+  });
+  if (error) { toast('Error: ' + error.message); return; }
+  toast('✓ Contribution recorded');
+  document.getElementById('tb-rec-amount').value = '';
+  document.getElementById('tb-rec-ref').value = '';
+  await loadTableBanking();
+}
+
+function calcLoanRepayment() {
+  const amount = Number(document.getElementById('tb-loan-amount').value) || 0;
+  const rate = Number(document.getElementById('tb-loan-rate').value) || 10;
+  if (amount > 0) {
+    const interest = amount * rate / 100;
+    const total = amount + interest;
+    document.getElementById('tb-loan-calc').style.display = 'block';
+    document.getElementById('tb-loan-calc-val').textContent = `Ksh ${total.toLocaleString()} (principal Ksh ${amount.toLocaleString()} + interest Ksh ${interest.toLocaleString()})`;
+  }
+}
+
+async function saveTBLoan() {
+  const poolId = document.getElementById('tb-loan-pool').value;
+  const memberId = document.getElementById('tb-loan-member').value;
+  const principal = Number(document.getElementById('tb-loan-amount').value);
+  const rate = Number(document.getElementById('tb-loan-rate').value) || 10;
+  const date = document.getElementById('tb-loan-date').value;
+  const due = document.getElementById('tb-loan-due').value;
+  const notes = document.getElementById('tb-loan-notes').value.trim();
+  if (!poolId || !memberId) { toast('Please select pool and member'); return; }
+  if (!principal || principal <= 0) { toast('Please enter loan amount'); return; }
+
+  const { error } = await sb.from('table_banking_loans').insert({
+    pool_id: poolId, org_id: currentOrg.id, member_id: memberId,
+    principal, interest_rate: rate,
+    disbursed_date: date || new Date().toISOString().split('T')[0],
+    due_date: due || null, status: 'active',
+    total_repaid: 0, notes: notes || null,
+    issued_by: currentUser.id
+  });
+  if (error) { toast('Error: ' + error.message); return; }
+  toast('✓ Loan issued — Ksh ' + principal.toLocaleString());
+  closeModal('tbNewLoan');
+  await loadTableBanking();
+}
+
+async function loadLoanRepayDetails(loanId) {
+  const splitEl = document.getElementById('tb-repay-split');
+  if (!loanId || !splitEl) { if(splitEl) splitEl.style.display='none'; return; }
+
+  const { data: loan } = await sb.from('table_banking_loans').select('*,members(full_name)').eq('id', loanId).maybeSingle();
+  if (!loan) return;
+  const outstanding = Number(loan.principal||0) - Number(loan.total_repaid||0);
+  const monthlyInterest = outstanding * Number(loan.interest_rate||10) / 100;
+
+  splitEl.style.display = 'block';
+  document.getElementById('tb-repay-principal').textContent = 'Ksh ' + outstanding.toLocaleString();
+  document.getElementById('tb-repay-interest').textContent = 'Ksh ' + monthlyInterest.toLocaleString() + ' (1 month at ' + loan.interest_rate + '%)';
+
+  // Auto-fill suggested amount
+  const amtEl = document.getElementById('tb-repay-amount');
+  if (amtEl && !amtEl.value) amtEl.value = Math.round(outstanding + monthlyInterest);
+}
+
+async function saveTBRepayment() {
+  const loanId = document.getElementById('tb-repay-loan').value;
+  const amount = Number(document.getElementById('tb-repay-amount').value);
+  const date = document.getElementById('tb-repay-date').value;
+  const ref = document.getElementById('tb-repay-ref').value.trim();
+  if (!loanId) { toast('Please select a loan'); return; }
+  if (!amount || amount <= 0) { toast('Please enter repayment amount'); return; }
+
+  // Get loan details to split principal/interest
+  const { data: loan } = await sb.from('table_banking_loans').select('*').eq('id', loanId).maybeSingle();
+  if (!loan) { toast('Loan not found'); return; }
+
+  const outstanding = Number(loan.principal||0) - Number(loan.total_repaid||0);
+  const monthlyInterest = outstanding * Number(loan.interest_rate||10) / 100;
+  const interestPaid = Math.min(amount, monthlyInterest);
+  const principalPaid = Math.max(0, amount - interestPaid);
+
+  const { error } = await sb.from('table_banking_repayments').insert({
+    loan_id: loanId, org_id: currentOrg.id, member_id: loan.member_id,
+    amount, principal_paid: principalPaid, interest_paid: interestPaid,
+    payment_date: date, mpesa_ref: ref || null, recorded_by: currentUser.id
+  });
+  if (error) { toast('Error: ' + error.message); return; }
+
+  // Update loan total_repaid
+  const newRepaid = Number(loan.total_repaid||0) + principalPaid;
+  const isFullyRepaid = newRepaid >= Number(loan.principal||0);
+  await sb.from('table_banking_loans').update({
+    total_repaid: newRepaid,
+    status: isFullyRepaid ? 'repaid' : 'active'
+  }).eq('id', loanId);
+
+  toast(`✓ Repayment recorded — Ksh ${amount.toLocaleString()} (principal: ${principalPaid.toLocaleString()}, interest: ${interestPaid.toLocaleString()})${isFullyRepaid?' · Loan fully repaid! ✓':''}`);
+  document.getElementById('tb-repay-amount').value = '';
+  document.getElementById('tb-repay-split').style.display = 'none';
+  await loadTableBanking();
+  await loadTBLoans();
+}
+
+async function markLoanRepaid(loanId) {
+  if (!confirm('Mark this loan as fully repaid?')) return;
+  await sb.from('table_banking_loans').update({ status: 'repaid' }).eq('id', loanId);
+  toast('✓ Loan marked as repaid');
+  await loadTBLoans();
+  await loadTableBanking();
+}
+
 </script>
 
 
@@ -10743,6 +11309,174 @@ async function autoLinkAdminMember() {
     <div class="modal-footer">
       <button class="btn btn-primary" onclick="registerNewOrg()" style="background:var(--teal)">Create Organisation →</button>
       <button class="btn btn-secondary" onclick="closeModal('registerNewOrg')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+
+    <!-- TABLE BANKING PAGE -->
+    <div class="page" id="page-table_banking">
+      <div class="tb-hero">
+        <div>
+          <div class="tb-hero-title">🏦 Table Banking</div>
+          <div class="tb-hero-sub" id="tb-hero-sub">Pool contributions and member loans</div>
+        </div>
+        <div style="display:flex;gap:.5rem">
+          <button class="btn fin-ctrl-btn" onclick="showModal('tbNewPool')" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2)">+ New Pool</button>
+          <button class="btn fin-ctrl-btn" onclick="showModal('tbNewLoan')">+ Issue Loan</button>
+        </div>
+      </div>
+
+      <div class="tb-stats">
+        <div class="tb-stat"><div class="tb-stat-val" id="tb-stat-pool">—</div><div class="tb-stat-label">Pool Balance</div></div>
+        <div class="tb-stat"><div class="tb-stat-val" id="tb-stat-loans">—</div><div class="tb-stat-label">Active Loans</div></div>
+        <div class="tb-stat"><div class="tb-stat-val" id="tb-stat-outstanding">—</div><div class="tb-stat-label">Outstanding</div></div>
+        <div class="tb-stat"><div class="tb-stat-val" id="tb-stat-interest">—</div><div class="tb-stat-label">Interest Earned</div></div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab(this,'tb-tab-overview')">Pool Overview</div>
+        <div class="tab" onclick="switchTab(this,'tb-tab-loans');loadTBLoans()">Loans</div>
+        <div class="tab" onclick="switchTab(this,'tb-tab-record')">Record Contribution</div>
+        <div class="tab" onclick="switchTab(this,'tb-tab-repay')">Record Repayment</div>
+      </div>
+
+      <!-- Pool Overview -->
+      <div class="tab-panel active" id="tb-tab-overview">
+        <div id="tb-pool-select-wrap" style="margin-bottom:1rem">
+          <select class="form-select" id="tb-pool-select" onchange="loadTBOverview(this.value)" style="max-width:320px">
+            <option value="">Select pool…</option>
+          </select>
+        </div>
+        <div id="tb-overview-content">
+          <div class="loading"><div class="spinner"></div>Loading…</div>
+        </div>
+      </div>
+
+      <!-- Loans -->
+      <div class="tab-panel" id="tb-tab-loans">
+        <div id="tb-loans-list"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+
+      <!-- Record Contribution -->
+      <div class="tab-panel" id="tb-tab-record">
+        <div class="mgr-form-card">
+          <div class="mgr-form-heading">
+            <div class="mgr-form-icon">₭</div>
+            <div><div class="mgr-form-title">Record Pool Contribution</div><div class="mgr-form-sub">Member payment into the table banking pool</div></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Pool</label>
+              <select class="form-select" id="tb-rec-pool"><option value="">Select pool…</option></select></div>
+            <div class="form-group"><label class="form-label">Member</label>
+              <select class="form-select" id="tb-rec-member"><option value="">Select member…</option></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Amount (Ksh)</label>
+              <input class="form-input" type="number" id="tb-rec-amount" placeholder="0"/></div>
+            <div class="form-group"><label class="form-label">Date</label>
+              <input class="form-input" type="date" id="tb-rec-date"/></div>
+          </div>
+          <div class="form-group"><label class="form-label">M-Pesa Ref</label>
+            <input class="form-input" id="tb-rec-ref" placeholder="Optional"/></div>
+          <div style="margin-top:1rem;display:flex;gap:.75rem">
+            <button class="btn btn-primary" onclick="saveTBContribution()" style="background:var(--teal)">Save Contribution →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Record Repayment -->
+      <div class="tab-panel" id="tb-tab-repay">
+        <div class="mgr-form-card">
+          <div class="mgr-form-heading">
+            <div class="mgr-form-icon" style="background:rgba(128,0,32,.1)">💸</div>
+            <div><div class="mgr-form-title">Record Loan Repayment</div><div class="mgr-form-sub">Principal + interest payment from borrower</div></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Loan (Member)</label>
+              <select class="form-select" id="tb-repay-loan" onchange="loadLoanRepayDetails(this.value)"><option value="">Select loan…</option></select></div>
+            <div class="form-group"><label class="form-label">Amount Paid (Ksh)</label>
+              <input class="form-input" type="number" id="tb-repay-amount" placeholder="0"/></div>
+          </div>
+          <div id="tb-repay-split" style="display:none;background:var(--surface-2);padding:.75rem;border:1px solid var(--border);margin-bottom:.75rem;font-size:.82rem">
+            <div style="display:flex;justify-content:space-between;margin-bottom:.3rem">
+              <span>Principal portion:</span><strong id="tb-repay-principal">—</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between">
+              <span>Interest portion:</span><strong id="tb-repay-interest">—</strong>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Date</label>
+              <input class="form-input" type="date" id="tb-repay-date"/></div>
+            <div class="form-group"><label class="form-label">M-Pesa Ref</label>
+              <input class="form-input" id="tb-repay-ref" placeholder="Optional"/></div>
+          </div>
+          <div style="margin-top:1rem">
+            <button class="btn btn-primary" onclick="saveTBRepayment()" style="background:var(--maroon)">Record Repayment →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+<!-- MODAL: New Table Banking Pool -->
+<div class="modal-overlay" id="modal-tbNewPool">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header"><div class="modal-title">🏦 New Table Banking Pool</div>
+      <button class="modal-close" onclick="closeModal('tbNewPool')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Pool / Cycle Name</label>
+        <input class="form-input" id="tb-pool-name" placeholder="e.g. 2026 Table Banking Cycle"/></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Interest Rate (% per month)</label>
+          <input class="form-input" type="number" id="tb-pool-rate" value="10" placeholder="10"/></div>
+        <div class="form-group"><label class="form-label">Start Date</label>
+          <input class="form-input" type="date" id="tb-pool-date"/></div>
+      </div>
+      <div class="form-group"><label class="form-label">Notes</label>
+        <input class="form-input" id="tb-pool-notes" placeholder="Optional notes"/></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveTBPool()" style="background:var(--teal)">Create Pool →</button>
+      <button class="btn btn-secondary" onclick="closeModal('tbNewPool')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Issue Loan -->
+<div class="modal-overlay" id="modal-tbNewLoan">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header"><div class="modal-title">💰 Issue Loan</div>
+      <button class="modal-close" onclick="closeModal('tbNewLoan')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Pool</label>
+          <select class="form-select" id="tb-loan-pool"><option value="">Select pool…</option></select></div>
+        <div class="form-group"><label class="form-label">Borrower</label>
+          <select class="form-select" id="tb-loan-member"><option value="">Select member…</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Principal (Ksh)</label>
+          <input class="form-input" type="number" id="tb-loan-amount" placeholder="0" oninput="calcLoanRepayment()"/></div>
+        <div class="form-group"><label class="form-label">Interest Rate (% per month)</label>
+          <input class="form-input" type="number" id="tb-loan-rate" value="10" oninput="calcLoanRepayment()"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Disbursement Date</label>
+          <input class="form-input" type="date" id="tb-loan-date"/></div>
+        <div class="form-group"><label class="form-label">Due Date</label>
+          <input class="form-input" type="date" id="tb-loan-due"/></div>
+      </div>
+      <div id="tb-loan-calc" style="display:none;background:var(--teal-pale);border:1px solid var(--teal-mid);padding:.75rem;font-size:.82rem;margin-top:.5rem">
+        <strong>Estimated repayment (1 month):</strong> <span id="tb-loan-calc-val">—</span>
+      </div>
+      <div class="form-group" style="margin-top:.75rem"><label class="form-label">Notes</label>
+        <input class="form-input" id="tb-loan-notes" placeholder="Loan purpose etc."/></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveTBLoan()" style="background:var(--maroon)">Issue Loan →</button>
+      <button class="btn btn-secondary" onclick="closeModal('tbNewLoan')">Cancel</button>
     </div>
   </div>
 </div>
