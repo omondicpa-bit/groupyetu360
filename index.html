@@ -7744,7 +7744,24 @@ async function loadMyContributions() {
   let memberId = window._myMemberId;
   if (!memberId) { await loadMyProfile(); memberId = window._myMemberId; }
   if (!memberId) {
-    document.getElementById('mc-table').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--ink-faint)">No member record linked. Contact your admin.</td></tr>';
+    const role = currentProfile?.role;
+    const isAdmin = ['admin','officer','treasurer','superadmin'].includes(role);
+    document.getElementById('mc-table').innerHTML = `<tr><td colspan="5" style="padding:2rem;text-align:center">
+      <div style="font-size:1.5rem;margin-bottom:.75rem">🔗</div>
+      <div style="font-size:.9rem;font-weight:600;color:var(--ink);margin-bottom:.4rem">Member record not linked</div>
+      <div style="font-size:.8rem;color:var(--ink-faint);line-height:1.7;margin-bottom:1rem">
+        ${isAdmin
+          ? 'As an admin, go to <strong>Members</strong> → find your record → Edit → set your Portal Email to <strong>' + (currentUser?.email||'your email') + '</strong>'
+          : 'Your account is not linked to a member record yet. Contact your group admin.'}
+      </div>
+      ${isAdmin ? '<button class="btn btn-primary btn-sm" style="font-size:.78rem" onclick="autoLinkAdminMember()">Auto-link my record →</button>' : ''}
+    </td></tr>`;
+
+    // Also set stat cards to zero
+    ['mc-total','mc-year','mc-shares-bal','mc-savings-bal'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = 'Ksh 0';
+    });
     return;
   }
 
@@ -9968,6 +9985,38 @@ function switchToNewOrg(e) {
       window.open('https://app.groupyetu.org', '_blank');
     }
   }
+}
+
+
+async function autoLinkAdminMember() {
+  // Try to find a member record matching this admin's name or email
+  const { data: members } = await sb.from('members').select('*').eq('org_id', currentOrg.id);
+  const allM = members || [];
+  const myEmail = currentUser?.email || '';
+  const myName = currentProfile?.full_name?.toLowerCase().trim() || '';
+
+  let match = allM.find(m => m.portal_email === myEmail);
+  if (!match && myName) {
+    match = allM.find(m => m.full_name?.toLowerCase().trim() === myName);
+  }
+  if (!match && myName) {
+    const firstName = myName.split(' ')[0];
+    match = allM.find(m => m.full_name?.toLowerCase().startsWith(firstName));
+  }
+
+  if (!match) {
+    toast('No matching member record found. Go to Members → your record → Edit → set Portal Email to ' + myEmail);
+    return;
+  }
+
+  // Set portal_email on the member record
+  const { error } = await sb.from('members').update({ portal_email: myEmail }).eq('id', match.id);
+  if (error) { toast('Error: ' + error.message); return; }
+
+  toast('✓ Linked to ' + match.full_name + ' — reloading...');
+  window._myMemberId = match.id;
+  await loadMyContributions();
+  await loadMyProfile();
 }
 
 </script>
