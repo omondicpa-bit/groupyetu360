@@ -1790,10 +1790,10 @@ tr:hover td{background:var(--maroon-pale)}
               <button class="btn btn-secondary" onclick="showModal('welfareEvent')" style="font-size:.75rem;padding:.55rem .5rem">
                 ♡ Welfare Event
               </button>
-              <button class="btn btn-secondary" onclick="showPage('finance');setTimeout(()=>switchFinTab(document.querySelector('[onclick*=tab-expense-record]'),'tab-expense-record'),100)" style="font-size:.75rem;padding:.55rem .5rem">
+              <button class="btn btn-secondary" onclick="showPage('finance');setTimeout(()=>switchTab(document.querySelector('[onclick*=tab-expense-record]'),'tab-expense-record'),100)" style="font-size:.75rem;padding:.55rem .5rem">
                 − Record Expense
               </button>
-              <button class="btn btn-secondary" onclick="showPage('finance');setTimeout(()=>switchFinTab(document.querySelector('[onclick*=tab-fine-record]'),'tab-fine-record'),100)" style="font-size:.75rem;padding:.55rem .5rem">
+              <button class="btn btn-secondary" onclick="showPage('finance');setTimeout(()=>switchFinTab(document.querySelector('[onclick*=tab-fine-record]'),'tab-fine-record'),150)" style="font-size:.75rem;padding:.55rem .5rem">
                 ⚠ Issue Fine
               </button>
             </div>
@@ -2114,16 +2114,26 @@ tr:hover td{background:var(--maroon-pale)}
         </div>
       </div>
 
+    </div>
+
       <!-- TAB: FINES LEDGER -->
       <div class="tab-panel" id="tab-fines">
-        <div class="table-wrap card" style="margin-top:.75rem">
+        <div class="card" style="margin-top:.75rem">
           <div class="card-header">
             <div>
-              <div class="card-title">⚠ Fines & Penalties Ledger</div>
-              <div class="card-sub" id="fines-ledger-count">All fines issued to members</div>
+              <div class="card-title">⚠ Fines & Penalties</div>
+              <div class="card-sub" id="fines-ledger-sub">Loading…</div>
             </div>
-            <button class="btn btn-primary btn-sm" onclick="switchFinTab(document.querySelector('[onclick*=tab-fine-record]'),'tab-fine-record')"
-              style="background:var(--maroon);font-size:.75rem">+ Issue Fine</button>
+            <div style="display:flex;gap:.5rem">
+              <select class="form-select" id="fines-filter" onchange="loadFinesLedger()" style="font-size:.75rem;padding:.3rem .6rem;width:auto">
+                <option value="all">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="paid">Paid</option>
+                <option value="recovered">Recovered</option>
+                <option value="waived">Waived</option>
+              </select>
+              <button class="btn btn-primary btn-sm" onclick="switchFinTab(document.querySelector('[onclick*=tab-fine-record]'),'tab-fine-record')" style="background:var(--maroon);font-size:.75rem">+ Issue Fine</button>
+            </div>
           </div>
           <div id="fines-ledger-content">
             <div class="loading"><div class="spinner"></div>Loading…</div>
@@ -2135,17 +2145,17 @@ tr:hover td{background:var(--maroon-pale)}
       <div class="tab-panel" id="tab-fine-record">
         <div class="fin-form-card">
           <div class="fin-form-heading">
-            <div class="fin-form-icon" style="background:var(--maroon-pale);color:var(--maroon);font-size:1.2rem">⚠</div>
+            <div class="fin-form-icon" style="background:var(--maroon-pale);color:var(--maroon)">⚠</div>
             <div>
               <div class="fin-form-title">Issue Fine / Penalty</div>
-              <div class="fin-form-sub">Fine a member for absence, lateness, late contribution or other reason</div>
+              <div class="fin-form-sub">Fine is recorded as pending — member must pay or admin can recover from savings</div>
             </div>
           </div>
 
           <!-- Quick reason presets -->
           <div class="form-group">
-            <label class="form-label">Fine Reason — Quick Presets</label>
-            <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.5rem">
+            <label class="form-label">Reason — Quick Presets</label>
+            <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.5rem">
               <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="setFineReason('Absent from meeting')">📅 Absent</button>
               <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="setFineReason('Late to meeting')">⏰ Late to meeting</button>
               <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="setFineReason('Late contribution')">₭ Late contribution</button>
@@ -2159,11 +2169,11 @@ tr:hover td{background:var(--maroon-pale)}
 
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Member to Fine</label>
+              <label class="form-label">Member</label>
               <select class="form-select" id="fine-member"><option value="">Select member…</option></select>
             </div>
             <div class="form-group">
-              <label class="form-label">Date</label>
+              <label class="form-label">Date Issued</label>
               <input class="form-input" type="date" id="fine-date"/>
             </div>
           </div>
@@ -2172,11 +2182,11 @@ tr:hover td{background:var(--maroon-pale)}
             <div class="form-group">
               <label class="form-label">Fine Amount (Ksh)</label>
               <input class="form-input" type="number" id="fine-amount" placeholder="0"/>
-              <div class="field-hint">Fine goes to the group's admin income — does not affect member personal balance</div>
+              <div class="field-hint">Fine stays <strong>pending</strong> until member pays or you recover from their balance</div>
             </div>
             <div class="form-group">
               <label class="form-label">Quick Amounts</label>
-              <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.2rem">
+              <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.2rem">
                 <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="document.getElementById('fine-amount').value=50">50</button>
                 <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="document.getElementById('fine-amount').value=100">100</button>
                 <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="document.getElementById('fine-amount').value=200">200</button>
@@ -2186,26 +2196,16 @@ tr:hover td{background:var(--maroon-pale)}
           </div>
 
           <div class="form-group">
-            <label class="form-label">Additional Notes (optional)</label>
+            <label class="form-label">Notes (optional)</label>
             <input class="form-input" id="fine-notes" placeholder="e.g. 3rd consecutive absence, warned at last meeting…"/>
           </div>
 
           <div class="fin-form-actions">
-            <button class="btn btn-primary" onclick="saveFine()" style="background:var(--maroon);box-shadow:0 3px 10px rgba(128,0,32,.2)">⚠ Issue Fine →</button>
+            <button class="btn btn-primary" onclick="saveFine()" style="background:var(--maroon)">⚠ Issue Fine →</button>
             <button class="btn btn-secondary" onclick="clearFineForm()">Clear</button>
           </div>
         </div>
-
-        <!-- Recent fines preview below the form -->
-        <div class="card" style="margin-top:1rem" id="recent-fines-preview">
-          <div class="card-header"><div class="card-title">Recent Fines</div></div>
-          <div id="recent-fines-list">
-            <div style="padding:1.25rem;text-align:center;font-size:.82rem;color:var(--ink-faint)">No fines recorded yet</div>
-          </div>
-        </div>
       </div>
-
-    </div>
 
     <!-- MEETINGS -->
     <div class="page" id="page-meetings">
@@ -3219,6 +3219,19 @@ tr:hover td{background:var(--maroon-pale)}
         </div>
       </div>
 
+      <!-- ── PENDING FINES ALERT ── -->
+      <div id="mp-fines-alert" style="display:none;margin-bottom:1rem;animation:portalFadeUp .4s ease both">
+        <div class="mp-welfare-alert" style="border-left-color:var(--maroon);background:linear-gradient(135deg,var(--maroon-pale),var(--surface))">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;flex-wrap:wrap">
+            <div style="flex:1">
+              <div style="font-size:.88rem;font-weight:700;color:var(--maroon);margin-bottom:.3rem">⚠ Outstanding Fine</div>
+              <div id="mp-fines-alert-text" style="font-size:.82rem;color:var(--ink-soft);line-height:1.65"></div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="showPage('my_contributions')" style="background:var(--maroon);font-size:.75rem;flex-shrink:0">View & Pay →</button>
+          </div>
+        </div>
+      </div>
+
       <!-- ── BALANCE CARDS — rendered dynamically by renderMemberBalanceCards() ── -->
       <div class="mp-balances" id="mp-bal-cards-container">
         <div class="mp-bal-card" style="animation-delay:.0s">
@@ -3333,6 +3346,8 @@ tr:hover td{background:var(--maroon-pale)}
         <div class="stat-card" id="mc-shares-card" style="border-top-color:var(--maroon)"><div class="stat-label" id="mc-shares-label">Shares Balance</div><div class="stat-value" id="mc-shares-bal" style="font-size:1.3rem;color:var(--maroon)">—</div></div>
         <div class="stat-card green" id="mc-savings-card"><div class="stat-label" id="mc-savings-label">Savings Balance</div><div class="stat-value" id="mc-savings-bal" style="font-size:1.3rem">—</div></div>
       </div>
+      <!-- Pending fines notice -->
+      <div id="mc-fines-notice" style="margin-bottom:.75rem;display:none"></div>
       <!-- Pending payment notice -->
       <div id="mc-pending-notice" style="margin-bottom:1rem;display:none"></div>
 
@@ -4919,8 +4934,6 @@ function showApp() {
   updateSidebar();
   const today = new Date().toISOString().split('T')[0];
   document.querySelectorAll('input[type="date"]').forEach(el => { if(!el.value) el.value = today; });
-  // Pre-load recent fines preview when page opens
-  setTimeout(() => { try { loadRecentFinesPreview(); } catch(e) {} }, 2000);
   requestAnimationFrame(() => requestAnimationFrame(() => {
     try { loadDashboard(); } catch(e) { console.error('[GY360] Dashboard error:', e); }
     try { prefetchData(); } catch(e) { console.error('[GY360] Prefetch error:', e); }
@@ -5859,25 +5872,21 @@ async function saveExpense() {
   clearExpForm(); loadFinance(); loadDashboard();
 }
 
-function clearPayForm() { ['pay-member','pay-type','pay-amount','pay-ref','pay-notes'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; }); }
-function clearExpForm() { ['exp-category','exp-desc','exp-amount','exp-ref','exp-project'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; }); }
-
 /* ═══════════════════════════════════════════════════
-   FINES & PENALTIES
+   FINES & PENALTIES SYSTEM
+   Flow: issue (pending) → member pays / admin recovers → paid/recovered
+   Paid fines post to Other Income (expenses table, entry_type=income, category=Fine)
 ═══════════════════════════════════════════════════ */
 
 function setFineReason(reason) {
   const el = document.getElementById('fine-reason');
-  if (el) el.value = reason;
+  if (el) { el.value = reason; el.focus(); }
 }
 
 function clearFineForm() {
-  ['fine-member','fine-amount','fine-notes'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
+  ['fine-member','fine-amount','fine-notes','fine-reason'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
   });
-  const reasonEl = document.getElementById('fine-reason');
-  if (reasonEl) reasonEl.value = '';
 }
 
 async function saveFine() {
@@ -5892,138 +5901,270 @@ async function saveFine() {
   if (!reason)   { toast('Please enter a reason for the fine'); return; }
   if (!amount || amount <= 0) { toast('Please enter a fine amount'); return; }
 
-  const member = allMembers.find(m => m.id === memberId);
-
-  // Record as a transaction (admin_income — goes to group not member balance)
-  const { error } = await sb.from('transactions').insert({
-    org_id:           currentOrg.id,
-    member_id:        memberId,
+  const { error } = await sb.from('fines').insert({
+    org_id:      currentOrg.id,
+    member_id:   memberId,
+    reason,
     amount,
-    transaction_date: date || new Date().toISOString().split('T')[0],
-    notes:            `FINE: ${reason}${notes ? ' — ' + notes : ''}`,
-    recorded_by:      currentUser.id,
-    // No type_id — fines are standalone admin_income
+    status:      'pending',
+    notes:       notes || null,
+    issued_date: date || new Date().toISOString().split('T')[0],
+    issued_by:   currentUser.id,
   });
 
-  if (error) { toast('Error: ' + error.message); return; }
+  if (error) { toast('Error issuing fine: ' + error.message); return; }
 
-  // Update bank balance (fine is income to the group)
-  await updateBankBalance(currentOrg.id, amount, 'credit');
-
-  // Log activity
-  await logActivity('FINE ISSUED', `Fined ${member?.full_name || 'member'} Ksh ${amount.toLocaleString()} — ${reason}`, 'member', memberId);
-
-  toast(`✓ Fine of Ksh ${amount.toLocaleString()} issued to ${member?.full_name || 'member'}`);
+  const member = allMembers.find(m => m.id === memberId);
+  await logActivity('FINE ISSUED', `Fined ${member?.full_name||'member'} Ksh ${amount.toLocaleString()} — ${reason}`, 'member', memberId);
+  toast(`✓ Fine of Ksh ${amount.toLocaleString()} issued to ${member?.full_name||'member'} — status: PENDING`);
   clearFineForm();
-  loadRecentFinesPreview();
-  loadFinance();
-  loadDashboard();
+  loadFinesLedger();
 }
 
 async function loadFinesLedger() {
   const contentEl = document.getElementById('fines-ledger-content');
-  const countEl   = document.getElementById('fines-ledger-count');
+  const subEl     = document.getElementById('fines-ledger-sub');
   if (!contentEl || !currentOrg?.id) return;
   contentEl.innerHTML = '<div class="loading"><div class="spinner"></div>Loading…</div>';
 
-  // Fines are stored in transactions with notes starting with "FINE:"
-  const { data: txns } = await sb.from('transactions')
-    .select('*,members(full_name,member_number)')
-    .eq('org_id', currentOrg.id)
-    .ilike('notes', 'FINE:%')
-    .order('transaction_date', { ascending: false });
+  const filter = document.getElementById('fines-filter')?.value || 'all';
+  let query = sb.from('fines').select('*,members(full_name,member_number,shares_balance,savings_balance)')
+    .eq('org_id', currentOrg.id).order('created_at', { ascending: false });
+  if (filter !== 'all') query = query.eq('status', filter);
 
-  const fines = txns || [];
-  if (countEl) countEl.textContent = `${fines.length} fine${fines.length !== 1 ? 's' : ''} issued · Total: Ksh ${fines.reduce((s,f)=>s+Number(f.amount||0),0).toLocaleString()}`;
+  const { data: fines } = await query;
+  const all = fines || [];
 
-  if (!fines.length) {
+  const pending   = all.filter(f => f.status === 'pending');
+  const totalOwed = pending.reduce((s,f) => s + Number(f.amount||0), 0);
+  const totalAll  = all.reduce((s,f) => s + Number(f.amount||0), 0);
+  if (subEl) subEl.textContent = `${all.length} fine${all.length!==1?'s':''} · ${pending.length} pending (Ksh ${totalOwed.toLocaleString()} outstanding) · Ksh ${totalAll.toLocaleString()} total issued`;
+
+  if (!all.length) {
     contentEl.innerHTML = `<div style="padding:3rem;text-align:center">
-      <div style="font-size:2rem;margin-bottom:.75rem">⚠</div>
+      <div style="font-size:2.5rem;margin-bottom:.75rem">⚠</div>
       <div style="font-size:.88rem;font-weight:600;color:var(--ink);margin-bottom:.35rem">No fines recorded yet</div>
-      <div style="font-size:.78rem;color:var(--ink-faint);margin-bottom:1rem">Issue a fine from the <strong>⚠ Issue Fine</strong> tab</div>
+      <div style="font-size:.78rem;color:var(--ink-faint)">Use <strong>⚠ Issue Fine</strong> tab to fine a member</div>
     </div>`;
     return;
   }
 
-  contentEl.innerHTML = `<table>
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Member</th>
-        <th>Reason</th>
-        <th>Amount</th>
-        <th></th>
-      </tr>
-    </thead>
+  const fp = orgFinProfile;
+  const hasMemberBal = fp.hasShares || fp.hasSavings;
+
+  contentEl.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr>
+      <th>Date</th><th>Member</th><th>Reason</th><th>Amount</th><th>Status</th><th>Actions</th>
+    </tr></thead>
     <tbody>
-      ${fines.map(f => {
-        const reason = (f.notes || '').replace(/^FINE:\s*/i, '');
-        const dateStr = f.transaction_date || f.created_at?.split('T')[0] || '—';
-        const initials = (f.members?.full_name || '?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+      ${all.map(f => {
+        const initials = (f.members?.full_name||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+        const dateStr  = f.issued_date || f.created_at?.split('T')[0] || '—';
+        const paidDate = f.paid_date ? ` · ${f.paid_date}` : '';
+        const statusBadge = {
+          pending:   '<span class="badge badge-warn">⏳ Pending</span>',
+          paid:      '<span class="badge badge-green">✓ Paid</span>',
+          recovered: '<span class="badge badge-maroon">↩ Recovered</span>',
+          waived:    '<span class="badge badge-grey">— Waived</span>',
+        }[f.status] || f.status;
+
+        const memberBal = Number(f.members?.shares_balance||0) + Number(f.members?.savings_balance||0);
+        const canRecover = hasMemberBal && f.status === 'pending' && memberBal >= Number(f.amount);
+
+        const actions = f.status === 'pending' ? `
+          <div style="display:flex;gap:.35rem;flex-wrap:wrap">
+            <button class="btn btn-primary btn-sm" style="font-size:.68rem;background:var(--teal)" onclick="markFinePaid('${f.id}')">✓ Mark Paid</button>
+            ${canRecover ? `
+            <button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="showFineRecoverModal('${f.id}','${f.members?.full_name?.replace(/'/g,"&apos;")||""}',${f.amount})">↩ Recover</button>` : ''}
+            <button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="waiveFine('${f.id}')">— Waive</button>
+            <button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteFine('${f.id}')">✕</button>
+          </div>` :
+          `<div style="font-size:.72rem;color:var(--ink-faint)">${f.recovery_method ? 'via ' + f.recovery_method : ''}${paidDate}</div>`;
+
         return `<tr>
-          <td style="font-size:.78rem;color:var(--ink-faint)">${dateStr}</td>
+          <td style="font-size:.78rem;color:var(--ink-faint);white-space:nowrap">${dateStr}</td>
           <td>
-            <div style="display:flex;align-items:center;gap:.6rem">
-              <div style="width:28px;height:28px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700;color:var(--maroon);flex-shrink:0">${initials}</div>
+            <div style="display:flex;align-items:center;gap:.55rem">
+              <div style="width:28px;height:28px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:var(--maroon);flex-shrink:0">${initials}</div>
               <div>
-                <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${f.members?.full_name || '—'}</div>
-                <div style="font-size:.68rem;color:var(--ink-faint)">#${f.members?.member_number || '—'}</div>
+                <div style="font-size:.82rem;font-weight:600">${f.members?.full_name||'—'}</div>
+                <div style="font-size:.67rem;color:var(--ink-faint)">#${f.members?.member_number||'—'}</div>
               </div>
             </div>
           </td>
-          <td style="font-size:.8rem;color:var(--ink-soft);max-width:280px">${reason}</td>
+          <td style="font-size:.8rem;color:var(--ink-soft);max-width:240px">${f.reason}${f.notes?`<div style="font-size:.7rem;color:var(--ink-faint)">${f.notes}</div>`:''}</td>
           <td><strong style="color:var(--maroon)">Ksh ${Number(f.amount).toLocaleString()}</strong></td>
-          <td>
-            <button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteFine('${f.id}')">✕</button>
-          </td>
+          <td>${statusBadge}</td>
+          <td>${actions}</td>
         </tr>`;
       }).join('')}
     </tbody>
-  </table>`;
+  </table></div>`;
 }
 
-async function loadRecentFinesPreview() {
-  const listEl = document.getElementById('recent-fines-list');
-  if (!listEl || !currentOrg?.id) return;
+// Mark a fine as manually paid (cash) — posts to Other Income
+async function markFinePaid(fineId) {
+  const { data: fine } = await sb.from('fines').select('*,members(full_name)').eq('id', fineId).maybeSingle();
+  if (!fine) return;
 
-  const { data: txns } = await sb.from('transactions')
-    .select('*,members(full_name)')
-    .eq('org_id', currentOrg.id)
-    .ilike('notes', 'FINE:%')
-    .order('created_at', { ascending: false })
-    .limit(5);
+  // 1. Update fine status
+  await sb.from('fines').update({
+    status: 'paid', paid_date: new Date().toISOString().split('T')[0],
+    recovery_method: 'cash', approved_by: currentUser.id
+  }).eq('id', fineId);
 
-  const fines = txns || [];
-  if (!fines.length) {
-    listEl.innerHTML = '<div style="padding:1.25rem;text-align:center;font-size:.82rem;color:var(--ink-faint)">No fines yet</div>';
-    return;
-  }
+  // 2. Post to Other Income (expenses table, entry_type=income)
+  await sb.from('expenses').insert({
+    org_id:       currentOrg.id,
+    category:     'Fine',
+    description:  `Fine: ${fine.reason} — ${fine.members?.full_name||'member'}`,
+    amount:       fine.amount,
+    expense_date: new Date().toISOString().split('T')[0],
+    entry_type:   'income',
+    recorded_by:  currentUser.id,
+  });
 
-  listEl.innerHTML = fines.map(f => {
-    const reason = (f.notes || '').replace(/^FINE:\s*/i, '');
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem 1.25rem;border-bottom:1px solid var(--border)">
-      <div>
-        <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${f.members?.full_name || '—'}</div>
-        <div style="font-size:.7rem;color:var(--ink-faint)">${reason} · ${f.transaction_date || '—'}</div>
-      </div>
-      <strong style="color:var(--maroon);font-size:.85rem">Ksh ${Number(f.amount).toLocaleString()}</strong>
-    </div>`;
-  }).join('');
-}
-
-async function deleteFine(transactionId) {
-  if (!confirm('Delete this fine record? This will also reverse the bank balance.')) return;
-  // Get the amount first
-  const { data: txn } = await sb.from('transactions').select('amount').eq('id', transactionId).maybeSingle();
-  const { error } = await sb.from('transactions').delete().eq('id', transactionId);
-  if (error) { toast('Error: ' + error.message); return; }
-  // Reverse bank balance
-  if (txn?.amount) await updateBankBalance(currentOrg.id, txn.amount, 'debit');
-  toast('Fine deleted and balance reversed');
+  // 3. Credit bank balance
+  await updateBankBalance(currentOrg.id, fine.amount, 'credit');
+  await logActivity('FINE PAID', `Fine paid: ${fine.members?.full_name||'member'} Ksh ${Number(fine.amount).toLocaleString()} — ${fine.reason}`);
+  toast(`✓ Fine marked paid — Ksh ${Number(fine.amount).toLocaleString()} posted to Other Income`);
   loadFinesLedger();
   loadFinance();
   loadDashboard();
 }
+
+// Recover fine from member savings or shares balance
+async function showFineRecoverModal(fineId, memberName, amount) {
+  const fp = orgFinProfile;
+  const method = fp.hasShares && fp.hasSavings
+    ? await new Promise(resolve => {
+        const choice = confirm(
+          `Recover Ksh ${Number(amount).toLocaleString()} fine from ${memberName}'s balance?
+
+` +
+          `Click OK to recover from Savings
+Click Cancel then use the form to choose Shares`
+        );
+        resolve(choice ? 'savings' : null);
+      })
+    : fp.hasShares ? 'shares' : 'savings';
+
+  if (!method) return;
+  recoverFineFromBalance(fineId, method);
+}
+
+async function recoverFineFromBalance(fineId, method) {
+  const { data: fine } = await sb.from('fines').select('*,members(full_name,shares_balance,savings_balance)').eq('id', fineId).maybeSingle();
+  if (!fine) return;
+
+  const balField = method === 'shares' ? 'shares_balance' : 'savings_balance';
+  const currentBal = Number(fine.members?.[balField]||0);
+
+  if (currentBal < Number(fine.amount)) {
+    toast(`Insufficient ${method} balance to recover fine`); return;
+  }
+
+  // 1. Deduct from member balance
+  await sb.from('members').update({ [balField]: currentBal - Number(fine.amount) }).eq('id', fine.member_id);
+
+  // 2. Update fine status
+  await sb.from('fines').update({
+    status: 'recovered', paid_date: new Date().toISOString().split('T')[0],
+    recovery_method: method, approved_by: currentUser.id
+  }).eq('id', fineId);
+
+  // 3. Post to Other Income
+  await sb.from('expenses').insert({
+    org_id:       currentOrg.id,
+    category:     'Fine',
+    description:  `Fine recovered from ${method}: ${fine.reason} — ${fine.members?.full_name||'member'}`,
+    amount:       fine.amount,
+    expense_date: new Date().toISOString().split('T')[0],
+    entry_type:   'income',
+    recorded_by:  currentUser.id,
+  });
+
+  // 4. Credit bank balance
+  await updateBankBalance(currentOrg.id, fine.amount, 'credit');
+  await logActivity('FINE RECOVERED', `Fine recovered from ${method}: ${fine.members?.full_name||'member'} Ksh ${Number(fine.amount).toLocaleString()}`);
+  toast(`✓ Ksh ${Number(fine.amount).toLocaleString()} recovered from ${fine.members?.full_name}'s ${method}`);
+  loadFinesLedger();
+  loadFinance();
+  loadMembers();
+  loadDashboard();
+}
+
+async function waiveFine(fineId) {
+  if (!confirm('Waive this fine? The member will no longer owe it.')) return;
+  await sb.from('fines').update({ status: 'waived', approved_by: currentUser.id }).eq('id', fineId);
+  await logActivity('FINE WAIVED', 'Fine waived by admin');
+  toast('Fine waived');
+  loadFinesLedger();
+}
+
+async function deleteFine(fineId) {
+  if (!confirm('Delete this fine record entirely?')) return;
+  await sb.from('fines').delete().eq('id', fineId);
+  toast('Fine deleted');
+  loadFinesLedger();
+}
+
+// Load pending fines for a member — used in member portal
+async function loadMemberPendingFines(memberId) {
+  if (!memberId || !currentOrg?.id) return;
+  try {
+    const { data: fines } = await sb.from('fines')
+      .select('*')
+      .eq('org_id', currentOrg.id)
+      .eq('member_id', memberId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+
+    const pending = fines || [];
+    const total   = pending.reduce((s,f) => s + Number(f.amount||0), 0);
+
+    // Alert on My Profile
+    const alertEl = document.getElementById('mp-fines-alert');
+    const alertText = document.getElementById('mp-fines-alert-text');
+    if (alertEl) {
+      if (pending.length) {
+        alertEl.style.display = 'block';
+        alertText.innerHTML = `You have <strong>${pending.length} outstanding fine${pending.length!==1?'s':''}</strong> totalling <strong style="color:var(--maroon)">Ksh ${total.toLocaleString()}</strong>.<br>
+          <span style="font-size:.78rem;color:var(--ink-faint)">${pending.map(f => f.reason).join(' · ')}</span>`;
+      } else {
+        alertEl.style.display = 'none';
+      }
+    }
+
+    // Notice on My Contributions
+    const noticeEl = document.getElementById('mc-fines-notice');
+    if (noticeEl) {
+      if (pending.length) {
+        noticeEl.style.display = 'block';
+        noticeEl.innerHTML = `<div style="background:var(--maroon-pale);border:1px solid var(--maroon-muted);border-left:4px solid var(--maroon);padding:.75rem 1rem;border-radius:4px">
+          <div style="font-size:.85rem;font-weight:700;color:var(--maroon);margin-bottom:.35rem">⚠ Outstanding Fine${pending.length!==1?'s':''}</div>
+          ${pending.map(f => `<div style="display:flex;justify-content:space-between;align-items:center;font-size:.8rem;padding:.3rem 0;border-bottom:1px solid rgba(128,0,32,.1)">
+            <span style="color:var(--ink-soft)">${f.reason}</span>
+            <strong style="color:var(--maroon)">Ksh ${Number(f.amount).toLocaleString()}</strong>
+          </div>`).join('')}
+          <div style="font-size:.75rem;color:var(--ink-faint);margin-top:.5rem">
+            Contact your group admin to pay. Alternatively your admin may recover fines from your savings balance.
+          </div>
+        </div>`;
+      } else {
+        noticeEl.style.display = 'none';
+      }
+    }
+
+    return pending;
+  } catch(e) {
+    console.log('Fines load skipped:', e.message);
+    return [];
+  }
+}
+
+function clearPayForm() { ['pay-member','pay-type','pay-amount','pay-ref','pay-notes'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; }); }
+function clearExpForm() { ['exp-category','exp-desc','exp-amount','exp-ref','exp-project'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; }); }
 
 // ── MEETINGS ──
 async function loadMeetings() {
@@ -8487,6 +8628,9 @@ async function loadMyProfile() {
     if (sharesEl) sharesEl.textContent = 'Ksh ' + (myRecord.shares_balance||0).toLocaleString();
     if (savingsEl) savingsEl.textContent = 'Ksh ' + (myRecord.savings_balance||0).toLocaleString();
 
+    // Load pending fines for this member
+    loadMemberPendingFines(myRecord.id);
+
     // Load contribution summary
     const summaryEl = document.getElementById('mp-contrib-summary');
     let totalContributed = 0;
@@ -8585,6 +8729,9 @@ async function loadMyContributions() {
     if (infoEl) infoEl.innerHTML = '<div style="color:var(--ink-faint);font-size:.8rem">—</div>';
     return;
   }
+
+  // Load pending fines notification
+  loadMemberPendingFines(memberId);
 
   const [txnRes, adjRes, memRes] = await Promise.all([
     sb.from('transactions').select('*,contribution_types(name,is_member_income)')
