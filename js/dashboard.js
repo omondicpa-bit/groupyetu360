@@ -191,6 +191,9 @@ async function loadDashboard() {
     if (totalEl) totalEl.textContent = 'Total (6 months): Ksh ' + sixMonthTotal.toLocaleString();
   }
 
+  // ── Module summary cards (MGR + Table Banking + Fines) ──
+  loadDashboardModuleCards(orgId);
+
   // ── Members snapshot ──
   const snapSub = document.getElementById('dash-members-snap-sub');
   if (snapSub) snapSub.textContent = `${members.length} members · ${activeMems} active`;
@@ -206,3 +209,155 @@ async function loadDashboard() {
   }).join('') + (members.length>8 ? `<tr><td colspan="5" style="text-align:center;padding:.65rem"><button class="btn btn-ghost btn-sm" onclick="showPage('members')">View all ${members.length} members →</button></td></tr>` : '');
 }
 
+
+async function loadDashboardModuleCards(orgId) {
+  const container = document.getElementById('dash-module-cards');
+  if (!container) return;
+  container.innerHTML = '';
+
+  // Fetch MGR, Table Banking, Fines in parallel
+  const [mgrRes, tbRes, finesRes] = await Promise.all([
+    sb.from('merry_go_round_cycles').select('id,name,status,total_pool,current_round,total_rounds').eq('org_id', orgId).order('created_at', {ascending: false}).limit(5),
+    sb.from('table_banking_pools').select('id,name,status,total_pool,total_loans_outstanding,total_interest_earned').eq('org_id', orgId).order('created_at', {ascending: false}).limit(5),
+    sb.from('fines').select('id,amount,status').eq('org_id', orgId).eq('status', 'pending'),
+  ]);
+
+  const cycles  = mgrRes.data  || [];
+  const pools   = tbRes.data   || [];
+  const pending = finesRes.data || [];
+
+  // ── MGR Card ──
+  if (cycles.length > 0) {
+    const active = cycles.filter(c => c.status === 'active');
+    const totalPool = cycles.reduce((s,c) => s + Number(c.total_pool||0), 0);
+    const activeRound = active[0];
+    const roundProgress = activeRound
+      ? `Round ${activeRound.current_round||1} of ${activeRound.total_rounds||'?'}`
+      : '';
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.cssText = 'cursor:pointer;transition:box-shadow .15s';
+    card.onclick = () => showPage('mgr');
+    card.onmouseenter = () => card.style.boxShadow = '0 2px 12px rgba(0,0,0,.08)';
+    card.onmouseleave = () => card.style.boxShadow = '';
+    card.innerHTML = `
+      <div class="card-header">
+        <div>
+          <div class="card-title" style="display:flex;align-items:center;gap:.5rem">
+            <span style="font-size:1rem">🔄</span> Rotating Savings
+          </div>
+          <div class="card-sub">${cycles.length} cycle${cycles.length!==1?'s':''} · ${active.length} active</div>
+        </div>
+        <span class="badge ${active.length>0?'badge-green':'badge-grey'}" style="font-size:.65rem">${active.length>0?'ACTIVE':'INACTIVE'}</span>
+      </div>
+      <div style="padding:.75rem 1.25rem 1rem;display:grid;grid-template-columns:1fr 1fr;gap:.65rem">
+        <div style="background:var(--surface);border-radius:6px;padding:.65rem .85rem">
+          <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Total Pool</div>
+          <div style="font-size:1.15rem;font-weight:700;color:var(--maroon)">Ksh ${totalPool.toLocaleString()}</div>
+        </div>
+        <div style="background:var(--surface);border-radius:6px;padding:.65rem .85rem">
+          <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Active Cycles</div>
+          <div style="font-size:1.15rem;font-weight:700;color:var(--ink)">${active.length}</div>
+        </div>
+      </div>
+      ${activeRound ? `
+      <div style="padding:0 1.25rem 1rem">
+        <div style="font-size:.72rem;color:var(--ink-soft);margin-bottom:.35rem">${activeRound.name} — ${roundProgress}</div>
+        <div style="height:5px;background:var(--border);border-radius:3px">
+          <div style="height:100%;width:${Math.round(((activeRound.current_round||1)/(activeRound.total_rounds||1))*100)}%;background:var(--teal);border-radius:3px;transition:width 1s ease"></div>
+        </div>
+      </div>` : `<div style="padding:0 1.25rem 1rem;font-size:.75rem;color:var(--ink-faint)">No active cycle — <a onclick="showPage('mgr')" style="color:var(--teal);cursor:pointer">start one →</a></div>`}`;
+    container.appendChild(card);
+  }
+
+  // ── Table Banking Card ──
+  if (pools.length > 0) {
+    const active = pools.filter(p => p.status === 'active');
+    const totalPool = pools.reduce((s,p) => s + Number(p.total_pool||0), 0);
+    const totalLoans = pools.reduce((s,p) => s + Number(p.total_loans_outstanding||0), 0);
+    const totalInterest = pools.reduce((s,p) => s + Number(p.total_interest_earned||0), 0);
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.cssText = 'cursor:pointer;transition:box-shadow .15s';
+    card.onclick = () => showPage('table_banking');
+    card.onmouseenter = () => card.style.boxShadow = '0 2px 12px rgba(0,0,0,.08)';
+    card.onmouseleave = () => card.style.boxShadow = '';
+    card.innerHTML = `
+      <div class="card-header">
+        <div>
+          <div class="card-title" style="display:flex;align-items:center;gap:.5rem">
+            <span style="font-size:1rem">🏦</span> Table Banking
+          </div>
+          <div class="card-sub">${pools.length} pool${pools.length!==1?'s':''} · ${active.length} active</div>
+        </div>
+        <span class="badge ${active.length>0?'badge-green':'badge-grey'}" style="font-size:.65rem">${active.length>0?'ACTIVE':'INACTIVE'}</span>
+      </div>
+      <div style="padding:.75rem 1.25rem 1rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:.65rem">
+        <div style="background:var(--surface);border-radius:6px;padding:.65rem .75rem">
+          <div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Pool</div>
+          <div style="font-size:1rem;font-weight:700;color:var(--teal)">Ksh ${(totalPool/1000).toFixed(0)}K</div>
+        </div>
+        <div style="background:var(--surface);border-radius:6px;padding:.65rem .75rem">
+          <div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Loans Out</div>
+          <div style="font-size:1rem;font-weight:700;color:var(--maroon)">Ksh ${(totalLoans/1000).toFixed(0)}K</div>
+        </div>
+        <div style="background:var(--surface);border-radius:6px;padding:.65rem .75rem">
+          <div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Interest</div>
+          <div style="font-size:1rem;font-weight:700;color:var(--ink)">Ksh ${(totalInterest/1000).toFixed(0)}K</div>
+        </div>
+      </div>
+      ${totalLoans > 0 ? `
+      <div style="padding:0 1.25rem 1rem">
+        <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--ink-faint);margin-bottom:.3rem">
+          <span>Loans outstanding</span>
+          <span>${totalPool>0?Math.round((totalLoans/totalPool)*100):0}% of pool</span>
+        </div>
+        <div style="height:5px;background:var(--border);border-radius:3px">
+          <div style="height:100%;width:${totalPool>0?Math.min(100,Math.round((totalLoans/totalPool)*100)):0}%;background:var(--maroon);border-radius:3px"></div>
+        </div>
+      </div>` : ''}`;
+    container.appendChild(card);
+  }
+
+  // ── Fines Card (only if there are pending fines) ──
+  if (pending.length > 0) {
+    const totalOwed = pending.reduce((s,f) => s + Number(f.amount||0), 0);
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.cssText = 'cursor:pointer;transition:box-shadow .15s;border-top-color:var(--maroon)';
+    card.onclick = () => { showPage('finance'); setTimeout(() => { const t=document.querySelector('[onclick*=tab-fines]'); if(t) switchFinTab(t,'tab-fines'); loadFinesLedger(); }, 150); };
+    card.onmouseenter = () => card.style.boxShadow = '0 2px 12px rgba(0,0,0,.08)';
+    card.onmouseleave = () => card.style.boxShadow = '';
+    card.innerHTML = `
+      <div class="card-header">
+        <div>
+          <div class="card-title" style="display:flex;align-items:center;gap:.5rem">
+            <span style="font-size:1rem">⚠</span> Pending Fines
+          </div>
+          <div class="card-sub">${pending.length} fine${pending.length!==1?'s':''} awaiting resolution</div>
+        </div>
+        <span class="badge badge-warn" style="font-size:.65rem">ACTION NEEDED</span>
+      </div>
+      <div style="padding:.75rem 1.25rem 1rem;display:grid;grid-template-columns:1fr 1fr;gap:.65rem">
+        <div style="background:var(--maroon-pale);border-radius:6px;padding:.65rem .85rem">
+          <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--maroon);margin-bottom:.2rem">Total Outstanding</div>
+          <div style="font-size:1.15rem;font-weight:700;color:var(--maroon)">Ksh ${totalOwed.toLocaleString()}</div>
+        </div>
+        <div style="background:var(--surface);border-radius:6px;padding:.65rem .85rem">
+          <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Pending Count</div>
+          <div style="font-size:1.15rem;font-weight:700;color:var(--ink)">${pending.length}</div>
+        </div>
+      </div>
+      <div style="padding:0 1.25rem 1rem;font-size:.75rem;color:var(--ink-faint)">
+        Click to view and resolve in Finance → Fines
+      </div>`;
+    container.appendChild(card);
+  }
+
+  // If no module data at all, hide the container
+  if (container.children.length === 0) {
+    container.style.display = 'none';
+  }
+}
