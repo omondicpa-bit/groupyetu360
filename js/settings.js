@@ -60,6 +60,13 @@ function switchSettingsTab(btn, tabId) {
 }
 
 async function loadSettings() {
+  // Gate welfare tab on plan
+  const welfareTab = document.getElementById('st-welfare-tab');
+  if (welfareTab) {
+    const plan = currentOrg?.plan || 'starter';
+    welfareTab.style.display = plan === 'starter' ? 'none' : '';
+  }
+
   if (!currentOrg?.id) return;
   // Refresh org data from DB first
   const { data: freshOrg } = await sb.from('organisations').select('*').eq('id', currentOrg.id).single();
@@ -183,75 +190,180 @@ async function saveInviteAdmin() {
 
 // ── SHAREOUT & WITHDRAW FUNCTIONS ──
 function showShareoutModal() {
-  document.getElementById('shareout-type').value = 'full';
-  document.getElementById('shareout-reason').value = '';
-  document.getElementById('shareout-pct-group').style.display = 'none';
-  document.getElementById('shareout-fixed-group').style.display = 'none';
+  // Reset form
+  const sv = (id,v) => { const el=document.getElementById(id); if(el) el.value=v; };
+  sv('shareout-type','full'); sv('shareout-reason',''); sv('shareout-pct',''); sv('shareout-fixed','');
+  sv('so-dividend-pool','');
+  const cb = (id,v) => { const el=document.getElementById(id); if(el) el.checked=v; };
+  cb('so-include-savings',true); cb('so-include-shares',false); cb('so-include-dividend',false);
+  const ds = document.getElementById('so-dividend-section'); if(ds) ds.style.display='none';
+  document.getElementById('shareout-pct-group').style.display='none';
+  document.getElementById('shareout-fixed-group').style.display='none';
+
+  // Populate totals
+  const totalSavings = allMembers.reduce((s,m)=>s+Number(m.savings_balance||0),0);
+  const totalShares  = allMembers.reduce((s,m)=>s+Number(m.shares_balance||0),0);
+  const savEl = document.getElementById('so-savings-total');
+  const shrEl = document.getElementById('so-shares-total');
+  if (savEl) savEl.textContent = `Ksh ${totalSavings.toLocaleString()} across ${allMembers.filter(m=>m.savings_balance>0).length} members`;
+  if (shrEl) shrEl.textContent = `Ksh ${totalShares.toLocaleString()} across ${allMembers.filter(m=>m.shares_balance>0).length} members`;
+
+  // Hide shares row if org has no shares
+  const sharesRow = document.getElementById('so-shares-row');
+  if (sharesRow) sharesRow.style.display = orgFinProfile?.hasShares ? '' : 'none';
+
   updateShareoutPreview();
   showModal('shareout');
 }
 
+function toggleDividendSection(show) {
+  const el = document.getElementById('so-dividend-section');
+  if (el) el.style.display = show ? 'block' : 'none';
+  updateShareoutPreview();
+}
+
 function updateShareoutPreview() {
-  const type = document.getElementById('shareout-type')?.value;
-  const pctGroup = document.getElementById('shareout-pct-group');
+  const type       = document.getElementById('shareout-type')?.value || 'full';
+  const inclSav    = document.getElementById('so-include-savings')?.checked;
+  const inclShr    = document.getElementById('so-include-shares')?.checked;
+  const inclDiv    = document.getElementById('so-include-dividend')?.checked;
+  const divPool    = parseFloat(document.getElementById('so-dividend-pool')?.value||0);
+  const divMethod  = document.getElementById('so-dividend-method')?.value || 'shares';
+  const pct        = parseFloat(document.getElementById('shareout-pct')?.value||0);
+  const fixed      = parseFloat(document.getElementById('shareout-fixed')?.value||0);
+  const pctGroup   = document.getElementById('shareout-pct-group');
   const fixedGroup = document.getElementById('shareout-fixed-group');
-  const preview = document.getElementById('shareout-preview-content');
-  if (pctGroup) pctGroup.style.display = type === 'percentage' ? 'block' : 'none';
-  if (fixedGroup) fixedGroup.style.display = type === 'fixed' ? 'block' : 'none';
-  const totalSavings = allMembers.reduce((s,m)=>s+(m.savings_balance||0),0);
-  const memberCount = allMembers.filter(m=>m.savings_balance>0).length;
+  if (pctGroup)   pctGroup.style.display   = type==='percentage' ? 'block' : 'none';
+  if (fixedGroup) fixedGroup.style.display = type==='fixed'      ? 'block' : 'none';
+
+  const preview  = document.getElementById('shareout-preview-content');
+  const totalLbl = document.getElementById('so-total-label');
   if (!preview) return;
-  if (type === 'full') {
-    preview.innerHTML = `Will zero out savings for <strong>${memberCount} members</strong>.<br>Total distributed: <strong>Ksh ${totalSavings.toLocaleString()}</strong>`;
-  } else if (type === 'percentage') {
-    const pct = parseFloat(document.getElementById('shareout-pct')?.value)||0;
-    const total = totalSavings * pct/100;
-    preview.innerHTML = `Will deduct <strong>${pct}%</strong> from ${memberCount} members.<br>Total distributed: <strong>Ksh ${total.toLocaleString()}</strong>`;
-  } else {
-    const fixed = parseFloat(document.getElementById('shareout-fixed')?.value)||0;
-    preview.innerHTML = `Will deduct <strong>Ksh ${fixed.toLocaleString()}</strong> from ${memberCount} members.<br>Total distributed: <strong>Ksh ${(fixed*memberCount).toLocaleString()}</strong>`;
+
+  const totalSharesAll = allMembers.reduce((s,m)=>s+Number(m.shares_balance||0),0);
+
+  // Build per-member rows
+  let grandTotal = 0;
+  const rows = allMembers.map(m => {
+    let savDeduct = 0, shrDeduct = 0, dividend = 0;
+    const savBal = Number(m.savings_balance||0);
+    const shrBal = Number(m.shares_balance||0);
+
+    if (inclSav && savBal > 0) {
+      if (type==='full')       savDeduct = savBal;
+      else if (type==='percentage') savDeduct = savBal * pct/100;
+      else                     savDeduct = Math.min(fixed, savBal);
+    }
+    if (inclShr && shrBal > 0) shrDeduct = shrBal;
+    if (inclDiv && divPool > 0) {
+      if (divMethod==='shares' && totalSharesAll>0) dividend = divPool * (shrBal/totalSharesAll);
+      else dividend = divPool / allMembers.length;
+    }
+    const memberTotal = savDeduct + shrDeduct + dividend;
+    grandTotal += memberTotal;
+    if (memberTotal <= 0) return null;
+    return { name: m.full_name, num: m.member_number, savDeduct, shrDeduct, dividend, total: memberTotal };
+  }).filter(Boolean);
+
+  if (totalLbl) totalLbl.textContent = rows.length ? `Total: Ksh ${Math.round(grandTotal).toLocaleString()}` : '';
+
+  if (!rows.length) {
+    preview.innerHTML = '<div style="color:var(--ink-faint);text-align:center;padding:.75rem">No members will be affected with current settings</div>';
+    return;
   }
+
+  preview.innerHTML = `<table style="width:100%;border-collapse:collapse">
+    <thead><tr style="border-bottom:1px solid var(--border)">
+      <th style="text-align:left;padding:.3rem .5rem;font-size:.7rem;color:var(--ink-faint)">#</th>
+      <th style="text-align:left;padding:.3rem .5rem;font-size:.7rem;color:var(--ink-faint)">Member</th>
+      ${inclSav?'<th style="text-align:right;padding:.3rem .5rem;font-size:.7rem;color:var(--ink-faint)">Savings</th>':''}
+      ${inclShr?'<th style="text-align:right;padding:.3rem .5rem;font-size:.7rem;color:var(--ink-faint)">Shares</th>':''}
+      ${inclDiv?'<th style="text-align:right;padding:.3rem .5rem;font-size:.7rem;color:var(--teal)">Dividend</th>':''}
+      <th style="text-align:right;padding:.3rem .5rem;font-size:.7rem;color:var(--ink-faint)">Total</th>
+    </tr></thead>
+    <tbody>${rows.map(r=>`<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:.3rem .5rem;font-size:.72rem;color:var(--ink-faint)">#${r.num||'—'}</td>
+      <td style="padding:.3rem .5rem;font-size:.78rem;font-weight:600">${r.name}</td>
+      ${inclSav?`<td style="text-align:right;padding:.3rem .5rem;font-size:.75rem;color:var(--maroon)">Ksh ${Math.round(r.savDeduct).toLocaleString()}</td>`:''}
+      ${inclShr?`<td style="text-align:right;padding:.3rem .5rem;font-size:.75rem;color:var(--maroon)">Ksh ${Math.round(r.shrDeduct).toLocaleString()}</td>`:''}
+      ${inclDiv?`<td style="text-align:right;padding:.3rem .5rem;font-size:.75rem;color:var(--teal)">+Ksh ${Math.round(r.dividend).toLocaleString()}</td>`:''}
+      <td style="text-align:right;padding:.3rem .5rem;font-size:.78rem;font-weight:700">Ksh ${Math.round(r.total).toLocaleString()}</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
 }
 
 async function executeShareout() {
-  const type = document.getElementById('shareout-type')?.value;
-  const reason = document.getElementById('shareout-reason')?.value?.trim();
-  if (!reason) { toast('Please enter a reason for the shareout'); return; }
-  if (!confirm(`Execute shareout for all ${allMembers.length} members? This cannot be undone.`)) return;
+  const type      = document.getElementById('shareout-type')?.value || 'full';
+  const reason    = document.getElementById('shareout-reason')?.value?.trim();
+  const inclSav   = document.getElementById('so-include-savings')?.checked;
+  const inclShr   = document.getElementById('so-include-shares')?.checked;
+  const inclDiv   = document.getElementById('so-include-dividend')?.checked;
+  const divPool   = parseFloat(document.getElementById('so-dividend-pool')?.value||0);
+  const divMethod = document.getElementById('so-dividend-method')?.value || 'shares';
+  const pct       = parseFloat(document.getElementById('shareout-pct')?.value||0);
+  const fixed     = parseFloat(document.getElementById('shareout-fixed')?.value||0);
 
+  if (!reason) { toast('Please enter a shareout label'); return; }
+  if (!inclSav && !inclShr && !inclDiv) { toast('Select at least one item to distribute'); return; }
+  if (!confirm(`Execute "${reason}" for ${allMembers.length} members? This cannot be undone.`)) return;
+
+  const totalSharesAll = allMembers.reduce((s,m)=>s+Number(m.shares_balance||0),0);
   let processed = 0;
-  for (const member of allMembers) {
-    if (!member.savings_balance || member.savings_balance <= 0) continue;
-    let deductAmount = 0;
-    if (type === 'full') {
-      deductAmount = member.savings_balance;
-    } else if (type === 'percentage') {
-      const pct = parseFloat(document.getElementById('shareout-pct')?.value)||0;
-      deductAmount = member.savings_balance * pct/100;
-    } else {
-      deductAmount = parseFloat(document.getElementById('shareout-fixed')?.value)||0;
-      deductAmount = Math.min(deductAmount, member.savings_balance);
-    }
-    if (deductAmount <= 0) continue;
 
-    // Record adjustment
-    await sb.from('balance_adjustments').insert({
-      org_id: currentOrg.id,
-      member_id: member.id,
-      adjustment_type: 'savings',
-      direction: 'debit',
-      amount: deductAmount,
-      reason: `Shareout: ${reason}`,
-      recorded_by: currentUser.id
-    });
-    // Update balance
-    await sb.from('members').update({
-      savings_balance: Math.max(0, member.savings_balance - deductAmount)
-    }).eq('id', member.id);
+  for (const member of allMembers) {
+    const savBal = Number(member.savings_balance||0);
+    const shrBal = Number(member.shares_balance||0);
+    const memberUpdates = {};
+    const adjustments = [];
+
+    // Savings deduction
+    if (inclSav && savBal > 0) {
+      let deduct = 0;
+      if (type==='full')            deduct = savBal;
+      else if (type==='percentage') deduct = savBal * pct/100;
+      else                          deduct = Math.min(fixed, savBal);
+      deduct = Math.round(deduct);
+      if (deduct > 0) {
+        memberUpdates.savings_balance = Math.max(0, savBal - deduct);
+        adjustments.push({ adjustment_type:'savings', direction:'debit', amount:deduct, reason:`Shareout: ${reason}` });
+      }
+    }
+
+    // Shares deduction
+    if (inclShr && shrBal > 0) {
+      memberUpdates.shares_balance = 0;
+      adjustments.push({ adjustment_type:'shares', direction:'debit', amount:shrBal, reason:`Shareout (shares): ${reason}` });
+    }
+
+    // Dividend credit
+    if (inclDiv && divPool > 0) {
+      let dividend = divMethod==='shares' && totalSharesAll>0
+        ? Math.round(divPool * (shrBal/totalSharesAll))
+        : Math.round(divPool / allMembers.length);
+      if (dividend > 0) {
+        memberUpdates.savings_balance = Math.max(0, (memberUpdates.savings_balance??savBal)) + dividend;
+        adjustments.push({ adjustment_type:'savings', direction:'credit', amount:dividend, reason:`Dividend: ${reason}` });
+      }
+    }
+
+    if (!adjustments.length) continue;
+
+    // Write adjustments
+    for (const adj of adjustments) {
+      await sb.from('balance_adjustments').insert({
+        org_id: currentOrg.id, member_id: member.id,
+        recorded_by: currentUser.id, ...adj
+      });
+    }
+
+    // Update member balances
+    if (Object.keys(memberUpdates).length) {
+      await sb.from('members').update(memberUpdates).eq('id', member.id);
+    }
     processed++;
   }
 
-  await logActivity('SHAREOUT', `Year-end shareout: ${reason}. ${processed} members processed.`);
+  await logActivity('SHAREOUT', `${reason}. ${processed} members processed. Savings:${inclSav} Shares:${inclShr} Dividend:${inclDiv}`);
   toast(`✓ Shareout complete — ${processed} members processed`);
   closeModal('shareout');
   loadMembers();

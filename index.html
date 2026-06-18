@@ -1533,7 +1533,7 @@
         <button class="fin-tab" onclick="switchSettingsTab(this,'st-payments')">💳 Payments</button>
         <button class="fin-tab" onclick="switchSettingsTab(this,'st-contributions')">₭ Contributions</button>
         <button class="fin-tab" onclick="switchSettingsTab(this,'st-team')">👥 Team</button>
-        <button class="fin-tab" onclick="switchSettingsTab(this,'st-welfare')">♡ Welfare</button>
+        <button class="fin-tab" id="st-welfare-tab" onclick="switchSettingsTab(this,'st-welfare')">♡ Welfare</button>
         <button class="fin-tab" onclick="switchSettingsTab(this,'st-meetings')">📅 Meetings</button>
       </div>
 
@@ -3195,44 +3195,96 @@
 
 <!-- SHAREOUT MODAL -->
 <div class="modal-overlay" id="modal-shareout">
-  <div class="modal" style="max-width:500px">
+  <div class="modal" style="max-width:580px">
     <div class="modal-header">
       <div>
-        <div class="modal-title">Year-End Shareout</div>
-        <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.15rem">Distribute savings to all members at once</div>
+        <div class="modal-title">💰 Year-End Shareout / Dividends</div>
+        <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.15rem">Distribute savings and dividends to members</div>
       </div>
       <button class="modal-close" onclick="closeModal('shareout')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="alert alert-warn">⚠ This will debit all members' savings balances. This action is logged and cannot be easily reversed.</div>
+      <div style="background:var(--warning-pale,#fff9e6);border-left:3px solid var(--warning,#c49a30);padding:.75rem 1rem;border-radius:4px;font-size:.78rem;color:var(--ink-soft);margin-bottom:1rem">
+        ⚠ This action debits member balances and is logged. It cannot be easily reversed — review the preview carefully before executing.
+      </div>
+
+      <!-- What to distribute -->
       <div class="form-group">
-        <label class="form-label">Shareout Type</label>
-        <select class="form-select" id="shareout-type" onchange="updateShareoutPreview()">
-          <option value="full">Full Shareout — Zero all savings balances</option>
-          <option value="percentage">Partial — Deduct a percentage</option>
-          <option value="fixed">Fixed Amount — Deduct same amount from each</option>
-        </select>
+        <label class="form-label">What to distribute</label>
+        <div style="display:flex;flex-direction:column;gap:.5rem">
+          <label style="display:flex;align-items:center;gap:.65rem;padding:.6rem .85rem;border:1px solid var(--border);border-radius:5px;cursor:pointer">
+            <input type="checkbox" id="so-include-savings" checked onchange="updateShareoutPreview()" style="accent-color:var(--maroon);width:15px;height:15px"/>
+            <div><div style="font-size:.82rem;font-weight:600">Savings balances</div><div style="font-size:.7rem;color:var(--ink-faint)" id="so-savings-total">Loading…</div></div>
+          </label>
+          <label style="display:flex;align-items:center;gap:.65rem;padding:.6rem .85rem;border:1px solid var(--border);border-radius:5px;cursor:pointer" id="so-shares-row">
+            <input type="checkbox" id="so-include-shares" onchange="updateShareoutPreview()" style="accent-color:var(--maroon);width:15px;height:15px"/>
+            <div><div style="font-size:.82rem;font-weight:600">Shares balances</div><div style="font-size:.7rem;color:var(--ink-faint)" id="so-shares-total">Loading…</div></div>
+          </label>
+          <label style="display:flex;align-items:center;gap:.65rem;padding:.6rem .85rem;border:1px solid var(--border);border-radius:5px;cursor:pointer">
+            <input type="checkbox" id="so-include-dividend" onchange="toggleDividendSection(this.checked)" style="accent-color:var(--teal);width:15px;height:15px"/>
+            <div><div style="font-size:.82rem;font-weight:600;color:var(--teal)">+ Add dividend / bonus</div><div style="font-size:.7rem;color:var(--ink-faint)">Distribute profits proportionally to shares held</div></div>
+          </label>
+        </div>
       </div>
-      <div class="form-group" id="shareout-pct-group" style="display:none">
-        <label class="form-label">Percentage to Deduct (%)</label>
-        <input class="form-input" type="number" id="shareout-pct" placeholder="e.g. 80" max="100" min="1" oninput="updateShareoutPreview()"/>
+
+      <!-- Dividend section -->
+      <div id="so-dividend-section" style="display:none;border:1px solid var(--teal-muted,#9fe1cb);border-radius:6px;padding:.85rem 1rem;background:var(--teal-pale,#e6f4ef);margin-bottom:.75rem">
+        <div style="font-size:.78rem;font-weight:700;color:var(--teal);margin-bottom:.65rem">Dividend / Profit Share</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Total Profit Pool (Ksh)</label>
+            <input class="form-input" type="number" id="so-dividend-pool" placeholder="e.g. 50000" oninput="updateShareoutPreview()"/>
+            <div class="field-hint">Total profit to distribute among members</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Distribute By</label>
+            <select class="form-select" id="so-dividend-method" onchange="updateShareoutPreview()">
+              <option value="shares">Proportional to shares held</option>
+              <option value="equal">Equal split among all members</option>
+            </select>
+          </div>
+        </div>
       </div>
-      <div class="form-group" id="shareout-fixed-group" style="display:none">
-        <label class="form-label">Amount per Member (Ksh)</label>
-        <input class="form-input" type="number" id="shareout-fixed" placeholder="e.g. 5000" oninput="updateShareoutPreview()"/>
+
+      <!-- Shareout type -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Savings deduction type</label>
+          <select class="form-select" id="shareout-type" onchange="updateShareoutPreview()">
+            <option value="full">Full — zero all balances</option>
+            <option value="percentage">Partial — deduct a percentage</option>
+            <option value="fixed">Fixed — same amount per member</option>
+          </select>
+        </div>
+        <div class="form-group" id="shareout-pct-group" style="display:none">
+          <label class="form-label">Percentage (%)</label>
+          <input class="form-input" type="number" id="shareout-pct" placeholder="e.g. 80" max="100" min="1" oninput="updateShareoutPreview()"/>
+        </div>
+        <div class="form-group" id="shareout-fixed-group" style="display:none">
+          <label class="form-label">Amount per Member (Ksh)</label>
+          <input class="form-input" type="number" id="shareout-fixed" placeholder="e.g. 5000" oninput="updateShareoutPreview()"/>
+        </div>
       </div>
+
       <div class="form-group">
-        <label class="form-label">Reason / Notes</label>
-        <input class="form-input" id="shareout-reason" placeholder="e.g. Annual shareout December 2026"/>
+        <label class="form-label">Shareout Label / Notes</label>
+        <input class="form-input" id="shareout-reason" placeholder="e.g. Annual Shareout — December 2026"/>
       </div>
-      <div id="shareout-preview" style="background:var(--surface-2);border:1px solid var(--border);padding:1rem;margin-top:.5rem">
-        <div style="font-size:.8rem;font-weight:600;color:var(--ink);margin-bottom:.5rem">Preview</div>
-        <div id="shareout-preview-content" style="font-size:.82rem;color:var(--ink-soft)">Select type above to see preview</div>
+
+      <!-- Preview -->
+      <div id="shareout-preview" style="border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-top:.25rem">
+        <div style="padding:.65rem 1rem;background:var(--surface);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:.78rem;font-weight:700;color:var(--ink)">Preview</div>
+          <div id="so-total-label" style="font-size:.78rem;font-weight:700;color:var(--maroon)"></div>
+        </div>
+        <div id="shareout-preview-content" style="max-height:200px;overflow-y:auto;font-size:.78rem;color:var(--ink-soft);padding:.75rem 1rem">
+          Select options above to see member-by-member breakdown
+        </div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('shareout')">Cancel</button>
-      <button class="btn btn-primary" onclick="executeShareout()" style="background:var(--warning)">Execute Shareout</button>
+      <button class="btn btn-primary" onclick="executeShareout()" style="background:var(--maroon)">Execute Shareout →</button>
     </div>
   </div>
 </div>
