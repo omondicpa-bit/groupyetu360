@@ -775,6 +775,33 @@ async function openOrgDetail(orgId) {
 
   // Reset tabs to first
   switchSAOrgTab(document.querySelector('#page-sa_org_detail .fin-tab'), 'sa-od-tab-details');
+  // Load activity log for this org
+  loadODActivity(orgId);
+}
+
+async function loadODActivity(orgId) {
+  const el = document.getElementById('od-activity-log');
+  if (!el) return;
+  try {
+    const { data: logs } = await sb.from('activity_log')
+      .select('*').eq('org_id', orgId)
+      .order('created_at', {ascending: false}).limit(20);
+    if (!logs?.length) {
+      el.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--ink-faint);font-size:.82rem">No activity logged for this organisation yet</div>';
+      return;
+    }
+    el.innerHTML = `<div class="table-wrap"><table>
+      <thead><tr><th>Time</th><th>Action</th><th>User</th><th>Details</th></tr></thead>
+      <tbody>${logs.map(l => `<tr>
+        <td style="font-size:.68rem;color:var(--ink-faint);white-space:nowrap">${new Date(l.created_at).toLocaleString('en-KE',{dateStyle:'short',timeStyle:'short'})}</td>
+        <td><span class="badge badge-grey" style="font-size:.6rem">${l.action||'—'}</span></td>
+        <td style="font-size:.75rem">${l.user_name||l.user_id?.slice(0,8)||'system'}</td>
+        <td style="font-size:.72rem;color:var(--ink-soft);max-width:300px;word-break:break-word">${l.details||'—'}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  } catch(e) {
+    el.innerHTML = '<div style="padding:1rem 1.25rem;color:var(--ink-faint);font-size:.78rem">Activity log not available</div>';
+  }
 }
 
 function switchSAOrgTab(btn, tabId) {
