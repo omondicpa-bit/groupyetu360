@@ -16,7 +16,6 @@ function updateBillingHero(org) {
     standard:'All Basic + M-Pesa STK Push · Priority support',
     pro:     'All Standard + Custom branding · API access',
   };
-  const planSms = { starter:50, basic:200, standard:500, pro:1000 };
   const planMembers = { starter:15, basic:30, standard:75, pro:'Unlimited' };
 
   const nameEl = document.getElementById('billing-plan-name');
@@ -30,7 +29,7 @@ function updateBillingHero(org) {
   if (nameEl) nameEl.textContent = planNames[plan] || plan;
   if (metaEl) metaEl.textContent = planMeta[plan] || '';
   if (bfMem)  bfMem.textContent  = '👥 Up to ' + planMembers[plan] + ' members';
-  if (bfSms)  bfSms.textContent  = '💬 ' + (planSms[plan]||50) + ' SMS/month';
+  if (bfSms)  bfSms.textContent  = '💬 Bulk SMS — pay as you go · Ksh 1.50/SMS';
   if (bfFeat) bfFeat.textContent = '✓ ' + (planFeatures[plan]||'');
 
   if (expires && expEl) {
