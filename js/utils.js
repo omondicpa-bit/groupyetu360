@@ -421,19 +421,42 @@ async function initiateSTKPush() {
       }
       if (btn) { btn.textContent = '✓ Prompt Sent — Check Your Phone'; btn.style.background = 'var(--success)'; }
 
-      // Poll for payment confirmation every 5 seconds for 60 seconds
+      // Poll for payment confirmation every 5 seconds for up to 90 seconds
       let polls = 0;
+      if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.innerHTML = `<div class="alert alert-success" id="stk-poll-status">
+          ✓ M-Pesa prompt sent to <strong>${phone}</strong>.<br>
+          Enter your M-Pesa PIN within 30 seconds.<br>
+          <div id="stk-countdown" style="font-size:.72rem;color:var(--ink-faint);margin-top:.35rem">Waiting for confirmation…</div>
+        </div>`;
+      }
       const pollInterval = setInterval(async () => {
         polls++;
-        if (polls > 12) { clearInterval(pollInterval); return; }
-        const { data: req } = await sb.from('payment_requests')
-          .select('status').eq('reference', result.checkoutRequestId).maybeSingle();
-        if (req?.status === 'approved') {
+        const remaining = 18 - polls;
+        const countEl = document.getElementById('stk-countdown');
+        if (countEl && remaining > 0) countEl.textContent = `Checking… (${remaining * 5}s remaining)`;
+        if (polls > 18) {
           clearInterval(pollInterval);
-          toast('✓ Payment confirmed! Your subscription is now active.');
-          if (statusEl) statusEl.innerHTML = '<div class="alert alert-success">✓ Payment confirmed! Subscription activated.</div>';
-          loadBilling();
+          if (countEl) countEl.textContent = 'Timed out — if you paid, use the manual reference form below.';
+          if (btn) { btn.disabled = false; btn.textContent = '📱 Pay Now via M-Pesa (STK Push)'; btn.style.background = ''; }
+          return;
         }
+        try {
+          const { data: req } = await sb.from('payment_requests')
+            .select('status,mpesa_ref').eq('reference', result.checkoutRequestId).maybeSingle();
+          if (req?.status === 'approved') {
+            clearInterval(pollInterval);
+            if (statusEl) statusEl.innerHTML = '<div class="alert alert-success">✓ Payment confirmed! Ksh ' + amount + ' received. Reference: ' + (req.mpesa_ref||'') + '<br>Activating your plan…</div>';
+            toast('✓ Payment confirmed — activating plan…');
+            if (btn) { btn.textContent = '✓ Payment Confirmed'; btn.style.background = 'var(--success)'; }
+            setTimeout(() => loadBilling(), 2000);
+          } else if (req?.status === 'declined') {
+            clearInterval(pollInterval);
+            if (statusEl) statusEl.innerHTML = '<div class="alert alert-warn">⚠ Payment was cancelled or failed. Please try again or use the manual form below.</div>';
+            if (btn) { btn.disabled = false; btn.textContent = '📱 Pay Now via M-Pesa (STK Push)'; btn.style.background = ''; }
+          }
+        } catch(e) { /* ignore poll errors */ }
       }, 5000);
 
     } else {
