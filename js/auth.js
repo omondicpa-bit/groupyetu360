@@ -816,7 +816,7 @@ function updateTopbarActions(page) {
   const memberPages = ['my_profile','my_contributions','my_meetings','my_notices','my_account','faq'];
   if (memberPages.includes(page) || role === 'member') {
     topbar.innerHTML = `
-      <span style="font-size:.75rem;color:var(--maroon);font-weight:600;padding:.4rem .75rem;background:var(--maroon-pale);border:1px solid var(--maroon-muted)">${currentOrg?.name||''}</span>
+      <span style="font-size:.75rem;color:var(--ink-soft);font-weight:500;padding:.35rem .75rem;background:var(--surface);border:1px solid var(--border);border-radius:4px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle" title="${currentOrg?.name||''}">${(currentOrg?.name||'').replace(/\b\w/g,c=>c.toUpperCase()).toLowerCase().replace(/\b\w/g,c=>c.toUpperCase())}</span>
       <button class="topbar-btn" onclick="openMemberPaymentModal();showModal('memberPayment')" style="margin-left:.75rem">💳 Make Payment</button>`;
     return;
   }
@@ -947,7 +947,9 @@ function buildNav() {
 }
 
 function updateSidebar() {
-  document.getElementById('sidebar-org-name').textContent = currentOrg?.name || '—';
+  const rawName = currentOrg?.name || '—';
+  const titleName = rawName.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  document.getElementById('sidebar-org-name').textContent = titleName;
   document.getElementById('sidebar-org-reg').textContent = currentOrg?.reg_number || '';
   document.getElementById('sidebar-org-plan').textContent = (currentOrg?.plan || 'starter').toUpperCase();
   document.getElementById('sidebar-user-name').textContent = currentProfile?.full_name || currentUser?.email || '—';
