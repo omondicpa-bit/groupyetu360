@@ -57,6 +57,8 @@ function switchSettingsTab(btn, tabId) {
   document.querySelectorAll('#page-settings .tab-panel').forEach(p => p.classList.remove('active'));
   const panel = document.getElementById(tabId);
   if (panel) panel.classList.add('active');
+  // Load welfare types when that tab is opened
+  if (tabId === 'st-welfare' && typeof loadWelfareTypes === 'function') loadWelfareTypes();
 }
 
 async function loadSettings() {

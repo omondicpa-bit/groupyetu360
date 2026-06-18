@@ -310,25 +310,33 @@ async function saveMeeting() {
 
 
 // ── WELFARE ──
+let _welTypes = []; // cached welfare event types for this org
+
 async function loadWelfare() {
   if (!currentOrg?.id) return;
 
-  // ── Hero rates pills ──
-  const mRate = currentOrg?.welfare_rate_member || 1000;
-  const sRate = currentOrg?.welfare_rate_spouse || 750;
-  const cRate = currentOrg?.welfare_rate_child || 500;
+  // ── Load org's welfare event types ──
+  try {
+    const { data: types } = await sb.from('welfare_event_types')
+      .select('*').eq('org_id', currentOrg.id).order('created_at');
+    _welTypes = types || [];
+  } catch(e) { _welTypes = []; }
+
+  // ── Hero — show org's event types as pills ──
   const subEl = document.getElementById('wel-hero-sub');
-  if (subEl) subEl.textContent = currentOrg.name + ' · Edit rates in Settings';
+  if (subEl) subEl.textContent = currentOrg.name + ' Welfare Fund';
   const pillsEl = document.getElementById('wel-rates-pills');
-  if (pillsEl) pillsEl.innerHTML = [
-    ['Member death', 'Ksh ' + mRate.toLocaleString()],
-    ['Spouse/Parent', 'Ksh ' + sRate.toLocaleString()],
-    ['Child', 'Ksh ' + cRate.toLocaleString()]
-  ].map(([label, val]) => `
-    <div class="wel-rate-pill">
-      <span class="wel-rate-pill-label">${label}</span>
-      <span class="wel-rate-pill-val">${val}</span>
-    </div>`).join('');
+  if (pillsEl) {
+    if (_welTypes.length) {
+      pillsEl.innerHTML = _welTypes.map(t => `
+        <div class="wel-rate-pill">
+          <span class="wel-rate-pill-label">${t.name}</span>
+          <span class="wel-rate-pill-val">Ksh ${Number(t.default_amount||0).toLocaleString()}</span>
+        </div>`).join('');
+    } else {
+      pillsEl.innerHTML = '<div style="font-size:.75rem;opacity:.7;margin-top:.35rem">No event types configured yet — add them in Settings → Welfare</div>';
+    }
+  }
 
   // ── Fetch events ──
   const { data } = await sb.from('welfare_events')
@@ -376,6 +384,11 @@ async function loadWelfare() {
     const memberName = isGeneral ? 'General / Community' : (e.members?.full_name || 'Member');
     const dateStr = e.event_date ? new Date(e.event_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : 'Date not set';
     const cardClass = isClosed ? 'closed' : isGeneral ? 'general' : '';
+    const paidCount = e.paid_count || 0;
+    const totalMembers = allMembers?.length || 0;
+    const paidPct = totalMembers ? Math.round((paidCount/totalMembers)*100) : 0;
+    const expectedPool = Number(e.contribution_per_member||0) * totalMembers;
+    const collectedPool = Number(e.contribution_per_member||0) * paidCount;
     return `<div class="wel-event-card ${cardClass}" style="animation-delay:${i*0.05}s">
       <div class="wel-event-header">
         <div class="wel-event-icon ${isGeneral?'general':''}">${icon}</div>
@@ -388,14 +401,27 @@ async function loadWelfare() {
           <div class="wel-event-member">👤 ${memberName}</div>
           <div class="wel-event-date">📅 ${dateStr}</div>
         </div>
-        <div>
+        <div style="text-align:right">
           <div class="wel-event-amt-val">Ksh ${Number(e.contribution_per_member).toLocaleString()}</div>
           <div class="wel-event-amt-label">per member</div>
+          <div style="font-size:.65rem;color:var(--teal);margin-top:.2rem">Pool: Ksh ${collectedPool.toLocaleString()}</div>
         </div>
       </div>
+      ${totalMembers ? `<div style="padding:0 1rem .75rem">
+        <div style="display:flex;justify-content:space-between;font-size:.68rem;color:var(--ink-faint);margin-bottom:.25rem">
+          <span>${paidCount} of ${totalMembers} paid</span><span>${paidPct}%</span>
+        </div>
+        <div style="height:4px;background:var(--border);border-radius:2px">
+          <div style="height:100%;width:${paidPct}%;background:${paidPct===100?'var(--teal)':'var(--maroon)'};border-radius:2px;transition:width .8s ease"></div>
+        </div>
+      </div>` : ''}
       <div class="wel-event-footer">
         <div class="wel-event-notes">${e.notes || 'No notes'}</div>
         <div style="display:flex;gap:.4rem">
+          <button class="btn btn-secondary btn-sm" style="font-size:.7rem"
+            onclick="openWelfareContribs('${e.id}','${label.replace(/'/g,"\'")}',${Number(e.contribution_per_member)})">
+            👥 Track
+          </button>
           <button class="btn btn-secondary btn-sm" style="font-size:.7rem"
             onclick="toggleWelfareActive('${e.id}',${e.is_active!==false})">
             ${isClosed ? '↺ Reopen' : '✓ Close'}
@@ -430,52 +456,134 @@ async function toggleWelfareActive(id, isCurrentlyActive) {
 
 async function saveWelfareEvent() {
   if (!currentOrg?.id) return;
+  const typeVal = document.getElementById('wel-type')?.value;
+  if (!typeVal) { toast('Please select an event type'); return; }
   const cat = document.getElementById('wel-category')?.value || 'member_specific';
   const amount = parseFloat(document.getElementById('wel-amount').value);
   if (!amount || isNaN(amount)) { toast('Please enter a contribution amount'); return; }
   const memberId = cat === 'general' ? null : (document.getElementById('wel-member').value || null);
   if (cat === 'member_specific' && !memberId) { toast('Please select the affected member'); return; }
+
+  // Resolve event type name
+  let eventTypeName = typeVal;
+  if (typeVal === '__custom__') {
+    eventTypeName = document.getElementById('wel-custom-name')?.value?.trim() || 'Custom Event';
+  } else {
+    const found = _welTypes.find(t=>t.id===typeVal);
+    if (found) eventTypeName = found.name;
+  }
+
   const payload = {
     org_id: currentOrg.id,
     affected_member_id: memberId,
-    event_type: document.getElementById('wel-type').value,
+    event_type: eventTypeName,
+    welfare_type_id: typeVal === '__custom__' ? null : typeVal,
     contribution_per_member: amount,
     event_date: document.getElementById('wel-date').value || null,
     notes: document.getElementById('wel-notes').value.trim() || null
   };
   const { error } = await sb.from('welfare_events').insert(payload);
   if (error) { toast('Error: ' + error.message); return; }
-  toast('Welfare event created');
-  // Reset category to default
-  const catEl = document.getElementById('wel-category');
-  if (catEl) { catEl.value = 'member_specific'; toggleWelfareCategory('member_specific'); }
+  toast('✓ Welfare event created');
   closeModal('welfareEvent');
   loadWelfare();
 }
 
+function onWelfareTypeChange(val) {
+  const customRow = document.getElementById('wel-custom-name-row');
+  const hint = document.getElementById('wel-type-hint');
+  if (customRow) customRow.style.display = val==='__custom__' ? 'block' : 'none';
+  if (!val || val==='__custom__') { if(hint) hint.style.display='none'; return; }
+  const found = _welTypes.find(t=>t.id===val);
+  if (found) {
+    document.getElementById('wel-amount').value = found.default_amount || '';
+    // Set scope
+    const catHidden = document.getElementById('wel-category');
+    if (catHidden) catHidden.value = found.scope || 'member_specific';
+    const memberRow = document.getElementById('wel-member-row');
+    if (memberRow) memberRow.style.display = (found.scope==='general') ? 'none' : '';
+    // Update segmented control
+    document.querySelectorAll('#wel-scope-seg .seg-opt').forEach(o => {
+      o.classList.toggle('active', o.dataset.val === (found.scope||'member_specific'));
+    });
+    if (hint) { hint.style.display='block'; hint.textContent=found.category+' · default Ksh '+(found.default_amount||0).toLocaleString(); }
+    updateWelfareTotal();
+  }
+}
+
+function toggleWelfareScope(el) {
+  document.querySelectorAll('#wel-scope-seg .seg-opt').forEach(o=>o.classList.remove('active'));
+  el.classList.add('active');
+  const val = el.dataset.val;
+  const catHidden = document.getElementById('wel-category');
+  if (catHidden) catHidden.value = val;
+  const memberRow = document.getElementById('wel-member-row');
+  if (memberRow) memberRow.style.display = val==='general' ? 'none' : '';
+}
+
+function updateWelfareTotal() {
+  const amount = parseFloat(document.getElementById('wel-amount')?.value||0);
+  const memberCount = allMembers?.length || 0;
+  const previewEl = document.getElementById('wel-pool-preview');
+  const totalEl = document.getElementById('wel-pool-total');
+  const memEl = document.getElementById('wel-pool-members');
+  if (!amount || !memberCount) { if(previewEl) previewEl.style.display='none'; return; }
+  if (previewEl) previewEl.style.display='block';
+  if (totalEl) totalEl.textContent = 'Ksh '+(amount*memberCount).toLocaleString();
+  if (memEl) memEl.textContent = memberCount;
+}
+
+async function openWelfareContribs(eventId, eventLabel, amtPerMember) {
+  document.getElementById('wc-modal-title').textContent = eventLabel;
+  document.getElementById('wc-modal-sub').textContent = 'Ksh '+amtPerMember.toLocaleString()+' per member';
+  document.getElementById('wc-member-list').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  showModal('welfareContribs');
+
+  // Get transactions for this welfare event
+  const { data: txns } = await sb.from('transactions')
+    .select('member_id,amount')
+    .eq('org_id', currentOrg.id)
+    .eq('welfare_event_id', eventId);
+  const paidIds = new Set((txns||[]).map(t=>t.member_id));
+  const collected = (txns||[]).reduce((s,t)=>s+Number(t.amount||0),0);
+  const members = allMembers || [];
+  const expected = amtPerMember * members.length;
+  const outstanding = Math.max(0, expected - collected);
+  const pct = expected ? Math.round((collected/expected)*100) : 0;
+
+  document.getElementById('wc-expected').textContent = 'Ksh '+expected.toLocaleString();
+  document.getElementById('wc-collected').textContent = 'Ksh '+collected.toLocaleString();
+  document.getElementById('wc-outstanding').textContent = 'Ksh '+outstanding.toLocaleString();
+  document.getElementById('wc-progress-bar').style.width = pct+'%';
+  document.getElementById('wc-progress-label').textContent = pct+'% collected ('+paidIds.size+' of '+members.length+' members)';
+
+  const listEl = document.getElementById('wc-member-list');
+  const paid = members.filter(m=>paidIds.has(m.id));
+  const unpaid = members.filter(m=>!paidIds.has(m.id));
+  listEl.innerHTML = [
+    ...paid.map(m=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:.6rem 1.25rem;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:.6rem">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--teal);flex-shrink:0"></div>
+        <span style="font-size:.82rem">${m.full_name}</span>
+      </div>
+      <span class="badge badge-green" style="font-size:.65rem">✓ Paid</span>
+    </div>`),
+    ...unpaid.map(m=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:.6rem 1.25rem;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:.6rem">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--border);flex-shrink:0"></div>
+        <span style="font-size:.82rem;color:var(--ink-soft)">${m.full_name}</span>
+      </div>
+      <span class="badge badge-warn" style="font-size:.65rem">Pending</span>
+    </div>`)
+  ].join('') || '<div style="padding:2rem;text-align:center;color:var(--ink-faint)">No contributions recorded yet</div>';
+}
+
 function setWelfareAmt(val) {
-  const amounts = { member:1000, spouse:750, child:500 };
-  if (amounts[val] !== undefined) document.getElementById('wel-amount').value = amounts[val];
+  // Legacy — now handled by onWelfareTypeChange
 }
 
 function toggleWelfareCategory(cat) {
-  const memberRow = document.getElementById('wel-member-row');
-  const memberOpts = document.getElementById('wel-opts-member');
-  const generalOpts = document.getElementById('wel-opts-general');
-  const typeSelect = document.getElementById('wel-type');
-  if (cat === 'general') {
-    memberRow.style.display = 'none';
-    if (memberOpts) memberOpts.style.display = 'none';
-    if (generalOpts) generalOpts.style.display = '';
-    typeSelect.value = 'community';
-    document.getElementById('wel-amount').value = '';
-  } else {
-    memberRow.style.display = '';
-    if (memberOpts) memberOpts.style.display = '';
-    if (generalOpts) generalOpts.style.display = 'none';
-    typeSelect.value = 'member';
-    document.getElementById('wel-amount').value = 1000;
-  }
+  // Legacy — now handled by toggleWelfareScope
 }
 
 
@@ -1307,13 +1415,21 @@ async function showModal_createRound_prep() {
   }
 }
 
-// Override showModal to prep MGR + TB forms
+// Override showModal to prep MGR + TB + Welfare forms
 const _origShowModal = window.showModal;
 window.showModal = function(name) {
   if (name === 'createRound') showModal_createRound_prep();
   if (name === 'tbNewPool') {
     if (typeof _origShowModal === 'function') _origShowModal(name);
     openTBNewPool();
+    return;
+  }
+  if (name === 'welfareEvent') {
+    if (typeof _origShowModal === 'function') _origShowModal(name);
+    populateWelfareTypeSelect();
+    // Set today as default date
+    const dateEl = document.getElementById('wel-date');
+    if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
     return;
   }
   if (typeof _origShowModal === 'function') _origShowModal(name);
@@ -2055,3 +2171,102 @@ async function markLoanRepaid(loanId) {
   await loadTBLoans();
   await loadTableBanking();
 }
+
+// ── WELFARE EVENT TYPES (Settings) ────────────────────────────────────────
+async function loadWelfareTypes() {
+  const listEl = document.getElementById('welfare-types-list');
+  if (!listEl) return;
+  const { data: types } = await sb.from('welfare_event_types')
+    .select('*').eq('org_id', currentOrg.id).order('created_at');
+  _welTypes = types || [];
+  if (!types?.length) {
+    listEl.innerHTML = `<div style="padding:1.5rem 1.25rem;text-align:center;color:var(--ink-faint);font-size:.82rem">
+      No event types yet. Add the welfare events your group uses — e.g. Member Bereavement, Annual Party, Emergency Fund.
+      <div style="margin-top:.75rem">
+        <button class="btn btn-secondary btn-sm" onclick="showAddWelfareType()">+ Add First Type</button>
+      </div>
+    </div>`;
+    return;
+  }
+  const catColors = { bereavement:'var(--maroon)', community:'var(--teal)', celebration:'#c49a30', emergency:'var(--danger)', other:'var(--ink-faint)' };
+  listEl.innerHTML = types.map(t => `
+    <div style="display:flex;align-items:center;padding:.75rem 1.25rem;border-bottom:1px solid var(--border)">
+      <div style="flex:1">
+        <div style="font-size:.84rem;font-weight:600;color:var(--ink)">${t.name}</div>
+        <div style="font-size:.7rem;color:var(--ink-faint);margin-top:.1rem">
+          <span style="color:${catColors[t.category]||'var(--ink-faint)'}">● ${t.category||'other'}</span>
+          · ${t.scope==='general'?'General / Community':'Member-specific'}
+        </div>
+      </div>
+      <div style="font-size:.9rem;font-weight:700;color:var(--maroon);margin-right:1rem">Ksh ${Number(t.default_amount||0).toLocaleString()}</div>
+      <div style="display:flex;gap:.35rem">
+        <button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="editWelfareType('${t.id}','${t.name.replace(/'/g,"\'")}',${t.default_amount||0},'${t.category||'bereavement'}','${t.scope||'member_specific'}')">Edit</button>
+        <button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteWelfareType('${t.id}','${t.name.replace(/'/g,"\'")}')">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function showAddWelfareType() {
+  document.getElementById('wtf-title').textContent = 'Add Event Type';
+  document.getElementById('wtf-id').value = '';
+  document.getElementById('wtf-name').value = '';
+  document.getElementById('wtf-amount').value = '';
+  document.getElementById('wtf-category').value = 'bereavement';
+  document.getElementById('wtf-scope').value = 'member_specific';
+  document.getElementById('welfare-type-form').style.display = 'block';
+  document.getElementById('wtf-name').focus();
+}
+
+function editWelfareType(id, name, amount, category, scope) {
+  document.getElementById('wtf-title').textContent = 'Edit Event Type';
+  document.getElementById('wtf-id').value = id;
+  document.getElementById('wtf-name').value = name;
+  document.getElementById('wtf-amount').value = amount;
+  document.getElementById('wtf-category').value = category;
+  document.getElementById('wtf-scope').value = scope;
+  document.getElementById('welfare-type-form').style.display = 'block';
+  document.getElementById('wtf-name').focus();
+}
+
+function hideWelfareTypeForm() {
+  document.getElementById('welfare-type-form').style.display = 'none';
+}
+
+async function saveWelfareType() {
+  const id = document.getElementById('wtf-id')?.value;
+  const name = document.getElementById('wtf-name')?.value?.trim();
+  const amount = parseFloat(document.getElementById('wtf-amount')?.value||0);
+  const category = document.getElementById('wtf-category')?.value;
+  const scope = document.getElementById('wtf-scope')?.value;
+  if (!name) { toast('Enter an event type name'); return; }
+  if (!amount) { toast('Enter a default contribution amount'); return; }
+  const payload = { org_id: currentOrg.id, name, default_amount: amount, category, scope };
+  if (id) {
+    await sb.from('welfare_event_types').update(payload).eq('id', id);
+    toast('✓ Event type updated');
+  } else {
+    await sb.from('welfare_event_types').insert(payload);
+    toast('✓ Event type added');
+  }
+  hideWelfareTypeForm();
+  loadWelfareTypes();
+}
+
+async function deleteWelfareType(id, name) {
+  if (!confirm('Delete "'+name+'"? Existing events using this type are not affected.')) return;
+  await sb.from('welfare_event_types').delete().eq('id', id);
+  toast('Deleted: '+name);
+  loadWelfareTypes();
+}
+
+// Populate welfare event type dropdown when modal opens
+function populateWelfareTypeSelect() {
+  const sel = document.getElementById('wel-type');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Select event type…</option>';
+  _welTypes.forEach(t => {
+    sel.innerHTML += `<option value="${t.id}">${t.name} — Ksh ${Number(t.default_amount||0).toLocaleString()}</option>`;
+  });
+  sel.innerHTML += '<option value="__custom__">Custom / Other</option>';
+}
+

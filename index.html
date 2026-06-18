@@ -1704,15 +1704,49 @@
 
       <!-- ── TAB: WELFARE ── -->
       <div class="tab-panel" id="st-welfare">
-        <div class="card" style="max-width:540px">
-          <div class="card-header"><div class="card-title">Welfare Contribution Rates</div><div class="card-sub">Default amounts per event type — match your constitution</div></div>
-          <div class="card-body">
-            <div class="form-row cols-3">
-              <div class="form-group"><label class="form-label">Member Death (Ksh)</label><input class="form-input" type="number" id="welfare-rate-member" placeholder="1000"/></div>
-              <div class="form-group"><label class="form-label">Spouse / Parent (Ksh)</label><input class="form-input" type="number" id="welfare-rate-spouse" placeholder="750"/></div>
-              <div class="form-group"><label class="form-label">Child (Ksh)</label><input class="form-input" type="number" id="welfare-rate-child" placeholder="500"/></div>
+        <div class="card">
+          <div class="card-header">
+            <div><div class="card-title">Welfare Event Types</div><div class="card-sub">Define the event types your group uses and their default contribution rates</div></div>
+            <button class="card-action" onclick="showAddWelfareType()">+ Add Type</button>
+          </div>
+          <div id="welfare-types-list"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+          <!-- Add/edit form (inline) -->
+          <div id="welfare-type-form" style="display:none;padding:1rem 1.25rem;border-top:1px solid var(--border);background:var(--surface)">
+            <div style="font-size:.8rem;font-weight:700;color:var(--ink);margin-bottom:.75rem" id="wtf-title">Add Event Type</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Event Type Name</label>
+                <input class="form-input" id="wtf-name" placeholder="e.g. Member Bereavement, Annual Party"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Default Contribution (Ksh)</label>
+                <input class="form-input" type="number" id="wtf-amount" placeholder="e.g. 1000"/>
+              </div>
             </div>
-            <div class="form-actions"><button class="btn btn-primary" onclick="saveWelfareRates()" style="background:var(--maroon)">Save Rates →</button></div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Category</label>
+                <select class="form-select" id="wtf-category">
+                  <option value="bereavement">Bereavement</option>
+                  <option value="community">Community / General</option>
+                  <option value="celebration">Celebration</option>
+                  <option value="emergency">Emergency</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Scope</label>
+                <select class="form-select" id="wtf-scope">
+                  <option value="member_specific">Member-specific</option>
+                  <option value="general">General / Community</option>
+                </select>
+              </div>
+            </div>
+            <input type="hidden" id="wtf-id"/>
+            <div style="display:flex;gap:.5rem">
+              <button class="btn btn-primary btn-sm" onclick="saveWelfareType()" style="background:var(--maroon)">Save Type →</button>
+              <button class="btn btn-secondary btn-sm" onclick="hideWelfareTypeForm()">Cancel</button>
+            </div>
           </div>
         </div>
       </div>
@@ -2772,62 +2806,121 @@
   </div>
 </div>
 
+<!-- WELFARE EVENT MODAL -->
 <div class="modal-overlay" id="modal-welfareEvent">
-  <div class="modal" style="max-width:500px">
-    <div class="modal-header"><div class="modal-title">Record Welfare Event</div><button class="modal-close" onclick="closeModal('welfareEvent')">✕</button></div>
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div><div class="modal-title">♡ New Welfare Event</div><div style="font-size:.72rem;color:var(--ink-faint);margin-top:.1rem">Contributions go to the communal welfare fund</div></div>
+      <button class="modal-close" onclick="closeModal('welfareEvent')">✕</button>
+    </div>
     <div class="modal-body">
-      <!-- Event Category: Member-specific or General -->
-      <div class="form-row single" style="margin-bottom:.75rem">
-        <div class="form-group">
-          <label class="form-label">Event Category</label>
-          <select class="form-select" id="wel-category" onchange="toggleWelfareCategory(this.value)">
-            <option value="member_specific">Member-Specific (affects a particular member)</option>
-            <option value="general">General / Community (no specific member)</option>
-          </select>
-        </div>
+      <!-- Event type — driven by org's configured types -->
+      <div class="form-group">
+        <label class="form-label">Event Type <a onclick="showPage('settings');switchSettingsTab(document.querySelector('[onclick*=st-welfare]'),'st-welfare')" style="color:var(--teal);cursor:pointer;font-size:.7rem;font-weight:400;margin-left:.35rem">+ Manage types →</a></label>
+        <select class="form-select" id="wel-type" onchange="onWelfareTypeChange(this.value)">
+          <option value="">Select event type…</option>
+          <option value="__custom__">Custom / Other (enter manually)</option>
+        </select>
+        <div class="field-hint" id="wel-type-hint" style="display:none"></div>
       </div>
-      <!-- Affected member — shown for member_specific only -->
-      <div id="wel-member-row" class="form-row single">
-        <div class="form-group">
-          <label class="form-label">Affected Member</label>
-          <select class="form-select" id="wel-member"><option value="">Select member…</option></select>
-        </div>
+
+      <!-- Custom type name — shown when "custom" selected -->
+      <div class="form-group" id="wel-custom-name-row" style="display:none">
+        <label class="form-label">Event Name</label>
+        <input class="form-input" id="wel-custom-name" placeholder="e.g. Community Harambee"/>
       </div>
+
+      <!-- Member-specific toggle -->
+      <div class="form-group">
+        <label class="form-label">Who is this event for?</label>
+        <div class="seg-ctrl" id="wel-scope-seg">
+          <div class="seg-opt active" data-val="member_specific" onclick="toggleWelfareScope(this)">Specific Member</div>
+          <div class="seg-opt" data-val="general" onclick="toggleWelfareScope(this)">General / Community</div>
+        </div>
+        <input type="hidden" id="wel-category" value="member_specific"/>
+      </div>
+
+      <!-- Affected member -->
+      <div id="wel-member-row" class="form-group">
+        <label class="form-label">Affected Member</label>
+        <select class="form-select" id="wel-member"><option value="">Select member…</option></select>
+      </div>
+
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Event Type</label>
-          <select class="form-select" id="wel-type" onchange="setWelfareAmt(this.value)">
-            <optgroup label="Bereavement" id="wel-opts-member">
-              <option value="member">Member Death (Ksh 1,000)</option>
-              <option value="spouse">Spouse/Parent Death (Ksh 750)</option>
-              <option value="child">Child Death (Ksh 500)</option>
-            </optgroup>
-            <optgroup label="General / Community" id="wel-opts-general" style="display:none">
-              <option value="community">Community Contribution</option>
-              <option value="annual_party">Annual Party / Celebration</option>
-              <option value="emergency_fund">Emergency Fund</option>
-              <option value="custom">Custom / Other</option>
-            </optgroup>
-          </select>
+          <label class="form-label">Contribution per Member (Ksh)</label>
+          <input class="form-input" type="number" id="wel-amount" placeholder="e.g. 500" oninput="updateWelfareTotal()"/>
         </div>
         <div class="form-group">
-          <label class="form-label">Contribution per Member (Ksh)</label>
-          <input class="form-input" id="wel-amount" placeholder="e.g. 500"/>
-          <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">Type any amount or use preset</div>
+          <label class="form-label">Event Date</label>
+          <input class="form-input" type="date" id="wel-date"/>
         </div>
       </div>
-      <!-- Quick amount presets -->
+
+      <!-- Quick presets from org's configured rates -->
       <div style="display:flex;gap:.4rem;margin-bottom:.75rem;flex-wrap:wrap" id="wel-presets">
-        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('wel-amount').value=500">Ksh 500</button>
-        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('wel-amount').value=750">Ksh 750</button>
-        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('wel-amount').value=1000">Ksh 1,000</button>
-        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('wel-amount').value=1500">Ksh 1,500</button>
-        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('wel-amount').value=2000">Ksh 2,000</button>
+        <span style="font-size:.7rem;color:var(--ink-faint);align-self:center">Quick:</span>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('wel-amount').value=500;updateWelfareTotal()">500</button>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('wel-amount').value=750;updateWelfareTotal()">750</button>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('wel-amount').value=1000;updateWelfareTotal()">1,000</button>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('wel-amount').value=2000;updateWelfareTotal()">2,000</button>
       </div>
-      <div class="form-row"><div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="wel-date"/></div></div>
-      <div class="form-row single"><div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="wel-notes" placeholder="Any context about this event…"></textarea></div></div>
+
+      <!-- Pool preview -->
+      <div id="wel-pool-preview" style="display:none;background:var(--teal-pale,#e6f4ef);border:1px solid var(--teal-muted,#9fe1cb);border-radius:5px;padding:.65rem 1rem;margin-bottom:.75rem;font-size:.78rem;color:var(--teal)">
+        💰 Expected pool: <strong id="wel-pool-total">—</strong> from <strong id="wel-pool-members">—</strong> members
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-textarea" id="wel-notes" placeholder="Any context about this event…" style="min-height:70px;resize:vertical"></textarea>
+      </div>
     </div>
-    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('welfareEvent')">Cancel</button><button class="btn btn-primary" onclick="saveWelfareEvent()">Create Event</button></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('welfareEvent')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveWelfareEvent()" style="background:var(--maroon)">Create Event →</button>
+    </div>
+  </div>
+</div>
+
+<!-- WELFARE CONTRIBUTIONS TRACKER MODAL -->
+<div class="modal-overlay" id="modal-welfareContribs">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div><div class="modal-title" id="wc-modal-title">Welfare Contributions</div><div class="modal-sub" id="wc-modal-sub"></div></div>
+      <button class="modal-close" onclick="closeModal('welfareContribs')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:0">
+      <!-- Summary -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--border)">
+        <div style="padding:.85rem 1rem;border-right:1px solid var(--border)">
+          <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Expected Pool</div>
+          <div id="wc-expected" style="font-size:1.1rem;font-weight:700;color:var(--teal)">—</div>
+        </div>
+        <div style="padding:.85rem 1rem;border-right:1px solid var(--border)">
+          <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Collected</div>
+          <div id="wc-collected" style="font-size:1.1rem;font-weight:700;color:var(--success,green)">—</div>
+        </div>
+        <div style="padding:.85rem 1rem">
+          <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Outstanding</div>
+          <div id="wc-outstanding" style="font-size:1.1rem;font-weight:700;color:var(--maroon)">—</div>
+        </div>
+      </div>
+      <!-- Progress bar -->
+      <div style="padding:.5rem 1rem;border-bottom:1px solid var(--border)">
+        <div style="height:6px;background:var(--border);border-radius:3px">
+          <div id="wc-progress-bar" style="height:100%;width:0%;background:var(--teal);border-radius:3px;transition:width .8s ease"></div>
+        </div>
+        <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.25rem" id="wc-progress-label"></div>
+      </div>
+      <!-- Member list -->
+      <div id="wc-member-list" style="max-height:360px;overflow-y:auto">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('welfareContribs')">Close</button>
+    </div>
   </div>
 </div>
 
