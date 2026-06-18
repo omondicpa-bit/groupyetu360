@@ -10,19 +10,24 @@ function selectRegPlan(el) {
 
 /* ── PAY PILL SELECTOR ── */
 function selectPayPill(el, group) {
-  if (group === 'plan') {
-    // Deselect all plan pills and all SMS pills
-    document.querySelectorAll('#pay-plan-pills .pay-pill').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('#pay-sms-pills .pay-pill').forEach(p => p.classList.remove('active'));
-    el.classList.add('active');
+  // Toggle the clicked pill (can select one plan + one SMS bundle simultaneously)
+  if (el.classList.contains('active')) {
+    el.classList.remove('active');
   } else {
-    // SMS — deselect all plan pills and all SMS pills
-    document.querySelectorAll('#pay-plan-pills .pay-pill').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('#pay-sms-pills .pay-pill').forEach(p => p.classList.remove('active'));
+    // Deselect others in same group only
+    if (group === 'plan') {
+      document.querySelectorAll('#pay-plan-pills .pay-pill').forEach(p => p.classList.remove('active'));
+    } else {
+      document.querySelectorAll('#pay-sms-pills .pay-pill').forEach(p => p.classList.remove('active'));
+    }
     el.classList.add('active');
   }
+  // Build combined payment type from all active pills
+  const planVal = document.querySelector('#pay-plan-pills .pay-pill.active')?.dataset.val || '';
+  const smsVal  = document.querySelector('#pay-sms-pills .pay-pill.active')?.dataset.val || '';
+  const combined = [planVal, smsVal].filter(Boolean).join('+');
   const hidden = document.getElementById('pay-req-type');
-  if (hidden) hidden.value = el.dataset.val;
+  if (hidden) hidden.value = combined;
   updatePaymentAmount();
 }
 
@@ -276,40 +281,56 @@ async function loadBilling() {
       <div style="font-size:.75rem;color:var(--ink-faint);line-height:1.7">
         <strong>Your plan includes:</strong><br>
         ✓ Up to ${plan==='starter'?15:plan==='basic'?30:plan==='standard'?75:'unlimited'} members<br>
-        ✓ ${PLAN_SMS[plan]||50} SMS/month included<br>
+        ✓ Bulk SMS — pay as you go · Ksh 1.50/SMS<br>
         ✓ All GroupYetu360 features
       </div>`;
   }
 
-  // SMS usage
+  // SMS usage — only show if they have purchased a bundle (sms_bundle > 0)
   const month = new Date().toISOString().slice(0,7);
   const { data: usage } = await sb.from('sms_usage').select('*').eq('org_id', currentOrg.id).eq('month', month).maybeSingle();
   const smsUsed = usage?.messages_sent || 0;
-  const smsBundle = org?.sms_bundle || PLAN_SMS[org?.plan||'starter'] || 50;
-  const smsPct = Math.min(100, Math.round((smsUsed/smsBundle)*100));
+  const smsBundle = org?.sms_bundle || 0; // 0 = no bundle purchased yet
   const smsRemaining = Math.max(0, smsBundle - smsUsed);
+  const smsPct = smsBundle > 0 ? Math.min(100, Math.round((smsUsed/smsBundle)*100)) : 0;
 
   const smsEl = document.getElementById('sms-usage-content');
   if (smsEl) {
-    smsEl.innerHTML = `
-      <div class="stats-row" style="grid-template-columns:repeat(2,1fr);margin-bottom:1rem">
-        <div class="stat-card"><div class="stat-label">SMS Used</div><div class="stat-value" style="font-size:1.3rem">${smsUsed}</div></div>
-        <div class="stat-card green"><div class="stat-label">Remaining</div><div class="stat-value" style="font-size:1.3rem">${smsRemaining}</div></div>
-      </div>
-      <div class="progress-row" style="margin-bottom:.5rem">
-        <div class="progress-label" style="min-width:80px">Monthly Bundle</div>
-        <div class="progress-bar"><div class="progress-fill ${smsPct>80?'':'gold'}" style="width:${smsPct}%"></div></div>
-        <div class="progress-val">${smsUsed}/${smsBundle}</div>
-      </div>
-      <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.5rem">
-        Rate: Ksh ${SMS_RATE}/SMS · Overage: Ksh ${(Math.max(0,smsUsed-smsBundle)*SMS_RATE).toFixed(2)}
-      </div>
-      ${smsRemaining < 50 ? `<div class="alert alert-warn" style="margin-top:.75rem;font-size:.72rem">
-        ⚠ Running low on SMS. Submit a top-up request via the payment form below.
-      </div>` : ''}
-      <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border)">
-        SMS is managed by GroupYetu360. Your bundle is topped up when you submit a payment request and it is approved.
-      </div>`;
+    if (smsBundle === 0) {
+      // No bundle purchased — show Buy prompt
+      smsEl.innerHTML = `
+        <div style="text-align:center;padding:1.5rem 1rem">
+          <div style="font-size:2rem;margin-bottom:.65rem">💬</div>
+          <div style="font-size:.88rem;font-weight:700;color:var(--ink);margin-bottom:.35rem">No SMS bundle purchased yet</div>
+          <div style="font-size:.78rem;color:var(--ink-faint);line-height:1.7;margin-bottom:1rem">
+            SMS is pay-as-you-go at <strong>Ksh 1.50/SMS</strong>.<br>
+            Buy a bundle below to start sending bulk messages to your members.
+          </div>
+          <div style="display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin-bottom:.75rem">
+            <div style="border:1px solid var(--teal);border-radius:6px;padding:.45rem .8rem;font-size:.75rem;color:var(--teal)"><strong>50 SMS</strong> · Ksh 75</div>
+            <div style="border:1px solid var(--teal);border-radius:6px;padding:.45rem .8rem;font-size:.75rem;color:var(--teal)"><strong>100 SMS</strong> · Ksh 150</div>
+            <div style="border:1px solid var(--teal);border-radius:6px;padding:.45rem .8rem;font-size:.75rem;color:var(--teal)"><strong>200 SMS</strong> · Ksh 300</div>
+            <div style="border:1px solid var(--teal);border-radius:6px;padding:.45rem .8rem;font-size:.75rem;color:var(--teal)"><strong>500 SMS</strong> · Ksh 750</div>
+          </div>
+          <div style="font-size:.7rem;color:var(--ink-faint)">Select a bundle in the payment form below ↓</div>
+        </div>`;
+    } else {
+      // Has bundle — show usage
+      smsEl.innerHTML = `
+        <div class="stats-row" style="grid-template-columns:repeat(2,1fr);margin-bottom:1rem">
+          <div class="stat-card"><div class="stat-label">SMS Used</div><div class="stat-value" style="font-size:1.3rem">${smsUsed}</div></div>
+          <div class="stat-card green"><div class="stat-label">Remaining</div><div class="stat-value" style="font-size:1.3rem">${smsRemaining}</div></div>
+        </div>
+        <div class="progress-row" style="margin-bottom:.5rem">
+          <div class="progress-label" style="min-width:80px">Bundle Credit</div>
+          <div class="progress-bar"><div class="progress-fill ${smsPct>80?'':'gold'}" style="width:${smsPct}%"></div></div>
+          <div class="progress-val">${smsUsed}/${smsBundle}</div>
+        </div>
+        <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.5rem">
+          Rate: Ksh ${SMS_RATE}/SMS · SMS credit never expires
+        </div>
+        ${smsRemaining < 20 ? '<div class="alert alert-warn" style="margin-top:.75rem;font-size:.72rem">⚠ Running low — top up below before sending messages.</div>' : ''}`;
+    }
   }
 
   // Payment history
@@ -333,18 +354,21 @@ async function loadBilling() {
 }
 
 function updatePaymentAmount() {
-  const type = document.getElementById('pay-req-type')?.value;
+  const type = document.getElementById('pay-req-type')?.value || '';
   const amounts = {
     subscription_basic: 3000,
     subscription_standard: 6000,
     subscription_pro: 12000,
     sms_bundle_50: 75,
+    sms_bundle_100: 150,
     sms_bundle_200: 300,
     sms_bundle_500: 750,
     sms_bundle_1000: 1500
   };
+  // Support combined e.g. "subscription_standard+sms_bundle_200"
+  const total = type.split('+').reduce((sum, p) => sum + (amounts[p.trim()] || 0), 0);
   const amtEl = document.getElementById('pay-req-amount');
-  if (amtEl) amtEl.value = amounts[type] || 0;
+  if (amtEl) amtEl.value = total;
 }
 
 async function initiateSTKPush() {
@@ -567,19 +591,23 @@ async function approvePayment(paymentId, orgId, paymentType, amount) {
   const updates = {};
   const today = new Date();
   
-  if (paymentType.startsWith('subscription_')) {
-    const plan = paymentType.replace('subscription_', '');
-    const expiry = new Date(today);
-    expiry.setFullYear(expiry.getFullYear() + 1);
-    updates.plan = plan;
-    updates.subscription_status = 'active';
-    updates.subscription_expires = expiry.toISOString().split('T')[0];
-    updates.subscription_paid_date = today.toISOString().split('T')[0];
-    updates.sms_bundle = PLAN_SMS[plan] || 50;
-  } else if (paymentType.startsWith('sms_bundle_')) {
-    const smsCount = parseInt(paymentType.replace('sms_bundle_','')) || 0;
-    const { data: org } = await sb.from('organisations').select('sms_bundle').eq('id', orgId).single();
-    updates.sms_bundle = (org?.sms_bundle||0) + smsCount;
+  // Parse combined payment type e.g. "subscription_standard+sms_bundle_200"
+  const parts = paymentType.split('+');
+  for (const part of parts) {
+    if (part.startsWith('subscription_')) {
+      const plan = part.replace('subscription_', '');
+      const expiry = new Date(today);
+      expiry.setFullYear(expiry.getFullYear() + 1);
+      updates.plan = plan;
+      updates.subscription_status = 'active';
+      updates.subscription_expires = expiry.toISOString().split('T')[0];
+      updates.subscription_paid_date = today.toISOString().split('T')[0];
+      // No auto-allocate SMS — SMS only added when explicitly purchased
+    } else if (part.startsWith('sms_bundle_')) {
+      const smsCount = parseInt(part.replace('sms_bundle_','')) || 0;
+      const { data: org } = await sb.from('organisations').select('sms_bundle').eq('id', orgId).single();
+      updates.sms_bundle = (org?.sms_bundle||0) + smsCount;
+    }
   }
 
   // Update organisation
