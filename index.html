@@ -1678,115 +1678,191 @@
 
 
     <!-- ORG BILLING PAGE -->
+    <!-- ══ BILLING & SMS PAGE ══ -->
     <div class="page" id="page-billing">
       <div class="section-header">
-        <div><div class="section-title">Billing & SMS</div><div class="section-sub">Subscription status and SMS usage</div></div>
+        <div><div class="section-title">Billing & SMS</div><div class="section-sub">Subscription and usage</div></div>
       </div>
 
-      <!-- Subscription Status Card -->
-      <div class="grid-2">
-        <div class="card" id="billing-status-card">
-          <div class="card-header"><div class="card-title">Subscription Status</div></div>
-          <div class="card-body">
-            <div id="billing-status-content"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+      <!-- Hero -->
+      <div id="billing-hero" style="border-radius:8px;padding:1.5rem 1.75rem;margin-bottom:1.25rem;background:linear-gradient(135deg,var(--maroon) 0%,#5a0016 100%);color:#fff">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+          <div>
+            <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;opacity:.65;margin-bottom:.3rem">Current Plan</div>
+            <div id="billing-plan-name" style="font-family:'Crimson Pro',serif;font-size:2rem;font-weight:700">Starter</div>
+            <div id="billing-plan-meta" style="font-size:.78rem;opacity:.75;margin-top:.2rem">Free plan · Up to 15 members</div>
+          </div>
+          <div style="text-align:right">
+            <div id="billing-status-badge" style="display:inline-flex;align-items:center;gap:.4rem;background:rgba(255,255,255,.15);padding:.35rem .85rem;border-radius:20px;font-size:.75rem;font-weight:700;margin-bottom:.5rem">
+              <span style="width:6px;height:6px;background:#4ade80;border-radius:50%;display:inline-block"></span> ACTIVE
+            </div>
+            <div id="billing-expiry-text" style="font-size:.72rem;opacity:.7">No expiry date set</div>
           </div>
         </div>
-        <div class="card">
-          <div class="card-header"><div class="card-title">SMS Usage This Month</div></div>
-          <div class="card-body">
-            <div id="sms-usage-content"><div class="loading"><div class="spinner"></div>Loading...</div></div>
-          </div>
+        <div style="display:flex;gap:1.5rem;margin-top:1.1rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,.15);flex-wrap:wrap">
+          <div id="bf-members" style="font-size:.75rem;opacity:.85">👥 Up to 15 members</div>
+          <div id="bf-sms" style="font-size:.75rem;opacity:.85">💬 50 SMS/month</div>
+          <div id="bf-features" style="font-size:.75rem;opacity:.85">✓ Members, Finance, Meetings, MGR</div>
         </div>
       </div>
 
-      <!-- Payment Request -->
-      <div class="card">
+      <!-- SMS Usage -->
+      <div class="card" style="margin-bottom:1.25rem">
         <div class="card-header">
-          <div><div class="card-title">Make a Payment</div><div class="card-sub">Pay for subscription renewal or SMS top-up</div></div>
+          <div><div class="card-title">📱 SMS Usage — This Month</div></div>
+          <div style="font-size:.72rem;color:var(--ink-faint)">Top up below if running low</div>
         </div>
         <div class="card-body">
-          <div class="alert alert-info" id="billing-bank-details">Loading payment details...</div>
+          <div id="sms-usage-content"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+        </div>
+      </div>
+
+      <!-- Plan comparison -->
+      <div class="card" style="margin-bottom:1.25rem">
+        <div class="card-header"><div class="card-title">🚀 Plans & Pricing</div><div class="card-sub">Unlock more members, SMS, and features</div></div>
+        <div class="card-body" style="padding:0">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));border-top:1px solid var(--border)">
+            <div style="padding:1rem;border-right:1px solid var(--border)">
+              <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.4rem">Starter</div>
+              <div style="font-size:1.3rem;font-weight:700;color:var(--ink)">Free</div>
+              <div style="font-size:.65rem;color:var(--ink-faint);margin-bottom:.75rem">Forever</div>
+              <div style="font-size:.72rem;color:var(--ink-soft);line-height:2">✓ 15 members<br>✓ 50 SMS/month<br>✓ Finance & MGR<br>— Welfare<br>— Table Banking</div>
+            </div>
+            <div style="padding:1rem;border-right:1px solid var(--border)">
+              <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--teal);margin-bottom:.4rem">Basic</div>
+              <div style="font-size:1.3rem;font-weight:700;color:var(--ink)">Ksh 3,000</div>
+              <div style="font-size:.65rem;color:var(--ink-faint);margin-bottom:.75rem">per year</div>
+              <div style="font-size:.72rem;color:var(--ink-soft);line-height:2">✓ 30 members<br>✓ 200 SMS/month<br>✓ Welfare & Projects<br>✓ Table Banking<br>— STK Push</div>
+            </div>
+            <div style="padding:1rem;border-right:1px solid var(--border);background:var(--maroon-pale);position:relative">
+              <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--maroon)"></div>
+              <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--maroon);margin-bottom:.4rem">Standard ⭐</div>
+              <div style="font-size:1.3rem;font-weight:700;color:var(--maroon)">Ksh 6,000</div>
+              <div style="font-size:.65rem;color:var(--ink-faint);margin-bottom:.75rem">per year · Most Popular</div>
+              <div style="font-size:.72rem;color:var(--ink-soft);line-height:2">✓ 75 members<br>✓ 500 SMS/month<br>✓ All Basic features<br>✓ M-Pesa STK Push<br>✓ Priority support</div>
+            </div>
+            <div style="padding:1rem">
+              <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#c49a30;margin-bottom:.4rem">Pro</div>
+              <div style="font-size:1.3rem;font-weight:700;color:var(--ink)">Ksh 12,000</div>
+              <div style="font-size:.65rem;color:var(--ink-faint);margin-bottom:.75rem">per year</div>
+              <div style="font-size:.72rem;color:var(--ink-soft);line-height:2">✓ Unlimited members<br>✓ 1,000 SMS/month<br>✓ All Standard+<br>✓ Custom branding<br>✓ API access</div>
+            </div>
+          </div>
+          <div style="border-top:1px solid var(--border);padding:.85rem 1.25rem;background:var(--surface)">
+            <div style="font-size:.7rem;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.5rem">SMS Top-up Bundles</div>
+            <div style="display:flex;gap:.6rem;flex-wrap:wrap">
+              <div style="border:1px solid var(--border);border-radius:6px;padding:.4rem .75rem;font-size:.74rem"><strong>200 SMS</strong> <span style="color:var(--ink-faint)">· Ksh 300</span></div>
+              <div style="border:1px solid var(--border);border-radius:6px;padding:.4rem .75rem;font-size:.74rem"><strong>500 SMS</strong> <span style="color:var(--ink-faint)">· Ksh 750</span></div>
+              <div style="border:1px solid var(--border);border-radius:6px;padding:.4rem .75rem;font-size:.74rem"><strong>1,000 SMS</strong> <span style="color:var(--ink-faint)">· Ksh 1,500</span></div>
+              <div style="font-size:.7rem;color:var(--ink-faint);align-self:center">Rate: Ksh 1.50/SMS</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Make a Payment -->
+      <div class="card" style="margin-bottom:1.25rem">
+        <div class="card-header"><div class="card-title">💳 Make a Payment</div><div class="card-sub">Subscription renewal or SMS top-up</div></div>
+        <div class="card-body">
+          <div id="billing-bank-details" style="border-left:4px solid var(--teal);padding:.75rem 1rem;background:var(--surface);border-radius:4px;margin-bottom:1rem;font-size:.8rem">Loading payment details...</div>
+          <div id="stk-push-wrapper"></div>
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Payment Type</label>
+              <label class="form-label">What are you paying for?</label>
               <select class="form-select" id="pay-req-type" onchange="updatePaymentAmount()">
-                <option value="subscription_basic">Subscription — Basic (Ksh 3,000/year)</option>
-                <option value="subscription_standard" selected>Subscription — Standard (Ksh 6,000/year)</option>
-                <option value="subscription_pro">Subscription — Pro (Ksh 12,000/year)</option>
-                <option value="sms_bundle_200">SMS Bundle — 200 SMS (Ksh 300)</option>
-                <option value="sms_bundle_500">SMS Bundle — 500 SMS (Ksh 750)</option>
-                <option value="sms_bundle_1000">SMS Bundle — 1,000 SMS (Ksh 1,500)</option>
+                <optgroup label="Subscription Plans">
+                  <option value="subscription_basic">Basic Plan — Ksh 3,000/year (30 members)</option>
+                  <option value="subscription_standard" selected>Standard Plan — Ksh 6,000/year (75 members)</option>
+                  <option value="subscription_pro">Pro Plan — Ksh 12,000/year (unlimited)</option>
+                </optgroup>
+                <optgroup label="SMS Top-up">
+                  <option value="sms_bundle_200">200 SMS Bundle — Ksh 300</option>
+                  <option value="sms_bundle_500">500 SMS Bundle — Ksh 750</option>
+                  <option value="sms_bundle_1000">1,000 SMS Bundle — Ksh 1,500</option>
+                </optgroup>
               </select>
             </div>
             <div class="form-group">
               <label class="form-label">Amount (Ksh)</label>
-              <input class="form-input" type="number" id="pay-req-amount" value="6000" readonly/>
+              <input class="form-input" type="number" id="pay-req-amount" value="6000" readonly style="font-weight:700;color:var(--maroon)"/>
             </div>
           </div>
-          <div class="form-row single">
+          <div class="form-row">
             <div class="form-group">
-              <label class="form-label">M-Pesa Transaction Reference</label>
-              <input class="form-input" id="pay-req-ref" placeholder="e.g. QBC4X8YZDE — the code from your M-Pesa message"/>
+              <label class="form-label">M-Pesa Reference</label>
+              <input class="form-input" id="pay-req-ref" placeholder="e.g. QBC4X8YZDE"/>
             </div>
-          </div>
-          <div class="form-row single">
             <div class="form-group">
               <label class="form-label">Notes (optional)</label>
-              <input class="form-input" id="pay-req-notes" placeholder="Any additional information..."/>
+              <input class="form-input" id="pay-req-notes" placeholder="Any additional info"/>
             </div>
           </div>
-          <div class="alert alert-warn" style="margin-top:.5rem">
-            ⚠ After paying, click the button below. Your payment will be verified and activated within 24 hours.
+          <div style="background:var(--warning-pale,#fff9e6);border-left:4px solid var(--warning,#c49a30);padding:.65rem 1rem;border-radius:4px;font-size:.75rem;color:var(--ink-soft);margin-bottom:1rem">
+            ⏱ Pay via M-Pesa first, then submit your reference. Activation within 24 hours.
           </div>
-          <div class="form-actions" style="flex-direction:column;gap:.75rem">
-            <div id="stk-push-wrapper">
-              <!-- STK button shown only if daraja_enabled -->
-            </div>
-            <button class="btn btn-secondary" onclick="submitPaymentRequest()" style="width:100%">
-              ✓ I Have Paid — Submit M-Pesa Reference
-            </button>
-          </div>
+          <button class="btn btn-primary" onclick="submitPaymentRequest()" style="width:100%;background:var(--maroon);padding:.75rem">
+            ✓ I Have Paid — Submit Reference →
+          </button>
           <div id="stk-status" style="display:none;margin-top:.75rem"></div>
         </div>
       </div>
 
       <!-- Payment History -->
-      <div class="card">
+      <div class="card" style="margin-bottom:1.25rem">
         <div class="card-header"><div class="card-title">Payment History</div></div>
         <div id="payment-history"><div class="loading"><div class="spinner"></div>Loading...</div></div>
       </div>
+
+      <!-- Billing FAQ -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">❓ Frequently Asked Questions</div></div>
+        <div class="card-body" style="padding:0">
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Can I be a member of multiple groups? <span class="faq-arrow">▾</span></div><div class="faq-a">Yes. If another group's admin adds your email and sends an invite, that group appears in your workspace switcher at login. One login, multiple groups — switch freely.</div></div>
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Can I run my own group? <span class="faq-arrow">▾</span></div><div class="faq-a">Absolutely. Click "Register Another Group" in the sidebar, or visit app.groupyetu.org and choose Create Account. Starter plan is free for up to 15 members.</div></div>
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">When does my plan renew? <span class="faq-arrow">▾</span></div><div class="faq-a">Plans are annual. Your expiry date is shown in the plan card above. You will receive an SMS reminder 30 days before expiry.</div></div>
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">What happens to my data if I don't renew? <span class="faq-arrow">▾</span></div><div class="faq-a">Your data is never deleted for non-payment. The group continues on Starter limits (15 members, 50 SMS/month) until you renew.</div></div>
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How do SMS bundles work? <span class="faq-arrow">▾</span></div><div class="faq-a">Each plan includes a monthly SMS allocation. Unused SMS don't roll over. Buy a top-up bundle above if you need more in a given month — added immediately after approval.</div></div>
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How quickly is payment activated? <span class="faq-arrow">▾</span></div><div class="faq-a">Within 24 hours of submitting your M-Pesa reference. WhatsApp 0792 385 970 for urgent activation.</div></div>
+          <div class="faq-item" style="border-bottom:none"><div class="faq-q" onclick="toggleFaq(this)">Can I upgrade mid-year? <span class="faq-arrow">▾</span></div><div class="faq-a">Yes. Pay for the new plan and submit your reference. The upgrade takes effect immediately after approval, with a fresh one-year expiry from that date.</div></div>
+        </div>
+      </div>
     </div>
 
-    <!-- ORG SUPPORT PAGE -->
-    <div class="page" id="page-support">
-      <div class="section-header"><div><div class="section-title">Support</div><div class="section-sub">Get help with GroupYetu360</div></div></div>
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-header"><div class="card-title">Contact Support</div></div>
-          <div class="card-body" id="support-contact-content">
-            <div class="loading"><div class="spinner"></div>Loading...</div>
-          </div>
+    <!-- ══ MEMBER FAQ PAGE ══ -->
+    <div class="page" id="page-faq">
+      <div class="section-header"><div><div class="section-title">Help & FAQs</div><div class="section-sub">Common questions answered</div></div></div>
+
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-header"><div class="card-title">👤 My Account & Access</div></div>
+        <div class="card-body" style="padding:0">
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Can I be in multiple groups? <span class="faq-arrow">▾</span></div><div class="faq-a">Yes. If you're a member of more than one group using GroupYetu360, all groups appear in your workspace switcher when you log in. One login, multiple groups.</div></div>
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Can I start my own group? <span class="faq-arrow">▾</span></div><div class="faq-a">Yes. Click "Register Another Group" at the bottom of the sidebar, or visit app.groupyetu.org and choose Create Account. Starter plan is free for up to 15 members.</div></div>
+          <div class="faq-item" style="border-bottom:none"><div class="faq-q" onclick="toggleFaq(this)">How do I change my password? <span class="faq-arrow">▾</span></div><div class="faq-a">Go to My Account in the sidebar. Enter your new password in the Change Password section and click Update Password. Forgotten it? Use "Forgot password?" on the login page.</div></div>
         </div>
-        <div class="card">
-          <div class="card-header"><div class="card-title">Common Questions</div></div>
-          <div class="card-body">
-            <div style="margin-bottom:1rem">
-              <div style="font-size:.85rem;font-weight:600;color:var(--ink);margin-bottom:.25rem">How do I add members?</div>
-              <div style="font-size:.78rem;color:var(--ink-faint)">Go to Members → Add Member. You can set their opening balance and create a portal account for them at the same time.</div>
-            </div>
-            <div style="margin-bottom:1rem">
-              <div style="font-size:.85rem;font-weight:600;color:var(--ink);margin-bottom:.25rem">How do I send SMS to members?</div>
-              <div style="font-size:.78rem;color:var(--ink-faint)">Go to Messages, compose your message and click Send SMS. SMS is managed centrally by GroupYetu360. Your plan includes a monthly SMS bundle — check Billing & SMS for your usage.</div>
-            </div>
-            <div style="margin-bottom:1rem">
-              <div style="font-size:.85rem;font-weight:600;color:var(--ink);margin-bottom:.25rem">How do I renew my subscription?</div>
-              <div style="font-size:.78rem;color:var(--ink-faint)">Go to Billing & SMS, select your plan, pay via M-Pesa to our details shown, then submit your reference number.</div>
-            </div>
-            <div>
-              <div style="font-size:.85rem;font-weight:600;color:var(--ink);margin-bottom:.25rem">How do I record a welfare event?</div>
-              <div style="font-size:.78rem;color:var(--ink-faint)">Go to Welfare → New Welfare Event. This creates a contribution record for all members to pay.</div>
-            </div>
-          </div>
+      </div>
+
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-header"><div class="card-title">💳 Payments & Contributions</div></div>
+        <div class="card-body" style="padding:0">
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How do I make a payment? <span class="faq-arrow">▾</span></div><div class="faq-a">Go to My Contributions and click Make Payment. Send via M-Pesa to your group's payment details, enter the reference and submit. Your admin verifies and approves it.</div></div>
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Why is my payment still pending? <span class="faq-arrow">▾</span></div><div class="faq-a">Payments are manually verified by your group admin, usually within 24 hours. If it's been longer, contact your admin directly.</div></div>
+          <div class="faq-item" style="border-bottom:none"><div class="faq-q" onclick="toggleFaq(this)">Where can I see my payment history? <span class="faq-arrow">▾</span></div><div class="faq-a">Go to My Contributions. You'll see your total contributed, a breakdown by type, and a month-by-month history for the last 6 months.</div></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-header"><div class="card-title">🏦 Savings & Balances</div></div>
+        <div class="card-body" style="padding:0">
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">What is the difference between shares and savings? <span class="faq-arrow">▾</span></div><div class="faq-a">Shares represent your ownership stake in the group (equity). Savings are your monthly deposits held by the group. Not all groups use both — your admin configures which applies.</div></div>
+          <div class="faq-item" style="border-bottom:none"><div class="faq-q" onclick="toggleFaq(this)">How do I withdraw my savings? <span class="faq-arrow">▾</span></div><div class="faq-a">Withdrawals are handled by your group admin per your constitution. Contact your admin or raise it at the next meeting. GroupYetu360 tracks balances; the withdrawal decision is made by group leadership.</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">📋 Welfare & Meetings</div></div>
+        <div class="card-body" style="padding:0">
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How does welfare work? <span class="faq-arrow">▾</span></div><div class="faq-a">When a welfare event is created (e.g. bereavement), all members are notified and a contribution is expected. Go to My Contributions to see outstanding welfare payments.</div></div>
+          <div class="faq-item" style="border-bottom:none"><div class="faq-q" onclick="toggleFaq(this)">How do I know when the next meeting is? <span class="faq-arrow">▾</span></div><div class="faq-a">Go to My Profile — the next scheduled meeting is shown there. Your admin can also send SMS reminders from the Messages section.</div></div>
         </div>
       </div>
     </div>
