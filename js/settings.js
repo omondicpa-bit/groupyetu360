@@ -471,10 +471,11 @@ let _saOrgs = [], _saMemberCount = {};
 
 async function loadSuperAdmin() {
   document.getElementById('sa-org-list').innerHTML = '<div class="loading"><div class="spinner"></div>Loading…</div>';
-  const [orgsRes, membersRes, pendingRes] = await Promise.all([
+  let pendingRes = { data: [] };
+  try { pendingRes = await sb.from('payment_requests').select('id,organisations(name)').eq('status','pending'); } catch(e) {}
+  const [orgsRes, membersRes] = await Promise.all([
     sb.from('organisations').select('*').order('created_at',{ascending:false}),
     sb.from('members').select('id,org_id'),
-    sb.from('payment_requests').select('id,organisations(name)').eq('status','pending').catch(()=>({data:[]}))
   ]);
   _saOrgs = orgsRes.data || [];
   const members = membersRes.data || [];
