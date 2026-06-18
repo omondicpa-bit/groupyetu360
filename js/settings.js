@@ -51,6 +51,14 @@ function updateBillingHero(org) {
 // globals: window.sb, window.currentOrg, window.currentUser, window.currentProfile etc.
 
 // ── SETTINGS ──
+function switchSettingsTab(btn, tabId) {
+  document.querySelectorAll('#page-settings .fin-tab').forEach(t => t.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.querySelectorAll('#page-settings .tab-panel').forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById(tabId);
+  if (panel) panel.classList.add('active');
+}
+
 async function loadSettings() {
   if (!currentOrg?.id) return;
   // Refresh org data from DB first

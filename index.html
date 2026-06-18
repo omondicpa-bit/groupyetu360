@@ -1520,154 +1520,224 @@
     </div>
 
     <!-- SETTINGS -->
+    <!-- ══ SETTINGS PAGE ══ -->
     <div class="page" id="page-settings">
-      <div class="fin-hero" style="background:linear-gradient(135deg,#1a1a1a 0%,#2d2d2d 50%,var(--maroon-dk) 100%)">
-        <div>
-          <div class="fin-hero-title">⚙ Organisation Settings</div>
-          <div class="fin-hero-sub" id="settings-hero-sub">Configure your organisation details and preferences</div>
-        </div>
-        <button class="btn fin-ctrl-btn" onclick="saveSettings()">Save Changes</button>
+      <div class="section-header">
+        <div><div class="section-title">Settings</div><div class="section-sub" id="settings-hero-sub">Organisation configuration</div></div>
+        <button class="btn btn-primary" onclick="saveSettings()" style="background:var(--maroon)">💾 Save Changes</button>
       </div>
 
-      <!-- ROW 1: ORG DETAILS + CONTRIBUTION TYPES -->
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-header"><div class="card-title">Organisation Details</div></div>
-          <div class="card-body">
-            <div class="form-row"><div class="form-group"><label class="form-label">Organisation Name</label><input class="form-input" id="settings-name"/></div>
-            <div class="form-group"><label class="form-label">Organisation Code</label><input class="form-input" id="settings-org-code" readonly style="background:var(--surface-3);font-weight:700;letter-spacing:.1em;color:var(--maroon)"/><div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">Share this code with members to let them log in</div></div></div>
-            <div class="form-row single"><div class="form-group"><label class="form-label">Registration Number</label><input class="form-input" id="settings-reg"/></div></div>
-            <div style="font-size:.78rem;font-weight:600;color:var(--ink);margin:.5rem 0 .25rem">Payment Methods (shown to members)</div>
-            <div style="font-size:.7rem;color:var(--ink-faint);margin-bottom:.75rem">Enable the payment methods your organisation accepts. Members will see these with copy buttons.</div>
+      <!-- Tabs -->
+      <div class="fin-tabs" style="margin-bottom:1.25rem">
+        <button class="fin-tab active" onclick="switchSettingsTab(this,'st-general')">🏢 General</button>
+        <button class="fin-tab" onclick="switchSettingsTab(this,'st-payments')">💳 Payments</button>
+        <button class="fin-tab" onclick="switchSettingsTab(this,'st-contributions')">₭ Contributions</button>
+        <button class="fin-tab" onclick="switchSettingsTab(this,'st-team')">👥 Team</button>
+        <button class="fin-tab" onclick="switchSettingsTab(this,'st-welfare')">♡ Welfare</button>
+        <button class="fin-tab" onclick="switchSettingsTab(this,'st-meetings')">📅 Meetings</button>
+      </div>
 
-            <div style="display:flex;flex-direction:column;gap:.6rem" id="payment-methods-list">
-              <!-- M-Pesa Paybill -->
-              <div style="border:1px solid var(--border);padding:.75rem">
-                <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;margin-bottom:.5rem">
-                  <input type="checkbox" id="pm-paybill-enabled" style="accent-color:var(--maroon)" onchange="togglePaymentMethod('paybill',this.checked)"/>
-                  <span style="font-size:.82rem;font-weight:600">M-Pesa Paybill</span>
-                </label>
-                <div id="pm-paybill-fields" style="display:none">
-                  <div class="form-row">
-                    <div class="form-group"><label class="form-label">Paybill Number</label><input class="form-input" id="settings-paybill" placeholder="e.g. 522533"/></div>
-                    <div class="form-group"><label class="form-label">Account Format</label><input class="form-input" id="settings-account" placeholder="e.g. Your Full Name"/></div>
-                  </div>
+      <!-- ── TAB: GENERAL ── -->
+      <div class="tab-panel active" id="st-general">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Organisation Details</div></div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Organisation Name</label>
+                  <input class="form-input" id="settings-name"/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Registration Number</label>
+                  <input class="form-input" id="settings-reg"/>
                 </div>
               </div>
-
-              <!-- M-Pesa Till -->
-              <div style="border:1px solid var(--border);padding:.75rem">
-                <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;margin-bottom:.5rem">
-                  <input type="checkbox" id="pm-till-enabled" style="accent-color:var(--maroon)" onchange="togglePaymentMethod('till',this.checked)"/>
-                  <span style="font-size:.82rem;font-weight:600">M-Pesa Till Number (Buy Goods)</span>
-                </label>
-                <div id="pm-till-fields" style="display:none">
-                  <div class="form-group"><label class="form-label">Till Number</label><input class="form-input" id="settings-till" placeholder="e.g. 123456"/></div>
-                </div>
-              </div>
-
-              <!-- M-Pesa Send Money -->
-              <div style="border:1px solid var(--border);padding:.75rem">
-                <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;margin-bottom:.5rem">
-                  <input type="checkbox" id="pm-send-enabled" style="accent-color:var(--maroon)" onchange="togglePaymentMethod('send',this.checked)"/>
-                  <span style="font-size:.82rem;font-weight:600">M-Pesa Send Money</span>
-                </label>
-                <div id="pm-send-fields" style="display:none">
-                  <div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" id="settings-send-phone" placeholder="e.g. 0792385970"/></div>
-                </div>
-              </div>
-
-              <!-- Pochi La Biashara -->
-              <div style="border:1px solid var(--border);padding:.75rem">
-                <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;margin-bottom:.5rem">
-                  <input type="checkbox" id="pm-pochi-enabled" style="accent-color:var(--maroon)" onchange="togglePaymentMethod('pochi',this.checked)"/>
-                  <span style="font-size:.82rem;font-weight:600">M-Pesa Pochi La Biashara</span>
-                </label>
-                <div id="pm-pochi-fields" style="display:none">
-                  <div class="form-group"><label class="form-label">Pochi Phone Number</label><input class="form-input" id="settings-pochi" placeholder="e.g. 0792385970"/></div>
-                </div>
-              </div>
-
-              <!-- Bank Transfer -->
-              <div style="border:1px solid var(--border);padding:.75rem">
-                <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;margin-bottom:.5rem">
-                  <input type="checkbox" id="pm-bank-enabled" style="accent-color:var(--maroon)" onchange="togglePaymentMethod('bank',this.checked)"/>
-                  <span style="font-size:.82rem;font-weight:600">Bank Transfer</span>
-                </label>
-                <div id="pm-bank-fields" style="display:none">
-                  <div class="form-row">
-                    <div class="form-group"><label class="form-label">Bank Name</label><input class="form-input" id="settings-bank-name" placeholder="e.g. Equity Bank"/></div>
-                    <div class="form-group"><label class="form-label">Account Number</label><input class="form-input" id="settings-bank-acc" placeholder="Account number"/></div>
-                  </div>
-                  <div class="form-group"><label class="form-label">Account Name</label><input class="form-input" id="settings-bank-acc-name" placeholder="Account holder name"/></div>
-                </div>
-              </div>
-            </div>
-            <div class="form-row single"><div class="form-group"><label class="form-label">Account Format</label><input class="form-input" id="settings-account" placeholder="e.g. ADA-[MEMBER NAME]"/></div></div>
-            <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Bank Balance (Ksh)</label>
-                <input class="form-input" type="number" id="settings-bank-balance" placeholder="Opening bank balance"/>
-                <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem" id="bank-balance-note">Once set, balance updates automatically with transactions. Contact support to edit.</div>
+                <label class="form-label">Organisation Code</label>
+                <div style="display:flex;align-items:center;gap:.5rem">
+                  <input class="form-input" id="settings-org-code" readonly style="font-weight:700;letter-spacing:.15em;color:var(--maroon);font-size:1.1rem;flex:1"/>
+                  <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('settings-org-code').value).then(()=>toast('Code copied!'))" style="flex-shrink:0">Copy</button>
+                </div>
+                <div class="field-hint">Share this code with members so they can join your workspace</div>
               </div>
-              <div class="form-group"><label class="form-label">Balance Date</label><input class="form-input" type="date" id="settings-bank-date"/></div>
+              <div class="form-actions"><button class="btn btn-primary" onclick="saveSettings()" style="background:var(--maroon)">Save Details →</button></div>
             </div>
-            <div style="font-size:.78rem;font-weight:600;color:var(--ink);margin:.75rem 0 .5rem">SMS Integration</div>
-            <div class="alert alert-info">&#8505; SMS is managed centrally by GroupYetu360. Your SMS bundle and usage are shown in <strong>Billing & SMS</strong>. Contact support to top up your SMS bundle.</div>
-            <div style="font-size:.78rem;font-weight:600;color:var(--ink);margin:.75rem 0 .5rem">Security</div>
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem;background:var(--surface-2);border:1px solid var(--border)">
-              <div>
-                <div style="font-size:.82rem;font-weight:600;color:var(--ink)">Two-Factor Authentication (2FA)</div>
-                <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.15rem">Require OTP verification for admin logins. Code sent via SMS.</div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-title">Security & Access</div></div>
+            <div class="card-body">
+              <div style="border:1px solid var(--border);border-radius:6px;padding:.85rem 1rem;margin-bottom:1rem">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <div>
+                    <div style="font-size:.84rem;font-weight:600;color:var(--ink)">Two-Factor Authentication</div>
+                    <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.2rem">Require OTP for all admin logins. Code sent via SMS.</div>
+                  </div>
+                  <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+                    <input type="checkbox" id="settings-2fa" style="width:18px;height:18px;accent-color:var(--maroon)"/>
+                    <span style="font-size:.78rem;font-weight:600" id="settings-2fa-label">Disabled</span>
+                  </label>
+                </div>
               </div>
-              <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
-                <input type="checkbox" id="settings-2fa" style="width:18px;height:18px;accent-color:var(--maroon)"/>
-                <span style="font-size:.78rem;font-weight:600" id="settings-2fa-label">Disabled</span>
-              </label>
+              <div style="border:1px solid var(--border);border-radius:6px;padding:.85rem 1rem;background:var(--surface)">
+                <div style="font-size:.78rem;font-weight:600;color:var(--ink);margin-bottom:.3rem">💬 SMS</div>
+                <div style="font-size:.75rem;color:var(--ink-faint);line-height:1.65">SMS is managed by GroupYetu360. Credit and usage are in <a onclick="showPage('billing')" style="color:var(--maroon);cursor:pointer;font-weight:600">Billing & SMS →</a></div>
+              </div>
             </div>
-            <div class="form-actions"><button class="btn btn-primary" onclick="saveSettings()">Save Changes</button></div>
           </div>
         </div>
+      </div>
+
+      <!-- ── TAB: PAYMENTS ── -->
+      <div class="tab-panel" id="st-payments">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div><div class="card-title">Payment Methods</div><div class="card-sub">Members see these with copy buttons when making payments</div></div>
+            </div>
+            <div class="card-body">
+              <div style="display:flex;flex-direction:column;gap:.75rem" id="payment-methods-list">
+                <!-- M-Pesa Paybill -->
+                <div style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
+                  <label style="display:flex;align-items:center;gap:.65rem;padding:.75rem 1rem;cursor:pointer;background:var(--surface)">
+                    <input type="checkbox" id="pm-paybill-enabled" style="accent-color:var(--maroon);width:16px;height:16px" onchange="togglePaymentMethod('paybill',this.checked)"/>
+                    <span style="font-size:.84rem;font-weight:600">📱 M-Pesa Paybill</span>
+                  </label>
+                  <div id="pm-paybill-fields" style="display:none;padding:.75rem 1rem;border-top:1px solid var(--border)">
+                    <div class="form-row">
+                      <div class="form-group"><label class="form-label">Paybill Number</label><input class="form-input" id="settings-paybill" placeholder="e.g. 522533"/></div>
+                      <div class="form-group"><label class="form-label">Account Format</label><input class="form-input" id="settings-account" placeholder="e.g. Your Full Name"/></div>
+                    </div>
+                  </div>
+                </div>
+                <!-- Till -->
+                <div style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
+                  <label style="display:flex;align-items:center;gap:.65rem;padding:.75rem 1rem;cursor:pointer;background:var(--surface)">
+                    <input type="checkbox" id="pm-till-enabled" style="accent-color:var(--maroon);width:16px;height:16px" onchange="togglePaymentMethod('till',this.checked)"/>
+                    <span style="font-size:.84rem;font-weight:600">🏪 M-Pesa Till (Buy Goods)</span>
+                  </label>
+                  <div id="pm-till-fields" style="display:none;padding:.75rem 1rem;border-top:1px solid var(--border)">
+                    <div class="form-group"><label class="form-label">Till Number</label><input class="form-input" id="settings-till" placeholder="e.g. 123456"/></div>
+                  </div>
+                </div>
+                <!-- Send Money -->
+                <div style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
+                  <label style="display:flex;align-items:center;gap:.65rem;padding:.75rem 1rem;cursor:pointer;background:var(--surface)">
+                    <input type="checkbox" id="pm-send-enabled" style="accent-color:var(--maroon);width:16px;height:16px" onchange="togglePaymentMethod('send',this.checked)"/>
+                    <span style="font-size:.84rem;font-weight:600">📲 M-Pesa Send Money</span>
+                  </label>
+                  <div id="pm-send-fields" style="display:none;padding:.75rem 1rem;border-top:1px solid var(--border)">
+                    <div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" id="settings-send-phone" placeholder="e.g. 0702903544"/></div>
+                  </div>
+                </div>
+                <!-- Pochi -->
+                <div style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
+                  <label style="display:flex;align-items:center;gap:.65rem;padding:.75rem 1rem;cursor:pointer;background:var(--surface)">
+                    <input type="checkbox" id="pm-pochi-enabled" style="accent-color:var(--maroon);width:16px;height:16px" onchange="togglePaymentMethod('pochi',this.checked)"/>
+                    <span style="font-size:.84rem;font-weight:600">🛍 Pochi La Biashara</span>
+                  </label>
+                  <div id="pm-pochi-fields" style="display:none;padding:.75rem 1rem;border-top:1px solid var(--border)">
+                    <div class="form-group"><label class="form-label">Pochi Phone Number</label><input class="form-input" id="settings-pochi" placeholder="e.g. 0702903544"/></div>
+                  </div>
+                </div>
+                <!-- Bank -->
+                <div style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
+                  <label style="display:flex;align-items:center;gap:.65rem;padding:.75rem 1rem;cursor:pointer;background:var(--surface)">
+                    <input type="checkbox" id="pm-bank-enabled" style="accent-color:var(--maroon);width:16px;height:16px" onchange="togglePaymentMethod('bank',this.checked)"/>
+                    <span style="font-size:.84rem;font-weight:600">🏦 Bank Transfer</span>
+                  </label>
+                  <div id="pm-bank-fields" style="display:none;padding:.75rem 1rem;border-top:1px solid var(--border)">
+                    <div class="form-row">
+                      <div class="form-group"><label class="form-label">Bank Name</label><input class="form-input" id="settings-bank-name" placeholder="e.g. Equity Bank"/></div>
+                      <div class="form-group"><label class="form-label">Account Number</label><input class="form-input" id="settings-bank-acc" placeholder="Account number"/></div>
+                    </div>
+                    <div class="form-group"><label class="form-label">Account Name</label><input class="form-input" id="settings-bank-acc-name" placeholder="Account holder name"/></div>
+                  </div>
+                </div>
+              </div>
+              <div class="form-actions" style="margin-top:1rem"><button class="btn btn-primary" onclick="saveSettings()" style="background:var(--maroon)">Save Payment Methods →</button></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-title">Bank Balance</div><div class="card-sub">Group's recorded cash balance</div></div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Bank Balance (Ksh)</label>
+                  <input class="form-input" type="number" id="settings-bank-balance" placeholder="0"/>
+                  <div class="field-hint" id="bank-balance-note">Balance updates automatically with recorded transactions</div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">As of Date</label>
+                  <input class="form-input" type="date" id="settings-bank-date"/>
+                </div>
+              </div>
+              <div class="form-actions"><button class="btn btn-primary" onclick="saveSettings()" style="background:var(--maroon)">Save Balance →</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TAB: CONTRIBUTIONS ── -->
+      <div class="tab-panel" id="st-contributions">
         <div class="card">
-          <div class="card-header"><div class="card-title">Contribution Types</div><button class="card-action" onclick="showModal('addContribType')">+ Add Type</button></div>
+          <div class="card-header">
+            <div><div class="card-title">Contribution Types</div><div class="card-sub">Define what members contribute — Shares, Savings, Welfare, etc.</div></div>
+            <button class="card-action" onclick="showModal('addContribType')">+ Add Type</button>
+          </div>
           <div id="contrib-types-list"><div class="loading"><div class="spinner"></div>Loading…</div></div>
         </div>
       </div>
 
-      <!-- ROW 2: TEAM MANAGEMENT -->
-      <div class="card">
-        <div class="card-header">
-          <div><div class="card-title">Team &amp; Admin Roles</div><div class="card-sub">Manage who can access and administer this organisation</div></div>
-          <button class="card-action" onclick="showModal('inviteAdmin')">+ Invite Admin</button>
-        </div>
-        <div id="team-members-list"><div class="loading"><div class="spinner"></div>Loading…</div></div>
-      </div>
-
-      <!-- ROW 3: WELFARE SETTINGS -->
-      <div class="card">
-        <div class="card-header"><div><div class="card-title">Welfare Contribution Rates</div><div class="card-sub">Default amounts per event type — edit to match your constitution</div></div></div>
-        <div class="card-body">
-          <div class="form-row cols-3">
-            <div class="form-group"><label class="form-label">Member Death (Ksh)</label><input class="form-input" type="number" id="welfare-rate-member" placeholder="1000"/></div>
-            <div class="form-group"><label class="form-label">Spouse / Parent (Ksh)</label><input class="form-input" type="number" id="welfare-rate-spouse" placeholder="750"/></div>
-            <div class="form-group"><label class="form-label">Child (Ksh)</label><input class="form-input" type="number" id="welfare-rate-child" placeholder="500"/></div>
+      <!-- ── TAB: TEAM ── -->
+      <div class="tab-panel" id="st-team">
+        <div class="card">
+          <div class="card-header">
+            <div><div class="card-title">Team & Admin Roles</div><div class="card-sub">Manage who administers this organisation</div></div>
+            <button class="card-action" onclick="showModal('inviteAdmin')">+ Invite Admin</button>
           </div>
-          <div class="form-actions"><button class="btn btn-primary" onclick="saveWelfareRates()">Save Rates</button></div>
+          <div id="team-members-list"><div class="loading"><div class="spinner"></div>Loading…</div></div>
         </div>
       </div>
 
-      <!-- ROW 4: MEETING DEFAULTS -->
-      <div class="card">
-        <div class="card-header"><div class="card-title">Meeting Defaults</div></div>
-        <div class="card-body">
-          <div class="form-row">
-            <div class="form-group"><label class="form-label">Default Meeting Time</label><input class="form-input" type="time" id="settings-meeting-time" value="20:30"/></div>
-            <div class="form-group"><label class="form-label">Default Venue</label><select class="form-select" id="settings-meeting-venue"><option>Online (Virtual)</option><option>Physical Location</option></select></div>
+      <!-- ── TAB: WELFARE ── -->
+      <div class="tab-panel" id="st-welfare">
+        <div class="card" style="max-width:540px">
+          <div class="card-header"><div class="card-title">Welfare Contribution Rates</div><div class="card-sub">Default amounts per event type — match your constitution</div></div>
+          <div class="card-body">
+            <div class="form-row cols-3">
+              <div class="form-group"><label class="form-label">Member Death (Ksh)</label><input class="form-input" type="number" id="welfare-rate-member" placeholder="1000"/></div>
+              <div class="form-group"><label class="form-label">Spouse / Parent (Ksh)</label><input class="form-input" type="number" id="welfare-rate-spouse" placeholder="750"/></div>
+              <div class="form-group"><label class="form-label">Child (Ksh)</label><input class="form-input" type="number" id="welfare-rate-child" placeholder="500"/></div>
+            </div>
+            <div class="form-actions"><button class="btn btn-primary" onclick="saveWelfareRates()" style="background:var(--maroon)">Save Rates →</button></div>
           </div>
-          <div class="form-row single">
-            <div class="form-group"><label class="form-label">Standing Agenda Items</label><textarea class="form-textarea" id="settings-agenda" placeholder="1. Opening Prayer&#10;2. Treasurer's Report&#10;3. Farm Progress&#10;4. AOB" style="min-height:80px"></textarea></div>
+        </div>
+      </div>
+
+      <!-- ── TAB: MEETINGS ── -->
+      <div class="tab-panel" id="st-meetings">
+        <div class="card" style="max-width:540px">
+          <div class="card-header"><div class="card-title">Meeting Defaults</div><div class="card-sub">Pre-fill new meetings with these values</div></div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Default Meeting Time</label><input class="form-input" type="time" id="settings-meeting-time" value="20:30"/></div>
+              <div class="form-group"><label class="form-label">Default Venue</label>
+                <select class="form-select" id="settings-meeting-venue">
+                  <option>Online (Virtual)</option>
+                  <option>Physical Location</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row single">
+              <div class="form-group"><label class="form-label">Standing Agenda Items</label>
+                <textarea class="form-textarea" id="settings-agenda" placeholder="1. Opening Prayer&#10;2. Treasurer's Report&#10;3. AOB" style="min-height:100px;resize:vertical"></textarea>
+              </div>
+            </div>
+            <div class="form-actions"><button class="btn btn-primary" onclick="saveMeetingDefaults()" style="background:var(--maroon)">Save Defaults →</button></div>
           </div>
-          <div class="form-actions"><button class="btn btn-primary" onclick="saveMeetingDefaults()">Save Defaults</button></div>
         </div>
       </div>
 
