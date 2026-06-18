@@ -902,7 +902,6 @@ tr:hover td{background:var(--maroon-pale)}
 .wel-empty-sub{font-size:.8rem;color:var(--ink-faint);margin-bottom:1.25rem}
 
 @media(max-width:900px){
-  .sidebar{width:200px}.main{margin-left:200px}
   .stats-row{grid-template-columns:repeat(2,1fr)}
   .member-grid,.grid-3{grid-template-columns:repeat(2,1fr)}
   .grid-2{grid-template-columns:1fr}
@@ -1547,3 +1546,138 @@ tr:hover td{background:var(--maroon-pale)}
 .seg-opt:last-child{border-right:none}
 .seg-opt.active{background:var(--bg);color:var(--ink);font-weight:600}
 .seg-opt:hover:not(.active){background:var(--bg)}
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   MOBILE / PWA — screens ≤ 600px
+   Sidebar becomes a full-height drawer, replaced by bottom tab bar
+   ════════════════════════════════════════════════════════════════════════ */
+
+@media(max-width:600px){
+  /* ── Root adjustments ── */
+  :root{ --sidebar-w:0px; }
+
+  /* ── Sidebar becomes overlay drawer ── */
+  .sidebar{
+    width:80vw;max-width:280px;
+    transform:translateX(-100%);
+    box-shadow:4px 0 24px rgba(0,0,0,.35);
+    z-index:200;
+  }
+  .sidebar.mob-open{transform:translateX(0)}
+  .sidebar-toggle{display:none} /* hide desktop toggle */
+
+  /* ── Drawer overlay backdrop ── */
+  .mob-backdrop{
+    display:none;position:fixed;inset:0;
+    background:rgba(0,0,0,.45);z-index:199;
+  }
+  .mob-backdrop.visible{display:block}
+
+  /* ── Main takes full width ── */
+  .main{
+    margin-left:0 !important;
+    padding-bottom:68px; /* room for bottom nav */
+  }
+
+  /* ── Topbar ── */
+  .topbar{padding:0 1rem;height:52px}
+  .topbar-title{font-size:.9rem}
+  .topbar-sub{display:none}
+  .topbar-btn{padding:.35rem .7rem;font-size:.7rem}
+  .topbar-right{gap:.4rem}
+
+  /* ── Mobile hamburger in topbar ── */
+  .mob-hamburger{
+    display:flex;align-items:center;justify-content:center;
+    width:36px;height:36px;background:transparent;border:none;
+    color:var(--ink);font-size:1.3rem;cursor:pointer;flex-shrink:0;
+    margin-right:.35rem;
+  }
+
+  /* ── Bottom navigation bar ── */
+  .mob-bottom-nav{
+    display:flex;
+    position:fixed;bottom:0;left:0;right:0;
+    height:60px;
+    background:var(--surface);
+    border-top:1px solid var(--border);
+    z-index:150;
+    padding-bottom:env(safe-area-inset-bottom,0);
+  }
+  .mob-nav-item{
+    flex:1;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:2px;cursor:pointer;
+    color:var(--ink-faint);transition:color .15s;
+    border:none;background:transparent;padding:.4rem 0;
+    font-family:'Inter',sans-serif;
+  }
+  .mob-nav-item.active{color:var(--maroon)}
+  .mob-nav-item .mob-nav-icon{font-size:1.3rem;line-height:1}
+  .mob-nav-item .mob-nav-label{font-size:.58rem;font-weight:600;letter-spacing:.03em;text-transform:uppercase}
+
+  /* ── Content padding ── */
+  .content{padding:.75rem}
+
+  /* ── Stat cards ── */
+  .stats-row{grid-template-columns:repeat(2,1fr);gap:.5rem}
+  .stat-card{padding:.7rem .85rem}
+  .stat-value{font-size:1.2rem !important}
+
+  /* ── Cards ── */
+  .card-header{padding:.75rem 1rem}
+  .card-body{padding:.75rem 1rem}
+  .card-title{font-size:.88rem}
+
+  /* ── Tables — horizontal scroll ── */
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{min-width:500px}
+
+  /* ── Modals ── */
+  .modal-overlay{align-items:flex-end}
+  .modal{
+    width:100% !important;max-width:100% !important;
+    border-radius:16px 16px 0 0;
+    max-height:92vh;overflow-y:auto;
+    margin:0;
+  }
+
+  /* ── Forms — prevent iOS zoom on focus ── */
+  .form-input,.form-select,.form-textarea{font-size:16px !important}
+
+  /* ── Grid overrides ── */
+  .grid-2,.grid-3{grid-template-columns:1fr !important}
+  .form-row{flex-direction:column}
+  .form-row .form-group{width:100%}
+
+  /* ── Section header ── */
+  .section-header{flex-wrap:wrap;gap:.5rem;padding:.75rem 0}
+  .section-title{font-size:1.1rem}
+
+  /* ── Dashboard hero ── */
+  .dash-hero{padding:1rem}
+  .dash-hero-stats{flex-direction:column;gap:.4rem}
+
+  /* ── Finance tabs — scroll horizontally ── */
+  .fin-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;padding-bottom:2px}
+  .fin-tab{white-space:nowrap;flex-shrink:0;font-size:.72rem;padding:.45rem .75rem}
+
+  /* ── Hide decorative elements ── */
+  .member-grid{grid-template-columns:1fr}
+
+  /* ── Pay pills wrap better ── */
+  .pay-pill-group{gap:.4rem}
+  .pay-pill{font-size:.72rem;padding:5px 10px}
+
+  /* ── Reg plan grid — 2 cols on mobile ── */
+  .reg-plan-grid{grid-template-columns:repeat(2,1fr)}
+}
+
+/* ── Show hamburger only on mobile ── */
+.mob-hamburger{display:none}
+.mob-bottom-nav{display:none}
+.mob-backdrop{display:none}
+@media(max-width:600px){
+  .mob-hamburger{display:flex}
+  .mob-bottom-nav{display:flex}
+}

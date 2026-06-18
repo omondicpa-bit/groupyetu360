@@ -1,5 +1,5 @@
 // GroupYetu360 Service Worker v3.0 — groupyetu.org
-const CACHE_NAME = 'gy360-v5';
+const CACHE_NAME = 'gy360-v6';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -13,8 +13,8 @@ const STATIC_ASSETS = [
   '/js/portal.js',
   '/js/modules.js',
   '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
+  '/icon192x192.png',
+  '/icon512x512.png',
 ];
 
 self.addEventListener('install', event => {

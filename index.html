@@ -19,9 +19,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="GY360">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152x152.png">
-<link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192x192.png">
+<link rel="apple-touch-icon" href="/appletouchicon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
   <link rel="stylesheet" href="style.css">
 </head>
@@ -414,11 +414,20 @@
     </div>
   </aside>
 
+  <!-- Mobile drawer backdrop -->
+  <div class="mob-backdrop" id="mob-backdrop" onclick="closeMobileMenu()"></div>
+
+  <!-- Mobile bottom navigation -->
+  <nav class="mob-bottom-nav" id="mob-bottom-nav" style="display:none"></nav>
+
   <main class="main">
     <header class="topbar">
-      <div>
-        <div class="topbar-title" id="page-title">Dashboard</div>
-        <div class="topbar-sub" id="page-sub">Loading…</div>
+      <div style="display:flex;align-items:center;gap:.4rem">
+        <button class="mob-hamburger" id="mob-hamburger" onclick="openMobileMenu()" aria-label="Open menu">☰</button>
+        <div>
+          <div class="topbar-title" id="page-title">Dashboard</div>
+          <div class="topbar-sub" id="page-sub">Loading…</div>
+        </div>
       </div>
       <div class="topbar-right" id="topbar-actions">
         <!-- populated by role in buildNav() -->

@@ -933,6 +933,7 @@ function buildNav() {
     <a class="nav-item" onclick="showPage('my_account')" href="#"><span class="nav-icon">👤</span> My Account</a>`;
   }
   document.getElementById('sidebar-nav').innerHTML = nav;
+  buildMobileNav();
   const topbar = document.getElementById('topbar-actions');
   if (isSuperAdmin) {
     topbar.innerHTML = `<button class="topbar-btn" onclick="showModal('addOrg')">+ Onboard Organisation</button>`;
@@ -1021,7 +1022,84 @@ const pageTitles = {
 };
 
 let currentPage = 'dashboard';
+
+// ── MOBILE NAVIGATION ─────────────────────────────────────────────────────
+
+function openMobileMenu() {
+  document.querySelector('.sidebar')?.classList.add('mob-open');
+  document.getElementById('mob-backdrop')?.classList.add('visible');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeMobileMenu() {
+  document.querySelector('.sidebar')?.classList.remove('mob-open');
+  document.getElementById('mob-backdrop')?.classList.remove('visible');
+  document.body.style.overflow = '';
+}
+
+function buildMobileNav() {
+  const nav = document.getElementById('mob-bottom-nav');
+  if (!nav) return;
+  const role = currentProfile?.role;
+  const isMember = role === 'member';
+  const isAdmin = ['admin','officer','treasurer'].includes(role);
+  const isSuperAdmin = role === 'superadmin';
+
+  // Show bottom nav only on mobile (CSS handles display:none on desktop)
+  nav.style.display = '';
+
+  if (isSuperAdmin) {
+    nav.innerHTML = buildMobNavItems([
+      { icon:'⊞', label:'Overview', page:'superadmin' },
+      { icon:'◉', label:'Members', page:'sa_members' },
+      { icon:'₭', label:'Revenue', page:'sa_finance' },
+      { icon:'💳', label:'Billing', page:'sa_billing' },
+    ]);
+  } else if (isMember) {
+    nav.innerHTML = buildMobNavItems([
+      { icon:'👤', label:'Profile', page:'my_profile' },
+      { icon:'₭', label:'Payments', page:'my_contributions' },
+      { icon:'📅', label:'Meetings', page:'my_meetings' },
+      { icon:'❓', label:'Help', page:'faq' },
+    ]);
+  } else if (isAdmin) {
+    nav.innerHTML = buildMobNavItems([
+      { icon:'⊞', label:'Dashboard', page:'dashboard' },
+      { icon:'◉', label:'Members', page:'members' },
+      { icon:'₭', label:'Finance', page:'finance' },
+      { icon:'👤', label:'Profile', page:'my_profile' },
+      { icon:'⚙', label:'More', page:'_menu' },
+    ]);
+  }
+}
+
+function buildMobNavItems(items) {
+  return items.map(item => {
+    if (item.page === '_menu') {
+      return `<button class="mob-nav-item" onclick="openMobileMenu()">
+        <span class="mob-nav-icon">${item.icon}</span>
+        <span class="mob-nav-label">${item.label}</span>
+      </button>`;
+    }
+    return `<button class="mob-nav-item" onclick="showPage('${item.page}');closeMobileMenu()" id="mob-nav-${item.page}">
+      <span class="mob-nav-icon">${item.icon}</span>
+      <span class="mob-nav-label">${item.label}</span>
+    </button>`;
+  }).join('');
+}
+
+function updateMobileNavActive(page) {
+  document.querySelectorAll('.mob-nav-item').forEach(el => {
+    el.classList.remove('active');
+  });
+  const active = document.getElementById('mob-nav-' + page);
+  if (active) active.classList.add('active');
+}
+
 function showPage(id) {
+  updateMobileNavActive(id);
+  // Close mobile menu when navigating
+  closeMobileMenu();
   const gatedPages={welfare:'welfare',projects:'projects',table_banking:'table_banking'};
   if(gatedPages[id]&&typeof planHas==='function'&&!planHas(gatedPages[id])){showUpgradePrompt(id);return;}
   currentPage = id;
