@@ -1,3 +1,52 @@
+
+function updateBillingHero(org) {
+  if (!org) return;
+  const plan = org.plan || 'starter';
+  const expires = org.subscription_expires;
+  const planNames = { starter:'Starter', basic:'Basic', standard:'Standard', pro:'Pro' };
+  const planMeta = {
+    starter: 'Free plan · Up to 15 members',
+    basic:   'Ksh 3,000/year · Up to 30 members',
+    standard:'Ksh 6,000/year · Up to 75 members',
+    pro:     'Ksh 12,000/year · Unlimited members',
+  };
+  const planFeatures = {
+    starter: 'Members, Finance, Meetings, MGR',
+    basic:   'All Starter + Welfare, Projects, Table Banking',
+    standard:'All Basic + M-Pesa STK Push · Priority support',
+    pro:     'All Standard + Custom branding · API access',
+  };
+  const planSms = { starter:50, basic:200, standard:500, pro:1000 };
+  const planMembers = { starter:15, basic:30, standard:75, pro:'Unlimited' };
+
+  const nameEl = document.getElementById('billing-plan-name');
+  const metaEl = document.getElementById('billing-plan-meta');
+  const bfMem  = document.getElementById('bf-members');
+  const bfSms  = document.getElementById('bf-sms');
+  const bfFeat = document.getElementById('bf-features');
+  const expEl  = document.getElementById('billing-expiry-text');
+  const badgeEl= document.getElementById('billing-status-badge');
+
+  if (nameEl) nameEl.textContent = planNames[plan] || plan;
+  if (metaEl) metaEl.textContent = planMeta[plan] || '';
+  if (bfMem)  bfMem.textContent  = '👥 Up to ' + planMembers[plan] + ' members';
+  if (bfSms)  bfSms.textContent  = '💬 ' + (planSms[plan]||50) + ' SMS/month';
+  if (bfFeat) bfFeat.textContent = '✓ ' + (planFeatures[plan]||'');
+
+  if (expires && expEl) {
+    const days = Math.ceil((new Date(expires) - new Date()) / 86400000);
+    if (days < 0) {
+      expEl.textContent = 'Expired ' + new Date(expires).toDateString();
+      if (badgeEl) badgeEl.innerHTML = '<span style="width:6px;height:6px;background:#f87171;border-radius:50%;display:inline-block"></span> EXPIRED';
+    } else if (days < 30) {
+      expEl.textContent = 'Expires in ' + days + ' days (' + new Date(expires).toDateString() + ')';
+      if (badgeEl) badgeEl.innerHTML = '<span style="width:6px;height:6px;background:#fbbf24;border-radius:50%;display:inline-block"></span> EXPIRING SOON';
+    } else {
+      expEl.textContent = 'Active until ' + new Date(expires).toDateString();
+    }
+  }
+}
+
 // GroupYetu360 — js/settings.js
 // Auto-split from index.html
 // globals: window.sb, window.currentOrg, window.currentUser, window.currentProfile etc.

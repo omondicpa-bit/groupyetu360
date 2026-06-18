@@ -1502,3 +1502,20 @@ tr:hover td{background:var(--maroon-pale)}
 .loan-card.repaid{border-left-color:var(--border);opacity:.7}
 .loan-progress{height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:.5rem}
 .loan-progress-fill{height:100%;background:var(--teal);border-radius:3px;transition:width .6s ease}
+
+/* ── FAQ ACCORDION ── */
+.faq-item { border-bottom:1px solid var(--border); }
+.faq-q {
+  padding:.85rem 1.25rem;
+  font-size:.83rem;font-weight:600;color:var(--ink);
+  cursor:pointer;display:flex;justify-content:space-between;align-items:center;
+  transition:background .15s;user-select:none;
+}
+.faq-q:hover { background:var(--surface); }
+.faq-arrow { color:var(--ink-faint);font-size:.75rem;transition:transform .25s ease; }
+.faq-q.open .faq-arrow { transform:rotate(180deg); }
+.faq-a {
+  display:none;padding:0 1.25rem .9rem;
+  font-size:.78rem;color:var(--ink-soft);line-height:1.8;
+}
+.faq-a.open { display:block;animation:fadeInUp .2s ease both; }

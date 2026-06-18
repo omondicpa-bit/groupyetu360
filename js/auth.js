@@ -813,7 +813,7 @@ function updateTopbarActions(page) {
   }
 
   // Member portal pages — show Make Payment
-  const memberPages = ['my_profile','my_contributions','my_meetings','my_notices','my_account'];
+  const memberPages = ['my_profile','my_contributions','my_meetings','my_notices','my_account','faq'];
   if (memberPages.includes(page) || role === 'member') {
     topbar.innerHTML = `
       <span style="font-size:.75rem;color:var(--maroon);font-weight:600;padding:.4rem .75rem;background:var(--maroon-pale);border:1px solid var(--maroon-muted)">${currentOrg?.name||''}</span>
@@ -910,11 +910,12 @@ function buildNav() {
     <div class="nav-label" style="margin-top:.5rem">My Portal</div>
     <a class="nav-item" onclick="showPage('my_profile')" href="#"><span class="nav-icon">◉</span> My Profile</a>
     <a class="nav-item" onclick="showPage('my_contributions')" href="#"><span class="nav-icon">₭</span> My Contributions</a>
+    <a class="nav-item" onclick="showPage('faq')" href="#"><span class="nav-icon">❓</span> Help & FAQs</a>
     <div class="nav-label" style="margin-top:.5rem">Admin</div>
     <a class="nav-item" onclick="showPage('approvals')" href="#"><span class="nav-icon">✓</span> Approvals <span class="nav-badge" id="approvals-badge" style="display:none">0</span></a>
     <a class="nav-item" onclick="showPage('settings')" href="#"><span class="nav-icon">⚙</span> Settings</a>
     <a class="nav-item" onclick="showPage('billing')" href="#"><span class="nav-icon">💳</span> Billing & SMS</a>
-    <a class="nav-item" onclick="showPage('support')" href="#"><span class="nav-icon">☎</span> Support</a>
+
     <a class="nav-item" onclick="showPage('my_account')" href="#"><span class="nav-icon">👤</span> My Account</a>`;
     }
   } else {
@@ -995,6 +996,7 @@ const pageTitles = {
   my_account: ['My Account', 'Personal information & password'],
   billing: ['Billing & SMS', 'Subscription and usage'],
   support: ['Support', 'Get help with GroupYetu360'],
+  faq: ['Help & FAQs', 'Common questions answered'],
   sa_billing: ['Billing Management', 'Review payments and subscriptions'],
   sa_support: ['Support Settings', 'Configure contact details'],
   sa_activity: ['Activity Log', 'Audit trail of all admin actions'],

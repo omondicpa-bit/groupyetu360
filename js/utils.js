@@ -1,3 +1,21 @@
+
+function toggleFaq(el) {
+  const answer = el.nextElementSibling;
+  const isOpen = el.classList.contains('open');
+  // Close all others in same card
+  const card = el.closest('.card-body');
+  if (card) {
+    card.querySelectorAll('.faq-q.open').forEach(q => {
+      q.classList.remove('open');
+      q.nextElementSibling.classList.remove('open');
+    });
+  }
+  if (!isOpen) {
+    el.classList.add('open');
+    answer.classList.add('open');
+  }
+}
+
 // GroupYetu360 — js/utils.js
 // Auto-split from index.html
 // globals: window.sb, window.currentOrg, window.currentUser, window.currentProfile etc.
@@ -169,6 +187,7 @@ async function loadBilling() {
   if (!currentOrg?.id) return;
   const { data: org } = await sb.from('organisations').select('*').eq('id', currentOrg.id).single();
   if (org) Object.assign(currentOrg, org);
+  updateBillingHero(org);
 
   // Load platform settings for bank details and Daraja toggle
   let settings = null;
