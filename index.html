@@ -1674,10 +1674,15 @@
     </div><!-- end page-settings -->
 
     <!-- SUPERADMIN -->
+    <!-- ══ SUPERADMIN: PLATFORM OVERVIEW ══ -->
     <div class="page active" id="page-superadmin">
-      <div class="section-header"><div><div class="section-title">EPH Technologies — Platform Control</div><div class="section-sub">GroupYetu360 Super Admin Panel</div></div></div>
-      <!-- Pending Payment Alert -->
-      <div id="sa-payment-alert" style="display:none;background:var(--warning-pale);border:1.5px solid var(--warning);padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between">
+      <div class="section-header">
+        <div><div class="section-title">Platform Overview</div><div class="section-sub">EPH Technologies — GroupYetu360</div></div>
+        <button class="btn btn-primary btn-sm" onclick="showModal('addOrg')" style="background:var(--teal)">+ Onboard Org</button>
+      </div>
+
+      <!-- Pending payment alert -->
+      <div id="sa-payment-alert" style="display:none;background:var(--warning-pale);border:1.5px solid var(--warning);border-radius:6px;padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between">
         <div style="display:flex;align-items:center;gap:.75rem">
           <span style="font-size:1.4rem">💳</span>
           <div>
@@ -1687,21 +1692,320 @@
         </div>
         <button class="btn btn-primary btn-sm" onclick="showPage('sa_billing')" style="background:var(--warning);border:none">Review Now →</button>
       </div>
-      <div class="stats-row">
-        <div class="platform-stat stat-card gold"><div class="stat-label">Organisations</div><div class="stat-value" id="sa-orgs">—</div></div>
-        <div class="platform-stat stat-card green"><div class="stat-label">Total Members</div><div class="stat-value" id="sa-members">—</div></div>
-        <div class="platform-stat stat-card"><div class="stat-label">Active Plans</div><div class="stat-value" id="sa-plans">—</div></div>
-        <div class="platform-stat stat-card warn"><div class="stat-label">Est. Annual Revenue</div><div class="stat-value" id="sa-revenue">—</div></div>
+
+      <!-- Platform stats -->
+      <div class="stats-row" style="margin-bottom:1.25rem">
+        <div class="stat-card gold"><div class="stat-label">Organisations</div><div class="stat-value" id="sa-orgs">—</div></div>
+        <div class="stat-card green"><div class="stat-label">Total Members</div><div class="stat-value" id="sa-members">—</div></div>
+        <div class="stat-card"><div class="stat-label">Paid Plans</div><div class="stat-value" id="sa-plans">—</div></div>
+        <div class="stat-card" style="border-top-color:var(--maroon)"><div class="stat-label">Est. Annual Revenue</div><div class="stat-value" id="sa-revenue">—</div></div>
       </div>
+
+      <!-- Expiring soon alert -->
+      <div id="sa-expiring-alert" style="display:none;margin-bottom:1rem"></div>
+
+      <!-- Org list with search + filters -->
       <div class="card">
-        <div class="card-header"><div class="card-title">All Organisations</div><button class="card-action" onclick="showModal('addOrg')">+ Onboard Organisation</button></div>
+        <div class="card-header">
+          <div><div class="card-title">All Organisations</div><div class="card-sub" id="sa-org-count">Loading…</div></div>
+          <div style="display:flex;gap:.5rem">
+            <select class="form-select" id="sa-plan-filter" onchange="filterSAOrgs(document.getElementById('sa-org-search').value)" style="font-size:.75rem;padding:.3rem .6rem;width:auto">
+              <option value="">All Plans</option>
+              <option value="starter">Starter</option>
+              <option value="basic">Basic</option>
+              <option value="standard">Standard</option>
+              <option value="pro">Pro</option>
+            </select>
+            <select class="form-select" id="sa-status-filter" onchange="filterSAOrgs(document.getElementById('sa-org-search').value)" style="font-size:.75rem;padding:.3rem .6rem;width:auto">
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="suspended">Suspended</option>
+              <option value="trial">Trial</option>
+            </select>
+          </div>
+        </div>
         <div style="padding:.75rem 1.25rem .25rem">
-          <input class="search-input form-input" id="sa-org-search" placeholder="🔍 Search organisations by name, reg number or code…" oninput="filterSAOrgs(this.value)" style="width:100%;max-width:500px"/>
+          <input class="search-input form-input" id="sa-org-search" placeholder="🔍 Search by name, code or reg number…" oninput="filterSAOrgs(this.value)" style="width:100%"/>
         </div>
         <div id="sa-org-list"><div class="loading"><div class="spinner"></div>Loading…</div></div>
       </div>
     </div>
 
+    <!-- ══ SUPERADMIN: ORG DETAIL (full page, not modal) ══ -->
+    <div class="page" id="page-sa_org_detail">
+      <div class="section-header">
+        <div>
+          <div style="display:flex;align-items:center;gap:.75rem">
+            <button class="btn btn-secondary btn-sm" onclick="showPage('superadmin')" style="font-size:.72rem">← Back</button>
+            <div>
+              <div class="section-title" id="od-page-title">Organisation</div>
+              <div class="section-sub" id="od-page-sub">Loading…</div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <button class="btn btn-secondary btn-sm" id="od-suspend-btn" onclick="saToggleOrgStatus()" style="font-size:.75rem">Suspend</button>
+          <button class="btn btn-primary btn-sm" onclick="saveOrgDetail()" style="background:var(--teal);font-size:.75rem">💾 Save Changes</button>
+        </div>
+      </div>
+
+      <!-- Org stats row -->
+      <div class="stats-row" style="margin-bottom:1.25rem">
+        <div class="stat-card"><div class="stat-label">Members</div><div class="stat-value" id="od-members">—</div></div>
+        <div class="stat-card gold"><div class="stat-label">Plan</div><div class="stat-value" id="od-plan" style="font-size:1.2rem">—</div></div>
+        <div class="stat-card green"><div class="stat-label">Status</div><div class="stat-value" id="od-status" style="font-size:1.2rem">—</div></div>
+        <div class="stat-card" style="border-top-color:var(--maroon)"><div class="stat-label">Org Code</div><div class="stat-value" id="od-org-code" style="font-size:1.4rem;color:var(--maroon);letter-spacing:.1em">—</div></div>
+        <div class="stat-card"><div class="stat-label">Bank Balance</div><div class="stat-value" id="od-bank-balance" style="font-size:1.1rem">—</div></div>
+      </div>
+
+      <!-- Tab nav -->
+      <div class="fin-tabs" style="margin-bottom:1rem">
+        <button class="fin-tab active" onclick="switchSAOrgTab(this,'sa-od-tab-details')">📋 Details</button>
+        <button class="fin-tab" onclick="switchSAOrgTab(this,'sa-od-tab-billing');loadODSubscription()">💳 Subscription</button>
+        <button class="fin-tab" onclick="switchSAOrgTab(this,'sa-od-tab-members');loadODMembers()">👥 Members</button>
+        <button class="fin-tab" onclick="switchSAOrgTab(this,'sa-od-tab-finance');loadODFinance()">₭ Finance</button>
+        <button class="fin-tab" onclick="switchSAOrgTab(this,'sa-od-tab-sms');loadODSMS()">💬 SMS</button>
+        <button class="fin-tab" onclick="switchSAOrgTab(this,'sa-od-tab-settings')">⚙ Settings</button>
+        <button class="fin-tab" onclick="switchSAOrgTab(this,'sa-od-tab-support')">🛟 Support</button>
+      </div>
+
+      <!-- TAB: DETAILS -->
+      <div class="tab-panel active" id="sa-od-tab-details">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Organisation Details</div></div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Organisation Name</label><input class="form-input" id="od-name"/></div>
+                <div class="form-group"><label class="form-label">Reg Number</label><input class="form-input" id="od-reg"/></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="od-email"/></div>
+                <div class="form-group"><label class="form-label">Date Founded</label><input class="form-input" type="date" id="od-founded"/></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Plan</label>
+                  <select class="form-select" id="od-plan-select" onchange="toggleDarajaSection(this.value)">
+                    <option value="starter">Starter (Free)</option>
+                    <option value="basic">Basic (Ksh 3,000)</option>
+                    <option value="standard">Standard (Ksh 6,000)</option>
+                    <option value="pro">Pro (Ksh 12,000)</option>
+                  </select>
+                </div>
+                <div class="form-group"><label class="form-label">Status</label>
+                  <select class="form-select" id="od-status-select">
+                    <option value="active">Active</option>
+                    <option value="suspended">Suspended</option>
+                    <option value="trial">Trial</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Paybill</label><input class="form-input" id="od-paybill"/></div>
+                <div class="form-group"><label class="form-label">Bank Balance (Ksh)</label>
+                  <input class="form-input" type="number" id="od-bank-balance-edit" placeholder="0"/>
+                  <div class="field-hint">Override the org's recorded bank balance</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Admin Users</div></div>
+            <div class="card-body" id="od-admins-list"><div class="loading"><div class="spinner"></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: SUBSCRIPTION -->
+      <div class="tab-panel" id="sa-od-tab-billing">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Subscription</div></div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Subscription Status</label>
+                  <select class="form-select" id="od-sub-status">
+                    <option value="active">Active</option>
+                    <option value="expired">Expired</option>
+                    <option value="trial">Trial</option>
+                    <option value="suspended">Suspended</option>
+                  </select>
+                </div>
+                <div class="form-group"><label class="form-label">Expiry Date</label>
+                  <input class="form-input" type="date" id="od-sub-expiry"/>
+                </div>
+              </div>
+              <div style="display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap">
+                <button class="btn btn-secondary btn-sm" onclick="extendSubscription(1)" style="font-size:.72rem">+1 Month</button>
+                <button class="btn btn-secondary btn-sm" onclick="extendSubscription(3)" style="font-size:.72rem">+3 Months</button>
+                <button class="btn btn-secondary btn-sm" onclick="extendSubscription(6)" style="font-size:.72rem">+6 Months</button>
+                <button class="btn btn-primary btn-sm" onclick="extendSubscription(12)" style="font-size:.72rem;background:var(--teal)">+1 Year</button>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">SMS Credit Balance</label>
+                  <input class="form-input" type="number" id="od-sms-bundle"/>
+                  <div class="field-hint">Current SMS credit available</div>
+                </div>
+                <div class="form-group"><label class="form-label">SMS Used (this month)</label>
+                  <input class="form-input" type="number" id="od-sms-used" readonly style="background:var(--surface)"/>
+                </div>
+              </div>
+              <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem">
+                <button class="btn btn-secondary btn-sm" onclick="addSMSCredit(50)" style="font-size:.72rem">+50 SMS</button>
+                <button class="btn btn-secondary btn-sm" onclick="addSMSCredit(100)" style="font-size:.72rem">+100 SMS</button>
+                <button class="btn btn-secondary btn-sm" onclick="addSMSCredit(200)" style="font-size:.72rem">+200 SMS</button>
+                <button class="btn btn-secondary btn-sm" onclick="addSMSCredit(500)" style="font-size:.72rem">+500 SMS</button>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Payment History</div></div>
+            <div id="od-payment-history"><div class="loading"><div class="spinner"></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: MEMBERS -->
+      <div class="tab-panel" id="sa-od-tab-members">
+        <div class="card">
+          <div class="card-header">
+            <div><div class="card-title">Members</div><div class="card-sub" id="od-members-count">—</div></div>
+            <input class="search-input form-input" id="od-member-search" placeholder="Search name, phone…" oninput="filterODMembers(this.value)" style="max-width:280px;font-size:.78rem"/>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>Status</th><th>Balance</th><th>Portal</th><th>Actions</th></tr></thead>
+              <tbody id="od-members-list"><tr><td colspan="7"><div class="loading"><div class="spinner"></div></div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: FINANCE -->
+      <div class="tab-panel" id="sa-od-tab-finance">
+        <div class="stats-row" style="margin-bottom:1rem" id="od-finance-stats"></div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Recent Transactions</div></div>
+            <div id="od-recent-txns"><div class="loading"><div class="spinner"></div></div></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Contribution Types</div></div>
+            <div id="od-contrib-types"><div class="loading"><div class="spinner"></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: SMS -->
+      <div class="tab-panel" id="sa-od-tab-sms">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">SMS Usage History</div></div>
+            <div id="od-sms-history"><div class="loading"><div class="spinner"></div></div></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Send Message to Admin</div></div>
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">Message</label>
+                <textarea class="form-input" id="od-admin-message" rows="4" placeholder="Message to send to this organisation's admin via SMS…" style="min-height:100px;resize:vertical"></textarea>
+              </div>
+              <button class="btn btn-primary" onclick="sendMessageToOrgAdmin()" style="background:var(--teal);width:100%">📱 Send SMS to Admin →</button>
+              <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.5rem">Uses your platform SMS credit</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: SETTINGS -->
+      <div class="tab-panel" id="sa-od-tab-settings">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Feature Flags</div></div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">SMS Enabled</label>
+                <select class="form-select" id="od-sms-enabled"><option value="true">Enabled</option><option value="false">Disabled</option></select>
+              </div>
+              <div class="form-group"><label class="form-label">2FA Required</label>
+                <select class="form-select" id="od-2fa-enabled"><option value="false">Optional</option><option value="true">Required</option></select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- M-Pesa Daraja — Standard/Pro only -->
+        <div class="card" id="od-daraja-section" style="display:none;margin-top:1rem">
+          <div class="card-header"><div class="card-title">📱 M-Pesa Daraja Integration</div></div>
+          <div class="card-body">
+            <div style="font-size:.75rem;color:var(--ink-faint);margin-bottom:.75rem">Credentials from <strong>developer.safaricom.co.ke</strong>. Standard/Pro plans only.</div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Consumer Key</label><input class="form-input" id="od-daraja-key" placeholder="From Daraja portal"/></div>
+              <div class="form-group"><label class="form-label">Consumer Secret</label><input class="form-input" id="od-daraja-secret" type="password" placeholder="Keep secret"/></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Shortcode (Paybill/Till)</label><input class="form-input" id="od-daraja-shortcode"/></div>
+              <div class="form-group"><label class="form-label">Passkey</label><input class="form-input" id="od-daraja-passkey" type="password"/></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Environment</label>
+                <select class="form-select" id="od-daraja-env"><option value="sandbox">Sandbox (Testing)</option><option value="production">Production (Live)</option></select>
+              </div>
+              <div class="form-group"><label class="form-label">STK Push Enabled</label>
+                <select class="form-select" id="od-daraja-enabled"><option value="false">Disabled</option><option value="true">Enabled</option></select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: SUPPORT -->
+      <div class="tab-panel" id="sa-od-tab-support">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">🛟 Support Actions</div></div>
+            <div class="card-body">
+              <div style="display:flex;flex-direction:column;gap:.75rem">
+                <div style="border:1px solid var(--border);border-radius:6px;padding:.85rem 1rem">
+                  <div style="font-size:.82rem;font-weight:600;margin-bottom:.25rem">Reset Admin Password</div>
+                  <div style="font-size:.75rem;color:var(--ink-faint);margin-bottom:.6rem">Send a password reset link to the org admin's email</div>
+                  <div style="display:flex;gap:.5rem">
+                    <input class="form-input" id="od-reset-email" placeholder="Admin email address" style="flex:1;font-size:.78rem"/>
+                    <button class="btn btn-secondary btn-sm" onclick="saResetPassword()" style="flex-shrink:0;font-size:.72rem">Send Reset →</button>
+                  </div>
+                </div>
+                <div style="border:1px solid var(--border);border-radius:6px;padding:.85rem 1rem">
+                  <div style="font-size:.82rem;font-weight:600;margin-bottom:.25rem">Adjust Bank Balance</div>
+                  <div style="font-size:.75rem;color:var(--ink-faint);margin-bottom:.6rem">Manually set the organisation's recorded bank balance</div>
+                  <div style="display:flex;gap:.5rem">
+                    <input class="form-input" type="number" id="od-new-balance" placeholder="New balance (Ksh)" style="flex:1;font-size:.78rem"/>
+                    <button class="btn btn-secondary btn-sm" onclick="saSetBankBalance()" style="flex-shrink:0;font-size:.72rem">Set Balance →</button>
+                  </div>
+                </div>
+                <div style="border:1px solid var(--border);border-radius:6px;padding:.85rem 1rem">
+                  <div style="font-size:.82rem;font-weight:600;margin-bottom:.25rem">Add SMS Credit</div>
+                  <div style="font-size:.75rem;color:var(--ink-faint);margin-bottom:.6rem">Top up SMS bundle without a payment request</div>
+                  <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+                    <button class="btn btn-secondary btn-sm" onclick="addSMSCredit(50)" style="font-size:.72rem">+50</button>
+                    <button class="btn btn-secondary btn-sm" onclick="addSMSCredit(100)" style="font-size:.72rem">+100</button>
+                    <button class="btn btn-secondary btn-sm" onclick="addSMSCredit(200)" style="font-size:.72rem">+200</button>
+                    <button class="btn btn-secondary btn-sm" onclick="addSMSCredit(500)" style="font-size:.72rem">+500</button>
+                    <button class="btn btn-primary btn-sm" onclick="addSMSCredit(1000)" style="font-size:.72rem;background:var(--teal)">+1,000</button>
+                  </div>
+                </div>
+                <div style="border:1px solid var(--border);border-radius:6px;padding:.85rem 1rem">
+                  <div style="font-size:.82rem;font-weight:600;color:var(--danger);margin-bottom:.25rem">⚠ Danger Zone</div>
+                  <div style="font-size:.75rem;color:var(--ink-faint);margin-bottom:.6rem">Irreversible actions — use with extreme caution</div>
+                  <button class="btn btn-danger btn-sm" onclick="saDeleteOrg()" style="font-size:.72rem">Delete Organisation</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Recent Activity</div></div>
+            <div id="od-activity-log"><div class="loading"><div class="spinner"></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- ORG BILLING PAGE -->
     <!-- ══ BILLING & SMS PAGE ══ -->

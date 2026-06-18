@@ -928,7 +928,9 @@ function buildNav() {
     <a class="nav-item" onclick="showPage('sa_finance')" href="#"><span class="nav-icon">₭</span> Revenue</a>
     <a class="nav-item" onclick="showPage('sa_billing')" href="#"><span class="nav-icon">💳</span> Billing</a>
     <a class="nav-item" onclick="showPage('sa_activity')" href="#"><span class="nav-icon">📋</span> Activity Log</a>
-    <a class="nav-item" onclick="showPage('sa_support')" href="#"><span class="nav-icon">☎</span> Support Settings</a>`;
+    <a class="nav-item" onclick="showPage('sa_support')" href="#"><span class="nav-icon">⚙</span> Platform Settings</a>
+    <div class="nav-label" style="margin-top:.5rem">Account</div>
+    <a class="nav-item" onclick="showPage('my_account')" href="#"><span class="nav-icon">👤</span> My Account</a>`;
   }
   document.getElementById('sidebar-nav').innerHTML = nav;
   const topbar = document.getElementById('topbar-actions');
@@ -1001,6 +1003,7 @@ const pageTitles = {
   support: ['Support', 'Get help with GroupYetu360'],
   faq: ['Help & FAQs', 'Common questions answered'],
   sa_billing: ['Billing Management', 'Review payments and subscriptions'],
+  sa_org_detail: ['Organisation Detail', 'Platform management'],
   sa_support: ['Support Settings', 'Configure contact details'],
   sa_activity: ['Activity Log', 'Audit trail of all admin actions'],
   my_meetings: ['Meetings', 'Scheduled meetings and attendance'],
@@ -1030,7 +1033,7 @@ function showPage(id) {
   const info = pageTitles[id] || [id, ''];
   document.getElementById('page-title').textContent = info[0];
   document.getElementById('page-sub').textContent = info[1] || currentOrg?.name || '';
-  const loaders = { members: loadMembers, finance: loadFinance, meetings: loadMeetings, welfare: loadWelfare, projects: loadProjects, mgr: loadMGR, table_banking: loadTableBanking, messages: loadMessages, settings: loadSettings, superadmin: loadSuperAdmin, sa_members: loadSAMembers, sa_finance: loadSAFinance, my_profile: loadMyProfile, my_contributions: loadMyContributions, approvals: loadApprovals, my_account: loadMyAccount, billing: loadBilling, support: loadSupport, sa_billing: loadSABilling, sa_support: loadSASupport, sa_activity: loadSAActivity, my_meetings: loadMyMeetings, my_notices: loadMyNotices };
+  const loaders = { members: loadMembers, finance: loadFinance, meetings: loadMeetings, welfare: loadWelfare, projects: loadProjects, mgr: loadMGR, table_banking: loadTableBanking, messages: loadMessages, settings: loadSettings, superadmin: loadSuperAdmin, sa_org_detail: ()=>{}, sa_members: loadSAMembers, sa_finance: loadSAFinance, my_profile: loadMyProfile, my_contributions: loadMyContributions, approvals: loadApprovals, my_account: loadMyAccount, billing: loadBilling, support: loadSupport, sa_billing: loadSABilling, sa_support: loadSASupport, sa_activity: loadSAActivity, my_meetings: loadMyMeetings, my_notices: loadMyNotices };
   if (loaders[id]) loaders[id]();
   updateTopbarActions(id);
 }

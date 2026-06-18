@@ -467,49 +467,97 @@ async function saveContribType() {
 
 
 // ── SUPER ADMIN ──
-async function loadSuperAdmin() {
-  document.getElementById('sa-org-list').innerHTML = '<div class="loading"><div class="spinner"></div>Loading organisations…</div>';
-  const [orgsRes, membersRes] = await Promise.all([
-    sb.from('organisations').select('*').order('created_at',{ascending:false}),
-    sb.from('members').select('id,org_id')
-  ]);
-  const orgs = orgsRes.data || [];
-  const members = membersRes.data || [];
-  const planRevenue = { starter:0, basic:3000, standard:6000, pro:12000 };
-  const revenue = orgs.reduce((s,o) => s+(planRevenue[o.plan]||0), 0);
-  document.getElementById('sa-orgs').textContent = orgs.length;
-  document.getElementById('sa-members').textContent = members.length;
-  document.getElementById('sa-plans').textContent = orgs.filter(o=>o.plan!=='starter').length + ' paid';
-  document.getElementById('sa-revenue').textContent = 'Ksh '+revenue.toLocaleString();
-  const memberCountByOrg = {};
-  members.forEach(m => { memberCountByOrg[m.org_id] = (memberCountByOrg[m.org_id]||0)+1; });
-  // Check pending payments and show alert
-  try {
-    const { data: pendingPays } = await sb.from('payment_requests').select('id,organisations(name)').eq('status','pending');
-    const alertEl = document.getElementById('sa-payment-alert');
-    const alertText = document.getElementById('sa-payment-alert-text');
-    if (alertEl && pendingPays?.length > 0) {
-      alertEl.style.display = 'flex';
-      const orgNames = [...new Set(pendingPays.map(p => p.organisations?.name).filter(Boolean))];
-      alertText.textContent = `${pendingPays.length} request${pendingPays.length>1?'s':''} from: ${orgNames.join(', ')}`;
-    } else if (alertEl) {
-      alertEl.style.display = 'none';
-    }
-  } catch(e) { console.log('No payment_requests table yet'); }
+let _saOrgs = [], _saMemberCount = {};
 
-  document.getElementById('sa-org-list').innerHTML = orgs.length ? orgs.map(o => `
-    <div class="org-row" style="cursor:pointer" onclick="openOrgDetail('${o.id}')">
+async function loadSuperAdmin() {
+  document.getElementById('sa-org-list').innerHTML = '<div class="loading"><div class="spinner"></div>Loading…</div>';
+  const [orgsRes, membersRes, pendingRes] = await Promise.all([
+    sb.from('organisations').select('*').order('created_at',{ascending:false}),
+    sb.from('members').select('id,org_id'),
+    sb.from('payment_requests').select('id,organisations(name)').eq('status','pending').catch(()=>({data:[]}))
+  ]);
+  _saOrgs = orgsRes.data || [];
+  const members = membersRes.data || [];
+  _saMemberCount = {};
+  members.forEach(m => { _saMemberCount[m.org_id] = (_saMemberCount[m.org_id]||0)+1; });
+
+  const planRevenue = { starter:0, basic:3000, standard:6000, pro:12000 };
+  const revenue = _saOrgs.reduce((s,o) => s+(planRevenue[o.plan]||0), 0);
+  document.getElementById('sa-orgs').textContent = _saOrgs.length;
+  document.getElementById('sa-members').textContent = members.length;
+  document.getElementById('sa-plans').textContent = _saOrgs.filter(o=>o.plan!=='starter').length + ' paid';
+  document.getElementById('sa-revenue').textContent = 'Ksh '+revenue.toLocaleString();
+
+  // Pending payments alert
+  const pendingPays = pendingRes.data || [];
+  const alertEl = document.getElementById('sa-payment-alert');
+  const alertText = document.getElementById('sa-payment-alert-text');
+  if (alertEl) {
+    alertEl.style.display = pendingPays.length ? 'flex' : 'none';
+    if (pendingPays.length && alertText) {
+      const names = [...new Set(pendingPays.map(p=>p.organisations?.name).filter(Boolean))];
+      alertText.textContent = `${pendingPays.length} request${pendingPays.length>1?'s':''} from: ${names.join(', ')}`;
+    }
+  }
+
+  // Expiring soon alert (within 30 days)
+  const soon = _saOrgs.filter(o => {
+    if (!o.subscription_expires || o.plan==='starter') return false;
+    const days = Math.ceil((new Date(o.subscription_expires)-new Date())/86400000);
+    return days >= 0 && days <= 30;
+  });
+  const expEl = document.getElementById('sa-expiring-alert');
+  if (expEl && soon.length) {
+    expEl.style.display = 'block';
+    expEl.innerHTML = `<div style="background:var(--warning-pale);border:1.5px solid var(--warning);border-radius:6px;padding:.85rem 1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
+      <div><span style="font-weight:700;color:var(--warning)">⏱ ${soon.length} subscription${soon.length>1?'s':''} expiring within 30 days</span>
+      <div style="font-size:.75rem;color:var(--ink-soft);margin-top:.2rem">${soon.map(o=>`${o.name} (${Math.ceil((new Date(o.subscription_expires)-new Date())/86400000)}d)`).join(' · ')}</div></div>
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('sa-plan-filter').value='';document.getElementById('sa-status-filter').value='active';filterSAOrgs('')" style="font-size:.72rem">View All Active</button>
+    </div>`;
+  } else if (expEl) expEl.style.display = 'none';
+
+  filterSAOrgs('');
+}
+
+function filterSAOrgs(q) {
+  const planFilter = document.getElementById('sa-plan-filter')?.value || '';
+  const statusFilter = document.getElementById('sa-status-filter')?.value || '';
+  const query = (q||'').toLowerCase();
+  const filtered = _saOrgs.filter(o => {
+    const matchQ = !query || o.name?.toLowerCase().includes(query) || o.org_code?.toLowerCase().includes(query) || o.reg_number?.toLowerCase().includes(query);
+    const matchPlan = !planFilter || o.plan === planFilter;
+    const matchStatus = !statusFilter || o.status === statusFilter;
+    return matchQ && matchPlan && matchStatus;
+  });
+
+  const countEl = document.getElementById('sa-org-count');
+  if (countEl) countEl.textContent = `${filtered.length} of ${_saOrgs.length} organisations`;
+
+  const listEl = document.getElementById('sa-org-list');
+  if (!listEl) return;
+  if (!filtered.length) { listEl.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--ink-faint)">No organisations match filters</div>'; return; }
+
+  const today = new Date();
+  listEl.innerHTML = filtered.map(o => {
+    const memberCount = _saMemberCount[o.id]||0;
+    const expires = o.subscription_expires ? new Date(o.subscription_expires) : null;
+    const daysLeft = expires ? Math.ceil((expires-today)/86400000) : null;
+    const expiryBadge = !expires ? '' :
+      daysLeft < 0 ? '<span class="badge badge-red" style="font-size:.6rem">EXPIRED</span>' :
+      daysLeft <= 30 ? `<span class="badge badge-warn" style="font-size:.6rem">${daysLeft}d left</span>` : '';
+    const planBadge = `<span class="badge ${o.plan==='pro'?'badge-gold':o.plan==='standard'?'badge-maroon':o.plan==='basic'?'badge-green':'badge-grey'}">${o.plan}</span>`;
+    const statusBadge = `<span class="badge ${o.status==='active'?'badge-green':o.status==='suspended'?'badge-red':'badge-grey'}">${o.status}</span>`;
+    return `<div class="org-row" style="cursor:pointer" onclick="openOrgDetail('${o.id}')">
       <div>
         <div class="org-name">${o.name}</div>
-        <div class="org-meta">${o.reg_number||'No reg number'} · ${memberCountByOrg[o.id]||0} members · Code: <strong style="color:var(--maroon)">${o.org_code||'—'}</strong></div>
+        <div class="org-meta">${o.reg_number||'No reg'} · ${memberCount} members · <strong style="color:var(--maroon)">${o.org_code||'—'}</strong> · ${o.email||'no email'}</div>
       </div>
       <div class="org-actions" onclick="event.stopPropagation()">
-        <span class="badge ${o.plan==='pro'?'badge-gold':o.plan==='standard'?'badge-maroon':o.plan==='basic'?'badge-green':'badge-grey'}">${o.plan}</span>
-        <span class="badge ${o.status==='active'?'badge-green':'badge-red'}">${o.status}</span>
-        <button class="btn btn-secondary btn-sm" onclick="toggleOrgStatus('${o.id}','${o.status}')">${o.status==='active'?'Suspend':'Activate'}</button>
-        <button class="btn btn-primary btn-sm" onclick="openOrgDetail('${o.id}')">View Details</button>
+        ${planBadge} ${statusBadge} ${expiryBadge}
+        <button class="btn btn-primary btn-sm" onclick="openOrgDetail('${o.id}')" style="font-size:.7rem">Open →</button>
       </div>
-    </div>`).join('') : '<div style="padding:2rem;text-align:center;color:var(--ink-faint)">No organisations yet</div>';
+    </div>`;
+  }).join('');
 }
 
 async function toggleOrgStatus(orgId, currentStatus) {
@@ -660,55 +708,239 @@ let _odAllMembers = [];
 
 async function openOrgDetail(orgId) {
   currentDetailOrgId = orgId;
+  // Navigate to full-page org detail
+  showPage('sa_org_detail');
   const { data: org } = await sb.from('organisations').select('*').eq('id', orgId).single();
   const { data: members } = await sb.from('members').select('*').eq('org_id', orgId).order('member_number');
-  const { data: profiles } = await sb.from('profiles').select('id,full_name,role').eq('org_id', orgId);
+  const { data: profiles } = await sb.from('profiles').select('id,full_name,role,email').eq('org_id', orgId);
   _odAllMembers = members || [];
-  document.getElementById('od-org-name').textContent = org.name;
-  document.getElementById('od-org-reg').textContent = org.reg_number || 'No registration number';
-  document.getElementById('od-members').textContent = (members||[]).length;
-  document.getElementById('od-plan').textContent = org.plan?.toUpperCase() || '—';
-  document.getElementById('od-status').textContent = (org.subscription_status || org.status)?.toUpperCase() || '—';
-  const odCode = document.getElementById('od-org-code');
-  if (odCode) odCode.textContent = org.org_code || '—';
-  // Details tab
-  document.getElementById('od-name').value = org.name || '';
-  document.getElementById('od-reg').value = org.reg_number || '';
-  document.getElementById('od-paybill').value = org.paybill || '';
-  document.getElementById('od-plan-select').value = org.plan || 'starter';
-  document.getElementById('od-status-select').value = org.status || 'active';
-  document.getElementById('od-founded').value = org.date_founded || '';
-  const emailEl = document.getElementById('od-email'); if(emailEl) emailEl.value = org.email || '';
-  // Features tab
-  const setOdVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
-  setOdVal('od-daraja-key', org.daraja_consumer_key || '');
-  setOdVal('od-daraja-secret', org.daraja_consumer_secret || '');
-  setOdVal('od-daraja-shortcode', org.daraja_shortcode || '');
-  setOdVal('od-daraja-passkey', org.daraja_passkey || '');
-  setOdVal('od-daraja-env', org.daraja_env || 'sandbox');
-  const darajaEnabledEl = document.getElementById('od-daraja-enabled');
-  if (darajaEnabledEl) darajaEnabledEl.value = org.daraja_enabled ? 'true' : 'false';
-  const smsEl = document.getElementById('od-sms-enabled'); if(smsEl) smsEl.value = org.sms_enabled === false ? 'false' : 'true';
-  const twoFaEl = document.getElementById('od-2fa-enabled'); if(twoFaEl) twoFaEl.value = org.two_fa_enabled ? 'true' : 'false';
+
+  // Header
+  const titleEl = document.getElementById('od-page-title');
+  const subEl = document.getElementById('od-page-sub');
+  if (titleEl) titleEl.textContent = org.name;
+  if (subEl) subEl.textContent = (org.reg_number||'') + ' · ' + (org.org_code||'');
+
+  // Stats
+  const setEl = (id, v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  setEl('od-members', (members||[]).length);
+  setEl('od-plan', org.plan?.toUpperCase()||'—');
+  setEl('od-status', (org.subscription_status||org.status)?.toUpperCase()||'—');
+  setEl('od-org-code', org.org_code||'—');
+  setEl('od-bank-balance', 'Ksh '+(org.bank_balance||0).toLocaleString());
+
+  // Suspend button
+  const suspendBtn = document.getElementById('od-suspend-btn');
+  if (suspendBtn) suspendBtn.textContent = org.status==='active' ? 'Suspend' : 'Activate';
+
+  // Details tab fields
+  const sv = (id, val) => { const el=document.getElementById(id); if(el) el.value=val||''; };
+  sv('od-name', org.name); sv('od-reg', org.reg_number); sv('od-paybill', org.paybill);
+  sv('od-email', org.email); sv('od-founded', org.date_founded);
+  sv('od-plan-select', org.plan||'starter'); sv('od-status-select', org.status||'active');
+  sv('od-bank-balance-edit', org.bank_balance||0);
+
+  // Settings tab
+  sv('od-daraja-key', org.daraja_consumer_key); sv('od-daraja-secret', org.daraja_consumer_secret);
+  sv('od-daraja-shortcode', org.daraja_shortcode); sv('od-daraja-passkey', org.daraja_passkey);
+  sv('od-daraja-env', org.daraja_env||'sandbox');
+  sv('od-daraja-enabled', org.daraja_enabled?'true':'false');
+  sv('od-sms-enabled', org.sms_enabled===false?'false':'true');
+  sv('od-2fa-enabled', org.two_fa_enabled?'true':'false');
+  toggleDarajaSection(org.plan);
+
   // Billing tab
-  const subStatusEl = document.getElementById('od-sub-status'); if(subStatusEl) subStatusEl.value = org.subscription_status || 'active';
-  const subExpiryEl = document.getElementById('od-sub-expiry'); if(subExpiryEl) subExpiryEl.value = org.subscription_expires || '';
-  const smsBundleEl = document.getElementById('od-sms-bundle'); if(smsBundleEl) smsBundleEl.value = org.sms_bundle || 0;
-  const smsUsedEl = document.getElementById('od-sms-used'); if(smsUsedEl) smsUsedEl.value = org.sms_used || 0;
-  // Members tab
+  sv('od-sub-status', org.subscription_status||'active');
+  sv('od-sub-expiry', org.subscription_expires||'');
+  sv('od-sms-bundle', org.sms_bundle||0);
+  sv('od-sms-used', org.sms_used||0);
+
+  // Admin users
+  const adminsEl = document.getElementById('od-admins-list');
+  if (adminsEl) {
+    const admins = (profiles||[]).filter(p=>['admin','officer','treasurer'].includes(p.role));
+    adminsEl.innerHTML = admins.length ? admins.map(p=>`
+      <div style="display:flex;align-items:center;gap:.65rem;padding:.5rem 0;border-bottom:1px solid var(--border)">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:var(--maroon)">${(p.full_name||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}</div>
+        <div style="flex:1"><div style="font-size:.82rem;font-weight:600">${p.full_name||'—'}</div><div style="font-size:.7rem;color:var(--ink-faint)">${p.role} · ${p.email||'no email'}</div></div>
+        <button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="document.getElementById('od-reset-email').value='${p.email||''}';switchSAOrgTab(document.querySelector('[onclick*=sa-od-tab-support]'),'sa-od-tab-support')">Reset PW</button>
+      </div>`).join('') : '<div style="color:var(--ink-faint);font-size:.8rem">No admin users linked</div>';
+  }
+
+  // Support tab — prefill reset email
+  const resetEl = document.getElementById('od-reset-email');
+  const primaryAdmin = (profiles||[]).find(p=>['admin'].includes(p.role));
+  if (resetEl && primaryAdmin?.email) resetEl.value = primaryAdmin.email;
+
+  // Reset tabs to first
+  switchSAOrgTab(document.querySelector('#page-sa_org_detail .fin-tab'), 'sa-od-tab-details');
+}
+
+function switchSAOrgTab(btn, tabId) {
+  document.querySelectorAll('#page-sa_org_detail .fin-tab').forEach(t=>t.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.querySelectorAll('#page-sa_org_detail .tab-panel').forEach(p=>p.classList.remove('active'));
+  const panel = document.getElementById(tabId);
+  if (panel) panel.classList.add('active');
+}
+
+async function saToggleOrgStatus() {
+  if (!currentDetailOrgId) return;
+  const org = _saOrgs.find(o=>o.id===currentDetailOrgId);
+  if (!org) return;
+  const newStatus = org.status==='active' ? 'suspended' : 'active';
+  if (!confirm(`${newStatus==='suspended'?'Suspend':'Activate'} ${org.name}?`)) return;
+  await sb.from('organisations').update({status:newStatus}).eq('id',currentDetailOrgId);
+  toast(`✓ ${org.name} ${newStatus}`);
+  org.status = newStatus;
+  document.getElementById('od-suspend-btn').textContent = newStatus==='active'?'Suspend':'Activate';
+  document.getElementById('od-status').textContent = newStatus.toUpperCase();
+  document.getElementById('od-status-select').value = newStatus;
+}
+
+async function loadODMembers() {
+  const tbEl = document.getElementById('od-members-list');
+  const countEl = document.getElementById('od-members-count');
+  if (!tbEl) return;
+  tbEl.innerHTML = '<tr><td colspan="7"><div class="loading"><div class="spinner"></div></div></td></tr>';
+  const { data: members } = await sb.from('members').select('*').eq('org_id', currentDetailOrgId).order('member_number');
+  _odAllMembers = members||[];
+  if (countEl) countEl.textContent = _odAllMembers.length + ' members';
   renderODMembers(_odAllMembers);
-  showModal('orgDetail');
+}
+
+async function loadODFinance() {
+  const statsEl = document.getElementById('od-finance-stats');
+  const txnEl = document.getElementById('od-recent-txns');
+  const ctEl = document.getElementById('od-contrib-types');
+  if (statsEl) statsEl.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  const [txnRes, ctRes] = await Promise.all([
+    sb.from('transactions').select('*,members(full_name),contribution_types(name)').eq('org_id',currentDetailOrgId).order('created_at',{ascending:false}).limit(20),
+    sb.from('contribution_types').select('*').eq('org_id',currentDetailOrgId)
+  ]);
+  const txns = txnRes.data||[];
+  const cts = ctRes.data||[];
+  const totalTxn = txns.reduce((s,t)=>s+Number(t.amount||0),0);
+  if (statsEl) statsEl.innerHTML = `
+    <div class="stat-card"><div class="stat-label">Total Transactions</div><div class="stat-value">${txns.length}</div></div>
+    <div class="stat-card green"><div class="stat-label">Total Recorded</div><div class="stat-value" style="font-size:1.1rem">Ksh ${totalTxn.toLocaleString()}</div></div>
+    <div class="stat-card"><div class="stat-label">Contribution Types</div><div class="stat-value">${cts.length}</div></div>`;
+  if (txnEl) txnEl.innerHTML = txns.length ? `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Member</th><th>Type</th><th>Amount</th></tr></thead><tbody>
+    ${txns.map(t=>`<tr><td style="font-size:.72rem;color:var(--ink-faint)">${t.transaction_date||t.created_at?.split('T')[0]||'—'}</td><td style="font-size:.8rem">${t.members?.full_name||'—'}</td><td style="font-size:.75rem">${t.contribution_types?.name||'Payment'}</td><td style="font-weight:600">Ksh ${Number(t.amount).toLocaleString()}</td></tr>`).join('')}
+    </tbody></table></div>` : '<div style="padding:1.5rem;text-align:center;color:var(--ink-faint);font-size:.82rem">No transactions</div>';
+  if (ctEl) ctEl.innerHTML = cts.length ? cts.map(ct=>`
+    <div style="display:flex;justify-content:space-between;padding:.5rem 1.25rem;border-bottom:1px solid var(--border);font-size:.8rem">
+      <span>${ct.name}</span><span style="color:var(--ink-faint)">${ct.income_type||'—'}</span>
+    </div>`).join('') : '<div style="padding:1rem 1.25rem;color:var(--ink-faint);font-size:.8rem">No contribution types</div>';
+}
+
+async function loadODSMS() {
+  const histEl = document.getElementById('od-sms-history');
+  if (!histEl) return;
+  histEl.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  const { data: usage } = await sb.from('sms_usage').select('*').eq('org_id',currentDetailOrgId).order('month',{ascending:false}).limit(12);
+  const rows = usage||[];
+  histEl.innerHTML = rows.length ? `<div class="table-wrap"><table><thead><tr><th>Month</th><th>SMS Sent</th><th>Cost to Org</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr><td style="font-weight:600">${r.month}</td><td>${r.messages_sent||0}</td><td>Ksh ${(Number(r.charged_to_org||0)).toLocaleString()}</td></tr>`).join('')}
+    </tbody></table></div>` : '<div style="padding:1.5rem;text-align:center;color:var(--ink-faint);font-size:.82rem">No SMS usage recorded</div>';
+}
+
+async function loadODSubscription() {
+  const histEl = document.getElementById('od-payment-history');
+  if (!histEl) return;
+  histEl.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  const { data: pays } = await sb.from('payment_requests').select('*').eq('org_id',currentDetailOrgId).order('requested_at',{ascending:false}).limit(20);
+  const rows = pays||[];
+  histEl.innerHTML = rows.length ? `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Status</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr><td style="font-size:.72rem;color:var(--ink-faint)">${r.requested_at?.split('T')[0]||'—'}</td><td style="font-size:.75rem">${r.payment_type||r.payment_type_display||'—'}</td><td>Ksh ${Number(r.amount||0).toLocaleString()}</td><td><span class="badge ${r.status==='approved'?'badge-green':r.status==='pending'?'badge-warn':'badge-red'}" style="font-size:.62rem">${r.status}</span></td></tr>`).join('')}
+    </tbody></table></div>` : '<div style="padding:1.5rem;text-align:center;color:var(--ink-faint);font-size:.82rem">No payment history</div>';
+}
+
+async function addSMSCredit(count) {
+  if (!currentDetailOrgId) return;
+  const bundleEl = document.getElementById('od-sms-bundle');
+  const current = parseInt(bundleEl?.value||0);
+  const newCount = current + count;
+  await sb.from('organisations').update({sms_bundle: newCount}).eq('id',currentDetailOrgId);
+  if (bundleEl) bundleEl.value = newCount;
+  toast(`✓ +${count} SMS credit added — total: ${newCount}`);
+  await logActivity('SMS CREDIT ADDED', `Added ${count} SMS to ${currentDetailOrgId}`, 'organisation', currentDetailOrgId);
+}
+
+async function saSetBankBalance() {
+  const newBal = Number(document.getElementById('od-new-balance')?.value||0);
+  if (!currentDetailOrgId || isNaN(newBal)) { toast('Enter a valid balance'); return; }
+  if (!confirm(`Set bank balance to Ksh ${newBal.toLocaleString()} for this organisation?`)) return;
+  await sb.from('organisations').update({bank_balance: newBal, bank_balance_updated: new Date().toISOString().split('T')[0]}).eq('id',currentDetailOrgId);
+  document.getElementById('od-bank-balance').textContent = 'Ksh ' + newBal.toLocaleString();
+  document.getElementById('od-bank-balance-edit').value = newBal;
+  toast(`✓ Bank balance set to Ksh ${newBal.toLocaleString()}`);
+}
+
+async function saResetPassword() {
+  const email = document.getElementById('od-reset-email')?.value?.trim();
+  if (!email) { toast('Enter admin email address'); return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://app.groupyetu.org/' });
+  if (error) { toast('Error: '+error.message); return; }
+  toast(`✓ Password reset link sent to ${email}`);
+}
+
+async function sendMessageToOrgAdmin() {
+  const msg = document.getElementById('od-admin-message')?.value?.trim();
+  if (!msg) { toast('Enter a message'); return; }
+  if (!currentDetailOrgId) return;
+  const org = _saOrgs.find(o=>o.id===currentDetailOrgId);
+  if (!org) return;
+  // Get admin phone
+  const { data: profiles } = await sb.from('profiles').select('phone,full_name').eq('org_id',currentDetailOrgId).in('role',['admin','officer','treasurer']);
+  if (!profiles?.length) { toast('No admin phone found for this org'); return; }
+  // Use platform SMS (simplified - would call SMS function)
+  toast(`✓ Message queued for ${profiles.length} admin(s) — SMS feature coming soon`);
+  document.getElementById('od-admin-message').value = '';
+}
+
+async function saDeleteOrg() {
+  if (!currentDetailOrgId) return;
+  const org = _saOrgs.find(o=>o.id===currentDetailOrgId);
+  if (!org) return;
+  const confirm1 = prompt(`Type "${org.name}" to confirm deletion:`);
+  if (confirm1 !== org.name) { toast('Cancelled — name did not match'); return; }
+  const { error } = await sb.from('organisations').delete().eq('id',currentDetailOrgId);
+  if (error) { toast('Error: '+error.message); return; }
+  toast(`✓ ${org.name} deleted`);
+  showPage('superadmin');
+  loadSuperAdmin();
 }
 
 function renderODMembers(members) {
-  document.getElementById('od-members-list').innerHTML = members.length ? members.map(m=>`
-    <tr>
-      <td>${m.member_number||'—'}</td>
-      <td><strong>${m.full_name}</strong></td>
-      <td style="font-size:.75rem">${m.phone||m.email||'—'}</td>
-      <td><span class="badge badge-grey" style="font-size:.62rem">${m.status}</span></td>
-      <td>Ksh ${(Number(m.shares_balance||0)+Number(m.savings_balance||0)).toLocaleString()}</td>
-    </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;padding:1rem;color:var(--ink-faint)">No members yet</td></tr>';
+  const countEl = document.getElementById('od-members-count');
+  if (countEl) countEl.textContent = members.length + ' members';
+  document.getElementById('od-members-list').innerHTML = members.length ? members.map(m=>{
+    const bal = Number(m.shares_balance||0)+Number(m.savings_balance||0);
+    const hasPortal = !!m.portal_email;
+    return `<tr>
+      <td style="font-weight:700;color:var(--maroon)">${m.member_number||'—'}</td>
+      <td><strong>${m.full_name}</strong><div style="font-size:.68rem;color:var(--ink-faint)">${m.email||''}</div></td>
+      <td style="font-size:.78rem">${m.phone||'—'}</td>
+      <td><span class="badge ${m.status==='active'?'badge-green':m.status==='arrears'?'badge-warn':m.status==='deregistered'?'badge-red':'badge-grey'}" style="font-size:.62rem">${m.status}</span></td>
+      <td style="font-weight:600">Ksh ${bal.toLocaleString()}</td>
+      <td><span class="${hasPortal?'badge badge-green':'badge badge-grey'}" style="font-size:.6rem">${hasPortal?'✓ Linked':'—'}</span></td>
+      <td><button class="btn btn-secondary btn-sm" style="font-size:.65rem" onclick="saViewMember('${m.id}')">View</button></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--ink-faint)">No members yet</td></tr>';
+}
+
+async function saViewMember(memberId) {
+  // Quick member detail modal for support
+  const m = _odAllMembers.find(m=>m.id===memberId);
+  if (!m) return;
+  alert(`Member: ${m.full_name}
+Phone: ${m.phone||'—'}
+Email: ${m.email||'—'}
+Portal: ${m.portal_email||'Not linked'}
+Status: ${m.status}
+Shares: Ksh ${Number(m.shares_balance||0).toLocaleString()}
+Savings: Ksh ${Number(m.savings_balance||0).toLocaleString()}`);
 }
 
 function filterODMembers(q) {
