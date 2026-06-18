@@ -549,7 +549,7 @@ function filterSAOrgs(q) {
     const statusBadge = `<span class="badge ${o.status==='active'?'badge-green':o.status==='suspended'?'badge-red':'badge-grey'}">${o.status}</span>`;
     return `<div class="org-row" style="cursor:pointer" onclick="openOrgDetail('${o.id}')">
       <div>
-        <div class="org-name">${o.name}</div>
+        <div class="org-name">${o.name.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase())}</div>
         <div class="org-meta">${o.reg_number||'No reg'} · ${memberCount} members · <strong style="color:var(--maroon)">${o.org_code||'—'}</strong> · ${o.email||'no email'}</div>
       </div>
       <div class="org-actions" onclick="event.stopPropagation()">
@@ -645,13 +645,13 @@ function renderSAMembers(list, orgMap) {
       <td>${m.member_number||String(i+1).padStart(3,'0')}</td>
       <td><strong>${m.full_name}</strong></td>
       <td>${m.phone||'—'}</td>
-      <td><span class="badge badge-maroon">${map[m.org_id]||'Unknown'}</span></td>
+      <td><span class="badge badge-maroon" style="text-transform:capitalize;font-size:.62rem">${(map[m.org_id]||'Unknown').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase())}</span></td>
       <td>Ksh ${m.savings_tier?.toLocaleString()||'—'}/mo</td>
       <td><span class="badge ${m.status==='active'?'badge-green':m.status==='arrears'?'badge-warn':'badge-grey'}">${m.status}</span></td>
     </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--ink-faint)">No members found</td></tr>';
 }
 
-function filterSAOrgs(q) {
+function _oldFilterSAOrgs_DISABLED(q) {
   const rows = document.querySelectorAll('#sa-org-list .org-row');
   const ql = q.toLowerCase();
   rows.forEach(row => {

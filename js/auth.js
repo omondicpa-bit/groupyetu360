@@ -1004,7 +1004,7 @@ const pageTitles = {
   faq: ['Help & FAQs', 'Common questions answered'],
   sa_billing: ['Billing Management', 'Review payments and subscriptions'],
   sa_org_detail: ['Organisation Detail', 'Platform management'],
-  sa_support: ['Support Settings', 'Configure contact details'],
+  sa_support: ['Platform Settings', 'Contact details, payment info & Daraja'],
   sa_activity: ['Activity Log', 'Audit trail of all admin actions'],
   my_meetings: ['Meetings', 'Scheduled meetings and attendance'],
   my_notices: ['Notices', 'Messages from your group admin'],
