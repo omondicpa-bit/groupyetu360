@@ -2494,47 +2494,78 @@
     </div>
 
     <!-- MEMBER: MY CONTRIBUTIONS -->
+    <!-- ══ MY CONTRIBUTIONS ══ -->
     <div class="page" id="page-my_contributions">
-      <div class="section-header"><div><div class="section-title">My Contributions</div><div class="section-sub">Your payment history and balances</div></div></div>
-      <!-- Summary stats — dynamic based on org type -->
-      <div class="stats-row" id="mc-stats-row" style="grid-template-columns:repeat(4,1fr)">
-        <div class="stat-card"><div class="stat-label">Total Paid (All Time)</div><div class="stat-value" id="mc-total" style="font-size:1.3rem">—</div></div>
-        <div class="stat-card gold"><div class="stat-label">This Year</div><div class="stat-value" id="mc-year" style="font-size:1.3rem">—</div></div>
-        <div class="stat-card" id="mc-shares-card" style="border-top-color:var(--maroon)"><div class="stat-label" id="mc-shares-label">Shares Balance</div><div class="stat-value" id="mc-shares-bal" style="font-size:1.3rem;color:var(--maroon)">—</div></div>
-        <div class="stat-card green" id="mc-savings-card"><div class="stat-label" id="mc-savings-label">Savings Balance</div><div class="stat-value" id="mc-savings-bal" style="font-size:1.3rem">—</div></div>
+      <div class="section-header">
+        <div><div class="section-title">My Contributions</div><div class="section-sub">Your payment history and balances</div></div>
       </div>
-      <div id="mc-fines-notice" style="margin-bottom:.75rem;display:none"></div>
-      <!-- Pending payment notice -->
-      <div id="mc-pending-notice" style="margin-bottom:1rem;display:none"></div>
 
-      <!-- Mini bar chart of monthly payments -->
-      <div class="card" style="margin-bottom:1rem">
-        <div class="card-header"><div class="card-title">Monthly Payments — Last 6 Months</div></div>
-        <div style="padding:1rem 1.25rem">
-          <div id="mc-chart" style="display:flex;align-items:flex-end;gap:.5rem;height:100px;border-bottom:2px solid var(--border)">
-            <div style="color:var(--ink-faint);font-size:.75rem;padding:.5rem">Loading chart…</div>
-          </div>
-          <div id="mc-chart-labels" style="display:flex;gap:.5rem;margin-top:.35rem;font-size:.65rem;color:var(--ink-faint)"></div>
+      <!-- Fines & pending notices -->
+      <div id="mc-fines-notice" style="margin-bottom:.75rem;display:none"></div>
+      <div id="mc-pending-notice" style="margin-bottom:.75rem;display:none"></div>
+
+      <!-- ── BALANCE HERO ── -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.75rem;margin-bottom:1.25rem" id="mc-stats-row">
+        <!-- Total paid -->
+        <div style="background:linear-gradient(135deg,var(--maroon) 0%,#5a0016 100%);border-radius:8px;padding:1.1rem 1.25rem;color:#fff">
+          <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;opacity:.7;margin-bottom:.3rem">Total Paid</div>
+          <div id="mc-total" style="font-family:'Crimson Pro',serif;font-size:1.75rem;font-weight:700;line-height:1">—</div>
+          <div style="font-size:.68rem;opacity:.65;margin-top:.2rem">All time</div>
+        </div>
+        <!-- This year -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-top:3px solid #c49a30;border-radius:8px;padding:1.1rem 1.25rem">
+          <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.3rem">This Year</div>
+          <div id="mc-year" style="font-family:'Crimson Pro',serif;font-size:1.75rem;font-weight:700;color:#c49a30;line-height:1">—</div>
+          <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem" id="mc-year-label">2026</div>
+        </div>
+        <!-- Shares -->
+        <div id="mc-shares-card" style="background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--maroon);border-radius:8px;padding:1.1rem 1.25rem">
+          <div id="mc-shares-label" style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.3rem">Shares</div>
+          <div id="mc-shares-bal" style="font-family:'Crimson Pro',serif;font-size:1.75rem;font-weight:700;color:var(--maroon);line-height:1">—</div>
+          <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">Equity in group</div>
+        </div>
+        <!-- Savings -->
+        <div id="mc-savings-card" style="background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--teal);border-radius:8px;padding:1.1rem 1.25rem">
+          <div id="mc-savings-label" style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.3rem">Savings</div>
+          <div id="mc-savings-bal" style="font-family:'Crimson Pro',serif;font-size:1.75rem;font-weight:700;color:var(--teal);line-height:1">—</div>
+          <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">Monthly deposits</div>
         </div>
       </div>
-      <!-- Contribution by category -->
-      <div class="grid-2" style="margin-bottom:1rem">
+
+      <!-- ── CHART + QUICK INFO ── -->
+      <div style="display:grid;grid-template-columns:1fr 280px;gap:1rem;margin-bottom:1.25rem">
+        <!-- Monthly bar chart -->
         <div class="card">
-          <div class="card-header"><div class="card-title">By Category</div></div>
-          <div id="mc-by-category" style="padding:.75rem 1.25rem"></div>
+          <div class="card-header"><div class="card-title">Monthly Payments</div><div class="card-sub" id="mc-count-label"></div></div>
+          <div style="padding:1rem 1.25rem 1.25rem">
+            <div id="mc-chart" style="display:flex;align-items:flex-end;gap:.4rem;height:110px;border-bottom:1.5px solid var(--border)">
+              <div class="loading"><div class="spinner"></div></div>
+            </div>
+            <div id="mc-chart-labels" style="display:flex;gap:.4rem;margin-top:.4rem;font-size:.62rem;color:var(--ink-faint)"></div>
+          </div>
         </div>
+        <!-- Quick info sidebar -->
         <div class="card">
           <div class="card-header"><div class="card-title">Quick Info</div></div>
           <div id="mc-quick-info" style="padding:.75rem 1.25rem"></div>
         </div>
       </div>
-      <!-- Full payment history table -->
-      <div class="table-wrap card">
-        <div class="card-header"><div class="card-title">Full Payment History</div><div class="card-sub" id="mc-count-label"></div></div>
-        <table>
-          <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>M-Pesa Ref</th><th>Notes</th></tr></thead>
-          <tbody id="mc-table"><tr><td colspan="5"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr></tbody>
-        </table>
+
+      <!-- ── BY CATEGORY ── -->
+      <div class="card" style="margin-bottom:1.25rem">
+        <div class="card-header"><div class="card-title">By Category</div><div class="card-sub">All-time contributions per type</div></div>
+        <div id="mc-by-category" style="padding:.5rem 1.25rem 1rem"></div>
+      </div>
+
+      <!-- ── PAYMENT HISTORY TIMELINE ── -->
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">Payment History</div><div class="card-sub" id="mc-history-sub"></div></div>
+          <button class="btn btn-primary btn-sm" onclick="openMemberPaymentModal();showModal('memberPayment')" style="background:var(--maroon);font-size:.75rem">+ Make Payment</button>
+        </div>
+        <div id="mc-timeline" style="padding:.5rem 0">
+          <div class="loading"><div class="spinner"></div>Loading…</div>
+        </div>
       </div>
     </div>
 

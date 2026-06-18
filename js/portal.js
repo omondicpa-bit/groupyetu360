@@ -364,25 +364,81 @@ async function loadMyContributions() {
       </div>`;
   }
 
-  // ── Full table ──
-  const rows = [
-    ...txns.map(t => `<tr>
-      <td>${t.transaction_date||t.created_at?.split('T')[0]||'—'}</td>
-      <td><span class="badge badge-green">${t.contribution_types?.name||'Payment'}</span></td>
-      <td><strong style="color:var(--success)">+Ksh ${Number(t.amount).toLocaleString()}</strong></td>
-      <td style="font-family:monospace;font-size:.72rem">${t.mpesa_ref||'—'}</td>
-      <td style="font-size:.78rem">${t.notes||'—'}</td>
-    </tr>`),
-    ...adjs.map(a => `<tr>
-      <td>${a.created_at?.split('T')[0]||'—'}</td>
-      <td><span class="badge ${a.direction==='credit'?'badge-maroon':'badge-warn'}">${a.direction==='credit'?'Credit Adj':'Debit Adj'}</span></td>
-      <td><strong style="color:${a.direction==='credit'?'var(--success)':'var(--danger)'}">${a.direction==='credit'?'+':'-'}Ksh ${Number(a.amount).toLocaleString()}</strong></td>
-      <td>—</td>
-      <td style="font-size:.78rem">${a.reason||'—'}</td>
-    </tr>`)
-  ];
-  document.getElementById('mc-table').innerHTML = rows.length ? rows.join('') :
-    '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--ink-faint)">No payments yet. They will appear here once your admin records them.</td></tr>';
+  // ── Payment history timeline ──
+  const timelineEl = document.getElementById('mc-timeline');
+  const histSubEl = document.getElementById('mc-history-sub');
+  if (histSubEl) histSubEl.textContent = txns.length + ' payment' + (txns.length!==1?'s':'') + ' recorded';
+
+  // Combine transactions + adjustments, sorted by date desc
+  const allEntries = [
+    ...txns.map(t => ({
+      date: t.transaction_date || t.created_at?.split('T')[0] || '',
+      type: t.contribution_types?.name || 'Payment',
+      amount: Number(t.amount||0),
+      dir: 'credit',
+      ref: t.mpesa_ref || '',
+      notes: t.notes || '',
+      created: t.created_at || t.transaction_date || ''
+    })),
+    ...adjs.map(a => ({
+      date: a.created_at?.split('T')[0] || '',
+      type: a.direction === 'credit' ? 'Credit Adjustment' : 'Debit Adjustment',
+      amount: Number(a.amount||0),
+      dir: a.direction || 'credit',
+      ref: '',
+      notes: a.reason || '',
+      created: a.created_at || ''
+    }))
+  ].sort((a,b) => new Date(b.created) - new Date(a.created));
+
+  if (!timelineEl) return;
+  if (!allEntries.length) {
+    timelineEl.innerHTML = `<div style="padding:3rem 1.25rem;text-align:center">
+      <div style="font-size:2.5rem;margin-bottom:.75rem">₭</div>
+      <div style="font-size:.9rem;font-weight:600;color:var(--ink);margin-bottom:.35rem">No payments recorded yet</div>
+      <div style="font-size:.8rem;color:var(--ink-faint);margin-bottom:1rem">Your payment history will appear here once your admin records them.</div>
+      <button class="btn btn-primary btn-sm" onclick="openMemberPaymentModal();showModal('memberPayment')" style="background:var(--maroon)">Make a Payment →</button>
+    </div>`;
+    return;
+  }
+
+  // Group by month
+  const groups = {};
+  allEntries.forEach(e => {
+    const monthKey = e.date ? e.date.slice(0,7) : 'Unknown';
+    const monthLabel = monthKey !== 'Unknown' ?
+      new Date(monthKey + '-01').toLocaleString('en-KE',{month:'long',year:'numeric'}) : 'Unknown';
+    if (!groups[monthKey]) groups[monthKey] = { label: monthLabel, entries: [] };
+    groups[monthKey].entries.push(e);
+  });
+
+  timelineEl.innerHTML = Object.entries(groups).map(([key, group]) => {
+    const monthTotal = group.entries.filter(e=>e.dir==='credit').reduce((s,e)=>s+e.amount,0);
+    return `
+    <div style="margin-bottom:1.25rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 1.25rem;background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft)">${group.label}</div>
+        <div style="font-size:.75rem;font-weight:700;color:var(--maroon)">Ksh ${monthTotal.toLocaleString()}</div>
+      </div>
+      ${group.entries.map(e => {
+        const isCredit = e.dir === 'credit';
+        const initials = e.type.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+        const dateFormatted = e.date ? new Date(e.date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '—';
+        return `<div style="display:flex;align-items:center;gap:.85rem;padding:.85rem 1.25rem;border-bottom:1px solid var(--border);transition:background .1s" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''">
+          <div style="width:36px;height:36px;border-radius:50%;background:${isCredit?'var(--teal-pale,#e6f4ef)':'var(--warning-pale,#fff9e6)'};display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:${isCredit?'var(--teal)':'var(--warning)'};flex-shrink:0">${initials}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${e.type}</div>
+            <div style="font-size:.7rem;color:var(--ink-faint);margin-top:.1rem">
+              ${dateFormatted}${e.ref ? ' · <span style="font-family:monospace">'+e.ref+'</span>' : ''}${e.notes&&e.notes!=='—'?' · '+e.notes:''}
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:.9rem;font-weight:700;color:${isCredit?'var(--teal)':'var(--danger)'}">${isCredit?'+':'-'}Ksh ${e.amount.toLocaleString()}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
 }
 
 
