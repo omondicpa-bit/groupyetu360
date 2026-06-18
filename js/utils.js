@@ -1,4 +1,31 @@
 
+
+/* ── PLAN CARD SELECTOR ── */
+function selectRegPlan(el) {
+  document.querySelectorAll('.reg-plan-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  const hidden = document.getElementById('reg-plan');
+  if (hidden) hidden.value = el.dataset.plan;
+}
+
+/* ── PAY PILL SELECTOR ── */
+function selectPayPill(el, group) {
+  if (group === 'plan') {
+    // Deselect all plan pills and all SMS pills
+    document.querySelectorAll('#pay-plan-pills .pay-pill').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('#pay-sms-pills .pay-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+  } else {
+    // SMS — deselect all plan pills and all SMS pills
+    document.querySelectorAll('#pay-plan-pills .pay-pill').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('#pay-sms-pills .pay-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+  }
+  const hidden = document.getElementById('pay-req-type');
+  if (hidden) hidden.value = el.dataset.val;
+  updatePaymentAmount();
+}
+
 function toggleFaq(el) {
   const answer = el.nextElementSibling;
   const isOpen = el.classList.contains('open');
@@ -311,6 +338,7 @@ function updatePaymentAmount() {
     subscription_basic: 3000,
     subscription_standard: 6000,
     subscription_pro: 12000,
+    sms_bundle_50: 75,
     sms_bundle_200: 300,
     sms_bundle_500: 750,
     sms_bundle_1000: 1500
@@ -425,7 +453,7 @@ async function loadSupport() {
   const el = document.getElementById('support-contact-content');
   if (!el) return;
   // Default values in case platform_settings table doesn't exist yet
-  let phone = '0792385970';
+  let phone = '0702903544';
   let email = 'info@groupyetu.org';
   let whatsapp = 'https://wa.me/254702903544?text=Hello%20GroupYetu360%20Support';
   try {
@@ -549,7 +577,7 @@ async function approvePayment(paymentId, orgId, paymentType, amount) {
     updates.subscription_paid_date = today.toISOString().split('T')[0];
     updates.sms_bundle = PLAN_SMS[plan] || 50;
   } else if (paymentType.startsWith('sms_bundle_')) {
-    const smsCount = parseInt(paymentType.replace('sms_bundle_',''));
+    const smsCount = parseInt(paymentType.replace('sms_bundle_','')) || 0;
     const { data: org } = await sb.from('organisations').select('sms_bundle').eq('id', orgId).single();
     updates.sms_bundle = (org?.sms_bundle||0) + smsCount;
   }
@@ -583,7 +611,7 @@ async function loadSASupport() {
     if (settings) s = settings;
   } catch(e) { console.log('Platform settings not yet created'); }
   const setVal = (id, val) => { const el=document.getElementById(id); if(el) el.value=val||''; };
-  setVal('sp-phone', s.support_phone||'0792385970');
+  setVal('sp-phone', s.support_phone||'0702903544');
   setVal('sp-email', s.support_email||'info@groupyetu.org');
   setVal('sp-bank-name', s.bank_name||'Equity Bank');
   setVal('sp-bank-account', s.bank_account||'');

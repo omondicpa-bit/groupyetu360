@@ -1519,3 +1519,31 @@ tr:hover td{background:var(--maroon-pale)}
   font-size:.78rem;color:var(--ink-soft);line-height:1.8;
 }
 .faq-a.open { display:block;animation:fadeInUp .2s ease both; }
+
+/* ── PLAN CARD SELECTOR (sign-up) ── */
+.reg-plan-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.reg-plan-card{border:1.5px solid var(--border);border-radius:6px;padding:10px 8px;cursor:pointer;position:relative;transition:border-color .15s,background .15s;text-align:center}
+.reg-plan-card:hover{border-color:var(--maroon-muted)}
+.reg-plan-card.selected{border-color:var(--maroon);background:var(--maroon-pale)}
+.rpc-popular{position:absolute;top:-1px;left:50%;transform:translateX(-50%);font-size:.55rem;font-weight:700;background:var(--teal);color:#fff;padding:1px 7px;border-radius:0 0 4px 4px;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+.rpc-check{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.55rem;color:transparent;margin:0 auto 4px;transition:all .15s}
+.reg-plan-card.selected .rpc-check{background:var(--maroon);border-color:var(--maroon);color:#fff}
+.rpc-name{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:2px}
+.rpc-price{font-size:.82rem;font-weight:700;color:var(--ink);margin-bottom:1px}
+.reg-plan-card.selected .rpc-price{color:var(--maroon)}
+.rpc-mem{font-size:.62rem;color:var(--ink-faint)}
+
+/* ── PAY PILL SELECTOR (billing) ── */
+.pay-pill-group{display:flex;flex-wrap:wrap;gap:6px}
+.pay-pill{padding:6px 12px;border-radius:18px;border:1px solid var(--border);font-size:.75rem;cursor:pointer;color:var(--ink-soft);background:var(--bg);transition:all .15s;user-select:none}
+.pay-pill:hover{border-color:var(--maroon-muted);color:var(--ink)}
+.pay-pill.active{background:var(--maroon);border-color:var(--maroon);color:#fff}
+.pay-pill.sms.active{background:var(--teal);border-color:var(--teal);color:#fff}
+.pay-pill.sms:hover{border-color:var(--teal)}
+
+/* ── SEGMENTED CONTROL ── */
+.seg-ctrl{display:inline-flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:var(--surface)}
+.seg-opt{padding:5px 14px;font-size:.75rem;cursor:pointer;color:var(--ink-soft);border-right:1px solid var(--border);transition:all .12s;user-select:none;white-space:nowrap}
+.seg-opt:last-child{border-right:none}
+.seg-opt.active{background:var(--bg);color:var(--ink);font-weight:600}
+.seg-opt:hover:not(.active){background:var(--bg)}

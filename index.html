@@ -266,12 +266,35 @@
           </div>
           <div class="form-group">
             <label class="form-label">Plan <span style="font-weight:400;color:var(--gold)">— all plans include 2 months free</span></label>
-            <select class="form-select" id="reg-plan">
-              <option value="starter">Starter — Free forever (up to 15 members)</option>
-              <option value="basic">Basic — Ksh 3,000/yr (up to 30 members)</option>
-              <option value="standard" selected>Standard — Ksh 6,000/yr (up to 75 members)</option>
-              <option value="pro">Pro — Ksh 12,000/yr (unlimited members)</option>
-            </select>
+            <input type="hidden" id="reg-plan" value="standard"/>
+            <div class="reg-plan-grid" id="reg-plan-cards">
+              <div class="reg-plan-card" data-plan="starter" onclick="selectRegPlan(this)">
+                <div class="rpc-check">✓</div>
+                <div class="rpc-name">Starter</div>
+                <div class="rpc-price">Free</div>
+                <div class="rpc-mem">15 members</div>
+              </div>
+              <div class="reg-plan-card" data-plan="basic" onclick="selectRegPlan(this)">
+                <div class="rpc-check">✓</div>
+                <div class="rpc-name">Basic</div>
+                <div class="rpc-price">Ksh 3,000</div>
+                <div class="rpc-mem">30 members</div>
+              </div>
+              <div class="reg-plan-card selected" data-plan="standard" onclick="selectRegPlan(this)">
+                <div class="rpc-popular">Popular</div>
+                <div class="rpc-check">✓</div>
+                <div class="rpc-name">Standard</div>
+                <div class="rpc-price">Ksh 6,000</div>
+                <div class="rpc-mem">75 members</div>
+              </div>
+              <div class="reg-plan-card" data-plan="pro" onclick="selectRegPlan(this)">
+                <div class="rpc-check">✓</div>
+                <div class="rpc-name">Pro</div>
+                <div class="rpc-price">Ksh 12,000</div>
+                <div class="rpc-mem">Unlimited</div>
+              </div>
+            </div>
+            <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.4rem;text-align:center">Ksh/year · 2 months free on paid plans</div>
           </div>
           <button class="btn btn-primary" onclick="registerOrg()">Create Your Organisation →</button>
 
@@ -1822,26 +1845,27 @@
         <div class="card-body">
           <div id="billing-bank-details" style="border-left:4px solid var(--teal);padding:.75rem 1rem;background:var(--surface);border-radius:4px;margin-bottom:1rem;font-size:.8rem">Loading payment details...</div>
           <div id="stk-push-wrapper"></div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">What are you paying for?</label>
-              <select class="form-select" id="pay-req-type" onchange="updatePaymentAmount()">
-                <optgroup label="Subscription Plans">
-                  <option value="subscription_basic">Basic Plan — Ksh 3,000/year (30 members)</option>
-                  <option value="subscription_standard" selected>Standard Plan — Ksh 6,000/year (75 members)</option>
-                  <option value="subscription_pro">Pro Plan — Ksh 12,000/year (unlimited)</option>
-                </optgroup>
-                <optgroup label="SMS Bundles (pay as you go credit)">
-                  <option value="sms_bundle_200">200 SMS — Ksh 300</option>
-                  <option value="sms_bundle_500">500 SMS — Ksh 750</option>
-                  <option value="sms_bundle_1000">1,000 SMS — Ksh 1,500</option>
-                </optgroup>
-              </select>
+          <input type="hidden" id="pay-req-type" value="subscription_standard"/>
+          <div class="form-group" style="margin-bottom:.85rem">
+            <label class="form-label">Subscription plan</label>
+            <div class="pay-pill-group" id="pay-plan-pills">
+              <div class="pay-pill" data-val="subscription_basic" onclick="selectPayPill(this,'plan')">Basic · Ksh 3,000/yr</div>
+              <div class="pay-pill active" data-val="subscription_standard" onclick="selectPayPill(this,'plan')">Standard · Ksh 6,000/yr</div>
+              <div class="pay-pill" data-val="subscription_pro" onclick="selectPayPill(this,'plan')">Pro · Ksh 12,000/yr</div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Amount (Ksh)</label>
-              <input class="form-input" type="number" id="pay-req-amount" value="6000" readonly style="font-weight:700;color:var(--maroon)"/>
+          </div>
+          <div class="form-group" style="margin-bottom:1rem">
+            <label class="form-label">Or — SMS bundle top-up <span style="font-weight:400;color:var(--ink-faint);font-size:.72rem">(Ksh 1.50/SMS · pay as you go)</span></label>
+            <div class="pay-pill-group" id="pay-sms-pills">
+              <div class="pay-pill sms" data-val="sms_bundle_50" onclick="selectPayPill(this,'sms')">50 SMS · Ksh 75</div>
+              <div class="pay-pill sms" data-val="sms_bundle_200" onclick="selectPayPill(this,'sms')">200 SMS · Ksh 300</div>
+              <div class="pay-pill sms" data-val="sms_bundle_500" onclick="selectPayPill(this,'sms')">500 SMS · Ksh 750</div>
+              <div class="pay-pill sms" data-val="sms_bundle_1000" onclick="selectPayPill(this,'sms')">1,000 SMS · Ksh 1,500</div>
             </div>
+          </div>
+          <div class="form-group" style="margin-bottom:1rem">
+            <label class="form-label">Amount (Ksh)</label>
+            <input class="form-input" type="number" id="pay-req-amount" value="6000" readonly style="font-weight:700;color:var(--maroon);font-size:1.1rem"/>
           </div>
           <div class="form-row">
             <div class="form-group">
@@ -1878,7 +1902,7 @@
           <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">When does my plan renew? <span class="faq-arrow">▾</span></div><div class="faq-a">Plans are annual. Your expiry date is shown in the plan card above. We send an SMS reminder 30 days before expiry.</div></div>
           <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">What happens to my data if I don't renew? <span class="faq-arrow">▾</span></div><div class="faq-a">Your data is never deleted for non-payment. The group reverts to Starter limits (15 members) until you renew. SMS credit you've purchased remains.</div></div>
           <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How does SMS billing work? <span class="faq-arrow">▾</span></div><div class="faq-a">SMS is pay-as-you-go on all plans — Ksh 1.50 per message. Buy a bundle above to pre-load credit. Bundles never expire and roll over month to month.</div></div>
-          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How quickly is payment activated? <span class="faq-arrow">▾</span></div><div class="faq-a">Within 24 hours of submitting your M-Pesa reference. WhatsApp 0792 385 970 for faster activation.</div></div>
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How quickly is payment activated? <span class="faq-arrow">▾</span></div><div class="faq-a">Within 24 hours of submitting your M-Pesa reference. WhatsApp 0702 903 544 for faster activation.</div></div>
           <div class="faq-item" style="border-bottom:none"><div class="faq-q" onclick="toggleFaq(this)">Can I upgrade mid-year? <span class="faq-arrow">▾</span></div><div class="faq-a">Yes. Pay for the new plan and submit your reference. Upgrade takes effect immediately after approval, with a fresh one-year expiry from that date.</div></div>
         </div>
       </div>
@@ -1988,7 +2012,7 @@
           <div class="form-row single"><div class="form-group"><label class="form-label">Bank Name</label><input class="form-input" id="sp-bank-name" placeholder="e.g. Equity Bank"/></div></div>
           <div class="form-row"><div class="form-group"><label class="form-label">Account Number</label><input class="form-input" id="sp-bank-account" placeholder="Account number"/></div><div class="form-group"><label class="form-label">Account Name</label><input class="form-input" id="sp-bank-account-name" placeholder="e.g. EPH Technologies"/></div></div>
           <div class="form-row single"><div class="form-group"><label class="form-label">M-Pesa Paybill (if any)</label><input class="form-input" id="sp-paybill" placeholder="Optional"/></div></div>
-          <div class="form-row single"><div class="form-group"><label class="form-label">WhatsApp Support Link</label><input class="form-input" id="sp-whatsapp" placeholder="e.g. https://wa.me/254792385970?text=Hello%20GroupYetu360"/></div></div>
+          <div class="form-row single"><div class="form-group"><label class="form-label">WhatsApp Support Link</label><input class="form-input" id="sp-whatsapp" placeholder="e.g. https://wa.me/254702903544?text=Hello%20GroupYetu360"/></div></div>
           <div style="font-size:.78rem;font-weight:600;color:var(--ink);margin:1rem 0 .5rem;padding-top:.75rem;border-top:1px solid var(--border)">SMS Integration (Africa's Talking)</div>
           <div class="alert alert-info" style="margin-bottom:.75rem">&#8505; All organisations use these credentials. Orgs only see SMS Active/Inactive status.</div>
           <div class="form-row">
@@ -2154,31 +2178,7 @@
         <div id="mp-payment-extra-methods" style="display:none"></div>
       </div>
 
-      <!-- ── GY360 MARKETING BANNER ── -->
-      <div class="mp-gy-banner">
-        <div class="mp-gy-venn">
-          <svg width="42" height="38" viewBox="0 0 62 54" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="22" cy="22" r="20" stroke="rgba(196,154,48,.6)" stroke-width="1.5" fill="none"/>
-            <circle cx="40" cy="22" r="20" stroke="rgba(196,154,48,.6)" stroke-width="1.5" fill="none"/>
-            <circle cx="31" cy="36" r="20" stroke="rgba(31,158,117,.5)" stroke-width="1.5" fill="none"/>
-            <circle cx="31" cy="26" r="3.5" fill="rgba(31,158,117,.9)"/>
-          </svg>
-        </div>
-        <div class="mp-gy-title">Powered by GroupYetu360</div>
-        <div class="mp-gy-sub">Kenya's complete platform for chamas, welfare groups and investment clubs. Run your group like a pro — track members, finances, meetings and welfare all in one place.</div>
-        <div class="mp-gy-features">
-          <span class="mp-gy-feat">Member Tracking</span>
-          <span class="mp-gy-feat">M-Pesa Integration</span>
-          <span class="mp-gy-feat">Bulk SMS</span>
-          <span class="mp-gy-feat">Finance Reports</span>
-          <span class="mp-gy-feat">Welfare Management</span>
-          <span class="mp-gy-feat">Meeting Scheduler</span>
-        </div>
-        <a href="https://groupyetu.org" target="_blank" class="mp-gy-link">
-          🌐 Visit groupyetu.org →
-        </a>
-        <div style="margin-top:.75rem;font-size:.65rem;color:rgba(255,255,255,.25)">Free to start · No credit card · Setup in minutes · By EPH Technologies Ltd</div>
-      </div>
+
 
       <!-- hidden inputs kept for JS compatibility -->
       <input id="mp-shares-amount" type="hidden" value="Ksh 300"/>
@@ -3015,7 +3015,7 @@
 
 <div id="support-fab">
   <div id="support-fab-menu">
-    <a id="fab-whatsapp" href="https://wa.me/254792385970" target="_blank" class="fab-option" style="background:#25D366;color:#fff">
+    <a id="fab-whatsapp" href="https://wa.me/254702903544" target="_blank" class="fab-option" style="background:#25D366;color:#fff">
       <div class="fab-option-icon" style="background:rgba(255,255,255,.2)">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.555 4.122 1.526 5.854L.057 23.882l6.197-1.635A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.805 9.805 0 01-5.031-1.388l-.361-.214-3.741.981 1.005-3.647-.235-.374A9.773 9.773 0 012.182 12C2.182 6.591 6.591 2.182 12 2.182 17.409 2.182 21.818 6.591 21.818 12c0 5.409-4.409 9.818-9.818 9.818z"/></svg>
       </div>
