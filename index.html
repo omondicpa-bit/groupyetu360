@@ -3064,7 +3064,7 @@
 
 <!-- MODAL: Create Round / MGR Cycle -->
 <div class="modal-overlay" id="modal-createRound">
-  <div class="modal" style="max-width:540px">
+  <div class="modal" style="max-width:560px">
     <div class="modal-header">
       <div class="modal-title">🔄 New Rotating Savings Cycle</div>
       <button class="modal-close" onclick="closeModal('createRound')">✕</button>
@@ -3073,7 +3073,7 @@
 
       <div class="form-group">
         <label class="form-label">Cycle Name</label>
-        <input class="form-input" id="cr-name" placeholder="e.g. 2026 MGR Cycle, January Round"/>
+        <input class="form-input" id="cr-name" placeholder="e.g. 2026 MGR Cycle, Women Wing Round"/>
       </div>
 
       <div class="form-row">
@@ -3092,9 +3092,16 @@
         </div>
       </div>
 
-      <div class="form-group">
-        <label class="form-label">Start Date</label>
-        <input class="form-input" type="date" id="cr-start-date"/>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Start Date</label>
+          <input class="form-input" type="date" id="cr-start-date"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Default Fine for Missed Round (Ksh)</label>
+          <input class="form-input" type="number" id="cr-fine-amount" placeholder="0 = no auto-fine"/>
+          <div class="field-hint">Auto-issued when a member misses their contribution date</div>
+        </div>
       </div>
 
       <!-- Collection method toggle -->
@@ -3115,13 +3122,26 @@
         <input type="hidden" id="cr-method" value="treasurer"/>
       </div>
 
-      <!-- Member order -->
+      <!-- Member selector — partial membership support -->
       <div class="form-group">
-        <label class="form-label">Member Receiving Order</label>
-        <div style="font-size:.72rem;color:var(--ink-faint);margin-bottom:.5rem">Drag to reorder, or leave as-is for default order. Each member will receive once per cycle.</div>
-        <div id="cr-member-order" style="display:flex;flex-direction:column;gap:.35rem;max-height:200px;overflow-y:auto;border:1px solid var(--border);padding:.5rem;border-radius:4px">
+        <label class="form-label">Participating Members</label>
+        <div style="font-size:.72rem;color:var(--ink-faint);margin-bottom:.5rem">
+          Select who participates in this cycle. Not all group members need to join — e.g. only a wing or sub-group.
+        </div>
+        <div style="display:flex;gap:.5rem;margin-bottom:.5rem">
+          <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="mgrSelectAll(true)">✓ Select All</button>
+          <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="mgrSelectAll(false)">✕ Deselect All</button>
+          <span id="cr-selected-count" style="font-size:.72rem;color:var(--ink-faint);align-self:center;margin-left:.25rem">0 selected</span>
+        </div>
+        <div id="cr-member-picker" style="display:flex;flex-direction:column;gap:.25rem;max-height:180px;overflow-y:auto;border:1px solid var(--border);padding:.5rem;border-radius:4px">
           <div style="color:var(--ink-faint);font-size:.8rem;padding:.5rem">Loading members…</div>
         </div>
+      </div>
+
+      <!-- Receiving order (auto-built from selection, draggable) -->
+      <div class="form-group" id="cr-order-group" style="display:none">
+        <label class="form-label">Receiving Order <span style="font-weight:400;color:var(--ink-faint);font-size:.72rem">— drag to reorder</span></label>
+        <div id="cr-member-order" style="display:flex;flex-direction:column;gap:.35rem;max-height:180px;overflow-y:auto;border:1px solid var(--border);padding:.5rem;border-radius:4px"></div>
       </div>
 
       <div class="form-group">
@@ -3317,17 +3337,42 @@
 
 <!-- MODAL: New Table Banking Pool -->
 <div class="modal-overlay" id="modal-tbNewPool">
-  <div class="modal" style="max-width:480px">
+  <div class="modal" style="max-width:520px">
     <div class="modal-header"><div class="modal-title">🏦 New Table Banking Pool</div>
       <button class="modal-close" onclick="closeModal('tbNewPool')">✕</button></div>
     <div class="modal-body">
       <div class="form-group"><label class="form-label">Pool / Cycle Name</label>
-        <input class="form-input" id="tb-pool-name" placeholder="e.g. 2026 Table Banking Cycle"/></div>
+        <input class="form-input" id="tb-pool-name" placeholder="e.g. 2026 Table Banking Cycle, Women Wing TB"/></div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Interest Rate (% per month)</label>
           <input class="form-input" type="number" id="tb-pool-rate" value="10" placeholder="10"/></div>
         <div class="form-group"><label class="form-label">Start Date</label>
           <input class="form-input" type="date" id="tb-pool-date"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Max Loan per Member (Ksh)</label>
+          <input class="form-input" type="number" id="tb-pool-max-loan" placeholder="e.g. 50000 (0 = no limit)"/>
+          <div class="field-hint">Maximum a single member can borrow at once</div>
+        </div>
+        <div class="form-group"><label class="form-label">Loan Default Fine (Ksh)</label>
+          <input class="form-input" type="number" id="tb-pool-fine" placeholder="0 = no auto-fine"/>
+          <div class="field-hint">Auto-issued when loan repayment is overdue</div>
+        </div>
+      </div>
+      <!-- Member picker -->
+      <div class="form-group">
+        <label class="form-label">Participating Members</label>
+        <div style="font-size:.72rem;color:var(--ink-faint);margin-bottom:.5rem">
+          Select who can borrow from this pool. Leave as all members or restrict to a wing/sub-group.
+        </div>
+        <div style="display:flex;gap:.5rem;margin-bottom:.5rem">
+          <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="tbSelectAll(true)">✓ Select All</button>
+          <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="tbSelectAll(false)">✕ Deselect All</button>
+          <span id="tb-selected-count" style="font-size:.72rem;color:var(--ink-faint);align-self:center;margin-left:.25rem">0 selected</span>
+        </div>
+        <div id="tb-member-picker" style="display:flex;flex-direction:column;gap:.25rem;max-height:160px;overflow-y:auto;border:1px solid var(--border);padding:.5rem;border-radius:4px">
+          <div style="color:var(--ink-faint);font-size:.8rem;padding:.5rem">Loading members…</div>
+        </div>
       </div>
       <div class="form-group"><label class="form-label">Notes</label>
         <input class="form-input" id="tb-pool-notes" placeholder="Optional notes"/></div>

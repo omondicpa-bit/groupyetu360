@@ -978,6 +978,53 @@ function switchMgrTab(btn, tabId) {
   if (panel) panel.classList.add('active');
 }
 
+function mgrSelectAll(select) {
+  document.querySelectorAll('.mgr-member-cb').forEach(cb => { cb.checked = select; });
+  mgrUpdateSelection();
+}
+
+function mgrUpdateSelection() {
+  const checked = Array.from(document.querySelectorAll('.mgr-member-cb:checked'));
+  const countEl = document.getElementById('cr-selected-count');
+  if (countEl) countEl.textContent = checked.length + ' selected';
+  // Build order list from checked members
+  const orderEl = document.getElementById('cr-member-order');
+  const groupEl = document.getElementById('cr-order-group');
+  if (!orderEl) return;
+  if (checked.length === 0) { if (groupEl) groupEl.style.display='none'; orderEl.innerHTML=''; return; }
+  if (groupEl) groupEl.style.display='block';
+  // Only rebuild if a member was added/removed (preserve existing order)
+  const existing = Array.from(orderEl.querySelectorAll('[data-member-id]')).map(el=>el.getAttribute('data-member-id'));
+  const newIds = checked.map(cb=>cb.dataset.id);
+  const added = newIds.filter(id=>!existing.includes(id));
+  const removed = existing.filter(id=>!newIds.includes(id));
+  removed.forEach(id => orderEl.querySelector('[data-member-id="'+id+'"]')?.remove());
+  added.forEach(id => {
+    const cb = document.querySelector('.mgr-member-cb[data-id="'+id+'"]');
+    if (!cb) return;
+    const div = document.createElement('div');
+    div.className = 'drag-item';
+    div.setAttribute('data-member-id', id);
+    div.setAttribute('draggable', 'true');
+    div.setAttribute('ondragstart', 'dragStart(event)');
+    div.setAttribute('ondragover', 'dragOver(event)');
+    div.setAttribute('ondrop', "dropItem(event,'cr-member-order')");
+    div.innerHTML = '<span class="drag-handle">⠿</span><span style="font-size:.82rem">'+cb.dataset.name+'</span><span style="font-size:.72rem;color:var(--ink-faint);margin-left:auto">#'+cb.dataset.num+'</span>';
+    orderEl.appendChild(div);
+  });
+}
+
+function tbSelectAll(select) {
+  document.querySelectorAll('.tb-member-cb').forEach(cb => { cb.checked = select; });
+  tbUpdateSelection();
+}
+
+function tbUpdateSelection() {
+  const checked = Array.from(document.querySelectorAll('.tb-member-cb:checked'));
+  const countEl = document.getElementById('tb-selected-count');
+  if (countEl) countEl.textContent = checked.length + ' selected';
+}
+
 function selectMgrMethod(method) {
   mgrMethod = method;
   document.getElementById('cr-method').value = method;
@@ -985,7 +1032,106 @@ function selectMgrMethod(method) {
   document.getElementById('cr-method-direct').classList.toggle('selected', method === 'direct');
 }
 
+// Check for overdue MGR slots and issue auto-fines if cycle has default_fine_amount set
+async function checkMGROverdueFines() {
+  if (!currentOrg?.id) return;
+  const today = new Date().toISOString().split('T')[0];
+  try {
+    // Get active cycles with a fine amount configured
+    const { data: cycles } = await sb.from('savings_rounds')
+      .select('id,name,default_fine_amount,pool_members')
+      .eq('org_id', currentOrg.id)
+      .eq('status', 'active')
+      .not('default_fine_amount', 'is', null)
+      .gt('default_fine_amount', 0);
+
+    if (!cycles?.length) return;
+
+    for (const cycle of cycles) {
+      // Get overdue slots (scheduled date passed, not yet received/paid)
+      const { data: overdueSlots } = await sb.from('round_slots')
+        .select('id,member_id,slot_number,scheduled_date,members(full_name)')
+        .eq('round_id', cycle.id)
+        .eq('received', false)
+        .lt('scheduled_date', today);
+
+      for (const slot of (overdueSlots||[])) {
+        // Check if a fine already exists for this slot
+        const { data: existing } = await sb.from('fines')
+          .select('id')
+          .eq('org_id', currentOrg.id)
+          .eq('member_id', slot.member_id)
+          .eq('reason', 'Defaulted on MGR round — ' + cycle.name + ' Slot #' + slot.slot_number)
+          .maybeSingle();
+
+        if (!existing) {
+          // Issue auto-fine
+          await sb.from('fines').insert({
+            org_id: currentOrg.id,
+            member_id: slot.member_id,
+            reason: 'Defaulted on MGR round — ' + cycle.name + ' Slot #' + slot.slot_number,
+            amount: cycle.default_fine_amount,
+            status: 'pending',
+            issued_date: today,
+            notes: 'Auto-issued: scheduled date ' + slot.scheduled_date + ' passed without contribution',
+            issued_by: currentUser.id,
+          });
+          console.log('[GY360] Auto-fine issued:', slot.members?.full_name, cycle.name);
+        }
+      }
+    }
+  } catch(e) { console.log('[GY360] MGR fine check skipped:', e.message); }
+}
+
+// Similarly for Table Banking overdue loans
+async function checkTBOverdueFines() {
+  if (!currentOrg?.id) return;
+  const today = new Date().toISOString().split('T')[0];
+  try {
+    const { data: pools } = await sb.from('table_banking_pools')
+      .select('id,name,default_fine_amount')
+      .eq('org_id', currentOrg.id)
+      .eq('status', 'active')
+      .not('default_fine_amount', 'is', null)
+      .gt('default_fine_amount', 0);
+
+    if (!pools?.length) return;
+
+    for (const pool of pools) {
+      const { data: overdueLoans } = await sb.from('table_banking_loans')
+        .select('id,member_id,due_date,amount,members(full_name)')
+        .eq('pool_id', pool.id)
+        .eq('status', 'active')
+        .lt('due_date', today);
+
+      for (const loan of (overdueLoans||[])) {
+        const { data: existing } = await sb.from('fines')
+          .select('id')
+          .eq('org_id', currentOrg.id)
+          .eq('member_id', loan.member_id)
+          .eq('reason', 'Table banking loan overdue — ' + pool.name)
+          .maybeSingle();
+
+        if (!existing) {
+          await sb.from('fines').insert({
+            org_id: currentOrg.id,
+            member_id: loan.member_id,
+            reason: 'Table banking loan overdue — ' + pool.name,
+            amount: pool.default_fine_amount,
+            status: 'pending',
+            issued_date: today,
+            notes: 'Auto-issued: loan due ' + loan.due_date + ', amount Ksh ' + Number(loan.amount).toLocaleString(),
+            issued_by: currentUser.id,
+          });
+        }
+      }
+    }
+  } catch(e) { console.log('[GY360] TB fine check skipped:', e.message); }
+}
+
 async function loadMGR() {
+  checkMGROverdueFines(); // non-blocking background check
+
   if (!currentOrg?.id) return;
 
   // Load cycles from DB
@@ -1129,28 +1275,47 @@ async function renderMGROverview(rounds) {
 }
 
 async function showModal_createRound_prep() {
-  // Populate member order list
-  const orderEl = document.getElementById('cr-member-order');
-  if (orderEl && allMembers.length) {
-    orderEl.innerHTML = allMembers.map((m, i) => `
-      <div style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;background:var(--surface-2);border-radius:4px;cursor:grab" data-member-id="${m.id}">
-        <span style="font-size:.65rem;font-weight:700;color:var(--ink-faint);width:20px;text-align:center">${i+1}</span>
-        <div style="width:24px;height:24px;border-radius:50%;background:var(--teal-pale);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:var(--teal-dk)">
-          ${(m.full_name||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}
-        </div>
-        <span style="font-size:.78rem;flex:1">${m.full_name}</span>
-        <span style="font-size:.62rem;color:var(--ink-faint)">#${m.member_number||'—'}</span>
-      </div>`).join('');
-  }
   // Set today as default start date
   const dateEl = document.getElementById('cr-start-date');
   if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+  // Populate member PICKER (checkboxes) from allMembers
+  const pickerEl = document.getElementById('cr-member-picker');
+  if (!pickerEl) return;
+  const members = (allMembers||[]).filter(m => m.status==='active'||m.status==='arrears');
+  if (!members.length) { pickerEl.innerHTML='<div style="color:var(--ink-faint);font-size:.8rem;padding:.5rem">No active members found</div>'; return; }
+  pickerEl.innerHTML = members.map(m => `
+    <label class="member-picker-row" style="display:flex;align-items:center;gap:.6rem;padding:.3rem .4rem;border-radius:4px;cursor:pointer;transition:background .1s" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''">
+      <input type="checkbox" class="mgr-member-cb" data-id="${m.id}" data-name="${m.full_name}" data-num="${m.member_number||''}" checked
+        onchange="mgrUpdateSelection()" style="accent-color:var(--teal);width:15px;height:15px;flex-shrink:0"/>
+      <span style="font-size:.82rem;flex:1">${m.full_name}</span>
+      <span style="font-size:.7rem;color:var(--ink-faint)">#${m.member_number||'—'}</span>
+      ${m.status==='arrears'?'<span class="badge badge-warn" style="font-size:.6rem">arrears</span>':''}
+    </label>`).join('');
+  mgrUpdateSelection();
+  // Also prep TB picker when that modal opens
+  const tbPicker = document.getElementById('tb-member-picker');
+  if (tbPicker && tbPicker.innerHTML.includes('Loading')) {
+    tbPicker.innerHTML = members.map(m => `
+      <label class="member-picker-row" style="display:flex;align-items:center;gap:.6rem;padding:.3rem .4rem;border-radius:4px;cursor:pointer;transition:background .1s" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''">
+        <input type="checkbox" class="tb-member-cb" data-id="${m.id}" checked
+          onchange="tbUpdateSelection()" style="accent-color:var(--teal);width:15px;height:15px;flex-shrink:0"/>
+        <span style="font-size:.82rem;flex:1">${m.full_name}</span>
+        <span style="font-size:.7rem;color:var(--ink-faint)">#${m.member_number||'—'}</span>
+        ${m.status==='arrears'?'<span class="badge badge-warn" style="font-size:.6rem">arrears</span>':''}
+      </label>`).join('');
+    tbUpdateSelection();
+  }
 }
 
-// Override showModal to prep MGR form
+// Override showModal to prep MGR + TB forms
 const _origShowModal = window.showModal;
 window.showModal = function(name) {
   if (name === 'createRound') showModal_createRound_prep();
+  if (name === 'tbNewPool') {
+    if (typeof _origShowModal === 'function') _origShowModal(name);
+    openTBNewPool();
+    return;
+  }
   if (typeof _origShowModal === 'function') _origShowModal(name);
 };
 
@@ -1161,20 +1326,26 @@ async function saveRound() {
   const method = document.getElementById('cr-method').value;
   const startDate = document.getElementById('cr-start-date').value;
   const notes = document.getElementById('cr-notes').value.trim();
+  const fineAmount = Number(document.getElementById('cr-fine-amount')?.value||0);
 
   if (!name) { toast('Please enter a cycle name'); return; }
   if (!amount || amount <= 0) { toast('Please enter an amount per member'); return; }
 
-  // Get member order from the list
+  // Get member order from the ordered list (only selected members)
   const memberItems = document.querySelectorAll('#cr-member-order [data-member-id]');
-  if (!memberItems.length) { toast('No members found'); return; }
+  if (!memberItems.length) { toast('Please select at least one member'); return; }
+
+  // Get selected member IDs for pool_members storage
+  const selectedIds = Array.from(memberItems).map(el => el.getAttribute('data-member-id'));
 
   // Create the round
   const { data: round, error } = await sb.from('savings_rounds').insert({
     org_id: currentOrg.id,
     name, amount_per_member: amount, frequency,
     collection_method: method, start_date: startDate, notes,
-    status: 'active', created_by: currentUser.id
+    status: 'active', created_by: currentUser.id,
+    default_fine_amount: fineAmount || null,
+    pool_members: selectedIds,
   }).select().single();
 
   if (error) { toast('Error creating cycle: ' + error.message); return; }
@@ -1509,7 +1680,31 @@ TABLE BANKING FUNCTIONS
 
 let allTBPools = [];
 
+async function openTBNewPool() {
+  showModal('tbNewPool');
+  // Populate member picker
+  const pickerEl = document.getElementById('tb-member-picker');
+  if (!pickerEl) return;
+  const { data: members } = await sb.from('members')
+    .select('id,full_name,member_number,status')
+    .eq('org_id', currentOrg.id)
+    .in('status', ['active','arrears'])
+    .order('member_number');
+  if (!members) return;
+  pickerEl.innerHTML = members.map(m => `
+    <label class="member-picker-row" style="display:flex;align-items:center;gap:.6rem;padding:.3rem .4rem;border-radius:4px;cursor:pointer;transition:background .1s" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''">
+      <input type="checkbox" class="tb-member-cb" data-id="${m.id}" checked
+        onchange="tbUpdateSelection()" style="accent-color:var(--teal);width:15px;height:15px;flex-shrink:0"/>
+      <span style="font-size:.82rem;flex:1">${m.full_name}</span>
+      <span style="font-size:.7rem;color:var(--ink-faint)">#${m.member_number||'—'}</span>
+      ${m.status==='arrears'?'<span class="badge badge-warn" style="font-size:.6rem">arrears</span>':''}
+    </label>`).join('');
+  tbUpdateSelection();
+}
+
 async function loadTableBanking() {
+  checkTBOverdueFines(); // non-blocking background check
+
   if (!currentOrg?.id) return;
 
   // Load pools
@@ -1716,15 +1911,24 @@ async function saveTBPool() {
   const rate = Number(document.getElementById('tb-pool-rate').value) || 10;
   const date = document.getElementById('tb-pool-date').value;
   const notes = document.getElementById('tb-pool-notes').value.trim();
+  const maxLoan = Number(document.getElementById('tb-pool-max-loan')?.value||0);
+  const fineAmount = Number(document.getElementById('tb-pool-fine')?.value||0);
   if (!name) { toast('Please enter a pool name'); return; }
+
+  // Get selected members
+  const selectedIds = Array.from(document.querySelectorAll('.tb-member-cb:checked')).map(cb=>cb.dataset.id);
+  if (!selectedIds.length) { toast('Please select at least one member for this pool'); return; }
 
   const { error } = await sb.from('table_banking_pools').insert({
     org_id: currentOrg.id, name, interest_rate: rate,
     start_date: date || new Date().toISOString().split('T')[0],
-    notes: notes || null, status: 'active', created_by: currentUser.id
+    notes: notes || null, status: 'active', created_by: currentUser.id,
+    pool_members: selectedIds,
+    max_loan_per_member: maxLoan || null,
+    default_fine_amount: fineAmount || null,
   });
   if (error) { toast('Error: ' + error.message); return; }
-  toast('✓ Pool created: ' + name);
+  toast('✓ Pool created: ' + name + ' (' + selectedIds.length + ' members)');
   closeModal('tbNewPool');
   document.getElementById('tb-pool-name').value = '';
   await loadTableBanking();
