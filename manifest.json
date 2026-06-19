@@ -1,7 +1,7 @@
 {
   "name": "GroupYetu360 — Community Management",
   "short_name": "GY360",
-  "description": "Community management for chamas, welfare groups and investment clubs in Kenya",
+  "description": "Community management platform for groups, chamas and welfare associations in Kenya",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -9,21 +9,24 @@
   "background_color": "#5a0016",
   "theme_color": "#800020",
   "lang": "en",
-  "categories": ["finance", "productivity", "utilities"],
+  "categories": ["business", "productivity", "utilities"],
   "icons": [
-    { "src": "/icon72x72.png",   "sizes": "72x72",   "type": "image/png", "purpose": "any" },
-    { "src": "/icon96x96.png",   "sizes": "96x96",   "type": "image/png", "purpose": "any" },
-    { "src": "/icon128x128.png", "sizes": "128x128", "type": "image/png", "purpose": "any" },
-    { "src": "/icon144x144.png", "sizes": "144x144", "type": "image/png", "purpose": "any" },
-    { "src": "/icon152x152.png", "sizes": "152x152", "type": "image/png", "purpose": "any" },
-    { "src": "/icon192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icon384x384.png", "sizes": "384x384", "type": "image/png", "purpose": "any" },
-    { "src": "/icon512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "icons/icon-72x72.png",   "sizes": "72x72",   "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-96x96.png",   "sizes": "96x96",   "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-128x128.png", "sizes": "128x128", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-144x144.png", "sizes": "144x144", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-152x152.png", "sizes": "152x152", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-384x384.png", "sizes": "384x384", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
-    { "name": "Dashboard", "url": "/", "icons": [{ "src": "/icon96x96.png", "sizes": "96x96" }] },
-    { "name": "Members",   "url": "/#members", "icons": [{ "src": "/icon96x96.png", "sizes": "96x96" }] },
-    { "name": "Finance",   "url": "/#finance", "icons": [{ "src": "/icon96x96.png", "sizes": "96x96" }] }
+    { "name": "Dashboard", "url": "/", "icons": [{ "src": "icons/icon-96x96.png", "sizes": "96x96" }] },
+    { "name": "Members", "url": "/#members", "icons": [{ "src": "icons/icon-96x96.png", "sizes": "96x96" }] },
+    { "name": "Finance", "url": "/#finance", "icons": [{ "src": "icons/icon-96x96.png", "sizes": "96x96" }] }
   ],
+  "related_applications": [],
   "prefer_related_applications": false
 }
