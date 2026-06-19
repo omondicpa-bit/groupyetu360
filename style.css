@@ -1682,13 +1682,12 @@ tr:hover td{background:var(--maroon-pale)}
   .mob-bottom-nav{display:flex}
 }
 
-/* ════════════════════════════════════════════════════
-   MEMBER PORTAL — Mobile-first redesign
-   My Profile · My Payments · Meetings · Help
-════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════
+   MEMBER PORTAL — Mobile-first: Payments, Meetings, Help
+════════════════════════════════════════════════════════ */
 
-/* ── Shared: section label ── */
-.mp-section-label {
+/* Section label */
+.mc-section-label {
   font-size: .68rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -1697,15 +1696,15 @@ tr:hover td{background:var(--maroon-pale)}
   padding: .75rem 1rem .3rem;
 }
 
-/* ── Shared: CTA button ── */
-.mp-cta-btn {
+/* CTA button */
+.mc-cta-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: .5rem;
   width: calc(100% - 2rem);
-  margin: .75rem 1rem 0;
-  padding: .9rem 1rem;
+  margin: .65rem 1rem 0;
+  padding: .85rem 1rem;
   background: var(--maroon);
   color: #fff;
   border: none;
@@ -1715,144 +1714,9 @@ tr:hover td{background:var(--maroon-pale)}
   font-family: 'Inter', sans-serif;
   cursor: pointer;
 }
-.mp-cta-btn:active { opacity: .85; }
+.mc-cta-btn:active { opacity: .85; }
 
-/* ════ MY PROFILE ════ */
-.mp-hero {
-  background: var(--maroon);
-  padding: 1.25rem 1rem 1.5rem;
-  position: relative;
-  overflow: hidden;
-}
-.mp-hero::after {
-  content: '';
-  position: absolute;
-  right: -20px; top: -20px;
-  width: 140px; height: 140px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255,255,255,.1);
-}
-.mp-hero::before {
-  content: '';
-  position: absolute;
-  right: 30px; top: 30px;
-  width: 80px; height: 80px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255,255,255,.08);
-}
-.mp-avatar-row {
-  display: flex;
-  align-items: center;
-  gap: .85rem;
-  margin-bottom: .85rem;
-  position: relative;
-  z-index: 1;
-}
-.mp-avatar {
-  width: 52px; height: 52px;
-  border-radius: 50%;
-  background: rgba(255,255,255,.15);
-  border: 2px solid rgba(255,255,255,.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 1.1rem;
-  font-weight: 600;
-  flex-shrink: 0;
-}
-.mp-hero-name {
-  color: #fff;
-  font-size: 1.2rem;
-  font-weight: 500;
-  line-height: 1.2;
-}
-.mp-hero-group {
-  color: rgba(255,255,255,.65);
-  font-size: .75rem;
-  margin-top: .15rem;
-}
-.mp-badges {
-  display: flex;
-  gap: .4rem;
-  flex-wrap: wrap;
-  position: relative;
-  z-index: 1;
-}
-.mp-badge {
-  background: rgba(255,255,255,.15);
-  color: #fff;
-  font-size: .68rem;
-  padding: .25rem .65rem;
-  border-radius: 20px;
-  border: .5px solid rgba(255,255,255,.25);
-  font-weight: 500;
-}
-
-/* Balance grid — adapts to group type */
-.mp-balance-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: .5rem;
-  padding: 0 1rem;
-}
-.mp-bal-card {
-  background: var(--surface);
-  border: .5px solid var(--border);
-  border-radius: 10px;
-  padding: .85rem .9rem;
-}
-.mp-bal-card.full-width { grid-column: 1 / -1; }
-.mp-bal-label {
-  font-size: .65rem;
-  text-transform: uppercase;
-  letter-spacing: .05em;
-  color: var(--ink-faint);
-  margin-bottom: .35rem;
-}
-.mp-bal-value {
-  font-size: 1.3rem;
-  font-weight: 500;
-  color: var(--maroon);
-}
-.mp-bal-value.gold { color: var(--gold); }
-.mp-bal-value.green { color: var(--success); }
-.mp-bal-sub { font-size: .65rem; color: var(--ink-faint); margin-top: .2rem; }
-.mp-total-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--surface);
-  border: .5px solid var(--border);
-  border-radius: 10px;
-  padding: .85rem 1rem;
-  margin: .5rem 1rem 0;
-}
-.mp-total-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-faint); }
-.mp-total-val { font-size: 1.5rem; font-weight: 500; color: var(--ink); margin-top: .2rem; }
-.mp-total-right { font-size: .65rem; color: var(--ink-faint); text-align: right; }
-
-/* Info card rows */
-.mp-info-card {
-  background: var(--surface);
-  border: .5px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
-  margin: 0 1rem;
-}
-.mp-info-row {
-  padding: .75rem 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: .5px solid var(--surface-2);
-  gap: .75rem;
-}
-.mp-info-row:last-child { border-bottom: none; }
-.mp-info-label { font-size: .8rem; color: var(--ink-soft); display: flex; align-items: center; gap: .5rem; }
-.mp-info-val { font-size: .82rem; font-weight: 500; color: var(--ink); }
-
-/* ════ MY CONTRIBUTIONS ════ */
+/* ── MY CONTRIBUTIONS HERO ── */
 .mc-hero {
   background: var(--maroon);
   padding: 1.25rem 1rem 1.5rem;
@@ -1868,11 +1732,11 @@ tr:hover td{background:var(--maroon-pale)}
   border: 1.5px solid rgba(255,255,255,.1);
 }
 .mc-hero-label {
-  font-size: .7rem;
+  font-size: .68rem;
   color: rgba(255,255,255,.6);
   text-transform: uppercase;
   letter-spacing: .07em;
-  margin-bottom: .35rem;
+  margin-bottom: .3rem;
   position: relative; z-index: 1;
 }
 .mc-hero-amount {
@@ -1893,14 +1757,16 @@ tr:hover td{background:var(--maroon-pale)}
   background: rgba(255,255,255,.15);
   border: .5px solid rgba(255,255,255,.25);
   border-radius: 20px;
-  padding: .3rem .75rem;
+  padding: .28rem .75rem;
   color: #fff;
   font-size: .72rem;
   display: flex;
-  gap: .35rem;
+  gap: .3rem;
   align-items: center;
 }
 .mc-hero-chip span { font-weight: 600; }
+
+/* Summary grid */
 .mc-summary-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1913,10 +1779,18 @@ tr:hover td{background:var(--maroon-pale)}
   border-radius: 10px;
   padding: .85rem .9rem;
 }
-.mc-sum-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-faint); margin-bottom: .3rem; }
+.mc-sum-label {
+  font-size: .65rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--ink-faint);
+  margin-bottom: .3rem;
+}
 .mc-sum-val { font-size: 1.2rem; font-weight: 500; color: var(--maroon); }
 .mc-sum-val.gold { color: var(--gold); }
 .mc-sum-sub { font-size: .68rem; color: var(--ink-faint); margin-top: .2rem; }
+
+/* History card */
 .mc-history-card {
   background: var(--surface);
   border: .5px solid var(--border);
@@ -1925,7 +1799,7 @@ tr:hover td{background:var(--maroon-pale)}
   margin: 0 1rem;
 }
 .mc-month-header {
-  padding: .55rem 1rem;
+  padding: .5rem 1rem;
   background: var(--surface-2);
   font-size: .68rem;
   font-weight: 600;
@@ -1943,22 +1817,31 @@ tr:hover td{background:var(--maroon-pale)}
 }
 .mc-txn-row:last-child { border-bottom: none; }
 .mc-txn-icon {
-  width: 36px; height: 36px;
+  width: 34px; height: 34px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: .95rem;
   flex-shrink: 0;
   background: var(--maroon-pale);
+  color: var(--maroon);
 }
 .mc-txn-body { flex: 1; min-width: 0; }
 .mc-txn-name { font-size: .85rem; font-weight: 500; color: var(--ink); }
-.mc-txn-meta { font-size: .72rem; color: var(--ink-faint); margin-top: .1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mc-txn-badge { font-size: .65rem; color: var(--success); background: #EAF3DE; padding: .15rem .5rem; border-radius: 20px; margin-top: .2rem; display: inline-block; }
-.mc-txn-amount { font-size: .9rem; font-weight: 600; color: var(--success); white-space: nowrap; }
+.mc-txn-meta { font-size: .72rem; color: var(--ink-faint); margin-top: .1rem; }
+.mc-txn-badge {
+  font-size: .65rem;
+  color: var(--success);
+  background: #EAF3DE;
+  padding: .15rem .5rem;
+  border-radius: 20px;
+  margin-top: .2rem;
+  display: inline-block;
+}
+.mc-txn-amount { font-size: .88rem; font-weight: 600; color: var(--success); white-space: nowrap; }
 
-/* ════ MEETINGS ════ */
+/* ── MEETINGS ── */
 .mtg-next-card {
   margin: .85rem 1rem 0;
   background: var(--maroon);
@@ -1975,7 +1858,13 @@ tr:hover td{background:var(--maroon-pale)}
   border-radius: 50%;
   border: 1.5px solid rgba(255,255,255,.1);
 }
-.mtg-next-eyebrow { font-size: .68rem; color: rgba(255,255,255,.6); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .35rem; }
+.mtg-next-eyebrow {
+  font-size: .68rem;
+  color: rgba(255,255,255,.6);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: .35rem;
+}
 .mtg-next-title { font-size: 1.1rem; font-weight: 500; color: #fff; margin-bottom: .2rem; }
 .mtg-next-meta { font-size: .78rem; color: rgba(255,255,255,.65); margin-bottom: .65rem; }
 .mtg-next-chips { display: flex; gap: .4rem; flex-wrap: wrap; }
@@ -2004,7 +1893,7 @@ tr:hover td{background:var(--maroon-pale)}
 .mtg-stat-val.green { color: var(--success); }
 .mtg-stat-val.gold { color: var(--gold); }
 .mtg-stat-lbl { font-size: .65rem; color: var(--ink-faint); margin-top: .15rem; }
-.mtg-meet-list { padding: 0 1rem; }
+.mtg-meet-list { padding: 0 1rem; margin-top: 0; }
 .mtg-meet-card {
   background: var(--surface);
   border: .5px solid var(--border);
@@ -2049,62 +1938,8 @@ tr:hover td{background:var(--maroon-pale)}
   justify-content: space-between;
 }
 .mtg-att-info { font-size: .72rem; color: var(--ink-faint); }
-.mtg-att-status { font-size: .72rem; font-weight: 600; }
+.mtg-att-status { font-size: .72rem; font-weight: 600; color: var(--ink-faint); }
 .mtg-att-status.present { color: var(--success); }
 .mtg-att-status.absent { color: var(--danger); }
 .mtg-att-status.apology { color: var(--gold); }
 
-/* ════ HELP ════ */
-.help-faq-answer {
-  display: none;
-  font-size: .8rem;
-  color: var(--ink-soft);
-  line-height: 1.7;
-  padding: 0 1rem .85rem;
-  border-bottom: .5px solid var(--surface-2);
-}
-.help-faq-answer.open { display: block; }
-
-/* ════ MOBILE BOTTOM NAV ════ */
-.mob-bottom-nav {
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  height: 62px;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  z-index: 150;
-  padding-bottom: env(safe-area-inset-bottom, 0);
-  box-shadow: 0 -4px 20px rgba(0,0,0,.07);
-  display: none;
-}
-@media (max-width: 600px) {
-  .mob-bottom-nav.member-nav { display: flex !important; }
-  .main { padding-bottom: 62px; }
-}
-.mob-nav-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  cursor: pointer;
-  color: var(--ink-faint);
-  transition: color .15s;
-  border: none;
-  background: transparent;
-  padding: .4rem 0;
-  font-family: 'Inter', sans-serif;
-}
-.mob-nav-item.active { color: var(--maroon); }
-.mob-nav-icon { font-size: 1.2rem; line-height: 1; }
-.mob-nav-label { font-size: .58rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
-
-/* On mobile — member pages get extra padding for bottom nav */
-@media (max-width: 600px) {
-  #page-my_profile, #page-my_contributions, #page-my_meetings, #page-my_help {
-    padding-bottom: 70px;
-  }
-  /* Hide topbar actions on member pages — cleaner look */
-  .member-portal-active #topbar-actions { display: none; }
-}

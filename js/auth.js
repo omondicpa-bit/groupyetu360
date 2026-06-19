@@ -1111,8 +1111,207 @@ function showPage(id) {
   const info = pageTitles[id] || [id, ''];
   document.getElementById('page-title').textContent = info[0];
   document.getElementById('page-sub').textContent = info[1] || currentOrg?.name || '';
-  const loaders = { members: loadMembers, finance: loadFinance, meetings: loadMeetings, welfare: loadWelfare, projects: loadProjects, mgr: loadMGR, table_banking: loadTableBanking, messages: loadMessages, settings: loadSettings, superadmin: loadSuperAdmin, sa_org_detail: ()=>{}, sa_members: loadSAMembers, sa_finance: loadSAFinance, my_profile: loadMyProfile, my_contributions: loadMyContributions, approvals: loadApprovals, my_account: loadMyAccount, billing: loadBilling, support: loadSupport, sa_billing: loadSABilling, sa_support: loadSASupport, sa_activity: loadSAActivity, my_meetings: loadMyMeetings, my_notices: loadMyNotices };
+  const loaders = { members: loadMembers, finance: loadFinance, meetings: loadMeetings, welfare: loadWelfare, projects: loadProjects, mgr: loadMGR, table_banking: loadTableBanking, messages: loadMessages, settings: loadSettings, superadmin: loadSuperAdmin, sa_org_detail: ()=>{}, sa_members: loadSAMembers, sa_finance: loadSAFinance, my_profile: loadMyProfile, my_contributions: loadMyContributions, approvals: loadApprovals, my_account: loadMyAccount, billing: loadBilling, support: loadSupport, sa_billing: loadSABilling, sa_support: loadSASupport, sa_activity: loadSAActivity, my_meetings: loadMyMeetings, my_notices: loadMyNotices, faq: loadMyHelp };
   if (loaders[id]) loaders[id]();
   updateTopbarActions(id);
 }
 
+// ── HELP PAGE ──────────────────────────────────────────────────────────────
+async function loadMyHelp() {
+  if (!window._myMemberId) {
+    if (typeof loadMyProfile === 'function') await loadMyProfile();
+  }
+  // Populate admin contact from org admin profile
+  try {
+    if (!currentOrg?.id) return;
+    const { data: adminProfile } = await sb.from('profiles')
+      .select('full_name').eq('org_id', currentOrg.id).eq('role','admin')
+      .maybeSingle();
+    const aName = adminProfile?.full_name || currentOrg?.name + ' Admin' || 'Group Admin';
+    const nameEl = document.getElementById('help-admin-name');
+    const avatarEl = document.getElementById('help-admin-avatar');
+    if (nameEl) nameEl.textContent = aName;
+    if (avatarEl) avatarEl.textContent = aName.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  } catch(e) {}
+}
+
+// ── MOBILE MEMBER PAGE RENDERERS ──────────────────────────────────────────
+// These override the portal.js versions to render mobile-first UI
+// They run after all scripts load
+
+window.addEventListener('load', () => {
+  // Override loadMyContributions
+  const _origContribs = window.loadMyContributions;
+  window.loadMyContributions = async function() {
+    if (!currentOrg?.id || !currentProfile) return;
+    let memberId = window._myMemberId;
+    if (!memberId && typeof loadMyProfile === 'function') {
+      await loadMyProfile();
+      memberId = window._myMemberId;
+    }
+
+    const histEl = document.getElementById('mc-history-list');
+    if (!memberId) {
+      if (histEl) histEl.innerHTML = '<div class="mc-txn-row"><span style="color:var(--ink-faint);font-size:.82rem;padding:.75rem 1rem;display:block">No member record linked. Contact your admin.</span></div>';
+      return;
+    }
+
+    try {
+      const [txnRes, adjRes] = await Promise.all([
+        sb.from('transactions').select('*,contribution_types(name,income_type)').eq('member_id', memberId).order('transaction_date',{ascending:false}),
+        sb.from('balance_adjustments').select('*').eq('member_id', memberId).order('created_at',{ascending:false})
+      ]);
+      const txns = txnRes.data || [];
+      const adjs = adjRes.data || [];
+      const thisYear = new Date().getFullYear().toString();
+      const total = txns.reduce((s,t)=>s+Number(t.amount||0),0);
+      const yearTotal = txns.filter(t=>(t.transaction_date||t.created_at||'').startsWith(thisYear)).reduce((s,t)=>s+Number(t.amount||0),0);
+
+      // Hero
+      const totalEl = document.getElementById('mc-total');
+      if (totalEl) totalEl.textContent = 'Ksh ' + total.toLocaleString();
+      const yearEl = document.getElementById('mc-year');
+      if (yearEl) yearEl.textContent = 'Ksh ' + yearTotal.toLocaleString();
+      const countEl = document.getElementById('mc-count');
+      if (countEl) countEl.textContent = txns.length + ' payment' + (txns.length===1?'':'s');
+
+      // Last payment
+      const lastTxn = txns[0];
+      const lastDateEl = document.getElementById('mc-last-date');
+      const lastYearEl = document.getElementById('mc-last-year');
+      if (lastDateEl && lastTxn) {
+        const d = new Date(lastTxn.transaction_date || lastTxn.created_at);
+        lastDateEl.textContent = d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+        if (lastYearEl) lastYearEl.textContent = d.getFullYear();
+      } else if (lastDateEl) lastDateEl.textContent = '—';
+
+      // Type chips
+      const chipsEl = document.getElementById('mc-type-chips');
+      if (chipsEl && txns.length) {
+        const cats = {};
+        txns.forEach(t => { const c = t.contribution_types?.name||'Payment'; cats[c]=(cats[c]||0)+Number(t.amount||0); });
+        chipsEl.innerHTML = Object.entries(cats).map(([c,a])=>`<div class="mc-hero-chip">${c} <span>Ksh ${a.toLocaleString()}</span></div>`).join('');
+      }
+
+      // History grouped by month
+      if (histEl) {
+        const all = [
+          ...txns.map(t=>({date:t.transaction_date||t.created_at?.split('T')[0],name:t.contribution_types?.name||'Payment',amount:Number(t.amount||0),ref:t.mpesa_ref||'—',status:'approved',credit:true})),
+          ...adjs.map(a=>({date:a.created_at?.split('T')[0],name:(a.direction==='credit'?'Credit':'Debit')+' — '+(a.adjustment_type||''),amount:Number(a.amount||0),ref:'—',status:a.direction,credit:a.direction==='credit'}))
+        ].sort((a,b)=>b.date>a.date?1:-1);
+
+        if (!all.length) {
+          histEl.innerHTML = '<div style="padding:1.25rem 1rem;text-align:center;color:var(--ink-faint);font-size:.82rem">No contributions recorded yet.</div>';
+          return;
+        }
+        const groups = {};
+        all.forEach(item => {
+          const d = item.date ? new Date(item.date) : new Date();
+          const key = d.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+          if (!groups[key]) groups[key]=[];
+          groups[key].push(item);
+        });
+        histEl.innerHTML = Object.entries(groups).map(([month,items])=>`
+          <div class="mc-month-header">${month}</div>
+          ${items.map(item=>`
+            <div class="mc-txn-row">
+              <div class="mc-txn-icon">${item.credit?'₭':'↓'}</div>
+              <div class="mc-txn-body">
+                <div class="mc-txn-name">${item.name}</div>
+                <div class="mc-txn-meta">${item.date?new Date(item.date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'—'} · ${item.ref}</div>
+                <span class="mc-txn-badge">✓ ${item.status}</span>
+              </div>
+              <div class="mc-txn-amount" style="${!item.credit?'color:var(--danger)':''}">${item.credit?'+':'-'}Ksh ${item.amount.toLocaleString()}</div>
+            </div>`).join('')}`).join('');
+      }
+    } catch(e) { console.error('loadMyContributions:', e); }
+  };
+
+  // Override loadMyMeetings
+  window.loadMyMeetings = async function() {
+    if (!currentOrg?.id) return;
+    const today = new Date().toISOString().split('T')[0];
+    const memberId = window._myMemberId;
+
+    try {
+      const [upRes, pastRes] = await Promise.all([
+        sb.from('meetings').select('*').eq('org_id',currentOrg.id).gte('meeting_date',today).order('meeting_date').limit(5),
+        sb.from('meetings').select('*').eq('org_id',currentOrg.id).lt('meeting_date',today).order('meeting_date',{ascending:false}).limit(10)
+      ]);
+      const upcoming = upRes.data || [];
+      const past = pastRes.data || [];
+
+      // Next meeting card
+      const nextTitle = document.getElementById('mtg-next-title');
+      const nextMeta = document.getElementById('mtg-next-meta');
+      const nextChips = document.getElementById('mtg-next-chips');
+      if (nextTitle) {
+        if (upcoming.length) {
+          const m = upcoming[0];
+          const d = new Date(m.meeting_date);
+          nextTitle.textContent = m.name || 'General Meeting';
+          if (nextMeta) nextMeta.textContent = d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) + (m.meeting_time ? ' · ' + m.meeting_time : '');
+          if (nextChips) nextChips.innerHTML = [
+            m.venue ? `<div class="mtg-next-chip">📍 ${m.venue}</div>` : '',
+            '<div class="mtg-next-chip">👥 All members</div>'
+          ].join('');
+        } else {
+          nextTitle.textContent = 'No upcoming meeting scheduled';
+          if (nextMeta) nextMeta.textContent = 'Your admin will schedule the next meeting soon';
+          if (nextChips) nextChips.innerHTML = '';
+        }
+      }
+
+      // Attendance summary
+      const attEl = document.getElementById('my-attendance-record');
+      if (attEl) {
+        if (memberId && past.length) {
+          const { data: attData } = await sb.from('attendance').select('*').eq('member_id',memberId).in('meeting_id',past.map(m=>m.id));
+          const attMap = {};
+          (attData||[]).forEach(a => attMap[a.meeting_id] = a.status);
+          const present = Object.values(attMap).filter(s=>s==='present').length;
+          const total = past.length;
+          const pct = total > 0 ? Math.round((present/total)*100) : 0;
+          const pctColor = pct>=75?'green':pct>=50?'gold':'';
+          attEl.innerHTML = `
+            <div class="mtg-stat-card"><div class="mtg-stat-val">${total}</div><div class="mtg-stat-lbl">Meetings held</div></div>
+            <div class="mtg-stat-card"><div class="mtg-stat-val green">${present}</div><div class="mtg-stat-lbl">I attended</div></div>
+            <div class="mtg-stat-card"><div class="mtg-stat-val ${pctColor}">${pct}%</div><div class="mtg-stat-lbl">Rate</div></div>`;
+
+          // Past meetings list
+          const pastEl = document.getElementById('my-past-meetings');
+          if (pastEl) {
+            pastEl.innerHTML = '<div class="mtg-meet-list">' + past.map(m => {
+              const d = new Date(m.meeting_date);
+              const s = attMap[m.id];
+              return `<div class="mtg-meet-card">
+                <div class="mtg-meet-header">
+                  <div class="mtg-date-box">
+                    <div class="mtg-date-day">${d.getDate()}</div>
+                    <div class="mtg-date-mon">${d.toLocaleDateString('en-GB',{month:'short'})}</div>
+                  </div>
+                  <div style="flex:1">
+                    <div class="mtg-meet-name">${m.name||'Meeting'}</div>
+                    <div class="mtg-meet-sub">📍 ${m.venue||'—'}</div>
+                  </div>
+                  <span class="mtg-meet-badge held">Held</span>
+                </div>
+                <div class="mtg-meet-footer">
+                  <span class="mtg-att-info">Members attended</span>
+                  <span class="mtg-att-status ${s||''}">${s==='present'?'✓ Present':s==='apology'?'⚠ Apology':s==='absent'?'✗ Absent':'—'}</span>
+                </div>
+              </div>`;
+            }).join('') + '</div>';
+          }
+        } else {
+          attEl.innerHTML = `
+            <div class="mtg-stat-card"><div class="mtg-stat-val">—</div><div class="mtg-stat-lbl">Meetings held</div></div>
+            <div class="mtg-stat-card"><div class="mtg-stat-val">—</div><div class="mtg-stat-lbl">I attended</div></div>
+            <div class="mtg-stat-card"><div class="mtg-stat-val">—</div><div class="mtg-stat-lbl">Rate</div></div>`;
+          const pastEl = document.getElementById('my-past-meetings');
+          if (pastEl) pastEl.innerHTML = '<div style="padding:1.5rem 1rem;text-align:center;color:var(--ink-faint);font-size:.82rem">No past meetings recorded yet</div>';
+        }
+      }
+    } catch(e) { console.error('loadMyMeetings:', e); }
+  };
+});
