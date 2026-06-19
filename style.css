@@ -1682,264 +1682,558 @@ tr:hover td{background:var(--maroon-pale)}
   .mob-bottom-nav{display:flex}
 }
 
-/* ════════════════════════════════════════════════════════
-   MEMBER PORTAL — Mobile-first: Payments, Meetings, Help
-════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════════
+   MEMBER PORTAL — My Contributions (pmc-*), My Meetings (pmm-*),
+   Help & FAQs (pfaq-*)
+════════════════════════════════════════════════════════════════ */
 
-/* Section label */
-.mc-section-label {
-  font-size: .68rem;
-  font-weight: 600;
+/* ── MY CONTRIBUTIONS HERO ───────────────────────────────────── */
+.pmc-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 1.6rem 1.1rem 1.8rem;
+  min-height: 160px;
+}
+.pmc-hero-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(145deg, #3a000e 0%, #800020 45%, #0d3d2e 100%);
+  z-index: 0;
+}
+.pmc-hero-bg::after {
+  content: '';
+  position: absolute;
+  right: -30px; top: -30px;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,.08);
+}
+.pmc-hero-bg::before {
+  content: '';
+  position: absolute;
+  left: -20px; bottom: -20px;
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  border: 1px solid rgba(196,154,48,.15);
+}
+.pmc-hero-content { position: relative; z-index: 1; }
+.pmc-hero-eyebrow {
+  font-size: .65rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: .07em;
-  color: var(--ink-faint);
-  padding: .75rem 1rem .3rem;
+  letter-spacing: .12em;
+  color: rgba(255,255,255,.55);
+  margin-bottom: .4rem;
+}
+.pmc-hero-amount {
+  font-family: 'Crimson Pro', serif;
+  font-size: 2.6rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  margin-bottom: .85rem;
+}
+.pmc-hero-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+}
+.pmc-chip {
+  background: rgba(255,255,255,.12);
+  border: .5px solid rgba(255,255,255,.2);
+  border-radius: 99px;
+  padding: .3rem .75rem;
+  font-size: .72rem;
+  color: rgba(255,255,255,.9);
 }
 
-/* CTA button */
-.mc-cta-btn {
+/* ── SUMMARY CARDS ───────────────────────────────────────────── */
+.pmc-cards-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .6rem;
+  padding: .85rem .9rem 0;
+}
+.pmc-card {
+  border-radius: 12px;
+  padding: .9rem .85rem;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+}
+.pmc-card.gold {
+  background: linear-gradient(135deg, #fff8e0, #fff3cc);
+  border: 1px solid rgba(196,154,48,.3);
+}
+.pmc-card.maroon {
+  background: linear-gradient(135deg, var(--maroon-pale), #fce8ee);
+  border: 1px solid rgba(128,0,32,.2);
+}
+.pmc-card.teal {
+  background: linear-gradient(135deg, var(--teal-pale), #d4f0e8);
+  border: 1px solid rgba(15,110,86,.2);
+}
+.pmc-card-icon { font-size: 1.1rem; margin-bottom: .1rem; }
+.pmc-card-label {
+  font-size: .6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--ink-faint);
+}
+.pmc-card-value {
+  font-family: 'Crimson Pro', serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.pmc-card.gold .pmc-card-value { color: #8a6200; }
+.pmc-card.maroon .pmc-card-value { color: var(--maroon); }
+.pmc-card.teal .pmc-card-value { color: var(--teal-dk); }
+.pmc-card-sub { font-size: .62rem; color: var(--ink-faint); }
+
+/* ── CTA BUTTON ──────────────────────────────────────────────── */
+.pmc-pay-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: .5rem;
-  width: calc(100% - 2rem);
-  margin: .65rem 1rem 0;
-  padding: .85rem 1rem;
-  background: var(--maroon);
+  width: 100%;
+  padding: .9rem;
+  background: linear-gradient(135deg, var(--maroon) 0%, #5a0016 100%);
   color: #fff;
   border: none;
   border-radius: 10px;
-  font-size: .95rem;
-  font-weight: 600;
+  font-size: .9rem;
+  font-weight: 700;
   font-family: 'Inter', sans-serif;
   cursor: pointer;
+  box-shadow: 0 4px 14px rgba(128,0,32,.3);
+  transition: transform .15s, box-shadow .15s;
 }
-.mc-cta-btn:active { opacity: .85; }
+.pmc-pay-btn:active { transform: scale(.98); }
 
-/* ── MY CONTRIBUTIONS HERO ── */
-.mc-hero {
-  background: var(--maroon);
-  padding: 1.25rem 1rem 1.5rem;
-  position: relative;
-  overflow: hidden;
-}
-.mc-hero::after {
-  content: '';
-  position: absolute;
-  right: -20px; top: -20px;
-  width: 130px; height: 130px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255,255,255,.1);
-}
-.mc-hero-label {
-  font-size: .68rem;
-  color: rgba(255,255,255,.6);
-  text-transform: uppercase;
-  letter-spacing: .07em;
-  margin-bottom: .3rem;
-  position: relative; z-index: 1;
-}
-.mc-hero-amount {
-  font-size: 2rem;
-  font-weight: 500;
-  color: #fff;
-  line-height: 1;
-  position: relative; z-index: 1;
-}
-.mc-hero-chips {
-  display: flex;
-  gap: .5rem;
-  flex-wrap: wrap;
-  margin-top: .75rem;
-  position: relative; z-index: 1;
-}
-.mc-hero-chip {
-  background: rgba(255,255,255,.15);
-  border: .5px solid rgba(255,255,255,.25);
-  border-radius: 20px;
-  padding: .28rem .75rem;
-  color: #fff;
-  font-size: .72rem;
-  display: flex;
-  gap: .3rem;
-  align-items: center;
-}
-.mc-hero-chip span { font-weight: 600; }
-
-/* Summary grid */
-.mc-summary-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: .5rem;
-  padding: .65rem 1rem 0;
-}
-.mc-sum-card {
-  background: var(--surface);
-  border: .5px solid var(--border);
-  border-radius: 10px;
-  padding: .85rem .9rem;
-}
-.mc-sum-label {
+/* ── SECTION LABEL ───────────────────────────────────────────── */
+.pmc-section-label {
   font-size: .65rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: .05em;
+  letter-spacing: .1em;
   color: var(--ink-faint);
-  margin-bottom: .3rem;
+  padding: .85rem .9rem .35rem;
 }
-.mc-sum-val { font-size: 1.2rem; font-weight: 500; color: var(--maroon); }
-.mc-sum-val.gold { color: var(--gold); }
-.mc-sum-sub { font-size: .68rem; color: var(--ink-faint); margin-top: .2rem; }
 
-/* History card */
-.mc-history-card {
+/* ── MONTHLY CHART ───────────────────────────────────────────── */
+.pmc-chart-section {
+  margin: 0 .9rem;
   background: var(--surface);
-  border: .5px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
-  margin: 0 1rem;
-}
-.mc-month-header {
-  padding: .5rem 1rem;
-  background: var(--surface-2);
-  font-size: .68rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: .06em;
-  color: var(--ink-faint);
-  border-bottom: .5px solid var(--border);
-}
-.mc-txn-row {
-  padding: .85rem 1rem;
-  display: flex;
-  align-items: center;
-  gap: .75rem;
-  border-bottom: .5px solid var(--surface-2);
-}
-.mc-txn-row:last-child { border-bottom: none; }
-.mc-txn-icon {
-  width: 34px; height: 34px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: .95rem;
-  flex-shrink: 0;
-  background: var(--maroon-pale);
-  color: var(--maroon);
-}
-.mc-txn-body { flex: 1; min-width: 0; }
-.mc-txn-name { font-size: .85rem; font-weight: 500; color: var(--ink); }
-.mc-txn-meta { font-size: .72rem; color: var(--ink-faint); margin-top: .1rem; }
-.mc-txn-badge {
-  font-size: .65rem;
-  color: var(--success);
-  background: #EAF3DE;
-  padding: .15rem .5rem;
-  border-radius: 20px;
-  margin-top: .2rem;
-  display: inline-block;
-}
-.mc-txn-amount { font-size: .88rem; font-weight: 600; color: var(--success); white-space: nowrap; }
-
-/* ── MEETINGS ── */
-.mtg-next-card {
-  margin: .85rem 1rem 0;
-  background: var(--maroon);
+  border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 1.1rem 1rem;
-  position: relative;
-  overflow: hidden;
+  padding: 1rem;
+  margin-top: 0;
 }
-.mtg-next-card::after {
-  content: '';
-  position: absolute;
-  right: -16px; top: -16px;
-  width: 100px; height: 100px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255,255,255,.1);
-}
-.mtg-next-eyebrow {
-  font-size: .68rem;
-  color: rgba(255,255,255,.6);
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  margin-bottom: .35rem;
-}
-.mtg-next-title { font-size: 1.1rem; font-weight: 500; color: #fff; margin-bottom: .2rem; }
-.mtg-next-meta { font-size: .78rem; color: rgba(255,255,255,.65); margin-bottom: .65rem; }
-.mtg-next-chips { display: flex; gap: .4rem; flex-wrap: wrap; }
-.mtg-next-chip {
-  background: rgba(255,255,255,.15);
-  border: .5px solid rgba(255,255,255,.2);
-  border-radius: 20px;
-  padding: .25rem .65rem;
-  color: #fff;
-  font-size: .7rem;
-}
-.mtg-stat-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: .5rem;
-  padding: 0 1rem;
-}
-.mtg-stat-card {
-  background: var(--surface);
-  border: .5px solid var(--border);
-  border-radius: 10px;
-  padding: .75rem .5rem;
-  text-align: center;
-}
-.mtg-stat-val { font-size: 1.3rem; font-weight: 500; color: var(--maroon); }
-.mtg-stat-val.green { color: var(--success); }
-.mtg-stat-val.gold { color: var(--gold); }
-.mtg-stat-lbl { font-size: .65rem; color: var(--ink-faint); margin-top: .15rem; }
-.mtg-meet-list { padding: 0 1rem; margin-top: 0; }
-.mtg-meet-card {
-  background: var(--surface);
-  border: .5px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
-  margin-bottom: .5rem;
-}
-.mtg-meet-header {
-  padding: .85rem 1rem;
+.pmc-chart-wrap { padding: .5rem 0 0; }
+.pmc-chart {
   display: flex;
-  align-items: center;
-  gap: .75rem;
+  align-items: flex-end;
+  gap: .35rem;
+  height: 80px;
+  border-bottom: 1.5px solid var(--border);
+  padding-bottom: 0;
 }
-.mtg-date-box {
-  width: 40px; height: 40px;
-  background: var(--maroon-pale);
-  border-radius: 8px;
+.pmc-bar-col {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  gap: .15rem;
+}
+.pmc-bar-val {
+  font-size: .52rem;
+  color: var(--ink-faint);
+  text-align: center;
+  min-height: 12px;
+}
+.pmc-bar {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  min-height: 3px;
+  margin-top: auto;
+  transition: height .6s ease;
+}
+.pmc-chart-labels {
+  display: flex;
+  gap: .35rem;
+  margin-top: .4rem;
+}
+.pmc-chart-total {
+  font-size: .7rem;
+  color: var(--ink-faint);
+  margin-top: .5rem;
+}
+
+/* ── BY CATEGORY ─────────────────────────────────────────────── */
+.pmc-category-block {
+  margin: 0 .9rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+}
+.pmc-cat-row {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  margin-bottom: .85rem;
+}
+.pmc-cat-row:last-child { margin-bottom: 0; }
+.pmc-cat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
-.mtg-date-day { font-size: 1rem; font-weight: 600; color: var(--maroon); line-height: 1; }
-.mtg-date-mon { font-size: .6rem; color: var(--maroon); text-transform: uppercase; letter-spacing: .05em; }
-.mtg-meet-name { font-size: .88rem; font-weight: 500; color: var(--ink); }
-.mtg-meet-sub { font-size: .72rem; color: var(--ink-faint); margin-top: .15rem; }
-.mtg-meet-badge {
-  font-size: .65rem;
-  padding: .2rem .55rem;
-  border-radius: 20px;
-  white-space: nowrap;
-  align-self: flex-start;
+.pmc-cat-bar {
+  height: 5px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
 }
-.mtg-meet-badge.held { background: #EAF3DE; color: var(--success); }
-.mtg-meet-badge.upcoming { background: #FFF8E6; color: var(--gold); }
-.mtg-meet-footer {
-  border-top: .5px solid var(--surface-2);
-  padding: .6rem 1rem;
+.pmc-cat-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width .8s ease;
+}
+
+/* ── HISTORY LABEL / COUNT ───────────────────────────────────── */
+.pmc-history-count {
+  font-size: .72rem;
+  color: var(--ink-faint);
+  padding-right: .9rem;
+}
+
+/* ── PAYMENT TIMELINE ────────────────────────────────────────── */
+.pmc-timeline {
+  margin: 0 .9rem .9rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.pmc-month-group { }
+.pmc-month-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: .55rem 1rem;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  font-size: .7rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+.pmc-txn-row {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .85rem 1rem;
+  border-bottom: 1px solid var(--border);
+  transition: background .12s;
+}
+.pmc-txn-row:last-child { border-bottom: none; }
+.pmc-txn-row:hover { background: var(--surface-2); }
+.pmc-txn-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .72rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.pmc-txn-body { flex: 1; min-width: 0; }
+.pmc-txn-name { font-size: .82rem; font-weight: 600; color: var(--ink); }
+.pmc-txn-meta { font-size: .7rem; color: var(--ink-faint); margin-top: .1rem; }
+.pmc-txn-amount { font-size: .88rem; font-weight: 700; white-space: nowrap; }
+
+/* ════════════════════════════════════════════════════════════════
+   MY MEETINGS (pmm-*)
+════════════════════════════════════════════════════════════════ */
+.pmm-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 1.5rem 1.1rem 1.6rem;
+  min-height: 150px;
+}
+.pmm-hero-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(145deg, #063d2e 0%, #0f6e56 45%, #3a000e 100%);
+  z-index: 0;
+}
+.pmm-hero-bg::after {
+  content: '';
+  position: absolute;
+  right: -20px; top: -20px;
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.08);
+}
+.pmm-hero-content { position: relative; z-index: 1; }
+.pmm-hero-eyebrow {
+  font-size: .65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: rgba(255,255,255,.55);
+  margin-bottom: .35rem;
+}
+.pmm-hero-title {
+  font-family: 'Crimson Pro', serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.1;
+  margin-bottom: .3rem;
+}
+.pmm-hero-meta { font-size: .78rem; color: rgba(255,255,255,.65); margin-bottom: .7rem; }
+.pmm-hero-chips { display: flex; gap: .4rem; flex-wrap: wrap; }
+.pmm-chip {
+  background: rgba(255,255,255,.12);
+  border: .5px solid rgba(255,255,255,.2);
+  border-radius: 99px;
+  padding: .28rem .7rem;
+  font-size: .7rem;
+  color: rgba(255,255,255,.9);
+}
+.pmm-chip.urgent { background: rgba(128,0,32,.5); border-color: rgba(200,80,112,.5); }
+.pmm-chip.soon { background: rgba(196,154,48,.3); border-color: rgba(196,154,48,.4); }
+
+/* ── ATTENDANCE CARDS ────────────────────────────────────────── */
+.pmm-att-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .6rem;
+  padding: 0 .9rem;
+}
+.pmm-att-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: .9rem .6rem;
+  text-align: center;
+}
+.pmm-att-val {
+  font-family: 'Crimson Pro', serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: .25rem;
+}
+.pmm-att-lbl { font-size: .6rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .06em; }
+
+/* ── UPCOMING CARD ───────────────────────────────────────────── */
+.pmm-upcoming-card {
+  display: flex;
+  align-items: flex-start;
+  gap: .85rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--teal);
+  border-radius: 10px;
+  padding: .9rem 1rem;
+  margin-bottom: .6rem;
+  animation: cardIn .3s ease both;
+}
+.pmm-upcoming-date {
+  background: var(--teal-pale);
+  border: 1px solid var(--teal-mid);
+  border-radius: 8px;
+  padding: .4rem .6rem;
+  text-align: center;
+  min-width: 44px;
+  flex-shrink: 0;
+}
+.pmm-date-day {
+  font-family: 'Crimson Pro', serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--teal-dk);
+  line-height: 1;
+}
+.pmm-date-mon {
+  font-size: .58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--teal-dk);
+}
+.pmm-upcoming-title { font-size: .88rem; font-weight: 600; color: var(--ink); margin-bottom: .2rem; }
+.pmm-upcoming-meta { font-size: .72rem; color: var(--ink-faint); }
+.pmm-urgency {
+  display: inline-block;
+  margin-top: .35rem;
+  font-size: .68rem;
+  font-weight: 700;
+  padding: .2rem .55rem;
+  border-radius: 99px;
+  background: var(--teal-pale);
+  color: var(--teal-dk);
+}
+.pmm-urgency.today { background: var(--maroon-pale); color: var(--maroon); }
+.pmm-urgency.soon { background: rgba(196,154,48,.12); color: var(--gold); }
+
+/* ── PAST MEETING CARDS ──────────────────────────────────────── */
+.pmm-past-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: .75rem 1rem;
+  margin-bottom: .5rem;
 }
-.mtg-att-info { font-size: .72rem; color: var(--ink-faint); }
-.mtg-att-status { font-size: .72rem; font-weight: 600; color: var(--ink-faint); }
-.mtg-att-status.present { color: var(--success); }
-.mtg-att-status.absent { color: var(--danger); }
-.mtg-att-status.apology { color: var(--gold); }
+.pmm-past-date { font-size: .82rem; font-weight: 600; color: var(--ink); }
+.pmm-past-venue { font-size: .7rem; color: var(--ink-faint); margin-top: .1rem; }
+.pmm-past-status { font-size: .78rem; font-weight: 700; flex-shrink: 0; }
 
+/* ════════════════════════════════════════════════════════════════
+   HELP & FAQs (pfaq-*)
+════════════════════════════════════════════════════════════════ */
+.pfaq-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 1.6rem 1.1rem 1.8rem;
+}
+.pfaq-hero-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 40%, #0d3d2e 100%);
+  z-index: 0;
+}
+.pfaq-hero-bg::after {
+  content: '';
+  position: absolute;
+  right: -30px; top: -30px;
+  width: 140px; height: 140px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.06);
+}
+.pfaq-hero-content { position: relative; z-index: 1; text-align: center; }
+.pfaq-hero-icon { font-size: 2.2rem; margin-bottom: .65rem; }
+.pfaq-hero-title {
+  font-family: 'Crimson Pro', serif;
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: .3rem;
+}
+.pfaq-hero-sub { font-size: .78rem; color: rgba(255,255,255,.55); }
+
+/* ── CONTACT CARDS ───────────────────────────────────────────── */
+.pfaq-contact-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .6rem;
+  padding: 0 .9rem;
+}
+.pfaq-contact-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .35rem;
+  padding: 1.1rem .75rem;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: transform .15s, box-shadow .15s;
+}
+.pfaq-contact-card:active { transform: scale(.97); }
+.pfaq-contact-card.whatsapp {
+  background: linear-gradient(135deg, #25d366, #128c3e);
+}
+.pfaq-contact-card.call {
+  background: linear-gradient(135deg, var(--teal), var(--teal-dk));
+}
+.pfaq-contact-icon { font-size: 1.5rem; }
+.pfaq-contact-label {
+  font-size: .62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: rgba(255,255,255,.7);
+}
+.pfaq-contact-num {
+  font-size: .88rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* ── ADMIN CONTACT ───────────────────────────────────────────── */
+.pfaq-admin-card {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: .9rem 1rem;
+  margin: 0 .9rem;
+  cursor: pointer;
+  transition: background .15s;
+}
+.pfaq-admin-card:hover { background: var(--surface-2); }
+.pfaq-admin-avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--maroon-pale);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--maroon);
+  flex-shrink: 0;
+}
+.pfaq-admin-name { font-size: .88rem; font-weight: 600; color: var(--ink); }
+.pfaq-admin-role { font-size: .7rem; color: var(--ink-faint); margin-top: .1rem; }
+.pfaq-admin-arrow { color: var(--ink-faint); font-size: 1.2rem; margin-left: auto; }
+
+/* ── FAQ ACCORDION ───────────────────────────────────────────── */
+.pfaq-accordion {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.pfaq-item { border-bottom: 1px solid var(--border); }
+.pfaq-item:last-child { border-bottom: none; }
+.pfaq-q {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  padding: .9rem 1rem;
+  cursor: pointer;
+  transition: background .15s;
+  user-select: none;
+}
+.pfaq-q:hover { background: var(--surface-2); }
+.pfaq-q span:nth-child(2) { flex: 1; font-size: .84rem; font-weight: 600; color: var(--ink); }
+.pfaq-q-icon { font-size: 1rem; width: 24px; text-align: center; flex-shrink: 0; }
+.pfaq-arrow {
+  color: var(--ink-faint);
+  font-size: .75rem;
+  transition: transform .25s ease;
+  flex-shrink: 0;
+}
+.pfaq-a {
+  display: none;
+  padding: 0 1rem .9rem 2.65rem;
+  font-size: .8rem;
+  color: var(--ink-soft);
+  line-height: 1.75;
+}
+.pfaq-item.open .pfaq-a { display: block; animation: fadeSlideUp .2s ease; }

@@ -2330,53 +2330,112 @@
     </div>
 
     <!-- ══ HELP & FAQs PAGE (all users) ══ -->
+    <!-- HELP & FAQs PAGE ══════════════════════════════════════ -->
     <div class="page" id="page-faq">
-      <!-- HERO -->
-      <div class="mc-hero" style="padding:1.4rem 1rem 1.6rem">
-        <div class="mc-hero-label" style="font-size:.8rem">GroupYetu360</div>
-        <div style="font-size:1.3rem;font-weight:500;color:#fff;margin-bottom:.2rem">How can we help?</div>
-        <div style="font-size:.78rem;color:rgba(255,255,255,.6)">Contact support or browse common questions</div>
-      </div>
 
-      <!-- CONTACT SUPPORT -->
-      <div class="mc-section-label">Contact support</div>
-      <div class="mc-summary-grid">
-        <div class="mc-sum-card" style="cursor:pointer;text-align:center" onclick="window.open('https://wa.me/254702903544','_blank')">
-          <div style="font-size:1.8rem;margin-bottom:.35rem">💬</div>
-          <div class="mc-sum-label">WhatsApp</div>
-          <div style="font-size:.82rem;font-weight:600;color:var(--maroon);margin-top:.25rem">0702 903 544</div>
-        </div>
-        <div class="mc-sum-card" style="cursor:pointer;text-align:center" onclick="window.open('tel:+254702903544')">
-          <div style="font-size:1.8rem;margin-bottom:.35rem">📞</div>
-          <div class="mc-sum-label">Call us</div>
-          <div style="font-size:.82rem;font-weight:600;color:var(--maroon);margin-top:.25rem">0702 903 544</div>
+      <!-- ── HERO ── -->
+      <div class="pfaq-hero">
+        <div class="pfaq-hero-bg"></div>
+        <div class="pfaq-hero-content">
+          <div class="pfaq-hero-icon">🎧</div>
+          <div class="pfaq-hero-title">How can we help?</div>
+          <div class="pfaq-hero-sub">Contact support or browse common questions</div>
         </div>
       </div>
 
-      <!-- ADMIN CONTACT -->
-      <div class="mc-section-label" style="margin-top:.5rem">Contact your admin</div>
-      <div class="mc-history-card">
-        <div class="mc-txn-row">
-          <div class="mc-txn-icon" id="help-admin-avatar" style="font-size:.8rem;font-weight:600;color:var(--maroon);background:var(--maroon-pale)">—</div>
-          <div class="mc-txn-body">
-            <div class="mc-txn-name" id="help-admin-name">Group Administrator</div>
-            <div class="mc-txn-meta">Group administrator</div>
+      <!-- ── CONTACT SUPPORT ── -->
+      <div class="pmc-section-label">Contact support</div>
+      <div class="pfaq-contact-row">
+        <a class="pfaq-contact-card whatsapp" href="https://wa.me/254702903544" target="_blank">
+          <div class="pfaq-contact-icon">💬</div>
+          <div class="pfaq-contact-label">WhatsApp</div>
+          <div class="pfaq-contact-num">0702 903 544</div>
+        </a>
+        <a class="pfaq-contact-card call" href="tel:+254702903544">
+          <div class="pfaq-contact-icon">📞</div>
+          <div class="pfaq-contact-label">Call us</div>
+          <div class="pfaq-contact-num">0702 903 544</div>
+        </a>
+      </div>
+
+      <!-- ── ADMIN CONTACT ── -->
+      <div class="pmc-section-label" style="padding-top:.5rem">Your group admin</div>
+      <div class="pfaq-admin-card" id="faq-admin-row">
+        <div class="pfaq-admin-avatar" id="faq-admin-avatar">GA</div>
+        <div>
+          <div class="pfaq-admin-name" id="faq-admin-name">Group Administrator</div>
+          <div class="pfaq-admin-role">Group admin</div>
+        </div>
+        <div class="pfaq-admin-arrow">›</div>
+      </div>
+
+      <!-- ── FAQs ── -->
+      <div class="pmc-section-label" style="padding-top:.5rem">Common questions</div>
+      <div class="pfaq-accordion" style="margin:0 .9rem .9rem">
+
+        <div class="pfaq-item">
+          <div class="pfaq-q" onclick="pfaqToggle(this)">
+            <span class="pfaq-q-icon">👤</span>
+            <span>Can I be in multiple groups?</span>
+            <span class="pfaq-arrow">▾</span>
           </div>
+          <div class="pfaq-a">Yes. All your groups appear in the workspace switcher at login. One account, multiple groups — switch freely.</div>
         </div>
-      </div>
 
-      <!-- FAQs -->
-      <div class="mc-section-label" style="margin-top:.5rem">Common questions</div>
+        <div class="pfaq-item">
+          <div class="pfaq-q" onclick="pfaqToggle(this)">
+            <span class="pfaq-q-icon">💳</span>
+            <span>How do I make a payment?</span>
+            <span class="pfaq-arrow">▾</span>
+          </div>
+          <div class="pfaq-a">Go to My Payments → Make a Payment. Send via M-Pesa to your group's payment details, enter the M-Pesa reference and submit. Your admin verifies and approves it.</div>
+        </div>
 
-      <div class="mc-history-card" style="margin-bottom:.5rem">
-        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Can I be in multiple groups? <span class="faq-arrow">▾</span></div><div class="faq-a">Yes. If you're a member of more than one group on GroupYetu360, all groups appear in your workspace switcher when you log in. One login, multiple groups — switch freely.</div></div>
-        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How do I make a payment? <span class="faq-arrow">▾</span></div><div class="faq-a">Go to My Payments and tap Make Payment. Send via M-Pesa to your group's payment details shown, enter the M-Pesa reference and submit. Your admin verifies and approves it.</div></div>
-        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">What is the difference between shares and savings? <span class="faq-arrow">▾</span></div><div class="faq-a">Shares represent your ownership stake in the group (equity that grows over time). Savings are your monthly deposits held by the group. Not all groups use both — your admin configures which applies.</div></div>
-        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">When is my next contribution due? <span class="faq-arrow">▾</span></div><div class="faq-a">Contribution schedules are set by your group admin. Check with your admin or look at your Meetings page for the next scheduled date.</div></div>
-        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How do I apply for a loan? <span class="faq-arrow">▾</span></div><div class="faq-a">Loan applications are managed by your group admin. Contact your admin directly to initiate a loan request.</div></div>
-        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">What happens if I miss a meeting? <span class="faq-arrow">▾</span></div><div class="faq-a">Your group may have a fine policy for missed meetings. Check with your admin. Your attendance record is visible in the Meetings tab.</div></div>
-        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How does welfare work? <span class="faq-arrow">▾</span></div><div class="faq-a">When a welfare event is created (e.g. bereavement), all members are notified and a contribution is expected. Contact your admin to pay or ask about outstanding welfare contributions.</div></div>
-        <div class="faq-item" style="border-bottom:none"><div class="faq-q" onclick="toggleFaq(this)">How do I change my password? <span class="faq-arrow">▾</span></div><div class="faq-a">Go to My Account in the sidebar. Enter your new password in the Change Password section and click Update Password. Forgotten it? Use "Forgot password?" on the login page.</div></div>
+        <div class="pfaq-item">
+          <div class="pfaq-q" onclick="pfaqToggle(this)">
+            <span class="pfaq-q-icon">⏳</span>
+            <span>Why is my payment still pending?</span>
+            <span class="pfaq-arrow">▾</span>
+          </div>
+          <div class="pfaq-a">Payments are manually verified by your group admin, usually within 24 hours. If it's been longer, contact your admin directly.</div>
+        </div>
+
+        <div class="pfaq-item">
+          <div class="pfaq-q" onclick="pfaqToggle(this)">
+            <span class="pfaq-q-icon">📈</span>
+            <span>What is the difference between shares and savings?</span>
+            <span class="pfaq-arrow">▾</span>
+          </div>
+          <div class="pfaq-a">Shares are your ownership stake (equity). Savings are monthly deposits held by the group. Not all groups use both — your admin configures which applies.</div>
+        </div>
+
+        <div class="pfaq-item">
+          <div class="pfaq-q" onclick="pfaqToggle(this)">
+            <span class="pfaq-q-icon">🏦</span>
+            <span>What is table banking?</span>
+            <span class="pfaq-arrow">▾</span>
+          </div>
+          <div class="pfaq-a">Members borrow from a shared pool of savings. Your admin creates loan pools, members apply and repay with interest. Tracked under Table Banking.</div>
+        </div>
+
+        <div class="pfaq-item">
+          <div class="pfaq-q" onclick="pfaqToggle(this)">
+            <span class="pfaq-q-icon">♡</span>
+            <span>How does welfare work?</span>
+            <span class="pfaq-arrow">▾</span>
+          </div>
+          <div class="pfaq-a">When a welfare event is created (e.g. bereavement), all members are notified and a contribution is expected. Pay via My Payments the same as regular contributions.</div>
+        </div>
+
+        <div class="pfaq-item" style="border-bottom:none">
+          <div class="pfaq-q" onclick="pfaqToggle(this)">
+            <span class="pfaq-q-icon">🔑</span>
+            <span>How do I change my password?</span>
+            <span class="pfaq-arrow">▾</span>
+          </div>
+          <div class="pfaq-a">Go to My Account in the sidebar. Enter your new password and click Update. Forgotten it? Use "Forgot password?" on the login page.</div>
+        </div>
+
       </div>
     </div>
 
@@ -2616,73 +2675,131 @@
       <div id="mp-status" style="display:none"></div>
     </div>
 
-    <!-- MEMBER: MY CONTRIBUTIONS -->
+    <!-- MEMBER: MY CONTRIBUTIONS ══════════════════════════════ -->
     <div class="page" id="page-my_contributions">
-      <!-- HERO -->
-      <div class="mc-hero">
-        <div class="mc-hero-label">Total paid — all time</div>
-        <div class="mc-hero-amount" id="mc-total">—</div>
-        <div class="mc-hero-chips" id="mc-type-chips"></div>
-      </div>
-      <!-- SUMMARY CARDS -->
-      <div class="mc-summary-grid">
-        <div class="mc-sum-card">
-          <div class="mc-sum-label">Paid this year</div>
-          <div class="mc-sum-val" id="mc-year">—</div>
-          <div class="mc-sum-sub" id="mc-count">0 payments</div>
-        </div>
-        <div class="mc-sum-card">
-          <div class="mc-sum-label">Last payment</div>
-          <div class="mc-sum-val gold" id="mc-last-date">—</div>
-          <div class="mc-sum-sub" id="mc-last-year">—</div>
+
+      <!-- ── HERO ── -->
+      <div class="pmc-hero">
+        <div class="pmc-hero-bg"></div>
+        <div class="pmc-hero-content">
+          <div class="pmc-hero-eyebrow">Total paid — all time</div>
+          <div class="pmc-hero-amount" id="mc-total">—</div>
+          <div class="pmc-hero-chips" id="mc-type-chips"></div>
         </div>
       </div>
-      <!-- CTA -->
-      <button class="mc-cta-btn" onclick="openMemberPaymentModal();showModal('memberPayment')">💳 Make a payment</button>
-      <!-- HISTORY -->
-      <div class="mc-section-label">Payment history</div>
-      <div class="mc-history-card" id="mc-history-list">
-        <div class="loading"><div class="spinner"></div>Loading…</div>
+
+      <!-- ── ALERT NOTICES ── -->
+      <div id="mc-fines-notice" style="display:none;margin:.75rem .9rem 0"></div>
+      <div id="mc-pending-notice" style="display:none;margin:.75rem .9rem 0"></div>
+
+      <!-- ── SUMMARY CARDS ROW ── -->
+      <div class="pmc-cards-row" id="mc-stats-row">
+        <!-- This year -->
+        <div class="pmc-card gold">
+          <div class="pmc-card-icon">📅</div>
+          <div class="pmc-card-label">This year</div>
+          <div class="pmc-card-value" id="mc-year">—</div>
+          <div class="pmc-card-sub" id="mc-year-label">2026</div>
+        </div>
+        <!-- Shares balance -->
+        <div class="pmc-card maroon" id="mc-shares-card">
+          <div class="pmc-card-icon">📈</div>
+          <div class="pmc-card-label" id="mc-shares-label">Shares</div>
+          <div class="pmc-card-value" id="mc-shares-bal">—</div>
+          <div class="pmc-card-sub">Equity</div>
+        </div>
+        <!-- Savings balance -->
+        <div class="pmc-card teal" id="mc-savings-card">
+          <div class="pmc-card-icon">💰</div>
+          <div class="pmc-card-label" id="mc-savings-label">Savings</div>
+          <div class="pmc-card-value" id="mc-savings-bal">—</div>
+          <div class="pmc-card-sub">Deposits</div>
+        </div>
       </div>
-      <!-- hidden compat IDs -->
-      <div id="mc-fines-notice" style="display:none"></div>
-      <div id="mc-pending-notice" style="display:none"></div>
-      <div id="mc-stats-row" style="display:none"></div>
-      <div id="mc-year-label" style="display:none"></div>
-      <div id="mc-shares-card" style="display:none"></div>
-      <div id="mc-savings-card" style="display:none"></div>
-      <div id="mc-shares-bal" style="display:none"></div>
-      <div id="mc-savings-bal" style="display:none"></div>
-      <div id="mc-chart" style="display:none"></div>
-      <div id="mc-chart-labels" style="display:none"></div>
-      <div id="mc-count-label" style="display:none"></div>
+
+      <!-- ── MAKE PAYMENT CTA ── -->
+      <div style="padding:.9rem .9rem 0">
+        <button class="pmc-pay-btn" onclick="openMemberPaymentModal();showModal('memberPayment')">
+          💳 Make a Payment
+        </button>
+      </div>
+
+      <!-- ── MONTHLY CHART ── -->
+      <div class="pmc-chart-section">
+        <div class="pmc-section-label">Monthly payments</div>
+        <div class="pmc-chart-wrap">
+          <div class="pmc-chart" id="mc-chart">
+            <div class="loading"><div class="spinner"></div></div>
+          </div>
+          <div class="pmc-chart-labels" id="mc-chart-labels"></div>
+        </div>
+        <div class="pmc-chart-total" id="mc-count-label"></div>
+      </div>
+
+      <!-- ── BY CATEGORY ── -->
+      <div class="pmc-section-label" style="padding-top:.5rem">By category</div>
+      <div class="pmc-category-block" id="mc-by-category">
+        <div class="loading" style="padding:1.25rem"><div class="spinner"></div></div>
+      </div>
+
+      <!-- ── PAYMENT HISTORY ── -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:.85rem .9rem .35rem">
+        <div class="pmc-section-label" style="padding:0">Payment history</div>
+        <div class="pmc-history-count" id="mc-history-sub"></div>
+      </div>
+      <div class="pmc-timeline" id="mc-timeline">
+        <div class="loading" style="padding:2rem"><div class="spinner"></div>Loading…</div>
+      </div>
+
+      <!-- hidden compat IDs used by portal.js -->
       <div id="mc-quick-info" style="display:none"></div>
-      <div id="mc-by-category" style="display:none"></div>
-      <div id="mc-timeline" style="display:none"></div>
-      <div id="mc-history-sub" style="display:none"></div>
+      <div id="mc-shares-card-compat" style="display:none"></div>
     </div>
 
-    <!-- MEMBER: MY MEETINGS -->
+    <!-- MEMBER: MY MEETINGS ══════════════════════════════════ -->
     <div class="page" id="page-my_meetings">
-      <!-- NEXT MEETING HERO -->
-      <div class="mtg-next-card" id="mtg-next-card">
-        <div class="mtg-next-eyebrow">Next meeting</div>
-        <div class="mtg-next-title" id="mtg-next-title">Loading…</div>
-        <div class="mtg-next-meta" id="mtg-next-meta"></div>
-        <div class="mtg-next-chips" id="mtg-next-chips"></div>
+
+      <!-- ── NEXT MEETING HERO ── -->
+      <div class="pmm-hero">
+        <div class="pmm-hero-bg"></div>
+        <div class="pmm-hero-content">
+          <div class="pmm-hero-eyebrow">📅 Next meeting</div>
+          <div class="pmm-hero-title" id="mtg-next-title">Loading…</div>
+          <div class="pmm-hero-meta" id="mtg-next-meta"></div>
+          <div class="pmm-hero-chips" id="mtg-next-chips"></div>
+        </div>
       </div>
-      <!-- ATTENDANCE SUMMARY -->
-      <div class="mc-section-label" style="margin-top:.75rem">My attendance</div>
-      <div class="mtg-stat-row" id="my-attendance-record">
-        <div class="loading" style="grid-column:1/-1;padding:1rem"><div class="spinner"></div></div>
+
+      <!-- ── ATTENDANCE SUMMARY ── -->
+      <div class="pmc-section-label" style="padding-top:.85rem">My attendance</div>
+      <div class="pmm-att-row" id="my-attendance-record">
+        <div class="pmm-att-card">
+          <div class="pmm-att-val" style="color:var(--ink)">—</div>
+          <div class="pmm-att-lbl">Meetings held</div>
+        </div>
+        <div class="pmm-att-card">
+          <div class="pmm-att-val" style="color:var(--teal)">—</div>
+          <div class="pmm-att-lbl">I attended</div>
+        </div>
+        <div class="pmm-att-card">
+          <div class="pmm-att-val" style="color:var(--gold)">—</div>
+          <div class="pmm-att-lbl">Rate</div>
+        </div>
       </div>
-      <!-- PAST MEETINGS LIST -->
-      <div class="mc-section-label" style="margin-top:.5rem">Recent meetings</div>
-      <div id="my-past-meetings">
-        <div class="loading" style="padding:1rem"><div class="spinner"></div>Loading…</div>
+
+      <!-- ── UPCOMING MEETINGS ── -->
+      <div class="pmc-section-label" style="padding-top:.5rem">Upcoming</div>
+      <div id="my-upcoming-meetings" style="padding:0 .9rem">
+        <div class="loading" style="padding:1rem"><div class="spinner"></div></div>
       </div>
-      <!-- hidden compat -->
-      <div id="my-upcoming-meetings" style="display:none"></div>
+
+      <!-- ── PAST MEETINGS ── -->
+      <div class="pmc-section-label" style="padding-top:.5rem">Recent past meetings</div>
+      <div id="my-past-meetings" style="padding:0 .9rem .9rem">
+        <div class="loading" style="padding:1rem"><div class="spinner"></div></div>
+      </div>
+
+      <!-- hidden compat IDs -->
       <div id="my-meetings-sub" style="display:none"></div>
       <div id="my-attendance-chips" style="display:none"></div>
     </div>

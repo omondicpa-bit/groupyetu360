@@ -1116,118 +1116,248 @@ function showPage(id) {
   updateTopbarActions(id);
 }
 
-// ── HELP PAGE ──────────────────────────────────────────────────────────────
-async function loadMyHelp() {
-  if (!window._myMemberId) {
-    if (typeof loadMyProfile === 'function') await loadMyProfile();
+
+/* ════════════════════════════════════════════════════════════════
+   MEMBER PORTAL — Mobile renderers & helpers
+   These run AFTER portal.js (via window.load) so they override
+   portal.js's loadMyContributions and loadMyMeetings safely
+════════════════════════════════════════════════════════════════ */
+
+// ── FAQ toggle (new design) ──────────────────────────────────────
+function pfaqToggle(el) {
+  const item = el.closest('.pfaq-item');
+  const answer = item.querySelector('.pfaq-a');
+  const arrow = el.querySelector('.pfaq-arrow');
+  const isOpen = item.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.pfaq-item.open').forEach(i => {
+    i.classList.remove('open');
+    i.querySelector('.pfaq-a').style.display = 'none';
+    i.querySelector('.pfaq-arrow').style.transform = '';
+  });
+  if (!isOpen) {
+    item.classList.add('open');
+    answer.style.display = 'block';
+    arrow.style.transform = 'rotate(180deg)';
   }
-  // Populate admin contact from org admin profile
+}
+
+// ── Help page loader ────────────────────────────────────────────
+async function loadMyHelp() {
   try {
     if (!currentOrg?.id) return;
     const { data: adminProfile } = await sb.from('profiles')
-      .select('full_name').eq('org_id', currentOrg.id).eq('role','admin')
-      .maybeSingle();
-    const aName = adminProfile?.full_name || currentOrg?.name + ' Admin' || 'Group Admin';
-    const nameEl = document.getElementById('help-admin-name');
-    const avatarEl = document.getElementById('help-admin-avatar');
+      .select('full_name').eq('org_id', currentOrg.id).eq('role','admin').maybeSingle();
+    const aName = adminProfile?.full_name || (currentOrg?.name ? currentOrg.name + ' Admin' : 'Group Admin');
+    const initials = aName.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    const nameEl = document.getElementById('faq-admin-name');
+    const avatarEl = document.getElementById('faq-admin-avatar');
     if (nameEl) nameEl.textContent = aName;
-    if (avatarEl) avatarEl.textContent = aName.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    if (avatarEl) avatarEl.textContent = initials;
   } catch(e) {}
 }
 
-// ── MOBILE MEMBER PAGE RENDERERS ──────────────────────────────────────────
-// These override the portal.js versions to render mobile-first UI
-// They run after all scripts load
-
+// ── Override portal.js loaders after all scripts are loaded ─────
 window.addEventListener('load', () => {
-  // Override loadMyContributions
-  const _origContribs = window.loadMyContributions;
+
+  // ── loadMyContributions override ──────────────────────────────
   window.loadMyContributions = async function() {
     if (!currentOrg?.id || !currentProfile) return;
-    let memberId = window._myMemberId;
-    if (!memberId && typeof loadMyProfile === 'function') {
+    if (!window._myMemberId && typeof loadMyProfile === 'function') {
       await loadMyProfile();
-      memberId = window._myMemberId;
     }
+    const memberId = window._myMemberId;
+    const timelineEl = document.getElementById('mc-timeline');
 
-    const histEl = document.getElementById('mc-history-list');
     if (!memberId) {
-      if (histEl) histEl.innerHTML = '<div class="mc-txn-row"><span style="color:var(--ink-faint);font-size:.82rem;padding:.75rem 1rem;display:block">No member record linked. Contact your admin.</span></div>';
+      if (timelineEl) timelineEl.innerHTML = `
+        <div style="padding:2.5rem;text-align:center;color:var(--ink-faint)">
+          <div style="font-size:2rem;margin-bottom:.5rem">🔗</div>
+          <div style="font-size:.88rem;font-weight:600;margin-bottom:.35rem">Not linked to a member record</div>
+          <div style="font-size:.78rem">Contact your group admin to link your account.</div>
+        </div>`;
       return;
     }
 
     try {
       const [txnRes, adjRes] = await Promise.all([
-        sb.from('transactions').select('*,contribution_types(name,income_type)').eq('member_id', memberId).order('transaction_date',{ascending:false}),
-        sb.from('balance_adjustments').select('*').eq('member_id', memberId).order('created_at',{ascending:false})
+        sb.from('transactions')
+          .select('*,contribution_types(name,income_type)')
+          .eq('member_id', memberId)
+          .order('transaction_date', {ascending: false}),
+        sb.from('balance_adjustments')
+          .select('*').eq('member_id', memberId)
+          .order('created_at', {ascending: false})
       ]);
       const txns = txnRes.data || [];
       const adjs = adjRes.data || [];
       const thisYear = new Date().getFullYear().toString();
-      const total = txns.reduce((s,t)=>s+Number(t.amount||0),0);
-      const yearTotal = txns.filter(t=>(t.transaction_date||t.created_at||'').startsWith(thisYear)).reduce((s,t)=>s+Number(t.amount||0),0);
+      const total = txns.reduce((s,t) => s + Number(t.amount||0), 0);
+      const yearTotal = txns
+        .filter(t => (t.transaction_date || t.created_at || '').startsWith(thisYear))
+        .reduce((s,t) => s + Number(t.amount||0), 0);
 
-      // Hero
+      // ── Hero amount ──
       const totalEl = document.getElementById('mc-total');
       if (totalEl) totalEl.textContent = 'Ksh ' + total.toLocaleString();
-      const yearEl = document.getElementById('mc-year');
-      if (yearEl) yearEl.textContent = 'Ksh ' + yearTotal.toLocaleString();
-      const countEl = document.getElementById('mc-count');
-      if (countEl) countEl.textContent = txns.length + ' payment' + (txns.length===1?'':'s');
 
-      // Last payment
-      const lastTxn = txns[0];
-      const lastDateEl = document.getElementById('mc-last-date');
-      const lastYearEl = document.getElementById('mc-last-year');
-      if (lastDateEl && lastTxn) {
-        const d = new Date(lastTxn.transaction_date || lastTxn.created_at);
-        lastDateEl.textContent = d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-        if (lastYearEl) lastYearEl.textContent = d.getFullYear();
-      } else if (lastDateEl) lastDateEl.textContent = '—';
-
-      // Type chips
+      // ── Type chips in hero ──
       const chipsEl = document.getElementById('mc-type-chips');
       if (chipsEl && txns.length) {
         const cats = {};
-        txns.forEach(t => { const c = t.contribution_types?.name||'Payment'; cats[c]=(cats[c]||0)+Number(t.amount||0); });
-        chipsEl.innerHTML = Object.entries(cats).map(([c,a])=>`<div class="mc-hero-chip">${c} <span>Ksh ${a.toLocaleString()}</span></div>`).join('');
-      }
-
-      // History grouped by month
-      if (histEl) {
-        const all = [
-          ...txns.map(t=>({date:t.transaction_date||t.created_at?.split('T')[0],name:t.contribution_types?.name||'Payment',amount:Number(t.amount||0),ref:t.mpesa_ref||'—',status:'approved',credit:true})),
-          ...adjs.map(a=>({date:a.created_at?.split('T')[0],name:(a.direction==='credit'?'Credit':'Debit')+' — '+(a.adjustment_type||''),amount:Number(a.amount||0),ref:'—',status:a.direction,credit:a.direction==='credit'}))
-        ].sort((a,b)=>b.date>a.date?1:-1);
-
-        if (!all.length) {
-          histEl.innerHTML = '<div style="padding:1.25rem 1rem;text-align:center;color:var(--ink-faint);font-size:.82rem">No contributions recorded yet.</div>';
-          return;
-        }
-        const groups = {};
-        all.forEach(item => {
-          const d = item.date ? new Date(item.date) : new Date();
-          const key = d.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
-          if (!groups[key]) groups[key]=[];
-          groups[key].push(item);
+        txns.forEach(t => {
+          const c = t.contribution_types?.name || 'Payment';
+          cats[c] = (cats[c]||0) + Number(t.amount||0);
         });
-        histEl.innerHTML = Object.entries(groups).map(([month,items])=>`
-          <div class="mc-month-header">${month}</div>
-          ${items.map(item=>`
-            <div class="mc-txn-row">
-              <div class="mc-txn-icon">${item.credit?'₭':'↓'}</div>
-              <div class="mc-txn-body">
-                <div class="mc-txn-name">${item.name}</div>
-                <div class="mc-txn-meta">${item.date?new Date(item.date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'—'} · ${item.ref}</div>
-                <span class="mc-txn-badge">✓ ${item.status}</span>
-              </div>
-              <div class="mc-txn-amount" style="${!item.credit?'color:var(--danger)':''}">${item.credit?'+':'-'}Ksh ${item.amount.toLocaleString()}</div>
-            </div>`).join('')}`).join('');
+        chipsEl.innerHTML = Object.entries(cats)
+          .map(([c,a]) => `<div class="pmc-chip">${c} · <strong>Ksh ${a.toLocaleString()}</strong></div>`)
+          .join('');
       }
-    } catch(e) { console.error('loadMyContributions:', e); }
+
+      // ── Year card ──
+      const yearEl = document.getElementById('mc-year');
+      if (yearEl) yearEl.textContent = 'Ksh ' + yearTotal.toLocaleString();
+
+      // ── Count label ──
+      const countEl = document.getElementById('mc-count-label');
+      if (countEl) countEl.textContent = txns.length + ' payment' + (txns.length===1?'':'s') + ' recorded';
+
+      // ── History sub label ──
+      const subEl = document.getElementById('mc-history-sub');
+      if (subEl) subEl.textContent = txns.length + ' total';
+
+      // ── Monthly bar chart (last 6 months) ──
+      const chartEl = document.getElementById('mc-chart');
+      const labelsEl = document.getElementById('mc-chart-labels');
+      if (chartEl) {
+        const months = [];
+        for (let i=5; i>=0; i--) {
+          const d = new Date();
+          d.setDate(1);
+          d.setMonth(d.getMonth()-i);
+          months.push({ key: d.toISOString().slice(0,7), label: d.toLocaleString('default',{month:'short'}) });
+        }
+        const monthData = months.map(m => ({
+          label: m.label,
+          total: txns.filter(t => (t.transaction_date||'').startsWith(m.key))
+            .reduce((s,t) => s + Number(t.amount||0), 0)
+        }));
+        const maxVal = Math.max(...monthData.map(m => m.total), 1);
+        const colors = ['#800020','#9a1c35','#0f6e56','#c49a30','#5a0016','#1d9e75'];
+        chartEl.innerHTML = monthData.map((m, i) => {
+          const h = Math.round((m.total/maxVal)*80);
+          return `<div class="pmc-bar-col">
+            <div class="pmc-bar-val">${m.total>0?'Ksh '+(m.total>=1000?(m.total/1000).toFixed(0)+'K':m.total):''}</div>
+            <div class="pmc-bar" style="height:${h||3}px;background:${colors[i%colors.length]}"></div>
+          </div>`;
+        }).join('');
+        if (labelsEl) labelsEl.innerHTML = monthData.map(m =>
+          `<div style="flex:1;text-align:center;font-size:.6rem;color:var(--ink-faint)">${m.label}</div>`).join('');
+      }
+
+      // ── By category ──
+      const catEl = document.getElementById('mc-by-category');
+      if (catEl) {
+        const cats = {};
+        txns.forEach(t => {
+          const c = t.contribution_types?.name || 'Payment';
+          cats[c] = (cats[c]||0) + Number(t.amount||0);
+        });
+        const entries = Object.entries(cats).sort((a,b) => b[1]-a[1]);
+        const grandTotal = entries.reduce((s,[,v]) => s+v, 0);
+        const catColors = ['var(--maroon)','var(--teal)','var(--gold)','#9a1c35','#085041'];
+        catEl.innerHTML = entries.length ? entries.map(([cat,amt],i) => {
+          const pct = grandTotal ? Math.round((amt/grandTotal)*100) : 0;
+          return `<div class="pmc-cat-row">
+            <div class="pmc-cat-dot" style="background:${catColors[i%catColors.length]}"></div>
+            <div style="flex:1">
+              <div style="display:flex;justify-content:space-between;margin-bottom:.25rem">
+                <span style="font-size:.78rem;font-weight:500;color:var(--ink)">${cat}</span>
+                <span style="font-size:.78rem;font-weight:700;color:${catColors[i%catColors.length]}">Ksh ${amt.toLocaleString()}</span>
+              </div>
+              <div class="pmc-cat-bar"><div class="pmc-cat-fill" style="width:${pct}%;background:${catColors[i%catColors.length]}"></div></div>
+            </div>
+          </div>`;
+        }).join('') : '<div style="padding:1rem;color:var(--ink-faint);font-size:.82rem">No contributions yet</div>';
+      }
+
+      // ── Payment history timeline ──
+      if (!timelineEl) return;
+      const all = [
+        ...txns.map(t => ({
+          date: t.transaction_date || t.created_at?.split('T')[0] || '',
+          name: t.contribution_types?.name || 'Payment',
+          amount: Number(t.amount||0),
+          ref: t.mpesa_ref || '—',
+          isCredit: true,
+          created: t.created_at || t.transaction_date || ''
+        })),
+        ...adjs.map(a => ({
+          date: a.created_at?.split('T')[0] || '',
+          name: (a.direction==='credit' ? '✓ Credit' : '↓ Debit') + (a.adjustment_type ? ' — '+a.adjustment_type : ''),
+          amount: Number(a.amount||0),
+          ref: '—',
+          isCredit: a.direction === 'credit',
+          created: a.created_at || ''
+        }))
+      ].sort((a,b) => new Date(b.created) - new Date(a.created));
+
+      if (!all.length) {
+        timelineEl.innerHTML = `
+          <div style="padding:3rem;text-align:center">
+            <div style="font-size:2.5rem;margin-bottom:.75rem">₭</div>
+            <div style="font-size:.9rem;font-weight:600;color:var(--ink);margin-bottom:.35rem">No payments yet</div>
+            <div style="font-size:.78rem;color:var(--ink-faint);margin-bottom:1rem">Your payment history will appear here.</div>
+            <button class="pmc-pay-btn" onclick="openMemberPaymentModal();showModal('memberPayment')" style="max-width:200px;margin:0 auto">💳 Make a Payment</button>
+          </div>`;
+        return;
+      }
+
+      // Group by month
+      const groups = {};
+      all.forEach(item => {
+        const d = item.date ? new Date(item.date) : new Date();
+        const key = d.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(item);
+      });
+
+      timelineEl.innerHTML = Object.entries(groups).map(([month, items]) => {
+        const monthTotal = items.filter(i=>i.isCredit).reduce((s,i)=>s+i.amount,0);
+        return `
+          <div class="pmc-month-group">
+            <div class="pmc-month-header">
+              <span>${month}</span>
+              <span style="color:var(--teal);font-weight:700">+Ksh ${monthTotal.toLocaleString()}</span>
+            </div>
+            ${items.map(item => {
+              const initials = item.name.replace(/[^A-Za-z]/g,'').substring(0,2).toUpperCase() || '₭';
+              const dateStr = item.date ? new Date(item.date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '—';
+              const color = item.isCredit ? 'var(--teal)' : 'var(--danger)';
+              const bg = item.isCredit ? 'var(--teal-pale)' : 'var(--danger-pale)';
+              return `
+                <div class="pmc-txn-row">
+                  <div class="pmc-txn-avatar" style="background:${bg};color:${color}">${initials}</div>
+                  <div class="pmc-txn-body">
+                    <div class="pmc-txn-name">${item.name}</div>
+                    <div class="pmc-txn-meta">${dateStr}${item.ref!=='—'?' · <span style="font-family:monospace;font-size:.7rem">'+item.ref+'</span>':''}</div>
+                  </div>
+                  <div class="pmc-txn-amount" style="color:${color}">
+                    ${item.isCredit?'+':'−'}Ksh ${item.amount.toLocaleString()}
+                  </div>
+                </div>`;
+            }).join('')}
+          </div>`;
+      }).join('');
+
+    } catch(e) {
+      console.error('loadMyContributions error:', e);
+      const el = document.getElementById('mc-timeline');
+      if (el) el.innerHTML = `<div style="padding:1.5rem;text-align:center;color:var(--danger)">Error loading contributions: ${e.message}</div>`;
+    }
   };
 
-  // Override loadMyMeetings
+  // ── loadMyMeetings override ───────────────────────────────────
   window.loadMyMeetings = async function() {
     if (!currentOrg?.id) return;
     const today = new Date().toISOString().split('T')[0];
@@ -1235,83 +1365,120 @@ window.addEventListener('load', () => {
 
     try {
       const [upRes, pastRes] = await Promise.all([
-        sb.from('meetings').select('*').eq('org_id',currentOrg.id).gte('meeting_date',today).order('meeting_date').limit(5),
-        sb.from('meetings').select('*').eq('org_id',currentOrg.id).lt('meeting_date',today).order('meeting_date',{ascending:false}).limit(10)
+        sb.from('meetings').select('*').eq('org_id', currentOrg.id)
+          .gte('meeting_date', today).order('meeting_date').limit(5),
+        sb.from('meetings').select('*').eq('org_id', currentOrg.id)
+          .lt('meeting_date', today).order('meeting_date',{ascending:false}).limit(10)
       ]);
       const upcoming = upRes.data || [];
       const past = pastRes.data || [];
 
-      // Next meeting card
-      const nextTitle = document.getElementById('mtg-next-title');
-      const nextMeta = document.getElementById('mtg-next-meta');
-      const nextChips = document.getElementById('mtg-next-chips');
-      if (nextTitle) {
-        if (upcoming.length) {
-          const m = upcoming[0];
-          const d = new Date(m.meeting_date);
-          nextTitle.textContent = m.name || 'General Meeting';
-          if (nextMeta) nextMeta.textContent = d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) + (m.meeting_time ? ' · ' + m.meeting_time : '');
-          if (nextChips) nextChips.innerHTML = [
-            m.venue ? `<div class="mtg-next-chip">📍 ${m.venue}</div>` : '',
-            '<div class="mtg-next-chip">👥 All members</div>'
-          ].join('');
-        } else {
-          nextTitle.textContent = 'No upcoming meeting scheduled';
-          if (nextMeta) nextMeta.textContent = 'Your admin will schedule the next meeting soon';
-          if (nextChips) nextChips.innerHTML = '';
-        }
+      // ── Next meeting hero ──
+      const titleEl = document.getElementById('mtg-next-title');
+      const metaEl = document.getElementById('mtg-next-meta');
+      const chipsEl = document.getElementById('mtg-next-chips');
+      if (upcoming.length) {
+        const m = upcoming[0];
+        const d = new Date(m.meeting_date);
+        const daysAway = Math.ceil((d - new Date()) / (1000*60*60*24));
+        if (titleEl) titleEl.textContent = m.agenda?.split('\n')[0] || m.name || 'General Meeting';
+        if (metaEl) metaEl.textContent = d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) + (m.meeting_time ? ' · ' + m.meeting_time : '');
+        if (chipsEl) chipsEl.innerHTML = [
+          m.venue ? `<div class="pmm-chip">📍 ${m.venue}</div>` : '',
+          `<div class="pmm-chip">👥 All members</div>`,
+          daysAway === 0 ? '<div class="pmm-chip urgent">Today!</div>' :
+          daysAway === 1 ? '<div class="pmm-chip soon">Tomorrow</div>' :
+          `<div class="pmm-chip">In ${daysAway} days</div>`
+        ].join('');
+      } else {
+        if (titleEl) titleEl.textContent = 'No upcoming meetings scheduled';
+        if (metaEl) metaEl.textContent = 'Your admin will schedule the next meeting soon';
+        if (chipsEl) chipsEl.innerHTML = '';
       }
 
-      // Attendance summary
+      // ── Attendance summary ──
       const attEl = document.getElementById('my-attendance-record');
       if (attEl) {
+        let present = 0, absent = 0, apology = 0;
         if (memberId && past.length) {
-          const { data: attData } = await sb.from('attendance').select('*').eq('member_id',memberId).in('meeting_id',past.map(m=>m.id));
-          const attMap = {};
-          (attData||[]).forEach(a => attMap[a.meeting_id] = a.status);
-          const present = Object.values(attMap).filter(s=>s==='present').length;
-          const total = past.length;
-          const pct = total > 0 ? Math.round((present/total)*100) : 0;
-          const pctColor = pct>=75?'green':pct>=50?'gold':'';
-          attEl.innerHTML = `
-            <div class="mtg-stat-card"><div class="mtg-stat-val">${total}</div><div class="mtg-stat-lbl">Meetings held</div></div>
-            <div class="mtg-stat-card"><div class="mtg-stat-val green">${present}</div><div class="mtg-stat-lbl">I attended</div></div>
-            <div class="mtg-stat-card"><div class="mtg-stat-val ${pctColor}">${pct}%</div><div class="mtg-stat-lbl">Rate</div></div>`;
-
-          // Past meetings list
-          const pastEl = document.getElementById('my-past-meetings');
-          if (pastEl) {
-            pastEl.innerHTML = '<div class="mtg-meet-list">' + past.map(m => {
-              const d = new Date(m.meeting_date);
-              const s = attMap[m.id];
-              return `<div class="mtg-meet-card">
-                <div class="mtg-meet-header">
-                  <div class="mtg-date-box">
-                    <div class="mtg-date-day">${d.getDate()}</div>
-                    <div class="mtg-date-mon">${d.toLocaleDateString('en-GB',{month:'short'})}</div>
-                  </div>
-                  <div style="flex:1">
-                    <div class="mtg-meet-name">${m.name||'Meeting'}</div>
-                    <div class="mtg-meet-sub">📍 ${m.venue||'—'}</div>
-                  </div>
-                  <span class="mtg-meet-badge held">Held</span>
-                </div>
-                <div class="mtg-meet-footer">
-                  <span class="mtg-att-info">Members attended</span>
-                  <span class="mtg-att-status ${s||''}">${s==='present'?'✓ Present':s==='apology'?'⚠ Apology':s==='absent'?'✗ Absent':'—'}</span>
-                </div>
-              </div>`;
-            }).join('') + '</div>';
-          }
-        } else {
-          attEl.innerHTML = `
-            <div class="mtg-stat-card"><div class="mtg-stat-val">—</div><div class="mtg-stat-lbl">Meetings held</div></div>
-            <div class="mtg-stat-card"><div class="mtg-stat-val">—</div><div class="mtg-stat-lbl">I attended</div></div>
-            <div class="mtg-stat-card"><div class="mtg-stat-val">—</div><div class="mtg-stat-lbl">Rate</div></div>`;
-          const pastEl = document.getElementById('my-past-meetings');
-          if (pastEl) pastEl.innerHTML = '<div style="padding:1.5rem 1rem;text-align:center;color:var(--ink-faint);font-size:.82rem">No past meetings recorded yet</div>';
+          const { data: attData } = await sb.from('attendance')
+            .select('status').eq('member_id', memberId)
+            .in('meeting_id', past.map(m=>m.id));
+          (attData||[]).forEach(a => {
+            if (a.status === 'present') present++;
+            else if (a.status === 'absent') absent++;
+            else if (a.status === 'apology') apology++;
+          });
         }
+        const total = past.length;
+        const rate = total > 0 ? Math.round((present/total)*100) : 0;
+        const rateColor = rate >= 75 ? 'var(--teal)' : rate >= 50 ? 'var(--gold)' : 'var(--danger)';
+        attEl.innerHTML = `
+          <div class="pmm-att-card">
+            <div class="pmm-att-val" style="color:var(--ink)">${total}</div>
+            <div class="pmm-att-lbl">Meetings held</div>
+          </div>
+          <div class="pmm-att-card">
+            <div class="pmm-att-val" style="color:var(--teal)">${present}</div>
+            <div class="pmm-att-lbl">I attended</div>
+          </div>
+          <div class="pmm-att-card">
+            <div class="pmm-att-val" style="color:${rateColor}">${total>0?rate+'%':'—'}</div>
+            <div class="pmm-att-lbl">Rate</div>
+          </div>`;
       }
-    } catch(e) { console.error('loadMyMeetings:', e); }
+
+      // ── Upcoming meetings ──
+      const upEl = document.getElementById('my-upcoming-meetings');
+      if (upEl) {
+        upEl.innerHTML = upcoming.length ? upcoming.map((m,i) => {
+          const d = new Date(m.meeting_date);
+          const days = Math.ceil((d - new Date()) / (1000*60*60*24));
+          const urgency = days === 0 ? 'today' : days <= 3 ? 'soon' : '';
+          return `
+            <div class="pmm-upcoming-card" style="animation-delay:${i*.05}s">
+              <div class="pmm-upcoming-date">
+                <div class="pmm-date-day">${d.getDate()}</div>
+                <div class="pmm-date-mon">${d.toLocaleString('default',{month:'short'})}</div>
+              </div>
+              <div style="flex:1">
+                <div class="pmm-upcoming-title">${m.agenda?.split('\n')[0] || 'General Meeting'}</div>
+                <div class="pmm-upcoming-meta">🕐 ${m.meeting_time||'TBA'} · 📍 ${m.venue||'TBA'}</div>
+                ${urgency ? `<div class="pmm-urgency ${urgency}">${days===0?'📍 Today!':days===1?'⏰ Tomorrow':'⏰ In '+days+' days'}</div>` : ''}
+              </div>
+            </div>`;
+        }).join('') : `<div style="padding:1.25rem;text-align:center;color:var(--ink-faint);font-size:.82rem">No upcoming meetings</div>`;
+      }
+
+      // ── Past meetings ──
+      const pastEl = document.getElementById('my-past-meetings');
+      if (pastEl) {
+        let attMap = {};
+        if (memberId && past.length) {
+          const { data: attData } = await sb.from('attendance')
+            .select('meeting_id,status').eq('member_id', memberId)
+            .in('meeting_id', past.map(m=>m.id));
+          (attData||[]).forEach(a => attMap[a.meeting_id] = a.status);
+        }
+        pastEl.innerHTML = past.length ? past.map(m => {
+          const d = new Date(m.meeting_date);
+          const s = attMap[m.id];
+          const statusLabel = s === 'present' ? '✓ Present' : s === 'apology' ? '~ Apology' : s === 'absent' ? '✗ Absent' : '—';
+          const statusColor = s === 'present' ? 'var(--teal)' : s === 'apology' ? 'var(--gold)' : s === 'absent' ? 'var(--danger)' : 'var(--ink-faint)';
+          return `
+            <div class="pmm-past-card">
+              <div class="pmm-past-left">
+                <div class="pmm-past-date">${d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
+                <div class="pmm-past-venue">📍 ${m.venue||'—'}</div>
+              </div>
+              <div class="pmm-past-status" style="color:${statusColor}">${statusLabel}</div>
+            </div>`;
+        }).join('') : `<div style="padding:1.25rem;text-align:center;color:var(--ink-faint);font-size:.82rem">No past meetings recorded</div>`;
+      }
+
+    } catch(e) {
+      console.error('loadMyMeetings error:', e);
+    }
   };
-});
+
+}); // end window.addEventListener('load')
