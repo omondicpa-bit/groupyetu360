@@ -1553,294 +1553,558 @@ tr:hover td{background:var(--maroon-pale)}
    Sidebar becomes a full-height drawer, replaced by bottom tab bar
    ════════════════════════════════════════════════════════════════════════ */
 
-
-/* ════════════════════════════════════════════════════════════
-   MOBILE APP EXPERIENCE — ≤600px
-   Each page = standalone app screen. No side-by-side columns.
-   Bottom tab bar navigation only.
-════════════════════════════════════════════════════════════ */
-
-/* ── Base mobile toggles (always apply) ── */
-.mob-hamburger{display:none}
-.mob-bottom-nav{display:none}
-.mob-backdrop{display:none}
-
 @media(max-width:600px){
+  /* ── Root adjustments ── */
+  :root{ --sidebar-w:0px; }
 
-  /* ── Enable mobile nav ── */
-  .mob-hamburger{display:flex}
-  .mob-bottom-nav{display:flex}
-
-  /* ── Root: kill sidebar width ── */
-  :root{ --sidebar-w:0px }
-
-  /* ── Sidebar: slide-in drawer only ── */
+  /* ── Sidebar becomes overlay drawer ── */
   .sidebar{
-    width:82vw;max-width:300px;
+    width:80vw;max-width:280px;
     transform:translateX(-100%);
-    box-shadow:6px 0 32px rgba(0,0,0,.4);
-    z-index:200;transition:transform .28s cubic-bezier(.4,0,.2,1)
+    box-shadow:4px 0 24px rgba(0,0,0,.35);
+    z-index:200;
   }
   .sidebar.mob-open{transform:translateX(0)}
-  .sidebar-toggle{display:none}
+  .sidebar-toggle{display:none} /* hide desktop toggle */
 
-  /* ── Backdrop ── */
+  /* ── Drawer overlay backdrop ── */
   .mob-backdrop{
     display:none;position:fixed;inset:0;
-    background:rgba(0,0,0,.5);z-index:199;
-    backdrop-filter:blur(2px)
+    background:rgba(0,0,0,.45);z-index:199;
   }
   .mob-backdrop.visible{display:block}
 
-  /* ── Main layout ── */
+  /* ── Main takes full width ── */
   .main{
     margin-left:0 !important;
-    padding-bottom:72px; /* clear bottom nav */
+    padding-bottom:68px; /* room for bottom nav */
   }
 
   /* ── Topbar ── */
-  .topbar{padding:0 1rem;height:54px}
-  .topbar-title{font-size:.95rem}
-  .topbar-sub{display:none !important}
-  .topbar-btn{padding:.38rem .75rem;font-size:.72rem}
+  .topbar{padding:0 1rem;height:52px}
+  .topbar-title{font-size:.9rem}
+  .topbar-sub{display:none}
+  .topbar-btn{padding:.35rem .7rem;font-size:.7rem}
   .topbar-right{gap:.4rem}
 
-  /* ── Content area ── */
-  .content{padding:.85rem .85rem 1rem}
+  /* ── Mobile hamburger in topbar ── */
+  .mob-hamburger{
+    display:flex;align-items:center;justify-content:center;
+    width:36px;height:36px;background:transparent;border:none;
+    color:var(--ink);font-size:1.3rem;cursor:pointer;flex-shrink:0;
+    margin-right:.35rem;
+  }
 
-  /* ── Bottom nav bar ── */
+  /* ── Bottom navigation bar ── */
   .mob-bottom-nav{
+    display:flex;
     position:fixed;bottom:0;left:0;right:0;
-    height:62px;
+    height:60px;
     background:var(--surface);
     border-top:1px solid var(--border);
     z-index:150;
     padding-bottom:env(safe-area-inset-bottom,0);
-    box-shadow:0 -4px 20px rgba(0,0,0,.07)
   }
   .mob-nav-item{
     flex:1;display:flex;flex-direction:column;align-items:center;
-    justify-content:center;gap:3px;cursor:pointer;
+    justify-content:center;gap:2px;cursor:pointer;
     color:var(--ink-faint);transition:color .15s;
     border:none;background:transparent;padding:.4rem 0;
-    font-family:'Inter',sans-serif
+    font-family:'Inter',sans-serif;
   }
   .mob-nav-item.active{color:var(--maroon)}
   .mob-nav-item .mob-nav-icon{font-size:1.3rem;line-height:1}
-  .mob-nav-item .mob-nav-label{
-    font-size:.58rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase
-  }
+  .mob-nav-item .mob-nav-label{font-size:.58rem;font-weight:600;letter-spacing:.03em;text-transform:uppercase}
 
-  /* ══════════════════════════════════════════
-     DASHBOARD — hero balance + 4 big stat cards
-     NOTHING ELSE shown on mobile
-  ══════════════════════════════════════════ */
+  /* ── Content padding ── */
+  .content{padding:.75rem}
 
-  /* Hero — full width, generous */
-  #dash-hero{
-    padding:1.5rem 1.1rem !important;
-    margin-bottom:1rem;
-    border-radius:12px;
-    margin-left:0;margin-right:0
-  }
-  #dash-hero-name{font-size:1.6rem !important;margin-bottom:.35rem !important}
-  #dash-hero > div > div:last-child{
-    gap:.5rem !important
-  }
-  #dash-hero > div > div:last-child > div{
-    padding:.5rem .85rem !important
-  }
+  /* ── Stat cards ── */
+  .stats-row{grid-template-columns:repeat(2,1fr);gap:.5rem}
+  .stat-card{padding:.7rem .85rem}
+  .stat-value{font-size:1.2rem !important}
 
-  /* Stat cards — 2×2, large and tappable */
-  #page-dashboard .stats-row{
-    grid-template-columns:repeat(2,1fr) !important;
-    gap:.65rem !important;
-    margin-bottom:0 !important
-  }
-  #page-dashboard .stat-card{
-    padding:1.1rem 1rem !important;
-    border-radius:10px;
-    min-height:90px;
-    display:flex;flex-direction:column;justify-content:space-between
-  }
-  #page-dashboard .stat-label{font-size:.65rem !important}
-  #page-dashboard .stat-value{font-size:1.4rem !important}
+  /* ── Cards ── */
+  .card-header{padding:.75rem 1rem}
+  .card-body{padding:.75rem 1rem}
+  .card-title{font-size:.88rem}
 
-  /* HIDE everything on dashboard except hero + stat cards */
-  /* Alert cards — keep visible (important warnings) */
-  #registration-warning-card{margin-bottom:.65rem}
-  #pending-approvals-card{margin-bottom:.65rem}
-
-  /* Hide all the clutter below stat cards */
-  #page-dashboard > div[style*="grid-template-columns:1.4fr"],
-  #page-dashboard > div[style*="grid-template-columns:1fr 1fr"],
-  #page-dashboard > #dash-module-cards,
-  #page-dashboard > .card:last-child,
-  #txn-summary-card,
-  #page-dashboard > div:last-of-type > .card{
-    display:none !important
-  }
-
-  /* ══════════════════════════════════════════
-     ALL PAGES — full-width single column
-  ══════════════════════════════════════════ */
-
-  /* Kill ALL side-by-side grids globally */
-  .grid-2,.grid-3{grid-template-columns:1fr !important;gap:.65rem}
-  .stats-row{grid-template-columns:repeat(2,1fr) !important;gap:.5rem}
-  .form-row{grid-template-columns:1fr !important;gap:0}
-
-  /* Cards */
-  .card{border-radius:10px;margin-bottom:.75rem}
-  .card-header{padding:.8rem 1rem}
-  .card-body{padding:.8rem 1rem}
-  .card-title{font-size:.85rem}
-
-  /* Tables — scroll */
+  /* ── Tables — horizontal scroll ── */
   .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  table{min-width:480px}
+  table{min-width:500px}
 
-  /* Modals — slide up from bottom */
+  /* ── Modals ── */
   .modal-overlay{align-items:flex-end}
   .modal{
     width:100% !important;max-width:100% !important;
-    border-radius:20px 20px 0 0;
-    max-height:88vh;overflow-y:auto;
-    margin:0
+    border-radius:16px 16px 0 0;
+    max-height:92vh;overflow-y:auto;
+    margin:0;
   }
-  .modal-body{padding:1.25rem 1rem}
-  .modal-footer{padding:.85rem 1rem}
 
-  /* Prevent iOS zoom on inputs */
+  /* ── Forms — prevent iOS zoom on focus ── */
   .form-input,.form-select,.form-textarea{font-size:16px !important}
 
-  /* Buttons */
-  .btn{border-radius:8px}
-  .btn-primary{padding:.72rem 1rem}
+  /* ── Grid overrides ── */
+  .grid-2,.grid-3{grid-template-columns:1fr !important}
+  .form-row{flex-direction:column}
+  .form-row .form-group{width:100%}
 
-  /* ══ MEMBERS PAGE ══ */
-  .member-grid{grid-template-columns:repeat(2,1fr) !important;gap:.6rem}
-  .mc-name{font-size:.82rem}
-  .mc-bal-value{font-size:.78rem}
-  #member-status-filters{flex-wrap:wrap;gap:.3rem}
-  .mf-pill{font-size:.68rem;padding:.28rem .65rem}
+  /* ── Section header ── */
+  .section-header{flex-wrap:wrap;gap:.5rem;padding:.75rem 0}
+  .section-title{font-size:1.1rem}
 
-  /* ══ FINANCE PAGE ══ */
-  .fin-scorecard{grid-template-columns:1fr !important}
-  .fin-score-split{flex-direction:row;gap:.5rem}
-  .fin-score-main{padding:1rem}
-  .fin-score-value{font-size:1.6rem !important}
-  .fin-stats{grid-template-columns:repeat(2,1fr) !important;gap:.5rem}
-  .fin-stat-card{padding:.75rem .85rem}
-  .fin-tabs{overflow-x:auto;flex-wrap:nowrap;gap:.3rem;padding-bottom:4px}
-  .fin-tabs::-webkit-scrollbar{display:none}
-  .fin-tab{white-space:nowrap;flex-shrink:0;font-size:.72rem;padding:.42rem .75rem}
-  .fin-form-card{padding:1rem;max-width:100%}
-  .fin-hero{padding:1rem 1.1rem;border-radius:10px}
-  #fin-hero-controls{display:none} /* hide shareout/withdraw controls on mobile */
+  /* ── Dashboard hero ── */
+  .dash-hero{padding:1rem}
+  .dash-hero-stats{flex-direction:column;gap:.4rem}
 
-  /* ══ MEETINGS PAGE ══ */
-  .mtg-hero{padding:1rem 1.1rem;border-radius:10px}
-  .mtg-stats{grid-template-columns:repeat(3,1fr);gap:.4rem}
-  .mtg-stat{padding:.65rem .5rem}
-  .mtg-stat-val{font-size:1.2rem}
-  .mtg-layout{grid-template-columns:1fr !important;gap:.65rem}
-  .mtg-card{padding:.85rem 1rem;border-radius:10px}
-  .att-grid{grid-template-columns:repeat(2,1fr) !important}
+  /* ── Finance tabs — scroll horizontally ── */
+  .fin-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;padding-bottom:2px}
+  .fin-tab{white-space:nowrap;flex-shrink:0;font-size:.72rem;padding:.45rem .75rem}
 
-  /* ══ WELFARE PAGE ══ */
-  .wel-hero{padding:1rem 1.1rem;border-radius:10px}
-  .wel-stats{grid-template-columns:repeat(3,1fr);gap:.4rem}
-  .wel-stat{padding:.65rem .5rem}
-  .wel-stat-val{font-size:1.2rem}
-  .wel-event-header{flex-wrap:wrap;gap:.5rem}
+  /* ── Hide decorative elements ── */
+  .member-grid{grid-template-columns:1fr}
 
-  /* ══ PROJECTS PAGE ══ */
-  .proj-hero{padding:1rem 1.1rem;border-radius:10px}
-  .proj-stats{grid-template-columns:repeat(2,1fr) !important;gap:.5rem}
-  .proj-stat{padding:.65rem .75rem}
-  .grid-3#projects-grid{grid-template-columns:1fr !important}
-
-  /* ══ MGR PAGE ══ */
-  .mgr-hero{padding:1rem 1.1rem;border-radius:10px}
-  .mgr-stats{grid-template-columns:repeat(2,1fr) !important;gap:.5rem}
-  .mgr-stat{padding:.65rem .5rem}
-  .slot-grid{grid-template-columns:1fr !important;padding:.75rem}
-  .mgr-tabs{overflow-x:auto;flex-wrap:nowrap;gap:.3rem}
-  .mgr-tabs::-webkit-scrollbar{display:none}
-  .mgr-tab{white-space:nowrap;flex-shrink:0;font-size:.72rem}
-  .mgr-form-card{padding:1rem;max-width:100%}
-  .method-toggle{grid-template-columns:1fr !important}
-
-  /* ══ TABLE BANKING ══ */
-  .tb-hero{padding:1rem 1.1rem;border-radius:10px}
-  .tb-stats{grid-template-columns:repeat(2,1fr) !important;gap:.5rem}
-  .tb-stat{padding:.65rem .75rem}
-
-  /* ══ MESSAGES PAGE ══ */
-  .msg-hero{padding:1rem 1.1rem;border-radius:10px}
-  .msg-layout{grid-template-columns:1fr !important}
-  .msg-right-col{display:none} /* sidebar hidden — too much on small screen */
-  .msg-compose{border-radius:10px}
-
-  /* ══ MY PROFILE PAGE ══ */
-  .mp-hero{padding:1.25rem 1rem;border-radius:10px}
-  .mp-hero-name{font-size:1.4rem}
-  .mp-balances{grid-template-columns:repeat(2,1fr) !important;gap:.5rem}
-  .mp-bal-card{padding:.85rem .9rem}
-  .mp-bal-value{font-size:1.3rem}
-
-  /* ══ MY CONTRIBUTIONS PAGE ══ */
-  #mc-stats-row{grid-template-columns:repeat(2,1fr) !important;gap:.5rem}
-  #page-my_contributions > div[style*="grid-template-columns:1fr 280px"]{
-    grid-template-columns:1fr !important
-  }
-
-  /* ══ SETTINGS PAGE ══ */
-  #page-settings .fin-tabs{overflow-x:auto;flex-wrap:nowrap;gap:.25rem}
-  #page-settings .fin-tabs::-webkit-scrollbar{display:none}
-  #page-settings .fin-tab{white-space:nowrap;flex-shrink:0;font-size:.68rem;padding:.38rem .6rem}
-
-  /* ══ APPROVALS PAGE ══ */
-  .tabs{overflow-x:auto;flex-wrap:nowrap;gap:0}
-  .tabs::-webkit-scrollbar{display:none}
-  .tab{white-space:nowrap;flex-shrink:0;font-size:.72rem;padding:.5rem .85rem}
-
-  /* ══ BILLING PAGE ══ */
-  #billing-hero > div{flex-direction:column !important;gap:.65rem}
-  .pay-pill-group{gap:.35rem}
+  /* ── Pay pills wrap better ── */
+  .pay-pill-group{gap:.4rem}
   .pay-pill{font-size:.72rem;padding:5px 10px}
 
-  /* ══ SUPERADMIN ══ */
-  #page-superadmin .stats-row{grid-template-columns:repeat(2,1fr) !important}
-  #page-sa_org_detail > div[style*="repeat(5"]{
-    grid-template-columns:repeat(3,1fr) !important;gap:.4rem
-  }
-  .fin-tabs[style],.fin-tabs{overflow-x:auto;flex-wrap:nowrap}
-
-  /* ══ REG PLAN CARDS ══ */
+  /* ── Reg plan grid — 2 cols on mobile ── */
   .reg-plan-grid{grid-template-columns:repeat(2,1fr)}
+}
 
-  /* ══ AUTH SCREEN ══ */
-  .auth-screen{flex-direction:column}
-  .auth-left{flex:none;padding:1.5rem 1.25rem 1.25rem}
-  .auth-features{display:none}
-  .auth-brand-name{font-size:1.8rem}
-  .auth-left .ring1,.auth-left .ring2,.auth-left .ring3{display:none}
-  .auth-box{border-radius:16px 16px 0 0;margin:0}
-  .auth-right{padding:1.25rem;border-radius:0}
+/* ── Show hamburger only on mobile ── */
+.mob-hamburger{display:none}
+.mob-bottom-nav{display:none}
+.mob-backdrop{display:none}
+@media(max-width:600px){
+  .mob-hamburger{display:flex}
+  .mob-bottom-nav{display:flex}
+}
 
-  /* ══ PAGE TRANSITION ══ */
-  .page.active{
-    animation:mobilePageIn .22s cubic-bezier(.4,0,.2,1) both
+/* ════════════════════════════════════════════════════
+   MEMBER PORTAL — Mobile-first redesign
+   My Profile · My Payments · Meetings · Help
+════════════════════════════════════════════════════ */
+
+/* ── Shared: section label ── */
+.mp-section-label {
+  font-size: .68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--ink-faint);
+  padding: .75rem 1rem .3rem;
+}
+
+/* ── Shared: CTA button ── */
+.mp-cta-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  width: calc(100% - 2rem);
+  margin: .75rem 1rem 0;
+  padding: .9rem 1rem;
+  background: var(--maroon);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: .95rem;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+}
+.mp-cta-btn:active { opacity: .85; }
+
+/* ════ MY PROFILE ════ */
+.mp-hero {
+  background: var(--maroon);
+  padding: 1.25rem 1rem 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+.mp-hero::after {
+  content: '';
+  position: absolute;
+  right: -20px; top: -20px;
+  width: 140px; height: 140px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,.1);
+}
+.mp-hero::before {
+  content: '';
+  position: absolute;
+  right: 30px; top: 30px;
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,.08);
+}
+.mp-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+  margin-bottom: .85rem;
+  position: relative;
+  z-index: 1;
+}
+.mp-avatar {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.15);
+  border: 2px solid rgba(255,255,255,.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.mp-hero-name {
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+.mp-hero-group {
+  color: rgba(255,255,255,.65);
+  font-size: .75rem;
+  margin-top: .15rem;
+}
+.mp-badges {
+  display: flex;
+  gap: .4rem;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
+}
+.mp-badge {
+  background: rgba(255,255,255,.15);
+  color: #fff;
+  font-size: .68rem;
+  padding: .25rem .65rem;
+  border-radius: 20px;
+  border: .5px solid rgba(255,255,255,.25);
+  font-weight: 500;
+}
+
+/* Balance grid — adapts to group type */
+.mp-balance-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .5rem;
+  padding: 0 1rem;
+}
+.mp-bal-card {
+  background: var(--surface);
+  border: .5px solid var(--border);
+  border-radius: 10px;
+  padding: .85rem .9rem;
+}
+.mp-bal-card.full-width { grid-column: 1 / -1; }
+.mp-bal-label {
+  font-size: .65rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--ink-faint);
+  margin-bottom: .35rem;
+}
+.mp-bal-value {
+  font-size: 1.3rem;
+  font-weight: 500;
+  color: var(--maroon);
+}
+.mp-bal-value.gold { color: var(--gold); }
+.mp-bal-value.green { color: var(--success); }
+.mp-bal-sub { font-size: .65rem; color: var(--ink-faint); margin-top: .2rem; }
+.mp-total-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface);
+  border: .5px solid var(--border);
+  border-radius: 10px;
+  padding: .85rem 1rem;
+  margin: .5rem 1rem 0;
+}
+.mp-total-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-faint); }
+.mp-total-val { font-size: 1.5rem; font-weight: 500; color: var(--ink); margin-top: .2rem; }
+.mp-total-right { font-size: .65rem; color: var(--ink-faint); text-align: right; }
+
+/* Info card rows */
+.mp-info-card {
+  background: var(--surface);
+  border: .5px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 0 1rem;
+}
+.mp-info-row {
+  padding: .75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: .5px solid var(--surface-2);
+  gap: .75rem;
+}
+.mp-info-row:last-child { border-bottom: none; }
+.mp-info-label { font-size: .8rem; color: var(--ink-soft); display: flex; align-items: center; gap: .5rem; }
+.mp-info-val { font-size: .82rem; font-weight: 500; color: var(--ink); }
+
+/* ════ MY CONTRIBUTIONS ════ */
+.mc-hero {
+  background: var(--maroon);
+  padding: 1.25rem 1rem 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+.mc-hero::after {
+  content: '';
+  position: absolute;
+  right: -20px; top: -20px;
+  width: 130px; height: 130px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,.1);
+}
+.mc-hero-label {
+  font-size: .7rem;
+  color: rgba(255,255,255,.6);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  margin-bottom: .35rem;
+  position: relative; z-index: 1;
+}
+.mc-hero-amount {
+  font-size: 2rem;
+  font-weight: 500;
+  color: #fff;
+  line-height: 1;
+  position: relative; z-index: 1;
+}
+.mc-hero-chips {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+  margin-top: .75rem;
+  position: relative; z-index: 1;
+}
+.mc-hero-chip {
+  background: rgba(255,255,255,.15);
+  border: .5px solid rgba(255,255,255,.25);
+  border-radius: 20px;
+  padding: .3rem .75rem;
+  color: #fff;
+  font-size: .72rem;
+  display: flex;
+  gap: .35rem;
+  align-items: center;
+}
+.mc-hero-chip span { font-weight: 600; }
+.mc-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .5rem;
+  padding: .65rem 1rem 0;
+}
+.mc-sum-card {
+  background: var(--surface);
+  border: .5px solid var(--border);
+  border-radius: 10px;
+  padding: .85rem .9rem;
+}
+.mc-sum-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-faint); margin-bottom: .3rem; }
+.mc-sum-val { font-size: 1.2rem; font-weight: 500; color: var(--maroon); }
+.mc-sum-val.gold { color: var(--gold); }
+.mc-sum-sub { font-size: .68rem; color: var(--ink-faint); margin-top: .2rem; }
+.mc-history-card {
+  background: var(--surface);
+  border: .5px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 0 1rem;
+}
+.mc-month-header {
+  padding: .55rem 1rem;
+  background: var(--surface-2);
+  font-size: .68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--ink-faint);
+  border-bottom: .5px solid var(--border);
+}
+.mc-txn-row {
+  padding: .85rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  border-bottom: .5px solid var(--surface-2);
+}
+.mc-txn-row:last-child { border-bottom: none; }
+.mc-txn-icon {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+  background: var(--maroon-pale);
+}
+.mc-txn-body { flex: 1; min-width: 0; }
+.mc-txn-name { font-size: .85rem; font-weight: 500; color: var(--ink); }
+.mc-txn-meta { font-size: .72rem; color: var(--ink-faint); margin-top: .1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-txn-badge { font-size: .65rem; color: var(--success); background: #EAF3DE; padding: .15rem .5rem; border-radius: 20px; margin-top: .2rem; display: inline-block; }
+.mc-txn-amount { font-size: .9rem; font-weight: 600; color: var(--success); white-space: nowrap; }
+
+/* ════ MEETINGS ════ */
+.mtg-next-card {
+  margin: .85rem 1rem 0;
+  background: var(--maroon);
+  border-radius: 12px;
+  padding: 1.1rem 1rem;
+  position: relative;
+  overflow: hidden;
+}
+.mtg-next-card::after {
+  content: '';
+  position: absolute;
+  right: -16px; top: -16px;
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,.1);
+}
+.mtg-next-eyebrow { font-size: .68rem; color: rgba(255,255,255,.6); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .35rem; }
+.mtg-next-title { font-size: 1.1rem; font-weight: 500; color: #fff; margin-bottom: .2rem; }
+.mtg-next-meta { font-size: .78rem; color: rgba(255,255,255,.65); margin-bottom: .65rem; }
+.mtg-next-chips { display: flex; gap: .4rem; flex-wrap: wrap; }
+.mtg-next-chip {
+  background: rgba(255,255,255,.15);
+  border: .5px solid rgba(255,255,255,.2);
+  border-radius: 20px;
+  padding: .25rem .65rem;
+  color: #fff;
+  font-size: .7rem;
+}
+.mtg-stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .5rem;
+  padding: 0 1rem;
+}
+.mtg-stat-card {
+  background: var(--surface);
+  border: .5px solid var(--border);
+  border-radius: 10px;
+  padding: .75rem .5rem;
+  text-align: center;
+}
+.mtg-stat-val { font-size: 1.3rem; font-weight: 500; color: var(--maroon); }
+.mtg-stat-val.green { color: var(--success); }
+.mtg-stat-val.gold { color: var(--gold); }
+.mtg-stat-lbl { font-size: .65rem; color: var(--ink-faint); margin-top: .15rem; }
+.mtg-meet-list { padding: 0 1rem; }
+.mtg-meet-card {
+  background: var(--surface);
+  border: .5px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: .5rem;
+}
+.mtg-meet-header {
+  padding: .85rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+.mtg-date-box {
+  width: 40px; height: 40px;
+  background: var(--maroon-pale);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.mtg-date-day { font-size: 1rem; font-weight: 600; color: var(--maroon); line-height: 1; }
+.mtg-date-mon { font-size: .6rem; color: var(--maroon); text-transform: uppercase; letter-spacing: .05em; }
+.mtg-meet-name { font-size: .88rem; font-weight: 500; color: var(--ink); }
+.mtg-meet-sub { font-size: .72rem; color: var(--ink-faint); margin-top: .15rem; }
+.mtg-meet-badge {
+  font-size: .65rem;
+  padding: .2rem .55rem;
+  border-radius: 20px;
+  white-space: nowrap;
+  align-self: flex-start;
+}
+.mtg-meet-badge.held { background: #EAF3DE; color: var(--success); }
+.mtg-meet-badge.upcoming { background: #FFF8E6; color: var(--gold); }
+.mtg-meet-footer {
+  border-top: .5px solid var(--surface-2);
+  padding: .6rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.mtg-att-info { font-size: .72rem; color: var(--ink-faint); }
+.mtg-att-status { font-size: .72rem; font-weight: 600; }
+.mtg-att-status.present { color: var(--success); }
+.mtg-att-status.absent { color: var(--danger); }
+.mtg-att-status.apology { color: var(--gold); }
+
+/* ════ HELP ════ */
+.help-faq-answer {
+  display: none;
+  font-size: .8rem;
+  color: var(--ink-soft);
+  line-height: 1.7;
+  padding: 0 1rem .85rem;
+  border-bottom: .5px solid var(--surface-2);
+}
+.help-faq-answer.open { display: block; }
+
+/* ════ MOBILE BOTTOM NAV ════ */
+.mob-bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 62px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  z-index: 150;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  box-shadow: 0 -4px 20px rgba(0,0,0,.07);
+  display: none;
+}
+@media (max-width: 600px) {
+  .mob-bottom-nav.member-nav { display: flex !important; }
+  .main { padding-bottom: 62px; }
+}
+.mob-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+  color: var(--ink-faint);
+  transition: color .15s;
+  border: none;
+  background: transparent;
+  padding: .4rem 0;
+  font-family: 'Inter', sans-serif;
+}
+.mob-nav-item.active { color: var(--maroon); }
+.mob-nav-icon { font-size: 1.2rem; line-height: 1; }
+.mob-nav-label { font-size: .58rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+
+/* On mobile — member pages get extra padding for bottom nav */
+@media (max-width: 600px) {
+  #page-my_profile, #page-my_contributions, #page-my_meetings, #page-my_help {
+    padding-bottom: 70px;
   }
-  @keyframes mobilePageIn{
-    from{opacity:0;transform:translateY(10px)}
-    to{opacity:1;transform:translateY(0)}
-  }
-
-  /* ══ SECTION HEADERS ══ */
-  .section-header{flex-wrap:wrap;gap:.5rem}
-  .section-title{font-size:1rem}
-
+  /* Hide topbar actions on member pages — cleaner look */
+  .member-portal-active #topbar-actions { display: none; }
 }
