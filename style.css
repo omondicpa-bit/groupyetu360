@@ -1671,6 +1671,112 @@ tr:hover td{background:var(--maroon-pale)}
 
   /* ── Reg plan grid — 2 cols on mobile ── */
   .reg-plan-grid{grid-template-columns:repeat(2,1fr)}
+
+  /* ══════════════════════════════════════
+     DASHBOARD MOBILE LAYOUT
+  ══════════════════════════════════════ */
+
+  /* Hero — tighter padding */
+  #dash-hero{padding:1.1rem 1rem !important}
+  #dash-hero-name{font-size:1.4rem !important}
+
+  /* Stat cards — 2×2 grid */
+  #page-dashboard .stats-row{
+    grid-template-columns:repeat(2,1fr) !important;
+    gap:.5rem;margin-bottom:1rem
+  }
+
+  /* Main content grid — single column stack */
+  #page-dashboard > div[style*="grid-template-columns:1.4fr"]{
+    grid-template-columns:1fr !important;gap:.65rem
+  }
+
+  /* Contributions + chart grid — single column */
+  #page-dashboard > div[style*="grid-template-columns:1fr 1fr"]{
+    grid-template-columns:1fr !important;gap:.65rem
+  }
+
+  /* Quick actions — horizontal scrolling pill row */
+  #page-dashboard .card div[style*="grid-template-columns:1fr 1fr"]{
+    display:flex !important;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    gap:.4rem;
+    padding:.6rem .75rem !important;
+    scrollbar-width:none
+  }
+  #page-dashboard .card div[style*="grid-template-columns:1fr 1fr"]::-webkit-scrollbar{display:none}
+  #page-dashboard .card div[style*="grid-template-columns:1fr 1fr"] .btn{
+    flex-shrink:0;white-space:nowrap;font-size:.72rem;
+    padding:.45rem .75rem
+  }
+
+  /* Members snapshot table — hide on mobile, show button only */
+  #page-dashboard .table-wrap{display:none}
+  #page-dashboard .card:last-child .card-header{border-bottom:none}
+
+  /* Module cards — single column */
+  #dash-module-cards{grid-template-columns:1fr !important}
+
+  /* Bar chart height — shorter on mobile */
+  #dash-monthly-chart{height:60px !important}
+
+  /* ══ MEMBERS PAGE ══ */
+  .member-grid{grid-template-columns:repeat(2,1fr) !important}
+
+  /* ══ FINANCE PAGE ══ */
+  .fin-scorecard{grid-template-columns:1fr !important}
+  .fin-stats{grid-template-columns:repeat(2,1fr) !important}
+  .fin-score-split{flex-direction:row;gap:.5rem}
+  .fin-score-item{padding:.75rem}
+  .fin-score-value{font-size:1.4rem !important}
+
+  /* ══ MEETINGS PAGE ══ */
+  .mtg-layout{grid-template-columns:1fr !important}
+  .mtg-stats{grid-template-columns:repeat(3,1fr)}
+
+  /* ══ PROJECTS PAGE ══ */
+  .proj-stats{grid-template-columns:repeat(2,1fr) !important}
+
+  /* ══ WELFARE PAGE ══ */
+  .wel-stats{grid-template-columns:repeat(3,1fr)}
+
+  /* ══ MGR PAGE ══ */
+  .mgr-stats{grid-template-columns:repeat(2,1fr) !important}
+  .slot-grid{grid-template-columns:1fr !important}
+
+  /* ══ TABLE BANKING ══ */
+  .tb-stats{grid-template-columns:repeat(2,1fr) !important}
+
+  /* ══ MY CONTRIBUTIONS ══ */
+  #mc-stats-row{grid-template-columns:repeat(2,1fr) !important}
+  #page-my_contributions > div[style*="grid-template-columns:1fr 280px"]{
+    grid-template-columns:1fr !important
+  }
+
+  /* ══ MY PROFILE ══ */
+  .mp-balances{grid-template-columns:repeat(2,1fr) !important}
+
+  /* ══ MESSAGES ══ */
+  .msg-layout{grid-template-columns:1fr !important}
+  .msg-right-col{display:none} /* hide status/history sidebar on mobile */
+
+  /* ══ SETTINGS ══ */
+  #page-settings .fin-tabs{gap:.25rem}
+  #page-settings .fin-tab{font-size:.68rem;padding:.35rem .6rem}
+
+  /* ══ SUPERADMIN ══ */
+  #page-superadmin .stats-row{grid-template-columns:repeat(2,1fr) !important}
+  #page-sa_org_detail > div[style*="grid-template-columns:repeat(5"]{
+    grid-template-columns:repeat(3,1fr) !important
+  }
+
+  /* ══ BILLING ══ */
+  #billing-hero > div{flex-direction:column !important;gap:.75rem}
+  .pay-pill-group{gap:.35rem}
+
+  /* General — hide topbar sub on all pages */
+  .topbar-sub{display:none !important}
 }
 
 /* ── Show hamburger only on mobile ── */
