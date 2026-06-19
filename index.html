@@ -2330,112 +2330,43 @@
     </div>
 
     <!-- ══ HELP & FAQs PAGE (all users) ══ -->
-    <!-- HELP & FAQs PAGE ══════════════════════════════════════ -->
     <div class="page" id="page-faq">
+      <div class="section-header"><div><div class="section-title">Help & FAQs</div><div class="section-sub">Common questions answered</div></div></div>
 
-      <!-- ── HERO ── -->
-      <div class="pfaq-hero">
-        <div class="pfaq-hero-bg"></div>
-        <div class="pfaq-hero-content">
-          <div class="pfaq-hero-icon">🎧</div>
-          <div class="pfaq-hero-title">How can we help?</div>
-          <div class="pfaq-hero-sub">Contact support or browse common questions</div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-header"><div class="card-title">👤 My Account & Access</div></div>
+        <div class="card-body" style="padding:0">
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Can I be in multiple groups? <span class="faq-arrow">▾</span></div><div class="faq-a">Yes. If you're a member of more than one group on GroupYetu360, all groups appear in your workspace switcher when you log in. One login, multiple groups — switch freely.</div></div>
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Can I start my own group? <span class="faq-arrow">▾</span></div><div class="faq-a">Yes. Click "Start Your Own Group" at the bottom of the sidebar. Starter plan is completely free for up to 15 members — no trial needed, no card required.</div></div>
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How do I change my password? <span class="faq-arrow">▾</span></div><div class="faq-a">Go to My Account in the sidebar. Enter your new password in the Change Password section and click Update Password. Forgotten it? Use "Forgot password?" on the login page.</div></div>
+          <div class="faq-item" style="border-bottom:none"><div class="faq-q" onclick="toggleFaq(this)">I didn't receive my invite email — what do I do? <span class="faq-arrow">▾</span></div><div class="faq-a">Check your spam/junk folder. If it's not there, ask your group admin to resend the invite. You can also use "Forgot password?" on the login page to set your own password once your email has been registered.</div></div>
         </div>
       </div>
 
-      <!-- ── CONTACT SUPPORT ── -->
-      <div class="pmc-section-label">Contact support</div>
-      <div class="pfaq-contact-row">
-        <a class="pfaq-contact-card whatsapp" href="https://wa.me/254702903544" target="_blank">
-          <div class="pfaq-contact-icon">💬</div>
-          <div class="pfaq-contact-label">WhatsApp</div>
-          <div class="pfaq-contact-num">0702 903 544</div>
-        </a>
-        <a class="pfaq-contact-card call" href="tel:+254702903544">
-          <div class="pfaq-contact-icon">📞</div>
-          <div class="pfaq-contact-label">Call us</div>
-          <div class="pfaq-contact-num">0702 903 544</div>
-        </a>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-header"><div class="card-title">💳 Payments & Contributions</div></div>
+        <div class="card-body" style="padding:0">
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How do I make a payment? <span class="faq-arrow">▾</span></div><div class="faq-a">Go to My Contributions and click Make Payment. Send via M-Pesa to your group's payment details shown, enter the M-Pesa reference and submit. Your admin verifies and approves it.</div></div>
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Why is my payment still pending? <span class="faq-arrow">▾</span></div><div class="faq-a">Payments are manually verified by your group admin, usually within 24 hours. If it's been longer, contact your admin directly.</div></div>
+          <div class="faq-item" style="border-bottom:none"><div class="faq-q" onclick="toggleFaq(this)">Where can I see my payment history? <span class="faq-arrow">▾</span></div><div class="faq-a">Go to My Contributions. You'll see your total contributed, a breakdown by type, and a month-by-month payment history for the last 6 months.</div></div>
+        </div>
       </div>
 
-      <!-- ── ADMIN CONTACT ── -->
-      <div class="pmc-section-label" style="padding-top:.5rem">Your group admin</div>
-      <div class="pfaq-admin-card" id="faq-admin-row">
-        <div class="pfaq-admin-avatar" id="faq-admin-avatar">GA</div>
-        <div>
-          <div class="pfaq-admin-name" id="faq-admin-name">Group Administrator</div>
-          <div class="pfaq-admin-role">Group admin</div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-header"><div class="card-title">🏦 Savings & Balances</div></div>
+        <div class="card-body" style="padding:0">
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">What is the difference between shares and savings? <span class="faq-arrow">▾</span></div><div class="faq-a">Shares represent your ownership stake in the group (equity that grows over time). Savings are your monthly deposits held by the group. Not all groups use both — your admin configures which applies.</div></div>
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">What is table banking? <span class="faq-arrow">▾</span></div><div class="faq-a">Table banking is a system where group members can borrow from a shared pool of savings. Your group admin creates loan pools, members apply and repay with interest. All tracked in GroupYetu360 under the Table Banking section.</div></div>
+          <div class="faq-item" style="border-bottom:none"><div class="faq-q" onclick="toggleFaq(this)">How do I withdraw my savings? <span class="faq-arrow">▾</span></div><div class="faq-a">Withdrawals are handled by your group admin per your constitution. Contact your admin or raise it at the next meeting. GroupYetu360 tracks balances; the withdrawal decision is made by group leadership.</div></div>
         </div>
-        <div class="pfaq-admin-arrow">›</div>
       </div>
 
-      <!-- ── FAQs ── -->
-      <div class="pmc-section-label" style="padding-top:.5rem">Common questions</div>
-      <div class="pfaq-accordion" style="margin:0 .9rem .9rem">
-
-        <div class="pfaq-item">
-          <div class="pfaq-q" onclick="pfaqToggle(this)">
-            <span class="pfaq-q-icon">👤</span>
-            <span>Can I be in multiple groups?</span>
-            <span class="pfaq-arrow">▾</span>
-          </div>
-          <div class="pfaq-a">Yes. All your groups appear in the workspace switcher at login. One account, multiple groups — switch freely.</div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">📋 Welfare & Meetings</div></div>
+        <div class="card-body" style="padding:0">
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How does welfare work? <span class="faq-arrow">▾</span></div><div class="faq-a">When a welfare event is created (e.g. bereavement), all members are notified and a contribution is expected. Go to My Contributions to see outstanding welfare payments and pay the same way as regular contributions.</div></div>
+          <div class="faq-item" style="border-bottom:none"><div class="faq-q" onclick="toggleFaq(this)">How do I know when the next meeting is? <span class="faq-arrow">▾</span></div><div class="faq-a">Go to My Profile — the next scheduled meeting is shown there. Your admin can also send SMS reminders to all members from the Messages section.</div></div>
         </div>
-
-        <div class="pfaq-item">
-          <div class="pfaq-q" onclick="pfaqToggle(this)">
-            <span class="pfaq-q-icon">💳</span>
-            <span>How do I make a payment?</span>
-            <span class="pfaq-arrow">▾</span>
-          </div>
-          <div class="pfaq-a">Go to My Payments → Make a Payment. Send via M-Pesa to your group's payment details, enter the M-Pesa reference and submit. Your admin verifies and approves it.</div>
-        </div>
-
-        <div class="pfaq-item">
-          <div class="pfaq-q" onclick="pfaqToggle(this)">
-            <span class="pfaq-q-icon">⏳</span>
-            <span>Why is my payment still pending?</span>
-            <span class="pfaq-arrow">▾</span>
-          </div>
-          <div class="pfaq-a">Payments are manually verified by your group admin, usually within 24 hours. If it's been longer, contact your admin directly.</div>
-        </div>
-
-        <div class="pfaq-item">
-          <div class="pfaq-q" onclick="pfaqToggle(this)">
-            <span class="pfaq-q-icon">📈</span>
-            <span>What is the difference between shares and savings?</span>
-            <span class="pfaq-arrow">▾</span>
-          </div>
-          <div class="pfaq-a">Shares are your ownership stake (equity). Savings are monthly deposits held by the group. Not all groups use both — your admin configures which applies.</div>
-        </div>
-
-        <div class="pfaq-item">
-          <div class="pfaq-q" onclick="pfaqToggle(this)">
-            <span class="pfaq-q-icon">🏦</span>
-            <span>What is table banking?</span>
-            <span class="pfaq-arrow">▾</span>
-          </div>
-          <div class="pfaq-a">Members borrow from a shared pool of savings. Your admin creates loan pools, members apply and repay with interest. Tracked under Table Banking.</div>
-        </div>
-
-        <div class="pfaq-item">
-          <div class="pfaq-q" onclick="pfaqToggle(this)">
-            <span class="pfaq-q-icon">♡</span>
-            <span>How does welfare work?</span>
-            <span class="pfaq-arrow">▾</span>
-          </div>
-          <div class="pfaq-a">When a welfare event is created (e.g. bereavement), all members are notified and a contribution is expected. Pay via My Payments the same as regular contributions.</div>
-        </div>
-
-        <div class="pfaq-item" style="border-bottom:none">
-          <div class="pfaq-q" onclick="pfaqToggle(this)">
-            <span class="pfaq-q-icon">🔑</span>
-            <span>How do I change my password?</span>
-            <span class="pfaq-arrow">▾</span>
-          </div>
-          <div class="pfaq-a">Go to My Account in the sidebar. Enter your new password and click Update. Forgotten it? Use "Forgot password?" on the login page.</div>
-        </div>
-
       </div>
     </div>
 
@@ -2675,133 +2606,103 @@
       <div id="mp-status" style="display:none"></div>
     </div>
 
-    <!-- MEMBER: MY CONTRIBUTIONS ══════════════════════════════ -->
+    <!-- MEMBER: MY CONTRIBUTIONS -->
+    <!-- ══ MY CONTRIBUTIONS ══ -->
     <div class="page" id="page-my_contributions">
-
-      <!-- ── HERO ── -->
-      <div class="pmc-hero">
-        <div class="pmc-hero-bg"></div>
-        <div class="pmc-hero-content">
-          <div class="pmc-hero-eyebrow">Total paid — all time</div>
-          <div class="pmc-hero-amount" id="mc-total">—</div>
-          <div class="pmc-hero-chips" id="mc-type-chips"></div>
-        </div>
+      <div class="section-header">
+        <div><div class="section-title">My Contributions</div><div class="section-sub">Your payment history and balances</div></div>
       </div>
 
-      <!-- ── ALERT NOTICES ── -->
-      <div id="mc-fines-notice" style="display:none;margin:.75rem .9rem 0"></div>
-      <div id="mc-pending-notice" style="display:none;margin:.75rem .9rem 0"></div>
+      <!-- Fines & pending notices -->
+      <div id="mc-fines-notice" style="margin-bottom:.75rem;display:none"></div>
+      <div id="mc-pending-notice" style="margin-bottom:.75rem;display:none"></div>
 
-      <!-- ── SUMMARY CARDS ROW ── -->
-      <div class="pmc-cards-row" id="mc-stats-row">
+      <!-- ── BALANCE HERO ── -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.75rem;margin-bottom:1.25rem" id="mc-stats-row">
+        <!-- Total paid -->
+        <div style="background:linear-gradient(135deg,var(--maroon) 0%,#5a0016 100%);border-radius:8px;padding:1.1rem 1.25rem;color:#fff">
+          <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;opacity:.7;margin-bottom:.3rem">Total Paid</div>
+          <div id="mc-total" style="font-family:'Crimson Pro',serif;font-size:1.75rem;font-weight:700;line-height:1">—</div>
+          <div style="font-size:.68rem;opacity:.65;margin-top:.2rem">All time</div>
+        </div>
         <!-- This year -->
-        <div class="pmc-card gold">
-          <div class="pmc-card-icon">📅</div>
-          <div class="pmc-card-label">This year</div>
-          <div class="pmc-card-value" id="mc-year">—</div>
-          <div class="pmc-card-sub" id="mc-year-label">2026</div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-top:3px solid #c49a30;border-radius:8px;padding:1.1rem 1.25rem">
+          <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.3rem">This Year</div>
+          <div id="mc-year" style="font-family:'Crimson Pro',serif;font-size:1.75rem;font-weight:700;color:#c49a30;line-height:1">—</div>
+          <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem" id="mc-year-label">2026</div>
         </div>
-        <!-- Shares balance -->
-        <div class="pmc-card maroon" id="mc-shares-card">
-          <div class="pmc-card-icon">📈</div>
-          <div class="pmc-card-label" id="mc-shares-label">Shares</div>
-          <div class="pmc-card-value" id="mc-shares-bal">—</div>
-          <div class="pmc-card-sub">Equity</div>
+        <!-- Shares -->
+        <div id="mc-shares-card" style="background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--maroon);border-radius:8px;padding:1.1rem 1.25rem">
+          <div id="mc-shares-label" style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.3rem">Shares</div>
+          <div id="mc-shares-bal" style="font-family:'Crimson Pro',serif;font-size:1.75rem;font-weight:700;color:var(--maroon);line-height:1">—</div>
+          <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">Equity in group</div>
         </div>
-        <!-- Savings balance -->
-        <div class="pmc-card teal" id="mc-savings-card">
-          <div class="pmc-card-icon">💰</div>
-          <div class="pmc-card-label" id="mc-savings-label">Savings</div>
-          <div class="pmc-card-value" id="mc-savings-bal">—</div>
-          <div class="pmc-card-sub">Deposits</div>
+        <!-- Savings -->
+        <div id="mc-savings-card" style="background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--teal);border-radius:8px;padding:1.1rem 1.25rem">
+          <div id="mc-savings-label" style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.3rem">Savings</div>
+          <div id="mc-savings-bal" style="font-family:'Crimson Pro',serif;font-size:1.75rem;font-weight:700;color:var(--teal);line-height:1">—</div>
+          <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">Monthly deposits</div>
         </div>
       </div>
 
-      <!-- ── MAKE PAYMENT CTA ── -->
-      <div style="padding:.9rem .9rem 0">
-        <button class="pmc-pay-btn" onclick="openMemberPaymentModal();showModal('memberPayment')">
-          💳 Make a Payment
-        </button>
-      </div>
-
-      <!-- ── MONTHLY CHART ── -->
-      <div class="pmc-chart-section">
-        <div class="pmc-section-label">Monthly payments</div>
-        <div class="pmc-chart-wrap">
-          <div class="pmc-chart" id="mc-chart">
-            <div class="loading"><div class="spinner"></div></div>
+      <!-- ── CHART + QUICK INFO ── -->
+      <div style="display:grid;grid-template-columns:1fr 280px;gap:1rem;margin-bottom:1.25rem">
+        <!-- Monthly bar chart -->
+        <div class="card">
+          <div class="card-header"><div class="card-title">Monthly Payments</div><div class="card-sub" id="mc-count-label"></div></div>
+          <div style="padding:1rem 1.25rem 1.25rem">
+            <div id="mc-chart" style="display:flex;align-items:flex-end;gap:.4rem;height:110px;border-bottom:1.5px solid var(--border)">
+              <div class="loading"><div class="spinner"></div></div>
+            </div>
+            <div id="mc-chart-labels" style="display:flex;gap:.4rem;margin-top:.4rem;font-size:.62rem;color:var(--ink-faint)"></div>
           </div>
-          <div class="pmc-chart-labels" id="mc-chart-labels"></div>
         </div>
-        <div class="pmc-chart-total" id="mc-count-label"></div>
+        <!-- Quick info sidebar -->
+        <div class="card">
+          <div class="card-header"><div class="card-title">Quick Info</div></div>
+          <div id="mc-quick-info" style="padding:.75rem 1.25rem"></div>
+        </div>
       </div>
 
       <!-- ── BY CATEGORY ── -->
-      <div class="pmc-section-label" style="padding-top:.5rem">By category</div>
-      <div class="pmc-category-block" id="mc-by-category">
-        <div class="loading" style="padding:1.25rem"><div class="spinner"></div></div>
+      <div class="card" style="margin-bottom:1.25rem">
+        <div class="card-header"><div class="card-title">By Category</div><div class="card-sub">All-time contributions per type</div></div>
+        <div id="mc-by-category" style="padding:.5rem 1.25rem 1rem"></div>
       </div>
 
-      <!-- ── PAYMENT HISTORY ── -->
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:.85rem .9rem .35rem">
-        <div class="pmc-section-label" style="padding:0">Payment history</div>
-        <div class="pmc-history-count" id="mc-history-sub"></div>
+      <!-- ── PAYMENT HISTORY TIMELINE ── -->
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">Payment History</div><div class="card-sub" id="mc-history-sub"></div></div>
+          <button class="btn btn-primary btn-sm" onclick="openMemberPaymentModal();showModal('memberPayment')" style="background:var(--maroon);font-size:.75rem">+ Make Payment</button>
+        </div>
+        <div id="mc-timeline" style="padding:.5rem 0">
+          <div class="loading"><div class="spinner"></div>Loading…</div>
+        </div>
       </div>
-      <div class="pmc-timeline" id="mc-timeline">
-        <div class="loading" style="padding:2rem"><div class="spinner"></div>Loading…</div>
-      </div>
-
-      <!-- hidden compat IDs used by portal.js -->
-      <div id="mc-quick-info" style="display:none"></div>
-      <div id="mc-shares-card-compat" style="display:none"></div>
     </div>
 
-    <!-- MEMBER: MY MEETINGS ══════════════════════════════════ -->
+    <!-- MEMBER: MY MEETINGS -->
     <div class="page" id="page-my_meetings">
-
-      <!-- ── NEXT MEETING HERO ── -->
-      <div class="pmm-hero">
-        <div class="pmm-hero-bg"></div>
-        <div class="pmm-hero-content">
-          <div class="pmm-hero-eyebrow">📅 Next meeting</div>
-          <div class="pmm-hero-title" id="mtg-next-title">Loading…</div>
-          <div class="pmm-hero-meta" id="mtg-next-meta"></div>
-          <div class="pmm-hero-chips" id="mtg-next-chips"></div>
+      <div class="msg-hero" style="background:linear-gradient(135deg,#0d3d2e 0%,var(--teal) 60%,#1a1a1a 100%);margin-bottom:1.25rem">
+        <div>
+          <div style="font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:#fff">📅 My Meetings</div>
+          <div id="my-meetings-sub" style="font-size:.72rem;color:rgba(255,255,255,.5);margin-top:.15rem">Upcoming and past meetings</div>
+        </div>
+        <div style="display:flex;gap:.5rem" id="my-attendance-chips"></div>
+      </div>
+      <div class="grid-2" style="margin-bottom:1rem">
+        <div>
+          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--teal);margin-bottom:.6rem">Upcoming</div>
+          <div id="my-upcoming-meetings"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+        <div>
+          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.6rem">My Attendance Summary</div>
+          <div id="my-attendance-record"><div class="loading"><div class="spinner"></div></div></div>
         </div>
       </div>
-
-      <!-- ── ATTENDANCE SUMMARY ── -->
-      <div class="pmc-section-label" style="padding-top:.85rem">My attendance</div>
-      <div class="pmm-att-row" id="my-attendance-record">
-        <div class="pmm-att-card">
-          <div class="pmm-att-val" style="color:var(--ink)">—</div>
-          <div class="pmm-att-lbl">Meetings held</div>
-        </div>
-        <div class="pmm-att-card">
-          <div class="pmm-att-val" style="color:var(--teal)">—</div>
-          <div class="pmm-att-lbl">I attended</div>
-        </div>
-        <div class="pmm-att-card">
-          <div class="pmm-att-val" style="color:var(--gold)">—</div>
-          <div class="pmm-att-lbl">Rate</div>
-        </div>
-      </div>
-
-      <!-- ── UPCOMING MEETINGS ── -->
-      <div class="pmc-section-label" style="padding-top:.5rem">Upcoming</div>
-      <div id="my-upcoming-meetings" style="padding:0 .9rem">
-        <div class="loading" style="padding:1rem"><div class="spinner"></div></div>
-      </div>
-
-      <!-- ── PAST MEETINGS ── -->
-      <div class="pmc-section-label" style="padding-top:.5rem">Recent past meetings</div>
-      <div id="my-past-meetings" style="padding:0 .9rem .9rem">
-        <div class="loading" style="padding:1rem"><div class="spinner"></div></div>
-      </div>
-
-      <!-- hidden compat IDs -->
-      <div id="my-meetings-sub" style="display:none"></div>
-      <div id="my-attendance-chips" style="display:none"></div>
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.6rem">Past Meetings</div>
+      <div id="my-past-meetings"><div class="loading"><div class="spinner"></div></div></div>
     </div>
 
     <!-- MEMBER: MY NOTICES -->
