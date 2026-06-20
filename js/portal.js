@@ -998,51 +998,152 @@ async function loadMyNotices() {
 }
 
 // ── Populate mobile-specific profile elements ──
-function populateMobileProfile(myRecord, fp) {
+// ── Theme toggle (dark/light) ──
+function toggleMobTheme() {
+  const isDark = document.body.classList.toggle('mob-dark');
+  try { localStorage.setItem('gy360-mob-theme', isDark ? 'dark' : 'light'); } catch(e) {}
+  const btn = document.getElementById('mob-theme-btn');
+  if (btn) btn.textContent = isDark ? '🌙' : '☀️';
+}
+
+function initMobTheme() {
+  try {
+    const saved = localStorage.getItem('gy360-mob-theme');
+    if (saved === 'dark') {
+      document.body.classList.add('mob-dark');
+      const btn = document.getElementById('mob-theme-btn');
+      if (btn) btn.textContent = '🌙';
+    }
+  } catch(e) {}
+}
+
+// ── Scroll dot tracking for summary cards ──
+function initMobScrollDots() {
+  const scroll = document.querySelector('.mob-cards-scroll');
+  if (!scroll) return;
+  scroll.addEventListener('scroll', () => {
+    const idx = Math.round(scroll.scrollLeft / scroll.offsetWidth);
+    [0,1,2].forEach(i => {
+      const d = document.getElementById('mob-dot-' + i);
+      if (d) d.classList.toggle('active', i === idx);
+    });
+  }, { passive: true });
+}
+
+// ── Populate all 3 summary cards + quick actions + recent txns ──
+async function populateMobileProfile(myRecord, fp) {
   if (!myRecord) return;
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
 
-  // Collapsed card — show member number and status badge
-  const memberNum = '#' + (myRecord.member_number || '—');
-  set('mob-member-num-preview', memberNum);
-  const statusBadge = document.getElementById('mob-member-status-badge');
-  if (statusBadge) {
-    const s = myRecord.status || 'unknown';
-    statusBadge.textContent = s === 'active' ? '✓ Active' : s === 'arrears' ? '⚠ Arrears' : s;
-    statusBadge.style.color = s === 'active' ? 'var(--teal)' : s === 'arrears' ? 'var(--warning)' : 'var(--ink-faint)';
-    statusBadge.style.background = s === 'active' ? 'var(--teal-pale)' : s === 'arrears' ? 'var(--warning-pale)' : 'var(--surface-2)';
-  }
+  initMobTheme();
+  initMobScrollDots();
 
-  // Expandable details
-  set('mob-member-phone', myRecord.phone || '—');
-
-  // Shares/savings rows — show only if org has them
-  const sharesRow = document.getElementById('mob-shares-row');
-  const savingsRow = document.getElementById('mob-savings-row');
-  if (sharesRow && fp?.hasShares) {
-    sharesRow.style.display = '';
-    set('mob-shares-val', 'Ksh ' + Number(myRecord.shares_balance || 0).toLocaleString());
-  }
-  if (savingsRow && fp?.hasSavings) {
-    savingsRow.style.display = '';
-    set('mob-savings-val', 'Ksh ' + Number(myRecord.savings_balance || 0).toLocaleString());
-  }
-
-  // Balance label on quick action card
-  const balLabel = fp?.hasShares && fp?.hasSavings ? 'Shares & Savings'
-    : fp?.hasShares ? (fp.sharesLabel || 'Shares')
-    : fp?.hasSavings ? (fp.savingsLabel || 'Savings')
-    : 'My Balance';
+  // ── Card 1: My Finances ──
   const totalBal = (myRecord.shares_balance || 0) + (myRecord.savings_balance || 0);
-  set('mob-bal-label', balLabel);
-  set('mob-bal-sub', totalBal > 0 ? 'Ksh ' + Number(totalBal).toLocaleString() : 'View finance');
+  set('mob-sc-balance', totalBal > 0 ? 'Ksh ' + Number(totalBal).toLocaleString() : 'Ksh 0');
 
-  // Fines notice
+  if (fp?.hasShares || fp?.hasSavings) {
+    const sharesRowEl = document.getElementById('mob-sc-shares-row');
+    if (sharesRowEl) sharesRowEl.style.display = 'flex';
+    if (fp?.hasShares) set('mob-sc-shares-tag', (fp.sharesLabel||'Shares') + ' ' + 'Ksh ' + Number(myRecord.shares_balance||0).toLocaleString());
+    if (fp?.hasSavings) set('mob-sc-savings-tag', (fp.savingsLabel||'Savings') + ' ' + 'Ksh ' + Number(myRecord.savings_balance||0).toLocaleString());
+    set('mob-sc-balance-meta', 'Combined balance');
+  } else {
+    set('mob-sc-balance-meta', 'Total paid — all time');
+  }
+
+  // Fetch last payment for footer
+  try {
+    const { data: lastTxn } = await sb.from('transactions')
+      .select('amount,transaction_date,contribution_types(name)')
+      .eq('org_id', currentOrg.id)
+      .eq('member_id', myRecord.id)
+      .order('transaction_date', { ascending: false })
+      .limit(1).maybeSingle();
+    if (lastTxn) {
+      const d = lastTxn.transaction_date ? new Date(lastTxn.transaction_date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '—';
+      set('mob-sc-last-payment', 'Last: Ksh ' + Number(lastTxn.amount||0).toLocaleString() + ' · ' + d);
+    } else {
+      set('mob-sc-last-payment', 'No payments yet');
+    }
+  } catch(e) { set('mob-sc-last-payment', '—'); }
+
+  // ── Card 2: Next Meeting ──
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const { data: mtg } = await sb.from('meetings')
+      .select('*').eq('org_id', currentOrg.id)
+      .gte('meeting_date', today).order('meeting_date').limit(1).maybeSingle();
+    if (mtg) {
+      const mDate = new Date(mtg.meeting_date + 'T00:00:00');
+      const days = Math.ceil((mDate - new Date()) / 86400000);
+      const dateStr = mDate.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+      set('mob-sc-mtg-date', dateStr);
+      set('mob-sc-mtg-countdown', days === 0 ? 'Today!' : days === 1 ? 'Tomorrow' : 'In ' + days + ' days');
+      set('mob-sc-mtg-venue', mtg.venue || mtg.location || 'Venue TBA');
+    } else {
+      set('mob-sc-mtg-date', 'No meetings');
+      set('mob-sc-mtg-countdown', 'Nothing scheduled yet');
+      set('mob-sc-mtg-venue', 'Schedule one in Meetings');
+    }
+  } catch(e) { set('mob-sc-mtg-countdown', '—'); }
+
+  // ── Card 3: Group Standing ──
+  try {
+    const { data: orgData } = await sb.from('organisations')
+      .select('bank_balance,bank_balance_updated,show_balance_to_members,name')
+      .eq('id', currentOrg.id).maybeSingle();
+    const { data: memberCount } = await sb.from('members')
+      .select('id', { count: 'exact', head: true }).eq('org_id', currentOrg.id).eq('status','active');
+
+    if (orgData?.show_balance_to_members && orgData?.bank_balance) {
+      set('mob-sc-group-main', 'Ksh ' + Number(orgData.bank_balance).toLocaleString());
+      set('mob-sc-group-meta', 'Group bank balance');
+      set('mob-sc-group-footer', orgData.bank_balance_updated ? 'As of ' + orgData.bank_balance_updated : 'Active group');
+    } else {
+      const count = memberCount?.count || '—';
+      set('mob-sc-group-main', count + ' Members');
+      set('mob-sc-group-meta', 'Active members');
+      set('mob-sc-group-footer', currentOrg?.name || '—');
+    }
+  } catch(e) { set('mob-sc-group-main', '—'); }
+
+  // ── Fines notice ──
   const finesAlert = document.getElementById('mp-fines-alert');
   const mobFines = document.getElementById('mob-fines-notice');
   if (mobFines && finesAlert && finesAlert.style.display !== 'none') {
     mobFines.style.display = 'block';
   }
+
+  // ── Recent transactions ──
+  try {
+    const { data: txns } = await sb.from('transactions')
+      .select('amount,transaction_date,contribution_types(name)')
+      .eq('org_id', currentOrg.id)
+      .eq('member_id', myRecord.id)
+      .order('transaction_date', { ascending: false })
+      .limit(3);
+    const txnEl = document.getElementById('mob-recent-txns');
+    if (txnEl) {
+      if (txns?.length) {
+        txnEl.innerHTML = txns.map(t => {
+          const cat = t.contribution_types?.name || 'Payment';
+          const initials = cat.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+          const d = t.transaction_date ? new Date(t.transaction_date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
+          return `<div class="mob-txn-row">
+            <div class="mob-txn-avatar">${initials}</div>
+            <div class="mob-txn-info">
+              <div class="mob-txn-name">${cat}</div>
+              <div class="mob-txn-date">${d}</div>
+            </div>
+            <div class="mob-txn-amt">+Ksh ${Number(t.amount||0).toLocaleString()}</div>
+          </div>`;
+        }).join('');
+      } else {
+        txnEl.innerHTML = '<div style="color:var(--ink-faint);font-size:.82rem;padding:.5rem 0;text-align:center">No transactions yet</div>';
+      }
+    }
+  } catch(e) { console.warn('[GY360] Recent txns:', e); }
 }
 
 // ── Populate mobile contributions page ──
@@ -1162,17 +1263,6 @@ function populateMobileMeetings(upcoming, past, attendanceSummary) {
 }
 
 // ── Toggle collapsible mobile summary card ──
-function toggleMobSummary() {
-  const details = document.getElementById('mob-summary-details');
-  const arrow = document.getElementById('mob-summary-arrow');
-  if (!details) return;
-  const isOpen = details.style.display !== 'none';
-  details.style.display = isOpen ? 'none' : 'block';
-  if (arrow) {
-    arrow.textContent = isOpen ? '›' : '⌄';
-    arrow.style.transform = isOpen ? '' : 'rotate(0deg)';
-  }
-}
 
 async function start() {
   const isReset = await handleAuthRedirect();

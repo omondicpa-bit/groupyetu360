@@ -2643,17 +2643,21 @@
       </div><!-- end .mob-hide -->
 
       <!-- MOBILE HOME -->
-      <div class="mob-only" style="display:flex;flex-direction:column;min-height:100%">
+      <div class="mob-only" style="display:flex;flex-direction:column;min-height:100%" id="mob-home-shell">
+        <!-- Header: greeting + profile icon + theme toggle -->
         <div class="mh-header">
           <div class="mh-inner">
-            <div class="mh-row">
+            <div class="mh-row" style="margin-bottom:.4rem">
               <div>
                 <div class="mh-greeting" id="mob-greeting">Good morning,</div>
                 <div class="mh-name" id="mob-member-name">Loading…</div>
               </div>
-              <button class="mh-bell" onclick="showPage('my_notices')" aria-label="Notices">
-                🔔<div class="mh-bell-dot" id="mob-bell-dot"></div>
-              </button>
+              <div style="display:flex;align-items:center;gap:.55rem">
+                <!-- Theme toggle -->
+                <button class="mh-icon-btn" onclick="toggleMobTheme()" id="mob-theme-btn" aria-label="Toggle theme">☀️</button>
+                <!-- Profile icon -->
+                <button class="mh-icon-btn" onclick="showPage('my_account')" aria-label="My Account">👤</button>
+              </div>
             </div>
             <div class="mh-org-pill">
               <div class="mh-org-dot" id="mob-org-dot">G</div>
@@ -2661,60 +2665,82 @@
             </div>
           </div>
         </div>
-        <div class="mh-body">
+
+        <!-- Scrollable body -->
+        <div class="mh-body" id="mob-home-body">
+
           <!-- Fines notice -->
           <div class="mh-notice" id="mob-fines-notice" style="display:none">
-            ⚠ You have an <strong>outstanding fine</strong>. Tap Finance to view details.
+            ⚠ You have an <strong>outstanding fine</strong>. Tap Finance below to view.
           </div>
-          <!-- Quick action cards — teal filled -->
-          <div class="mh-qa-grid" id="mob-qa-grid">
-            <div class="mh-qa-card mh-qa-teal" onclick="openMemberPaymentModal();showModal('memberPayment')">
-              <div class="mh-qa-icon-lg">💳</div>
-              <div class="mh-qa-label">Make Payment</div>
-              <div class="mh-qa-sub">via M-Pesa / manual</div>
-            </div>
-            <div class="mh-qa-card mh-qa-teal" onclick="showPage('my_contributions')">
-              <div class="mh-qa-icon-lg">💰</div>
-              <div class="mh-qa-label" id="mob-bal-label">My Balance</div>
-              <div class="mh-qa-sub" id="mob-bal-sub">View finance</div>
-            </div>
-            <div class="mh-qa-card mh-qa-teal" onclick="showPage('my_meetings')">
-              <div class="mh-qa-icon-lg">📅</div>
-              <div class="mh-qa-label">Meetings</div>
-              <div class="mh-qa-sub" id="mob-mtg-sub">Upcoming &amp; past</div>
-            </div>
-            <div class="mh-qa-card mh-qa-teal" onclick="showPage('my_notices')">
-              <div class="mh-qa-icon-lg">📢</div>
-              <div class="mh-qa-label">Notices</div>
-              <div class="mh-qa-sub">From your admin</div>
-            </div>
-          </div>
-          <!-- My Summary — collapsible card -->
-          <div class="mh-card mh-summary-card" id="mob-summary-card" onclick="toggleMobSummary()">
-            <div class="mh-card-body" style="padding:.75rem .9rem">
-              <div style="display:flex;justify-content:space-between;align-items:center">
-                <div>
-                  <div style="font-size:.68rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.06em;font-weight:600">My Profile</div>
-                  <div style="font-size:1rem;font-weight:600;color:var(--ink);margin-top:.1rem" id="mob-member-num-preview">—</div>
-                </div>
-                <div style="display:flex;align-items:center;gap:.5rem">
-                  <span id="mob-member-status-badge" style="font-size:.7rem;font-weight:600;color:var(--teal);background:var(--teal-pale);padding:.15rem .55rem;border-radius:20px">—</span>
-                  <span id="mob-summary-arrow" style="color:var(--ink-faint);font-size:1rem;transition:transform .25s">›</span>
-                </div>
+
+          <!-- 3 horizontal swipeable summary cards -->
+          <div class="mob-cards-scroll">
+            <!-- Card 1: My Finances -->
+            <div class="mob-summary-card" id="mob-card-finance">
+              <div class="mob-sc-label">My Finances</div>
+              <div class="mob-sc-amount" id="mob-sc-balance">—</div>
+              <div class="mob-sc-meta" id="mob-sc-balance-meta">Total balance</div>
+              <div class="mob-sc-row" id="mob-sc-shares-row" style="display:none">
+                <span class="mob-sc-tag" id="mob-sc-shares-tag">Shares —</span>
+                <span class="mob-sc-tag" id="mob-sc-savings-tag">Savings —</span>
               </div>
-              <!-- Expandable details -->
-              <div id="mob-summary-details" style="display:none;margin-top:.65rem;padding-top:.65rem;border-top:0.5px solid var(--border)">
-                <div id="mob-profile-rows">
-                  <div class="mh-profile-row"><span class="mh-profile-key">Phone</span><span class="mh-profile-val" id="mob-member-phone">—</span></div>
-                  <div class="mh-profile-row" id="mob-shares-row" style="display:none"><span class="mh-profile-key">Shares</span><span class="mh-profile-val" style="color:var(--teal);font-weight:600" id="mob-shares-val">—</span></div>
-                  <div class="mh-profile-row" id="mob-savings-row" style="display:none"><span class="mh-profile-key">Savings</span><span class="mh-profile-val" style="color:var(--teal);font-weight:600" id="mob-savings-val">—</span></div>
-                </div>
-                <button onclick="event.stopPropagation();showPage('my_account')" style="margin-top:.65rem;width:100%;background:transparent;border:1px solid var(--border);border-radius:20px;padding:.45rem;font-size:.78rem;color:var(--ink-faint);cursor:pointer;font-family:'Inter',sans-serif">Edit Profile ›</button>
-              </div>
+              <div class="mob-sc-footer" id="mob-sc-last-payment">Last payment: —</div>
+            </div>
+            <!-- Card 2: Next Meeting -->
+            <div class="mob-summary-card" id="mob-card-meeting">
+              <div class="mob-sc-label">Next Meeting</div>
+              <div class="mob-sc-amount" id="mob-sc-mtg-date" style="font-size:1.3rem">—</div>
+              <div class="mob-sc-meta" id="mob-sc-mtg-countdown">Loading…</div>
+              <div class="mob-sc-footer" id="mob-sc-mtg-venue">—</div>
+            </div>
+            <!-- Card 3: Group Standing -->
+            <div class="mob-summary-card" id="mob-card-group">
+              <div class="mob-sc-label">Group Standing</div>
+              <div class="mob-sc-amount" id="mob-sc-group-main">—</div>
+              <div class="mob-sc-meta" id="mob-sc-group-meta">—</div>
+              <div class="mob-sc-footer" id="mob-sc-group-footer">—</div>
             </div>
           </div>
-        </div>
+          <!-- Scroll dots -->
+          <div class="mob-scroll-dots">
+            <div class="mob-dot active" id="mob-dot-0"></div>
+            <div class="mob-dot" id="mob-dot-1"></div>
+            <div class="mob-dot" id="mob-dot-2"></div>
+          </div>
+
+          <!-- Quick action buttons row -->
+          <div class="mob-action-row">
+            <button class="mob-action-btn" onclick="openMemberPaymentModal();showModal('memberPayment')">
+              <div class="mob-action-icon">💳</div>
+              <div class="mob-action-label">Pay</div>
+            </button>
+            <button class="mob-action-btn" onclick="showPage('my_contributions')">
+              <div class="mob-action-icon">₭</div>
+              <div class="mob-action-label">Finance</div>
+            </button>
+            <button class="mob-action-btn" onclick="showPage('my_meetings')">
+              <div class="mob-action-icon">📅</div>
+              <div class="mob-action-label">Meetings</div>
+            </button>
+            <button class="mob-action-btn" onclick="showPage('my_notices')">
+              <div class="mob-action-icon">📢</div>
+              <div class="mob-action-label">Notices</div>
+            </button>
+          </div>
+
+          <!-- Recent transactions -->
+          <div class="mob-section-hdr">
+            <span>Recent Activity</span>
+            <button onclick="showPage('my_contributions')" class="mob-see-all">See all ›</button>
+          </div>
+          <div id="mob-recent-txns">
+            <div style="color:var(--ink-faint);font-size:.82rem;padding:.5rem 0">Loading…</div>
+          </div>
+
+        </div><!-- end mh-body -->
       </div>
+
 
     </div>
 
