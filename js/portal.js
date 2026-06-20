@@ -1022,7 +1022,9 @@ function initMobScrollDots() {
   const scroll = document.querySelector('.mob-cards-scroll');
   if (!scroll) return;
   scroll.addEventListener('scroll', () => {
-    const idx = Math.round(scroll.scrollLeft / scroll.offsetWidth);
+    const card = scroll.querySelector('.mob-summary-card');
+    const cardW = card ? card.offsetWidth + 16 : scroll.offsetWidth;
+    const idx = Math.min(2, Math.round(scroll.scrollLeft / cardW));
     [0,1,2].forEach(i => {
       const d = document.getElementById('mob-dot-' + i);
       if (d) d.classList.toggle('active', i === idx);
@@ -1037,6 +1039,8 @@ async function populateMobileProfile(myRecord, fp) {
 
   initMobTheme();
   initMobScrollDots();
+  // Resize shell after content renders
+  setTimeout(() => { if (typeof setMobHomeHeight === 'function') setMobHomeHeight(); }, 150);
 
   // ── Card 1: My Finances ──
   const totalBal = (myRecord.shares_balance || 0) + (myRecord.savings_balance || 0);
