@@ -1,0 +1,67 @@
+{
+  "packageId": "com.ephtechnologies.groupyetu360",
+  "host": "app.groupyetu.org.",
+  "name": "GroupYetu360",
+  "launcherName": "GY360",
+  "display": "standalone",
+  "themeColor": "#800020",
+  "themeColorDark": "#000000",
+  "navigationColor": "#000000",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#5A0016",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://app.groupyetu.org/icons/icon-512x512.png",
+  "maskableIconUrl": "https://app.groupyetu.org/icons/icon-512x512.png",
+  "monochromeIconUrl": "https://app.groupyetu.org/icons/icon-512x512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "C:\\Users\\Felix\\groupyetu360\\android.keystore",
+    "alias": "android"
+  },
+  "appVersionName": "1",
+  "appVersionCode": 1,
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "shortName": "Dashboard",
+      "url": "https://app.groupyetu.org/",
+      "chosenIconUrl": "https://app.groupyetu.org/icons/icon-96x96.png"
+    },
+    {
+      "name": "Members",
+      "shortName": "Members",
+      "url": "https://app.groupyetu.org/#members",
+      "chosenIconUrl": "https://app.groupyetu.org/icons/icon-96x96.png"
+    },
+    {
+      "name": "Finance",
+      "shortName": "Finance",
+      "url": "https://app.groupyetu.org/#finance",
+      "chosenIconUrl": "https://app.groupyetu.org/icons/icon-96x96.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://app.groupyetu.org/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://app.groupyetu.org/",
+  "minSdkVersion": 21,
+  "orientation": "portrait-primary",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "",
+  "displayOverride": [],
+  "appVersion": "1"
+}

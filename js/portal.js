@@ -162,6 +162,8 @@ async function loadMyProfile() {
     // Ensure financial profile is loaded before rendering cards
     if (!orgFinProfile.allLoaded) await loadOrgFinancialProfile();
     renderMemberBalanceCards(myRecord, totalContributed);
+    // ── Mobile quick actions (phone only) ──
+    if (window.innerWidth <= 768) renderMemberQuickActions(myRecord, orgFinProfile);
     // ── Set hero ──
     const initials = myRecord.full_name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
     const avatarEl = document.getElementById('mp-hero-avatar');
@@ -1052,3 +1054,135 @@ window.addEventListener('appinstalled', () => {
   document.getElementById('pwa-install-banner')?.remove();
   toast('GroupYetu360 installed! Find it on your home screen.');
 });
+
+// ── Member mobile quick actions ──
+function renderMemberQuickActions(myRecord, fp) {
+  // Remove existing if re-rendering
+  const existing = document.getElementById('mob-qa-section');
+  if (existing) existing.remove();
+
+  const balDisplay = (myRecord?.shares_balance || myRecord?.savings_balance)
+    ? 'Ksh ' + ((myRecord.shares_balance||0) + (myRecord.savings_balance||0)).toLocaleString()
+    : 'View balance';
+
+  // Build dynamic cards based on org financial profile
+  const cards = [];
+
+  // Pay is always first if org has any payment type
+  cards.push({
+    icon: '💳', cls: 't',
+    label: 'Make Payment',
+    sub: 'via M-Pesa / manual',
+    action: `openMemberPaymentModal();showModal('memberPayment')`
+  });
+
+  // Balance card — adapts label to what org has
+  const balLabel = fp.hasShares && fp.hasSavings ? 'Shares & Savings'
+    : fp.hasShares ? fp.sharesLabel || 'Shares'
+    : fp.hasSavings ? fp.savingsLabel || 'Savings'
+    : 'My Balance';
+  cards.push({
+    icon: '💰', cls: 'g',
+    label: balLabel,
+    sub: balDisplay,
+    action: `showPage('my_contributions')`
+  });
+
+  // Meetings always shown
+  cards.push({
+    icon: '📅', cls: 'm',
+    label: 'Meetings',
+    sub: 'Upcoming & past',
+    action: `showPage('my_meetings')`
+  });
+
+  // Notices
+  cards.push({
+    icon: '📢', cls: 'g',
+    label: 'Notices',
+    sub: 'From your admin',
+    action: `showPage('my_notices')`
+  });
+
+  const section = document.createElement('div');
+  section.id = 'mob-qa-section';
+  section.style.padding = '0 0 .5rem';
+
+  // Fines notice bar if any
+  const finesEl = document.getElementById('mp-fines-alert');
+  const hasFines = finesEl && finesEl.style.display !== 'none';
+
+  section.innerHTML = `
+    ${hasFines ? `<div class="mob-notice-bar">⚠ You have an <strong>outstanding fine</strong>. Tap Finance to view details.</div>` : ''}
+    <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin:.6rem 0 .4rem">Quick Actions</div>
+    <div class="mob-quick-actions">
+      ${cards.map(c => `
+        <div class="mob-qa-card" onclick="${c.action}">
+          <div class="mob-qa-icon ${c.cls}">${c.icon}</div>
+          <div class="mob-qa-label">${c.label}</div>
+          <div class="mob-qa-sub">${c.sub}</div>
+        </div>`).join('')}
+    </div>`;
+
+  // Insert after the mobile header, before existing content
+  const pageEl = document.getElementById('page-my_profile');
+  if (!pageEl) return;
+  const header = pageEl.querySelector('.member-mob-header');
+  const insertAfter = header || pageEl.firstChild;
+  if (header) {
+    header.insertAdjacentElement('afterend', section);
+  } else {
+    pageEl.insertBefore(section, pageEl.firstChild);
+  }
+}
+
+// ── Track unread notices for notification dot ──
+async function loadMyNotices() {
+  if (!currentOrg?.id) return;
+  const listEl = document.getElementById('my-notices-list');
+  if (listEl) listEl.innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
+
+  try {
+    const { data: messages, error } = await sb
+      .from('messages')
+      .select('*')
+      .eq('org_id', currentOrg.id)
+      .order('sent_at', { ascending: false });
+
+    if (error) throw error;
+    const msgs = messages || [];
+
+    // Track count for notification dot
+    window._unreadNotices = msgs.length;
+    const dot = document.getElementById('mmh-notif-dot');
+    if (dot) dot.style.display = msgs.length > 0 ? 'block' : 'none';
+
+    const countEl = document.getElementById('notices-count-chip');
+    if (countEl) countEl.textContent = msgs.length ? msgs.length + ' message' + (msgs.length !== 1 ? 's' : '') : 'No messages yet';
+
+    if (!listEl) return;
+    if (!msgs.length) {
+      listEl.innerHTML = `<div style="text-align:center;padding:3rem 1rem;color:var(--ink-faint)">
+        <div style="font-size:2rem;margin-bottom:.75rem">📭</div>
+        <div style="font-size:.9rem;font-weight:600;margin-bottom:.3rem">No notices yet</div>
+        <div style="font-size:.78rem">Your admin hasn't sent any messages yet.</div>
+      </div>`;
+      return;
+    }
+
+    listEl.innerHTML = msgs.map(m => {
+      const date = m.sent_at ? new Date(m.sent_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
+      return `<div style="background:#fff;border:1px solid var(--border);border-left:3px solid var(--teal);
+        border-radius:6px;padding:.9rem 1.1rem;margin-bottom:.65rem;animation:portalFadeUp .3s ease both">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+          <div style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--teal)">Notice</div>
+          <div style="font-size:.7rem;color:var(--ink-faint)">${date}</div>
+        </div>
+        <div style="font-size:.85rem;color:var(--ink);line-height:1.65">${m.message||m.content||'—'}</div>
+        ${m.sent_by ? `<div style="font-size:.7rem;color:var(--ink-faint);margin-top:.5rem">From: ${m.sent_by}</div>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    if (listEl) listEl.innerHTML = `<div style="color:var(--ink-faint);padding:1rem;font-size:.82rem">Could not load notices: ${e.message}</div>`;
+  }
+}
