@@ -902,58 +902,13 @@ function updateTopbarActions(page) {
 }
 
 function buildNav() {
-  // Use currentOrgRole (set by selectOrg from user_orgs) — NOT currentProfile.role
-  // currentProfile.role reflects the user's role in their ORIGINAL/primary org
-  // currentOrgRole is always the role for the currently active org
   const role = currentOrgRole || currentProfile?.role || 'member';
   const isSuperAdmin = role === 'superadmin';
   const isAdmin = role === 'admin' || role === 'officer' || role === 'treasurer' || isSuperAdmin;
-  const isTreasurer = role === 'treasurer';
-  let nav = '';
-  if (!isSuperAdmin) {
-    if (role === 'member') {
-      // Member portal - restricted view, own data only
-      nav += `<div class="nav-label">My Portal</div>
-      <a class="nav-item active" onclick="showPage('my_profile')" href="#"><span class="nav-icon">◉</span> My Profile</a>
-      <a class="nav-item" onclick="showPage('my_contributions')" href="#"><span class="nav-icon">₭</span> My Contributions</a>
-      <a class="nav-item" onclick="showPage('my_meetings')" href="#"><span class="nav-icon">◷</span> Meetings</a>
-      <a class="nav-item" onclick="showPage('my_notices')" href="#"><span class="nav-icon">✉</span> Notices</a>
-      <a class="nav-item" onclick="showPage('faq')" href="#"><span class="nav-icon">❓</span> Help & FAQs</a>
-      <a class="nav-item" onclick="showPage('my_account')" href="#"><span class="nav-icon">⚙</span> My Account</a>`;
-    } else {
-      nav += `<div class="nav-label">Main</div>
-      <a class="nav-item active" onclick="showPage('dashboard')" href="#"><span class="nav-icon">⊞</span> Dashboard</a>
-      <a class="nav-item" onclick="showPage('members')" href="#"><span class="nav-icon">◉</span> Members</a>`;
-    }
-    if (isAdmin) {
-      const plan = currentOrg?._effectivePlan || currentOrg?.plan || 'starter';
-      const hasBasic = ['basic','standard','pro'].includes(plan);
-      const gatedLink = (page,icon,label,ok) => ok
-        ? `<a class="nav-item" onclick="showPage('${page}')" href="#"><span class="nav-icon">${icon}</span> ${label}</a>`
-        : `<a class="nav-item" style="opacity:.5;pointer-events:auto;cursor:default" onclick="showUpgradePrompt('${page}');return false" href="#"><span class="nav-icon">${icon}</span> ${label} <span style="margin-left:auto;font-size:.7rem">🔒</span></a>`;
-      nav += `
-    <a class="nav-item" onclick="showPage('finance')" href="#"><span class="nav-icon">₭</span> Finance</a>
-    <a class="nav-item" onclick="showPage('meetings')" href="#"><span class="nav-icon">◷</span> Meetings</a>
-    <a class="nav-item" onclick="showPage('mgr')" href="#"><span class="nav-icon">🔄</span> Rotating Savings</a>`;
-      nav += gatedLink('welfare','♡','Welfare',hasBasic);
-      nav += gatedLink('projects','⚑','Projects',hasBasic);
-      nav += gatedLink('table_banking','🏦','Table Banking',hasBasic);
-      nav += `
-    <a class="nav-item" onclick="showPage('messages')" href="#"><span class="nav-icon">✉</span> Messages</a>
-    <div class="nav-label" style="margin-top:.5rem">My Portal</div>
-    <a class="nav-item" onclick="showPage('my_profile')" href="#"><span class="nav-icon">◉</span> My Profile</a>
-    <a class="nav-item" onclick="showPage('my_contributions')" href="#"><span class="nav-icon">₭</span> My Contributions</a>
-    <a class="nav-item" onclick="showPage('faq')" href="#"><span class="nav-icon">❓</span> Help & FAQs</a>
-    <div class="nav-label" style="margin-top:.5rem">Admin</div>
-    <a class="nav-item" onclick="showPage('approvals')" href="#"><span class="nav-icon">✓</span> Approvals <span class="nav-badge" id="approvals-badge" style="display:none">0</span></a>
-    <a class="nav-item" onclick="showPage('settings')" href="#"><span class="nav-icon">⚙</span> Settings</a>
-    <a class="nav-item" onclick="showPage('billing')" href="#"><span class="nav-icon">💳</span> Billing & SMS</a>
 
-    <a class="nav-item" onclick="showPage('my_account')" href="#"><span class="nav-icon">👤</span> My Account</a>`;
-    }
-  } else {
-    // Remove any stray page-dashboard active class
-    document.querySelectorAll('.page.active').forEach(p => p.classList.remove('active'));
+  let nav = '';
+
+  if (isSuperAdmin) {
     nav += `<div class="nav-label">Super Admin</div>
     <a class="nav-item active" onclick="showPage('superadmin')" href="#"><span class="nav-icon">⊞</span> Platform Overview</a>
     <a class="nav-item" onclick="showPage('sa_members')" href="#"><span class="nav-icon">◉</span> All Members</a>
@@ -963,7 +918,72 @@ function buildNav() {
     <a class="nav-item" onclick="showPage('sa_support')" href="#"><span class="nav-icon">⚙</span> Platform Settings</a>
     <div class="nav-label" style="margin-top:.5rem">Account</div>
     <a class="nav-item" onclick="showPage('my_account')" href="#"><span class="nav-icon">👤</span> My Account</a>`;
+
+  } else if (role === 'member') {
+    nav += `
+    <div class="nav-label">My Portal</div>
+    <a class="nav-item active" onclick="showPage('my_profile')" href="#"><span class="nav-icon">◉</span> My Profile</a>
+    <a class="nav-item" onclick="showPage('my_contributions')" href="#"><span class="nav-icon">₭</span> My Contributions</a>
+    <a class="nav-item" onclick="showPage('my_meetings')" href="#"><span class="nav-icon">◷</span> Meetings</a>
+    <a class="nav-item" onclick="showPage('my_notices')" href="#"><span class="nav-icon">✉</span> Notices</a>
+    <a class="nav-item" onclick="showPage('faq')" href="#"><span class="nav-icon">❓</span> Help & FAQs</a>
+    <a class="nav-item" onclick="showPage('my_account')" href="#"><span class="nav-icon">⚙</span> My Account</a>`;
+
+  } else {
+    // Admin / officer / treasurer
+    const plan = currentOrg?._effectivePlan || currentOrg?.plan || 'starter';
+    const hasBasic = ['basic','standard','pro'].includes(plan);
+    const gatedLink = (page, icon, label, ok) => ok
+      ? `<a class="nav-item" onclick="showPage('${page}')" href="#"><span class="nav-icon">${icon}</span> ${label}</a>`
+      : `<a class="nav-item nav-item-locked" onclick="showUpgradePrompt('${page}');return false" href="#"><span class="nav-icon">${icon}</span> ${label} <span style="margin-left:auto;font-size:.7rem">🔒</span></a>`;
+
+    // ── MAIN (always visible) ──
+    nav += `<div class="nav-label">Main</div>
+    <a class="nav-item active" onclick="showPage('dashboard')" href="#"><span class="nav-icon">⊞</span> Dashboard</a>
+    <a class="nav-item" onclick="showPage('members')" href="#"><span class="nav-icon">◉</span> Members</a>
+    <a class="nav-item" onclick="showPage('finance')" href="#"><span class="nav-icon">₭</span> Finance</a>
+    <a class="nav-item" onclick="showPage('meetings')" href="#"><span class="nav-icon">◷</span> Meetings</a>`;
+
+    // ── POWER TOOLS (collapsible) ──
+    nav += `
+    <button class="nav-collapsible" onclick="toggleNavSection('nav-power-tools',this)" aria-expanded="false">
+      <span>⚡ Power Tools</span>
+      <span class="nav-caret">▾</span>
+    </button>
+    <div class="nav-collapsible-body" id="nav-power-tools" style="display:none">
+      <a class="nav-item nav-item-sub" onclick="showPage('mgr')" href="#"><span class="nav-icon">🔄</span> Rotating Savings</a>
+      ${gatedLink('welfare','♡','Welfare',hasBasic)}
+      ${gatedLink('projects','⚑','Projects',hasBasic)}
+      ${gatedLink('table_banking','🏦','Table Banking',hasBasic)}
+      <a class="nav-item nav-item-sub" onclick="showPage('messages')" href="#"><span class="nav-icon">✉</span> Messages</a>
+    </div>`;
+
+    // ── MY PORTAL (collapsible) ──
+    nav += `
+    <button class="nav-collapsible" onclick="toggleNavSection('nav-my-portal',this)" aria-expanded="false">
+      <span>◉ My Portal</span>
+      <span class="nav-caret">▾</span>
+    </button>
+    <div class="nav-collapsible-body" id="nav-my-portal" style="display:none">
+      <a class="nav-item nav-item-sub" onclick="showPage('my_profile')" href="#"><span class="nav-icon">◉</span> My Profile</a>
+      <a class="nav-item nav-item-sub" onclick="showPage('my_contributions')" href="#"><span class="nav-icon">₭</span> My Contributions</a>
+      <a class="nav-item nav-item-sub" onclick="showPage('faq')" href="#"><span class="nav-icon">❓</span> Help & FAQs</a>
+    </div>`;
+
+    // ── ADMIN (collapsible) ──
+    nav += `
+    <button class="nav-collapsible" onclick="toggleNavSection('nav-admin-tools',this)" aria-expanded="false">
+      <span>⚙ Admin</span>
+      <span class="nav-caret">▾</span>
+    </button>
+    <div class="nav-collapsible-body" id="nav-admin-tools" style="display:none">
+      <a class="nav-item nav-item-sub" onclick="showPage('approvals')" href="#"><span class="nav-icon">✓</span> Approvals <span class="nav-badge" id="approvals-badge" style="display:none">0</span></a>
+      <a class="nav-item nav-item-sub" onclick="showPage('settings')" href="#"><span class="nav-icon">⚙</span> Settings</a>
+      <a class="nav-item nav-item-sub" onclick="showPage('billing')" href="#"><span class="nav-icon">💳</span> Billing & SMS</a>
+      <a class="nav-item nav-item-sub" onclick="showPage('my_account')" href="#"><span class="nav-icon">👤</span> My Account</a>
+    </div>`;
   }
+
   document.getElementById('sidebar-nav').innerHTML = nav;
   buildMobileNav();
   const topbar = document.getElementById('topbar-actions');
@@ -1058,15 +1078,34 @@ let currentPage = 'dashboard';
 // ── MOBILE NAVIGATION ─────────────────────────────────────────────────────
 
 function openMobileMenu() {
-  document.querySelector('.sidebar')?.classList.add('mob-open');
-  document.getElementById('mob-backdrop')?.classList.add('visible');
+  const sidebar = document.querySelector('.sidebar');
+  const backdrop = document.getElementById('mob-backdrop');
+  if (sidebar) sidebar.classList.add('mob-open');
+  if (backdrop) backdrop.classList.add('visible');
   document.body.style.overflow = 'hidden';
+  // Ensure sidebar pull tab shows correct state
+  const pull = document.getElementById('sidebar-pull-tab');
+  if (pull) pull.classList.add('open');
 }
 
 function closeMobileMenu() {
-  document.querySelector('.sidebar')?.classList.remove('mob-open');
-  document.getElementById('mob-backdrop')?.classList.remove('visible');
+  const sidebar = document.querySelector('.sidebar');
+  const backdrop = document.getElementById('mob-backdrop');
+  if (sidebar) sidebar.classList.remove('mob-open');
+  if (backdrop) backdrop.classList.remove('visible');
   document.body.style.overflow = '';
+  const pull = document.getElementById('sidebar-pull-tab');
+  if (pull) pull.classList.remove('open');
+}
+
+function toggleNavSection(id, btn) {
+  const body = document.getElementById(id);
+  if (!body) return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  btn.setAttribute('aria-expanded', String(!isOpen));
+  const caret = btn.querySelector('.nav-caret');
+  if (caret) caret.style.transform = isOpen ? '' : 'rotate(180deg)';
 }
 
 function buildMobileNav() {

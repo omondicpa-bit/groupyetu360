@@ -1250,20 +1250,17 @@ tr:hover td{background:var(--maroon-pale)}
 }
 
 
-#support-fab{position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;display:flex;flex-direction:column;align-items:flex-end;gap:.55rem;touch-action:none;user-select:none;-webkit-user-select:none}
-#support-fab-menu{display:none;flex-direction:column;gap:.4rem;align-items:flex-end}
+#support-fab{position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;touch-action:none;user-select:none;-webkit-user-select:none}
 /* Hide FAB on member mobile — they have Help tab in bottom nav */
 body.member-mob-active #support-fab{display:none !important}
-.fab-option{display:flex;align-items:center;gap:.55rem;padding:.5rem .9rem .5rem .6rem;border-radius:99px;font-size:.76rem;font-weight:600;text-decoration:none;box-shadow:0 2px 12px rgba(0,0,0,.18);transition:transform .15s,box-shadow .15s;white-space:nowrap}
-.fab-option:hover{transform:translateX(-3px);box-shadow:0 4px 16px rgba(0,0,0,.25)}
-.fab-option-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .fab-main{
-  width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;
+  width:54px;height:54px;border-radius:50%;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
   box-shadow:0 4px 16px rgba(0,0,0,.25),0 0 0 3px rgba(255,255,255,.9);
   transition:transform .2s,box-shadow .2s;
-  background:var(--maroon,#800020);
-  position:relative;overflow:hidden
+  background:#25D366;
+  position:relative;overflow:hidden;
+  text-decoration:none;border:none;
 }
 .fab-main:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(0,0,0,.3),0 0 0 3px rgba(255,255,255,.9)}
 .fab-main:active{transform:scale(.96)}
@@ -1640,8 +1637,9 @@ body.member-mob-active #support-fab{display:none !important}
   .modal{
     width:100% !important;max-width:100% !important;
     border-radius:16px 16px 0 0;
-    max-height:92vh;overflow-y:auto;
+    max-height:90vh;overflow-y:auto;
     margin:0;
+    padding-bottom:80px; /* clear fixed bottom nav */
   }
 
   /* ── Forms — prevent iOS zoom on focus ── */
@@ -1699,16 +1697,19 @@ body.member-mob-active #support-fab{display:none !important}
 
   /* Kill topbar & sidebar completely on member pages */
   body.member-mob-active .topbar{display:none !important}
-  body.member-mob-active .sidebar{display:none !important}
   body.member-mob-active .main{margin-left:0 !important;padding:0 !important}
   body.member-mob-active .page.active{padding:0 0 72px 0 !important}
+  /* Sidebar slides in via pull tab — don't fully hide it */
+  body.member-mob-active .sidebar{transform:translateX(-100%)}
+  body.member-mob-active .sidebar.mob-open{transform:translateX(0)}
 
   /* Kill topbar & sidebar on admin mobile dashboard */
   body.admin-mob-active .topbar{display:none !important}
-  body.admin-mob-active .sidebar{display:none !important}
   body.admin-mob-active .main{margin-left:0 !important;padding:0 !important}
   body.admin-mob-active .content{padding:0 !important}
   body.admin-mob-active .page.active{padding:0 !important}
+  body.admin-mob-active .sidebar{transform:translateX(-100%)}
+  body.admin-mob-active .sidebar.mob-open{transform:translateX(0)}
 
   /* Upgraded bottom nav */
   .mob-bottom-nav{
@@ -2436,8 +2437,61 @@ body.mob-dark #fin-mob-tab-content table tbody tr{border-bottom-color:#334155}
 /* Finance mobile — kill topbar/sidebar/padding */
 @media(max-width:768px){
   body.finance-mob-active .topbar{display:none !important}
-  body.finance-mob-active .sidebar{display:none !important}
   body.finance-mob-active .main{margin-left:0 !important;padding:0 !important}
   body.finance-mob-active .content{padding:0 !important}
   body.finance-mob-active .page.active{padding:0 !important}
+  body.finance-mob-active .sidebar{transform:translateX(-100%)}
+  body.finance-mob-active .sidebar.mob-open{transform:translateX(0)}
+}
+
+/* ═══════════════════════════════════════════
+   SIDEBAR COLLAPSIBLE SECTIONS
+   ═══════════════════════════════════════════ */
+.nav-collapsible{
+  width:100%;background:transparent;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.55rem 1.25rem .55rem 1rem;
+  font-size:.72rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.1em;color:rgba(255,255,255,.45);
+  font-family:'Inter',sans-serif;
+  margin-top:.35rem;
+  transition:color .15s;
+}
+.nav-collapsible:hover{color:rgba(255,255,255,.75)}
+.nav-collapsible[aria-expanded="true"]{color:rgba(255,255,255,.75)}
+.nav-caret{font-size:.75rem;transition:transform .2s;display:inline-block}
+.nav-collapsible-body{overflow:hidden}
+.nav-item-sub{padding-left:1.5rem !important}
+.nav-item-locked{opacity:.5;pointer-events:auto;cursor:default}
+
+/* ═══════════════════════════════════════════
+   SIDEBAR PULL TAB (floating, all pages)
+   ═══════════════════════════════════════════ */
+#sidebar-pull-tab{
+  display:none; /* desktop: hidden */
+}
+@media(max-width:768px){
+  #sidebar-pull-tab{
+    display:flex;
+    position:fixed;
+    left:0;top:50%;transform:translateY(-50%);
+    z-index:198;
+    width:22px;height:56px;
+    background:var(--maroon,#800020);
+    border-radius:0 8px 8px 0;
+    align-items:center;justify-content:center;
+    color:#fff;font-size:1rem;
+    cursor:pointer;
+    box-shadow:2px 0 12px rgba(0,0,0,.25);
+    transition:left .25s ease, opacity .2s;
+    -webkit-tap-highlight-color:transparent;
+    user-select:none;
+  }
+  #sidebar-pull-tab:active{opacity:.8}
+  #sidebar-pull-tab.open{
+    left:-22px; /* slide away when sidebar is open */
+    opacity:0;pointer-events:none;
+  }
+  /* Ensure sidebar covers pull tab */
+  .sidebar.mob-open ~ #sidebar-pull-tab{opacity:0;pointer-events:none}
 }

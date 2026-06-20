@@ -416,6 +416,10 @@
 
   <!-- Mobile drawer backdrop -->
   <div class="mob-backdrop" id="mob-backdrop" onclick="closeMobileMenu()"></div>
+  <!-- Floating sidebar pull tab — visible on all pages on mobile -->
+  <div id="sidebar-pull-tab" onclick="openMobileMenu()" title="Open menu" aria-label="Open navigation menu">
+    <span>&#9776;</span>
+  </div>
 
   <!-- Mobile bottom navigation -->
   <nav class="mob-bottom-nav" id="mob-bottom-nav" style="display:none"></nav>
@@ -4019,48 +4023,10 @@
 <!-- ── FLOATING SUPPORT BUTTON ── -->
 
 <div id="support-fab">
-  <div id="support-fab-menu">
-    <a id="fab-whatsapp" href="https://wa.me/254702903544" target="_blank" class="fab-option" style="background:#25D366;color:#fff">
-      <div class="fab-option-icon" style="background:rgba(255,255,255,.2)">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.555 4.122 1.526 5.854L.057 23.882l6.197-1.635A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.805 9.805 0 01-5.031-1.388l-.361-.214-3.741.981 1.005-3.647-.235-.374A9.773 9.773 0 012.182 12C2.182 6.591 6.591 2.182 12 2.182 17.409 2.182 21.818 6.591 21.818 12c0 5.409-4.409 9.818-9.818 9.818z"/></svg>
-      </div>
-      WhatsApp
-    </a>
-    <a id="fab-call" href="tel:+254792385970" class="fab-option" style="background:#800020;color:#fff">
-      <div class="fab-option-icon" style="background:rgba(255,255,255,.15)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-      </div>
-      Call Us
-    </a>
-    <a id="fab-email" href="mailto:support@groupyetu.org" class="fab-option" style="background:#0f6e56;color:#fff">
-      <div class="fab-option-icon" style="background:rgba(255,255,255,.15)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-      </div>
-      Email
-    </a>
-  </div>
-
-  <!-- Main WhatsApp-style button -->
-  <button onclick="toggleSupportFab()" id="support-fab-btn" class="fab-main" title="Support">
+  <a id="support-fab-btn" class="fab-main" href="https://wa.me/254702903544?text=Hi%2C%20I%20need%20help%20with%20GroupYetu360" target="_blank" rel="noopener" title="Chat with us on WhatsApp" aria-label="WhatsApp support">
     <div class="fab-pulse" id="fab-pulse"></div>
-    <!-- WhatsApp icon (default) / X icon (open) -->
-    <!-- Headset support icon -->
-    <svg id="fab-icon-chat" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <!-- Speech bubble -->
-      <path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.38 5.06L2 22l4.94-1.38A9.96 9.96 0 0012 22c5.52 0 10-4.48 10-10S17.52 2 12 2z"/>
-      <!-- Headset arc -->
-      <path d="M8 11.5c0-2.21 1.79-4 4-4s4 1.79 4 4" fill="none"/>
-      <!-- Left earpiece -->
-      <rect x="6" y="11" width="2.5" height="4" rx="1.25" fill="#fff" stroke="none"/>
-      <!-- Right earpiece -->
-      <rect x="15.5" y="11" width="2.5" height="4" rx="1.25" fill="#fff" stroke="none"/>
-      <!-- Dots -->
-      <circle cx="9.5" cy="13.5" r=".5" fill="#fff" stroke="none"/>
-      <circle cx="12" cy="13.5" r=".5" fill="#fff" stroke="none"/>
-      <circle cx="14.5" cy="13.5" r=".5" fill="#fff" stroke="none"/>
-    </svg>
-    <svg id="fab-icon-close" width="20" height="20" viewBox="0 0 24 24" fill="#fff" style="display:none"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-  </button>
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.555 4.122 1.526 5.854L.057 23.882l6.197-1.635A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.805 9.805 0 01-5.031-1.388l-.361-.214-3.741.981 1.005-3.647-.235-.374A9.773 9.773 0 012.182 12C2.182 6.591 6.591 2.182 12 2.182 17.409 2.182 21.818 6.591 21.818 12c0 5.409-4.409 9.818-9.818 9.818z"/></svg>
+  </a>
 </div>
 
 <!-- MODAL: Create Round / MGR Cycle -->
@@ -4455,7 +4421,6 @@
   if (!fab) return;
   let dragging = false, moved = false, startX, startY, origRight, origBottom;
   function onDown(e) {
-    if (e.target.closest('#support-fab-menu')) return;
     dragging = true; moved = false;
     const pt = e.touches ? e.touches[0] : e;
     startX = pt.clientX; startY = pt.clientY;
@@ -4486,6 +4451,11 @@
   window.addEventListener('touchmove', onMove, {passive:false});
   window.addEventListener('mouseup', onUp);
   window.addEventListener('touchend', onUp);
+  // On touchend: if not dragged, let the link open
+  fab.addEventListener('touchend', function(e) {
+    if (!moved) return; // let natural click fire
+    e.preventDefault();
+  });
   try { const p = JSON.parse(sessionStorage.getItem('fab-pos')||'null'); if(p){fab.style.right=p.r+'px';fab.style.bottom=p.b+'px';} } catch(ex){}
 })();
 </script>
