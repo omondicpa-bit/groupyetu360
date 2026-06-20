@@ -1783,8 +1783,8 @@ body.member-mob-active #support-fab{display:none !important}
 .mh-body{
   flex:1;overflow-y:auto;
   background:var(--surface-2);
-  padding:.75rem .85rem;
-  display:flex;flex-direction:column;gap:.65rem;
+  padding:.55rem .8rem;
+  display:flex;flex-direction:column;gap:.45rem;
   -webkit-overflow-scrolling:touch;
 }
 
@@ -1984,12 +1984,11 @@ body.member-mob-active #support-fab{display:none !important}
 .mob-summary-card{
   flex-shrink:0;width:calc(100vw - 3.5rem);
   scroll-snap-align:start;
-  border-radius:16px;padding:1.1rem 1.2rem 1rem;
-  display:flex;flex-direction:column;gap:.3rem;
+  border-radius:14px;padding:.85rem 1rem .75rem;
+  display:flex;flex-direction:column;gap:.2rem;
   position:relative;overflow:hidden;
-  /* Light mode default */
   background:var(--teal);
-  box-shadow:0 4px 16px rgba(15,110,86,.25);
+  box-shadow:0 3px 12px rgba(15,110,86,.2);
 }
 .mob-summary-card::before{
   content:'';position:absolute;
@@ -2002,8 +2001,8 @@ body.member-mob-active #support-fab{display:none !important}
   letter-spacing:.1em;color:rgba(255,255,255,.65);
 }
 .mob-sc-amount{
-  font-family:'Crimson Pro',serif;font-size:1.9rem;
-  font-weight:700;color:#fff;line-height:1.1;margin:.1rem 0;
+  font-family:'Crimson Pro',serif;font-size:1.65rem;
+  font-weight:700;color:#fff;line-height:1.1;margin:.05rem 0;
 }
 .mob-sc-meta{font-size:.75rem;color:rgba(255,255,255,.7)}
 .mob-sc-row{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.2rem}
@@ -2026,7 +2025,7 @@ body.member-mob-active #support-fab{display:none !important}
 /* ── Scroll indicator dots ── */
 .mob-scroll-dots{
   display:flex;justify-content:center;gap:.4rem;
-  margin:.1rem 0 .5rem;
+  margin:.05rem 0 .25rem;
 }
 .mob-dot{
   width:6px;height:6px;border-radius:50%;
@@ -2037,7 +2036,7 @@ body.member-mob-active #support-fab{display:none !important}
 /* ── Quick action buttons row ── */
 .mob-action-row{
   display:flex;justify-content:space-around;
-  padding:.5rem 0 .25rem;
+  padding:.25rem 0 .1rem;
 }
 .mob-action-btn{
   display:flex;flex-direction:column;align-items:center;gap:.3rem;
@@ -2047,11 +2046,11 @@ body.member-mob-active #support-fab{display:none !important}
 }
 .mob-action-btn:active .mob-action-icon{transform:scale(.9)}
 .mob-action-icon{
-  width:46px;height:46px;border-radius:50%;
+  width:40px;height:40px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
-  font-size:1.2rem;
+  font-size:1.1rem;
   background:var(--teal-pale);
-  box-shadow:0 2px 8px rgba(15,110,86,.15);
+  box-shadow:0 2px 6px rgba(15,110,86,.12);
   transition:transform .1s;
 }
 .mob-action-label{
@@ -2063,8 +2062,8 @@ body.member-mob-active #support-fab{display:none !important}
 /* ── Section header ── */
 .mob-section-hdr{
   display:flex;justify-content:space-between;align-items:center;
-  margin:.5rem 0 .4rem;
-  font-size:.78rem;font-weight:600;color:var(--ink);
+  margin:.25rem 0 .2rem;
+  font-size:.75rem;font-weight:600;color:var(--ink);
 }
 .mob-see-all{
   font-size:.72rem;color:var(--teal);background:transparent;
@@ -2073,31 +2072,44 @@ body.member-mob-active #support-fab{display:none !important}
 
 /* ── Transaction rows ── */
 .mob-txn-row{
-  display:flex;align-items:center;gap:.65rem;
-  padding:.6rem 0;border-bottom:.5px solid var(--border);
+  display:flex;align-items:center;gap:.55rem;
+  padding:.45rem 0;border-bottom:.5px solid var(--border);
 }
 .mob-txn-row:last-child{border-bottom:none}
 .mob-txn-avatar{
-  width:36px;height:36px;border-radius:50%;
+  width:30px;height:30px;border-radius:50%;
   background:var(--teal-pale);color:var(--teal-dk);
   display:flex;align-items:center;justify-content:center;
   font-size:.7rem;font-weight:700;flex-shrink:0;
 }
 .mob-txn-info{flex:1;min-width:0}
-.mob-txn-name{font-size:.82rem;font-weight:500;color:var(--ink)}
-.mob-txn-date{font-size:.7rem;color:var(--ink-faint);margin-top:.05rem}
-.mob-txn-amt{font-size:.88rem;font-weight:600;color:var(--teal);flex-shrink:0}
+.mob-txn-name{font-size:.78rem;font-weight:500;color:var(--ink)}
+.mob-txn-date{font-size:.66rem;color:var(--ink-faint);margin-top:.02rem}
+.mob-txn-amt{font-size:.82rem;font-weight:600;color:var(--teal);flex-shrink:0}
 
 /* ═══════════════════════════════════════════
    DARK MODE for member mobile home
    Applied via body.mob-dark class
    ═══════════════════════════════════════════ */
+/* ── Home shell: fills viewport exactly, no page scroll ── */
+#mob-home-shell{
+  height:calc(100dvh - 64px);  /* 64px = bottom nav */
+  max-height:calc(100dvh - 64px);
+  overflow:hidden;
+  min-height:unset !important;
+}
+#mob-home-body{
+  overflow-y:auto !important;
+  flex:1;
+}
 body.mob-dark #mob-home-shell .mh-body{background:#111827}
+body.mob-dark #mob-recent-txns{background:#111827}
+body.mob-dark .mob-section-hdr{color:#e5e7eb}
 body.mob-dark .mob-summary-card{box-shadow:0 4px 20px rgba(0,0,0,.4)}
 body.mob-dark #mob-card-finance{background:linear-gradient(135deg,#0a2a1f,#0f4a38)}
 body.mob-dark #mob-card-meeting{background:linear-gradient(135deg,#0f1f3d,#1a3a6e)}
 body.mob-dark #mob-card-group{background:linear-gradient(135deg,#2a0010,#5a0016)}
-body.mob-dark .mob-action-icon{background:#1f2937;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+body.mob-dark .mob-action-icon{background:#1f2937;box-shadow:0 2px 6px rgba(0,0,0,.25)}
 body.mob-dark .mob-action-label{color:#9ca3af}
 body.mob-dark .mob-section-hdr{color:#e5e7eb}
 body.mob-dark .mob-txn-name{color:#e5e7eb}
@@ -2106,3 +2118,14 @@ body.mob-dark .mob-txn-avatar{background:#1f2937;color:#9fe1cb}
 body.mob-dark .mh-notice{background:rgba(196,154,48,.15);color:#fde68a}
 body.mob-dark .mob-dot{background:rgba(159,225,203,.15)}
 body.mob-dark .mob-dot.active{background:#1D9E75}
+
+/* ── my_profile page: no outer scroll on mobile (home shell manages its own) ── */
+@media(max-width:768px){
+  body.member-mob-active #page-my_profile{overflow:hidden}
+  /* Cards scroll strip — tighter on small screens */
+  .mob-cards-scroll{padding:.15rem .05rem .35rem}
+  /* Action label smaller */
+  .mob-action-label{font-size:.6rem}
+  /* Recent activity wrap */
+  #mob-recent-txns{overflow:hidden}
+}
