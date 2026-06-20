@@ -107,13 +107,24 @@ async function loadProfileAndOrg() {
   // Single org — go straight in
   const { data: org } = await sb.from('organisations').select('*').eq('id', profile.org_id).single();
   currentOrg = org;
-  // Ensure user_orgs entry exists
+  // Resolve per-org role from user_orgs — don't trust profiles.role for org-specific role
+  let resolvedRole = profile.role || 'member';
+  // Superadmins acting as org admins should be treated as 'admin' in the org context
+  if (resolvedRole === 'superadmin') resolvedRole = 'admin';
   try {
-    await sb.from('user_orgs').upsert({
-      user_id: currentUser.id, org_id: org.id, role: profile.role
-    });
-    _userOrgs = [{ ...org, _role: profile.role }];
+    const { data: uoRow } = await sb.from('user_orgs')
+      .select('role').eq('user_id', currentUser.id).eq('org_id', org.id).maybeSingle();
+    if (uoRow?.role) {
+      resolvedRole = uoRow.role;
+    } else {
+      await sb.from('user_orgs').upsert({
+        user_id: currentUser.id, org_id: org.id, role: resolvedRole
+      });
+    }
   } catch(e) {}
+  currentOrgRole = resolvedRole;
+  currentProfile = { ...profile, role: resolvedRole };
+  _userOrgs = [{ ...org, _role: resolvedRole }];
   showApp();
   buildOrgSwitcherDropdown();
 }
@@ -606,21 +617,37 @@ async function selectOrg(orgId) {
   await sb.from('profiles').update({ org_id: orgId }).eq('id', currentUser.id);
   const { data: org } = await sb.from('organisations').select('*').eq('id', orgId).single();
   currentOrg = org;
-  const { data: profile } = await sb.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
-  currentProfile = profile;
 
-  // Always resolve role from user_orgs for this specific org
-  // This prevents admin role from one org bleeding into another org
-  currentOrgRole = profile?.role || 'member'; // start with profile role
+  // DO NOT re-fetch the raw profiles row here — it stores the global role which can
+  // differ from the per-org role in user_orgs (e.g. a user whose profiles.role = 'superadmin'
+  // but is 'admin' in a specific org). Re-fetching it caused the brief superadmin flash.
+  // currentProfile is already correctly set from the initial login flow.
+
+  currentOrgRole = 'member'; // safe default until user_orgs confirms
   try {
     const { data: uoRow } = await sb.from('user_orgs')
       .select('role').eq('user_id', currentUser.id).eq('org_id', orgId).maybeSingle();
     if (uoRow?.role) {
-      currentOrgRole = uoRow.role; // override with org-specific role
-      // Also patch currentProfile so all existing code reading currentProfile.role works
+      currentOrgRole = uoRow.role;
+      // Patch currentProfile.role so all downstream checks read the correct per-org role
       if (currentProfile) currentProfile = { ...currentProfile, role: uoRow.role };
+    } else {
+      // No user_orgs row yet — upsert one using what we know and use it
+      const fallbackRole = currentProfile?.role || 'member';
+      currentOrgRole = ['superadmin','admin','officer','treasurer','member'].includes(fallbackRole)
+        ? (fallbackRole === 'superadmin' ? 'admin' : fallbackRole)
+        : 'member';
+      await sb.from('user_orgs').upsert({
+        user_id: currentUser.id, org_id: orgId, role: currentOrgRole
+      }).catch(() => {});
+      if (currentProfile) currentProfile = { ...currentProfile, role: currentOrgRole };
     }
-  } catch(e) {}
+  } catch(e) { console.warn('[GY360] user_orgs role fetch failed:', e); }
+
+  // Keep _userOrgs cache in sync
+  const cached = _userOrgs.find(o => o.id === orgId);
+  if (cached) cached._role = currentOrgRole;
+  else _userOrgs.push({ ...org, _role: currentOrgRole });
 
   // Hide picker, show app
   const picker = document.getElementById('org-picker-screen');
