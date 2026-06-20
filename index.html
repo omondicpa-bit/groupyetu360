@@ -439,6 +439,130 @@
     <!-- DASHBOARD -->
     <div class="page" id="page-dashboard">
 
+      <!-- ══ ADMIN MOBILE HOME ══ -->
+      <div class="mob-only" style="display:flex;flex-direction:column;overflow:hidden" id="adm-mob-shell">
+
+        <!-- Header: greeting + org pill + icons -->
+        <div class="mh-header">
+          <div class="mh-inner">
+            <div class="mh-row" style="margin-bottom:.4rem">
+              <div>
+                <div class="mh-greeting" id="adm-mob-greeting">Good morning,</div>
+                <div class="mh-name" id="adm-mob-name">Admin</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:.55rem">
+                <button class="mh-icon-btn" onclick="toggleMobTheme()" aria-label="Toggle theme">☀️</button>
+                <button class="mh-icon-btn" onclick="showPage('settings')" aria-label="Settings">👤</button>
+              </div>
+            </div>
+            <div class="mh-org-pill">
+              <div class="mh-org-dot" id="adm-mob-org-dot">G</div>
+              <span id="adm-mob-org-name">Your Group</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scrollable body -->
+        <div class="mh-body" id="adm-mob-body">
+
+          <!-- 4 horizontal swipeable summary cards -->
+          <div class="mob-cards-scroll" id="adm-mob-cards-scroll">
+
+            <!-- Card 1: Group Finance (teal) -->
+            <div class="mob-summary-card" id="adm-card-finance">
+              <div class="mob-sc-label">💰 Group Finance</div>
+              <div class="mob-sc-amount" id="adm-sc-bank">—</div>
+              <div class="mob-sc-meta" id="adm-sc-bank-meta">Bank balance</div>
+              <div class="mob-sc-row">
+                <span class="mob-sc-tag" id="adm-sc-year-total">Ksh — this year</span>
+                <span class="mob-sc-tag" id="adm-sc-txn-count">— payments</span>
+              </div>
+              <div class="mob-sc-footer" id="adm-sc-bank-updated">—</div>
+            </div>
+
+            <!-- Card 2: Members (maroon) -->
+            <div class="mob-summary-card" id="adm-card-members">
+              <div class="mob-sc-label">👥 Members</div>
+              <div class="mob-sc-amount" id="adm-sc-members">—</div>
+              <div class="mob-sc-meta" id="adm-sc-members-meta">Loading…</div>
+              <div id="adm-sc-members-bar" style="display:flex;gap:2px;margin-top:.3rem;height:4px;border-radius:2px;overflow:hidden"></div>
+              <div class="mob-sc-footer" id="adm-sc-members-footer">—</div>
+            </div>
+
+            <!-- Card 3: Next Meeting (indigo) -->
+            <div class="mob-summary-card" id="adm-card-meeting">
+              <div class="mob-sc-label">📅 Next Meeting</div>
+              <div class="mob-sc-amount" id="adm-sc-mtg-date" style="font-size:1.3rem">—</div>
+              <div class="mob-sc-meta" id="adm-sc-mtg-countdown">Loading…</div>
+              <div class="mob-sc-row">
+                <span class="mob-sc-tag" id="adm-sc-mtg-time">—</span>
+                <span class="mob-sc-tag" id="adm-sc-mtg-venue">—</span>
+              </div>
+              <div class="mob-sc-footer" id="adm-sc-mtg-footer">—</div>
+            </div>
+
+            <!-- Card 4: Contributions (amber) -->
+            <div class="mob-summary-card" id="adm-card-contribs">
+              <div class="mob-sc-label">₭ Contributions</div>
+              <div class="mob-sc-meta" style="color:rgba(255,255,255,.75);font-size:.7rem;margin-bottom:.25rem">All-time by type</div>
+              <div id="adm-sc-contribs-list" style="display:flex;flex-direction:column;gap:.22rem;flex:1">
+                <div style="color:rgba(255,255,255,.5);font-size:.75rem">Loading…</div>
+              </div>
+              <div class="mob-sc-footer" id="adm-sc-contribs-footer">—</div>
+            </div>
+
+          </div>
+
+          <!-- Scroll dots -->
+          <div class="mob-scroll-dots">
+            <div class="mob-dot active" id="adm-dot-0"></div>
+            <div class="mob-dot" id="adm-dot-1"></div>
+            <div class="mob-dot" id="adm-dot-2"></div>
+            <div class="mob-dot" id="adm-dot-3"></div>
+          </div>
+
+          <!-- Quick action buttons row -->
+          <div class="mob-action-row">
+            <button class="mob-action-btn" onclick="showPage('finance');setTimeout(()=>switchTab(document.querySelector('[onclick*=tab-record]'),'tab-record'),100)">
+              <div class="mob-action-icon">💳</div>
+              <div class="mob-action-label">Pay</div>
+            </button>
+            <button class="mob-action-btn" onclick="showModal('addMember')">
+              <div class="mob-action-icon">👤</div>
+              <div class="mob-action-label">Add Member</div>
+            </button>
+            <button class="mob-action-btn" onclick="showPage('messages')">
+              <div class="mob-action-icon">✉️</div>
+              <div class="mob-action-label">SMS</div>
+            </button>
+            <button class="mob-action-btn" onclick="showModal('scheduleMeeting')">
+              <div class="mob-action-icon">📅</div>
+              <div class="mob-action-label">Meeting</div>
+            </button>
+          </div>
+
+          <!-- Pending approvals alert (hidden until populated) -->
+          <div id="adm-mob-approvals-alert" style="display:none;background:rgba(196,154,48,.1);border-left:3px solid var(--gold);border-radius:0 8px 8px 0;padding:.55rem .85rem;display:none;align-items:center;gap:.6rem">
+            <span style="font-size:1rem">⏳</span>
+            <span style="font-size:.78rem;color:#5a3a00;font-weight:500;flex:1" id="adm-mob-approvals-text">Members pending approval</span>
+            <button onclick="showPage('approvals')" style="font-size:.72rem;font-weight:700;color:var(--maroon);background:transparent;border:none;cursor:pointer;white-space:nowrap">Review →</button>
+          </div>
+
+          <!-- Recent payments -->
+          <div class="mob-section-hdr" style="margin-top:.15rem">
+            <span>Recent Payments</span>
+            <button onclick="showPage('finance')" class="mob-see-all">View all →</button>
+          </div>
+          <div id="adm-mob-recent-txns" style="background:#fff;border-radius:12px;padding:0 .75rem;border:0.5px solid var(--border)">
+            <div style="color:var(--ink-faint);font-size:.82rem;padding:.75rem 0">Loading…</div>
+          </div>
+
+        </div><!-- end mh-body -->
+      </div><!-- end adm-mob-shell -->
+
+      <!-- ══ DESKTOP DASHBOARD ══ -->
+      <div class="mob-hide">
+
       <!-- ── HERO GREETING ── -->
       <div id="dash-hero" style="
         background:linear-gradient(135deg,var(--maroon-dk) 0%,var(--maroon) 55%,#9a0025 100%);
@@ -625,7 +749,9 @@
         </div>
       </div>
 
-    </div>
+      </div><!-- end .mob-hide -->
+
+    </div><!-- end #page-dashboard -->
 
     <!-- MEMBERS -->
     <div class="page" id="page-members">

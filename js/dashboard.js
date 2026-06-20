@@ -198,6 +198,7 @@ async function loadDashboard() {
   // ── These fire independently — don't block the main queries ──
   checkPendingApprovals();
   loadDashboardModuleCards(orgId);
+  populateMobileAdminHome(orgId);
 
   await Promise.allSettled([membersPromise, recentTxnPromise, allTxnPromise, projPromise, meetPromise]);
 }
@@ -352,4 +353,189 @@ async function loadDashboardModuleCards(orgId) {
   if (container.children.length === 0) {
     container.style.display = 'none';
   }
+}
+
+// ══════════════════════════════════════════
+// ADMIN MOBILE HOME — populateMobileAdminHome
+// ══════════════════════════════════════════
+async function populateMobileAdminHome(orgId) {
+  const shell = document.getElementById('adm-mob-shell');
+  if (!shell) return;
+
+  // Set height like member home — Android dvh workaround
+  function setAdmHeight() {
+    const nav = document.querySelector('.mob-nav');
+    const navH = nav ? nav.offsetHeight : 56;
+    shell.style.height = (window.innerHeight - navH) + 'px';
+  }
+  setAdmHeight();
+  window.addEventListener('resize', setAdmHeight);
+
+  const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const setHTML = (id, v) => { const el = document.getElementById(id); if (el) el.innerHTML = v; };
+
+  // ── Greeting ──
+  const now = new Date();
+  const hour = now.getHours();
+  const greet = hour < 12 ? 'Good morning,' : hour < 17 ? 'Good afternoon,' : 'Good evening,';
+  const adminName = currentProfile?.full_name?.split(' ')[0] || 'Admin';
+  setEl('adm-mob-greeting', greet);
+  setEl('adm-mob-name', adminName);
+
+  // ── Org pill ──
+  const orgName = currentOrg?.name || 'Your Group';
+  setEl('adm-mob-org-name', orgName.length > 22 ? orgName.slice(0, 21) + '…' : orgName);
+  const dot = document.getElementById('adm-mob-org-dot');
+  if (dot) dot.textContent = orgName.charAt(0).toUpperCase();
+
+  // ── Card 1: Group Finance ──
+  const bankBal = currentOrg?.bank_balance || 0;
+  const bankBalFmt = bankBal >= 1000000
+    ? 'Ksh ' + (bankBal / 1000000).toFixed(1) + 'M'
+    : bankBal >= 1000
+    ? 'Ksh ' + (bankBal / 1000).toFixed(0) + 'K'
+    : 'Ksh ' + bankBal.toLocaleString();
+  setEl('adm-sc-bank', bankBalFmt);
+  setEl('adm-sc-bank-meta', 'Bank balance');
+  setEl('adm-sc-bank-updated', currentOrg?.bank_balance_updated ? 'Updated ' + currentOrg.bank_balance_updated : 'Set balance in Settings');
+
+  // ── Scroll dots setup ──
+  const scroll = document.getElementById('adm-mob-cards-scroll');
+  const dots = [0, 1, 2, 3].map(i => document.getElementById('adm-dot-' + i));
+  if (scroll) {
+    scroll.addEventListener('scroll', () => {
+      const cardW = scroll.firstElementChild?.offsetWidth || scroll.offsetWidth;
+      const idx = Math.min(3, Math.round(scroll.scrollLeft / cardW));
+      dots.forEach((d, i) => {
+        if (!d) return;
+        d.classList.toggle('active', i === idx);
+        d.style.width = i === idx ? '18px' : '6px';
+        d.style.background = i === idx ? 'var(--teal)' : 'rgba(15,110,86,.2)';
+      });
+    }, { passive: true });
+  }
+
+  const thisYear = now.getFullYear().toString();
+
+  // ── Fetch all txns for finance card + contribs card ──
+  try {
+    const { data: allTxns } = await sb.from('transactions')
+      .select('amount,transaction_date,contribution_types(name)')
+      .eq('org_id', orgId);
+
+    const txns = allTxns || [];
+    const yearTxns = txns.filter(t => (t.transaction_date || '').startsWith(thisYear));
+    const yearTotal = yearTxns.reduce((s, t) => s + Number(t.amount || 0), 0);
+
+    setEl('adm-sc-year-total', 'Ksh ' + yearTotal.toLocaleString() + ' this year');
+    setEl('adm-sc-txn-count', yearTxns.length + ' payment' + (yearTxns.length !== 1 ? 's' : ''));
+
+    // Contributions by type (card 4)
+    const cats = {};
+    txns.forEach(t => {
+      const c = t.contribution_types?.name || 'Other';
+      cats[c] = (cats[c] || 0) + Number(t.amount || 0);
+    });
+    const contribEl = document.getElementById('adm-sc-contribs-list');
+    if (contribEl) {
+      const entries = Object.entries(cats).sort((a, b) => b[1] - a[1]);
+      if (entries.length) {
+        contribEl.innerHTML = entries.map(([name, total]) =>
+          `<div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:.72rem;color:rgba(255,255,255,.75)">${name}</span>
+            <span style="font-size:.75rem;font-weight:700;color:rgba(255,255,255,.95)">Ksh ${total.toLocaleString()}</span>
+          </div>`
+        ).join('');
+        const grand = entries.reduce((s, [, v]) => s + v, 0);
+        setEl('adm-sc-contribs-footer', 'Total: Ksh ' + grand.toLocaleString());
+      } else {
+        contribEl.innerHTML = '<div style="color:rgba(255,255,255,.45);font-size:.75rem">No contributions yet</div>';
+      }
+    }
+  } catch (e) { console.error('[GY360] adm mob finance fetch:', e); }
+
+  // ── Fetch members (card 2) ──
+  try {
+    const { data: members } = await sb.from('members').select('status').eq('org_id', orgId);
+    const mems = members || [];
+    const total = mems.length;
+    const active = mems.filter(m => m.status === 'active').length;
+    const arrears = mems.filter(m => m.status === 'arrears').length;
+    const inactive = mems.filter(m => m.status === 'inactive').length;
+
+    setEl('adm-sc-members', total);
+    setEl('adm-sc-members-meta', active + ' active · ' + arrears + ' in arrears');
+    setEl('adm-sc-members-footer', inactive + ' inactive');
+
+    const barEl = document.getElementById('adm-sc-members-bar');
+    if (barEl && total > 0) {
+      barEl.innerHTML =
+        (active ? `<div style="flex:${active};height:4px;background:#4ade80;border-radius:2px 0 0 2px"></div>` : '') +
+        (arrears ? `<div style="flex:${arrears};height:4px;background:#fbbf24"></div>` : '') +
+        (inactive ? `<div style="flex:${inactive};height:4px;background:rgba(255,255,255,.2);border-radius:0 2px 2px 0"></div>` : '');
+    }
+  } catch (e) { console.error('[GY360] adm mob members fetch:', e); }
+
+  // ── Fetch next meeting (card 3) ──
+  try {
+    const today = now.toISOString().split('T')[0];
+    const { data: meetings } = await sb.from('meetings').select('*')
+      .eq('org_id', orgId).gte('meeting_date', today).order('meeting_date').limit(1);
+    const m = (meetings || [])[0];
+    if (m) {
+      const mDate = new Date(m.meeting_date);
+      const daysAway = Math.ceil((mDate - now) / (1000 * 60 * 60 * 24));
+      const dateLabel = mDate.toLocaleDateString('en-KE', { day: 'numeric', month: 'short' });
+      const dayLabel = daysAway === 0 ? 'Today!' : daysAway === 1 ? 'Tomorrow' : 'In ' + daysAway + ' days';
+      setEl('adm-sc-mtg-date', dateLabel);
+      setEl('adm-sc-mtg-countdown', dayLabel);
+      setEl('adm-sc-mtg-time', m.meeting_time ? m.meeting_time.slice(0, 5) + ' EAT' : 'Time TBA');
+      setEl('adm-sc-mtg-venue', (m.venue || 'Venue TBA').slice(0, 18));
+      setEl('adm-sc-mtg-footer', mDate.toLocaleDateString('en-KE', { weekday: 'long' }));
+    } else {
+      setEl('adm-sc-mtg-date', 'None');
+      setEl('adm-sc-mtg-countdown', 'No meetings scheduled');
+      setEl('adm-sc-mtg-time', '');
+      setEl('adm-sc-mtg-venue', '');
+      setEl('adm-sc-mtg-footer', 'Schedule one →');
+    }
+  } catch (e) { console.error('[GY360] adm mob meeting fetch:', e); }
+
+  // ── Fetch recent 3 transactions ──
+  try {
+    const { data: txns } = await sb.from('transactions')
+      .select('*,members(full_name),contribution_types(name)')
+      .eq('org_id', orgId).order('created_at', { ascending: false }).limit(3);
+    const txnEl = document.getElementById('adm-mob-recent-txns');
+    if (!txnEl) return;
+    if ((txns || []).length === 0) {
+      txnEl.innerHTML = '<div style="color:var(--ink-faint);font-size:.82rem;padding:.75rem 0;text-align:center">No payments recorded yet</div>';
+      return;
+    }
+    txnEl.innerHTML = txns.map(t => {
+      const name = t.members?.full_name || 'Unknown';
+      const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+      const ds = t.transaction_date || (t.created_at || '').split('T')[0];
+      const typeName = t.contribution_types?.name || 'Payment';
+      return `<div class="mob-txn-row">
+        <div class="mob-txn-avatar">${initials}</div>
+        <div class="mob-txn-info">
+          <div class="mob-txn-name">${name}</div>
+          <div class="mob-txn-date">${typeName} · ${ds}</div>
+        </div>
+        <div class="mob-txn-amt">+Ksh ${Number(t.amount).toLocaleString()}</div>
+      </div>`;
+    }).join('');
+  } catch (e) { console.error('[GY360] adm mob txns fetch:', e); }
+
+  // ── Pending approvals alert ──
+  try {
+    const { data: pending } = await sb.from('members')
+      .select('id').eq('org_id', orgId).eq('status', 'pending');
+    const alertEl = document.getElementById('adm-mob-approvals-alert');
+    if (alertEl && (pending || []).length > 0) {
+      alertEl.style.display = 'flex';
+      setEl('adm-mob-approvals-text', pending.length + ' member' + (pending.length !== 1 ? 's' : '') + ' pending approval');
+    }
+  } catch (e) { console.error('[GY360] adm mob approvals fetch:', e); }
 }

@@ -2030,10 +2030,16 @@ body.mob-dark #mob-home-shell .mh-header::after{
   border-top:1px solid rgba(255,255,255,.12);
 }
 
-/* Card colour variants */
+/* Card colour variants — member */
 #mob-card-finance{background:linear-gradient(135deg,var(--teal-dk),var(--teal))}
 #mob-card-meeting{background:linear-gradient(135deg,#1a3a5c,#1e5fa8)}
 #mob-card-group{background:linear-gradient(135deg,var(--maroon-dk),var(--maroon))}
+
+/* Card colour variants — admin */
+#adm-card-finance{background:linear-gradient(135deg,var(--teal-dk),var(--teal));box-shadow:0 3px 12px rgba(15,110,86,.2)}
+#adm-card-members{background:linear-gradient(135deg,var(--maroon-dk),var(--maroon));box-shadow:0 3px 12px rgba(128,0,32,.2)}
+#adm-card-meeting{background:linear-gradient(135deg,#1e1b4b,#3730a3);box-shadow:0 3px 12px rgba(55,48,163,.2)}
+#adm-card-contribs{background:linear-gradient(135deg,#78350f,#b45309);box-shadow:0 3px 12px rgba(180,83,9,.2)}
 
 /* ── Scroll indicator dots ── */
 .mob-scroll-dots{
@@ -2146,6 +2152,21 @@ body.mob-dark #mob-recent-txns{background:transparent}
 body.mob-dark .mob-dot{background:rgba(110,231,183,.15)}
 body.mob-dark .mob-dot.active{background:#1D9E75}
 body.mob-dark .mob-promo{background:#1e293b;border-color:#334155}
+
+/* ── Dark mode: admin mobile home ── */
+body.mob-dark #adm-mob-shell{background:#0f172a}
+body.mob-dark #adm-mob-shell .mh-header{background:#1e293b;border-bottom-color:#334155}
+body.mob-dark #adm-mob-shell .mh-name{color:#f1f5f9}
+body.mob-dark #adm-mob-shell .mh-greeting{color:#94a3b8}
+body.mob-dark #adm-mob-shell .mh-org-pill{background:#1e3a2f;color:#6ee7b7}
+body.mob-dark #adm-mob-shell .mh-icon-btn{background:#1e293b;border-color:#334155}
+body.mob-dark #adm-mob-shell .mh-body{background:#0f172a}
+body.mob-dark #adm-mob-approvals-alert{background:rgba(196,154,48,.15);color:#fde68a}
+body.mob-dark #adm-mob-recent-txns{background:#1e293b;border-color:#334155}
+body.mob-dark #adm-mob-recent-txns .mob-txn-name{color:#e2e8f0}
+body.mob-dark #adm-mob-recent-txns .mob-txn-date{color:#64748b}
+body.mob-dark #adm-mob-recent-txns .mob-txn-row{border-bottom-color:#334155}
+body.mob-dark .adm-mob-section-title{color:#e2e8f0}
 body.mob-dark .mob-promo-title{color:#f1f5f9}
 body.mob-dark .mob-promo-sub{color:#94a3b8}
 body.mob-dark .mob-promo-btn{background:#1e3a2f;color:#6ee7b7;border-color:#1e3a2f}
