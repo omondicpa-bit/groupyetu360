@@ -1044,16 +1044,46 @@ async function populateMobileProfile(myRecord, fp) {
 
   // ── Card 1: My Finances ──
   const totalBal = (myRecord.shares_balance || 0) + (myRecord.savings_balance || 0);
-  set('mob-sc-balance', totalBal > 0 ? 'Ksh ' + Number(totalBal).toLocaleString() : 'Ksh 0');
+  const hasBalances = fp?.hasShares || fp?.hasSavings;
 
-  if (fp?.hasShares || fp?.hasSavings) {
+  if (hasBalances) {
+    // Org tracks member balances — show combined balance + breakdown
+    set('mob-sc-balance', 'Ksh ' + Number(totalBal).toLocaleString());
     const sharesRowEl = document.getElementById('mob-sc-shares-row');
     if (sharesRowEl) sharesRowEl.style.display = 'flex';
-    if (fp?.hasShares) set('mob-sc-shares-tag', (fp.sharesLabel||'Shares') + ' ' + 'Ksh ' + Number(myRecord.shares_balance||0).toLocaleString());
-    if (fp?.hasSavings) set('mob-sc-savings-tag', (fp.savingsLabel||'Savings') + ' ' + 'Ksh ' + Number(myRecord.savings_balance||0).toLocaleString());
+    if (fp?.hasShares) set('mob-sc-shares-tag', (fp.sharesLabel||'Shares') + ' Ksh ' + Number(myRecord.shares_balance||0).toLocaleString());
+    if (fp?.hasSavings) set('mob-sc-savings-tag', (fp.savingsLabel||'Savings') + ' Ksh ' + Number(myRecord.savings_balance||0).toLocaleString());
     set('mob-sc-balance-meta', 'Combined balance');
   } else {
-    set('mob-sc-balance-meta', 'Total paid — all time');
+    // Org has no member balances — fetch total contributions from transactions
+    try {
+      const { data: txnTotals } = await sb.from('transactions')
+        .select('amount')
+        .eq('org_id', currentOrg.id)
+        .eq('member_id', myRecord.id);
+      const totalContrib = (txnTotals || []).reduce((s, t) => s + Number(t.amount || 0), 0);
+      const thisYear = new Date().getFullYear().toString();
+      const { data: yearTxns } = await sb.from('transactions')
+        .select('amount,transaction_date')
+        .eq('org_id', currentOrg.id)
+        .eq('member_id', myRecord.id)
+        .gte('transaction_date', thisYear + '-01-01');
+      const yearTotal = (yearTxns || []).reduce((s, t) => s + Number(t.amount || 0), 0);
+      set('mob-sc-balance', 'Ksh ' + Number(totalContrib).toLocaleString());
+      set('mob-sc-balance-meta', 'Total contributions — all time');
+      // Show this year as a tag
+      if (yearTotal > 0) {
+        const sharesRowEl = document.getElementById('mob-sc-shares-row');
+        if (sharesRowEl) sharesRowEl.style.display = 'flex';
+        set('mob-sc-shares-tag', thisYear + ': Ksh ' + Number(yearTotal).toLocaleString());
+        // Hide savings tag since we're repurposing the row
+        const savingsTag = document.getElementById('mob-sc-savings-tag');
+        if (savingsTag) savingsTag.style.display = 'none';
+      }
+    } catch(e) {
+      set('mob-sc-balance', 'Ksh 0');
+      set('mob-sc-balance-meta', 'Total contributions');
+    }
   }
 
   // Fetch last payment for footer
