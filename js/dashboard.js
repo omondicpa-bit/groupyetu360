@@ -356,23 +356,24 @@ async function loadDashboardModuleCards(orgId) {
 }
 
 // ══════════════════════════════════════════
-// ADMIN MOBILE HOME — populateMobileAdminHome
+// ADMIN MOBILE HOME
 // ══════════════════════════════════════════
 async function populateMobileAdminHome(orgId) {
   const shell = document.getElementById('adm-mob-shell');
   if (!shell) return;
 
-  // Toggle admin-mob-active on body (hides topbar/sidebar on mobile)
+  // Hide global topbar on mobile (it repeats quick actions)
+  const topbar = document.querySelector('header.topbar');
   const isMobile = window.innerWidth <= 768;
-  if (isMobile) document.body.classList.add('admin-mob-active');
+  if (topbar && isMobile) topbar.style.display = 'none';
   window.addEventListener('resize', () => {
-    if (window.innerWidth <= 768) document.body.classList.add('admin-mob-active');
-    else document.body.classList.remove('admin-mob-active');
+    if (!topbar) return;
+    topbar.style.display = window.innerWidth <= 768 ? 'none' : '';
   });
 
-  // Set height like member home — Android dvh workaround
+  // Height setter — Android dvh workaround
   function setAdmHeight() {
-    const nav = document.querySelector('.mob-nav');
+    const nav = document.getElementById('mob-bottom-nav');
     const navH = nav ? nav.offsetHeight : 56;
     shell.style.height = (window.innerHeight - navH) + 'px';
   }
@@ -396,7 +397,7 @@ async function populateMobileAdminHome(orgId) {
   const dot = document.getElementById('adm-mob-org-dot');
   if (dot) dot.textContent = orgName.charAt(0).toUpperCase();
 
-  // ── Card 1: Group Finance ──
+  // ── Card 1: bank balance (instant from currentOrg) ──
   const bankBal = currentOrg?.bank_balance || 0;
   const bankBalFmt = bankBal >= 1000000
     ? 'Ksh ' + (bankBal / 1000000).toFixed(1) + 'M'
@@ -407,13 +408,13 @@ async function populateMobileAdminHome(orgId) {
   setEl('adm-sc-bank-meta', 'Bank balance');
   setEl('adm-sc-bank-updated', currentOrg?.bank_balance_updated ? 'Updated ' + currentOrg.bank_balance_updated : 'Set balance in Settings');
 
-  // ── Scroll dots setup ──
+  // ── Scroll dots ──
   const scroll = document.getElementById('adm-mob-cards-scroll');
   const dots = [0, 1, 2, 3].map(i => document.getElementById('adm-dot-' + i));
   if (scroll) {
     scroll.addEventListener('scroll', () => {
       const cardW = scroll.firstElementChild?.offsetWidth || scroll.offsetWidth;
-      const idx = Math.min(3, Math.round(scroll.scrollLeft / cardW));
+      const idx = Math.min(3, Math.round(scroll.scrollLeft / (cardW + 8)));
       dots.forEach((d, i) => {
         if (!d) return;
         d.classList.toggle('active', i === idx);
@@ -425,12 +426,11 @@ async function populateMobileAdminHome(orgId) {
 
   const thisYear = now.getFullYear().toString();
 
-  // ── Fetch all txns for finance card + contribs card ──
+  // ── Transactions: finance card + contribs card + graph ──
   try {
     const { data: allTxns } = await sb.from('transactions')
       .select('amount,transaction_date,contribution_types(name)')
       .eq('org_id', orgId);
-
     const txns = allTxns || [];
     const yearTxns = txns.filter(t => (t.transaction_date || '').startsWith(thisYear));
     const yearTotal = yearTxns.reduce((s, t) => s + Number(t.amount || 0), 0);
@@ -461,11 +461,9 @@ async function populateMobileAdminHome(orgId) {
       }
     }
 
-    // ── Monthly bar chart ──
-    const barsEl = document.getElementById('adm-chart-bars');
-    const labelsEl = document.getElementById('adm-chart-labels');
-    const totalEl = document.getElementById('adm-chart-total');
-    if (barsEl && labelsEl) {
+    // Monthly bar chart (last 6 months)
+    const barsEl = document.getElementById('adm-mob-bars');
+    if (barsEl) {
       const months = [];
       for (let i = 5; i >= 0; i--) {
         const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
@@ -473,30 +471,25 @@ async function populateMobileAdminHome(orgId) {
       }
       const monthData = months.map(m => ({
         label: m.label,
-        total: txns.filter(t => (t.transaction_date || '').startsWith(m.key)).reduce((s, t) => s + Number(t.amount || 0), 0)
+        total: txns.filter(t => (t.transaction_date || '').startsWith(m.key)).reduce((s, t) => s + Number(t.amount || 0), 0),
+        isCurrent: m.key === now.toISOString().slice(0, 7)
       }));
       const maxVal = Math.max(...monthData.map(m => m.total), 1);
-      const sixMonthTotal = monthData.reduce((s, m) => s + m.total, 0);
-      if (totalEl) totalEl.textContent = 'Total 6 months: Ksh ' + sixMonthTotal.toLocaleString();
-      const isCurrentMonth = (label) => label === monthData[5].label;
+      const sixTotal = monthData.reduce((s, m) => s + m.total, 0);
       barsEl.innerHTML = monthData.map(m => {
-        const pct = Math.round((m.total / maxVal) * 100);
-        const valLabel = m.total >= 1000 ? 'Ksh ' + Math.round(m.total / 1000) + 'K' : m.total > 0 ? 'Ksh ' + m.total : '';
-        const fillColor = isCurrentMonth(m.label) ? 'var(--maroon)' : 'var(--teal)';
-        return `<div class="adm-chart-col">
-          <div class="adm-chart-val">${valLabel}</div>
-          <div class="adm-chart-bar-bg" style="height:${Math.max(pct * 0.52, 3)}px;width:100%">
-            <div class="adm-chart-bar-fill" style="height:100%;background:${fillColor}"></div>
-          </div>
+        const h = Math.max(3, Math.round((m.total / maxVal) * 60));
+        const amtLabel = m.total >= 1000 ? (m.total / 1000).toFixed(0) + 'K' : (m.total > 0 ? m.total : '');
+        return `<div class="adm-mob-bar-col">
+          <div class="adm-mob-bar-amt">${amtLabel}</div>
+          <div class="adm-mob-bar${m.isCurrent ? ' current' : ''}" style="height:${h}px"></div>
+          <div class="adm-mob-bar-lbl">${m.label}</div>
         </div>`;
       }).join('');
-      labelsEl.innerHTML = monthData.map(m =>
-        `<div class="adm-chart-label" style="${isCurrentMonth(m.label) ? 'color:var(--maroon);font-weight:700' : ''}">${m.label}</div>`
-      ).join('');
+      setEl('adm-mob-graph-total', '6-month total: Ksh ' + sixTotal.toLocaleString());
     }
   } catch (e) { console.error('[GY360] adm mob finance fetch:', e); }
 
-  // ── Fetch members (card 2) ──
+  // ── Members (card 2) ──
   try {
     const { data: members } = await sb.from('members').select('status').eq('org_id', orgId);
     const mems = members || [];
@@ -504,11 +497,9 @@ async function populateMobileAdminHome(orgId) {
     const active = mems.filter(m => m.status === 'active').length;
     const arrears = mems.filter(m => m.status === 'arrears').length;
     const inactive = mems.filter(m => m.status === 'inactive').length;
-
     setEl('adm-sc-members', total);
     setEl('adm-sc-members-meta', active + ' active · ' + arrears + ' in arrears');
     setEl('adm-sc-members-footer', inactive + ' inactive');
-
     const barEl = document.getElementById('adm-sc-members-bar');
     if (barEl && total > 0) {
       barEl.innerHTML =
@@ -518,7 +509,7 @@ async function populateMobileAdminHome(orgId) {
     }
   } catch (e) { console.error('[GY360] adm mob members fetch:', e); }
 
-  // ── Fetch next meeting (card 3) ──
+  // ── Next meeting (card 3) ──
   try {
     const today = now.toISOString().split('T')[0];
     const { data: meetings } = await sb.from('meetings').select('*')
@@ -537,20 +528,20 @@ async function populateMobileAdminHome(orgId) {
     } else {
       setEl('adm-sc-mtg-date', 'None');
       setEl('adm-sc-mtg-countdown', 'No meetings scheduled');
-      setEl('adm-sc-mtg-time', '');
+      setEl('adm-sc-mtg-time', '—');
       setEl('adm-sc-mtg-venue', '');
-      setEl('adm-sc-mtg-footer', 'Schedule one →');
+      setEl('adm-sc-mtg-footer', 'Schedule one in Meetings →');
     }
   } catch (e) { console.error('[GY360] adm mob meeting fetch:', e); }
 
-  // ── Fetch recent 3 transactions ──
+  // ── Recent 3 transactions ──
   try {
     const { data: txns } = await sb.from('transactions')
       .select('*,members(full_name),contribution_types(name)')
       .eq('org_id', orgId).order('created_at', { ascending: false }).limit(3);
     const txnEl = document.getElementById('adm-mob-recent-txns');
     if (!txnEl) return;
-    if ((txns || []).length === 0) {
+    if (!(txns || []).length) {
       txnEl.innerHTML = '<div style="color:var(--ink-faint);font-size:.82rem;padding:.75rem 0;text-align:center">No payments recorded yet</div>';
       return;
     }
@@ -558,12 +549,11 @@ async function populateMobileAdminHome(orgId) {
       const name = t.members?.full_name || 'Unknown';
       const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
       const ds = t.transaction_date || (t.created_at || '').split('T')[0];
-      const typeName = t.contribution_types?.name || 'Payment';
       return `<div class="mob-txn-row">
         <div class="mob-txn-avatar">${initials}</div>
         <div class="mob-txn-info">
           <div class="mob-txn-name">${name}</div>
-          <div class="mob-txn-date">${typeName} · ${ds}</div>
+          <div class="mob-txn-date">${t.contribution_types?.name || 'Payment'} · ${ds}</div>
         </div>
         <div class="mob-txn-amt">+Ksh ${Number(t.amount).toLocaleString()}</div>
       </div>`;

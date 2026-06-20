@@ -1985,7 +1985,7 @@ body.mob-dark #mob-home-shell .mh-header::after{
   scroll-snap-type:x mandatory;
   -webkit-overflow-scrolling:touch;
   scrollbar-width:none;
-  height:126px;
+  height:148px;
   flex-shrink:0;
 }
 .mob-cards-scroll::-webkit-scrollbar{display:none}
@@ -1994,10 +1994,10 @@ body.mob-dark #mob-home-shell .mh-header::after{
   flex:0 0 calc(100% - 1.6rem);
   scroll-snap-align:start;
   border-radius:14px;
-  padding:.6rem .9rem .55rem;
+  padding:.75rem .9rem .65rem;
   margin:0 .4rem 0 .8rem;
-  height:112px;
-  display:flex;flex-direction:column;gap:.1rem;
+  height:132px;
+  display:flex;flex-direction:column;gap:.15rem;
   position:relative;overflow:hidden;
   background:var(--teal);
   box-shadow:0 3px 12px rgba(15,110,86,.2);
@@ -2014,10 +2014,10 @@ body.mob-dark #mob-home-shell .mh-header::after{
   letter-spacing:.1em;color:rgba(255,255,255,.65);
 }
 .mob-sc-amount{
-  font-family:'Crimson Pro',serif;font-size:1.35rem;
-  font-weight:700;color:#fff;line-height:1.05;margin:.02rem 0;
+  font-family:'Crimson Pro',serif;font-size:1.5rem;
+  font-weight:700;color:#fff;line-height:1.05;margin:.03rem 0;
 }
-.mob-sc-meta{font-size:.72rem;color:rgba(255,255,255,.7)}
+.mob-sc-meta{font-size:.75rem;color:rgba(255,255,255,.7)}
 .mob-sc-row{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.2rem}
 .mob-sc-tag{
   font-size:.7rem;color:rgba(255,255,255,.85);
@@ -2040,6 +2040,26 @@ body.mob-dark #mob-home-shell .mh-header::after{
 #adm-card-members{background:linear-gradient(135deg,var(--maroon-dk),var(--maroon));box-shadow:0 3px 12px rgba(128,0,32,.2)}
 #adm-card-meeting{background:linear-gradient(135deg,#1e1b4b,#3730a3);box-shadow:0 3px 12px rgba(55,48,163,.2)}
 #adm-card-contribs{background:linear-gradient(135deg,#78350f,#b45309);box-shadow:0 3px 12px rgba(180,83,9,.2)}
+
+/* Admin cards: narrower so ~3 peek at once */
+#adm-mob-cards-scroll .mob-summary-card{flex:0 0 calc(78% - 0.8rem)}
+
+/* Admin mobile graph */
+.adm-mob-graph-wrap{
+  background:#fff;border-radius:12px;
+  border:0.5px solid var(--border);
+  padding:.75rem .85rem .65rem;
+  margin-top:.4rem;
+}
+.adm-mob-graph-title{font-size:.72rem;font-weight:600;color:var(--ink);margin-bottom:.05rem}
+.adm-mob-graph-sub{font-size:.62rem;color:var(--ink-faint);margin-bottom:.55rem}
+.adm-mob-bars{display:flex;align-items:flex-end;gap:.3rem;height:70px;border-bottom:1px solid var(--border)}
+.adm-mob-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:.1rem}
+.adm-mob-bar{width:100%;border-radius:3px 3px 0 0;min-height:3px;background:var(--teal);transition:height .6s ease}
+.adm-mob-bar.current{background:var(--maroon)}
+.adm-mob-bar-lbl{font-size:.55rem;color:var(--ink-faint);margin-top:.2rem}
+.adm-mob-bar-amt{font-size:.52rem;color:var(--ink-faint);margin-bottom:.08rem}
+.adm-mob-graph-total{font-size:.65rem;color:var(--ink-faint);margin-top:.4rem;text-align:right}
 
 /* ── Scroll indicator dots ── */
 .mob-scroll-dots{
@@ -2154,57 +2174,42 @@ body.mob-dark .mob-dot.active{background:#1D9E75}
 body.mob-dark .mob-promo{background:#1e293b;border-color:#334155}
 
 /* ── Dark mode: admin mobile home ── */
-/* ── Admin mobile mini chart ── */
-#adm-mob-chart-wrap{
-  background:#fff;border-radius:12px;
-  border:0.5px solid var(--border);
-  padding:.75rem .75rem .6rem;
-  margin-top:.35rem;
-}
-.adm-chart-title{font-size:.72rem;font-weight:600;color:var(--ink);margin-bottom:.1rem}
-.adm-chart-total{font-size:.65rem;color:var(--ink-faint);margin-bottom:.55rem}
-.adm-chart-bars{display:flex;align-items:flex-end;gap:4px;height:56px}
-.adm-chart-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
-.adm-chart-bar-bg{width:100%;border-radius:3px 3px 0 0;background:var(--border);position:relative;overflow:hidden;min-height:3px}
-.adm-chart-bar-fill{position:absolute;bottom:0;left:0;right:0;border-radius:3px 3px 0 0;transition:height .6s ease}
-.adm-chart-val{font-size:.58rem;color:var(--ink-faint);text-align:center;white-space:nowrap;min-height:.7rem}
-.adm-chart-labels{display:flex;gap:4px;margin-top:.3rem}
-.adm-chart-label{flex:1;text-align:center;font-size:.6rem;color:var(--ink-faint)}
-
-/* ── Dark mode: admin mobile home (mirrors member home) ── */
 body.mob-dark #adm-mob-shell{background:#0f172a}
 body.mob-dark #adm-mob-shell .mh-header{background:#1e293b;border-bottom-color:#334155}
 body.mob-dark #adm-mob-shell .mh-inner{color:#f1f5f9}
-body.mob-dark #adm-mob-shell .mh-greeting{color:#94a3b8}
 body.mob-dark #adm-mob-shell .mh-name{color:#f1f5f9}
+body.mob-dark #adm-mob-shell .mh-greeting{color:#94a3b8}
 body.mob-dark #adm-mob-shell .mh-org-pill{background:#1e3a2f;color:#6ee7b7}
 body.mob-dark #adm-mob-shell .mh-icon-btn{background:#1e293b;border-color:#334155}
 body.mob-dark #adm-mob-shell .mh-body{background:#0f172a}
-body.mob-dark #adm-mob-approvals-alert{background:rgba(196,154,48,.15) !important}
-body.mob-dark #adm-mob-approvals-alert span{color:#fde68a}
-body.mob-dark #adm-mob-recent-txns{background:#1e293b !important;border-color:#334155 !important}
-body.mob-dark #adm-mob-recent-txns .mob-txn-name{color:#e2e8f0}
-body.mob-dark #adm-mob-recent-txns .mob-txn-date{color:#64748b}
-body.mob-dark #adm-mob-recent-txns .mob-txn-row{border-bottom-color:#334155}
-body.mob-dark #adm-mob-recent-txns .mob-txn-avatar{background:#1e293b;color:#6ee7b7}
-body.mob-dark #adm-mob-recent-txns .mob-txn-amt{color:#6ee7b7}
 body.mob-dark #adm-mob-shell .mob-section-hdr{color:#e2e8f0}
 body.mob-dark #adm-mob-shell .mob-see-all{color:#6ee7b7}
 body.mob-dark #adm-mob-shell .mob-dot{background:rgba(110,231,183,.15)}
 body.mob-dark #adm-mob-shell .mob-dot.active{background:#1D9E75}
-/* Chart dark mode */
-body.mob-dark #adm-mob-chart-wrap{background:#1e293b;border-color:#334155}
-body.mob-dark #adm-mob-chart-wrap .adm-chart-label{color:#64748b}
-body.mob-dark #adm-mob-chart-wrap .adm-chart-title{color:#e2e8f0}
-body.mob-dark #adm-mob-chart-wrap .adm-chart-total{color:#94a3b8}
-body.mob-dark #adm-mob-chart-wrap .adm-chart-bar-bg{background:#334155}
-/* Hide topbar/sidebar on mobile when admin dashboard active */
-@media(max-width:768px){
-  body.admin-mob-active .topbar{display:none !important}
-  body.admin-mob-active .sidebar{display:none !important}
-  body.admin-mob-active .main{margin-left:0 !important;padding:0 !important}
-  body.admin-mob-active .page.active{padding:0 0 72px 0 !important}
-}
+body.mob-dark #adm-mob-shell .mob-action-icon{background:#1e293b;box-shadow:0 2px 6px rgba(0,0,0,.3);border:0.5px solid #334155}
+body.mob-dark #adm-mob-shell .mob-action-label{color:#94a3b8}
+body.mob-dark #adm-mob-shell .mob-summary-card{box-shadow:0 4px 20px rgba(0,0,0,.5)}
+body.mob-dark #adm-card-finance{background:linear-gradient(135deg,#0a2a1f,#0f4a38)}
+body.mob-dark #adm-card-members{background:linear-gradient(135deg,#2a0010,#5a0016)}
+body.mob-dark #adm-card-meeting{background:linear-gradient(135deg,#0f0d2e,#1e1b6e)}
+body.mob-dark #adm-card-contribs{background:linear-gradient(135deg,#3a1800,#6b3000)}
+body.mob-dark #adm-mob-approvals-alert{background:rgba(196,154,48,.15);color:#fde68a}
+body.mob-dark #adm-mob-recent-txns{background:#1e293b;border-color:#334155}
+body.mob-dark #adm-mob-recent-txns .mob-txn-name{color:#e2e8f0}
+body.mob-dark #adm-mob-recent-txns .mob-txn-date{color:#64748b}
+body.mob-dark #adm-mob-recent-txns .mob-txn-row{border-bottom-color:#334155}
+body.mob-dark #adm-mob-recent-txns .mob-txn-avatar{background:#0f2a1f;color:#6ee7b7}
+body.mob-dark #adm-mob-recent-txns .mob-txn-amt{color:#6ee7b7}
+body.mob-dark .adm-mob-section-title{color:#e2e8f0}
+body.mob-dark .adm-mob-graph-wrap{background:#1e293b;border-color:#334155}
+body.mob-dark .adm-mob-graph-title{color:#e2e8f0}
+body.mob-dark .adm-mob-graph-sub{color:#64748b}
+body.mob-dark .adm-mob-bars{border-bottom-color:#334155}
+body.mob-dark .adm-mob-bar{background:#1D9E75}
+body.mob-dark .adm-mob-bar.current{background:#9a0025}
+body.mob-dark .adm-mob-bar-lbl{color:#64748b}
+body.mob-dark .adm-mob-bar-amt{color:#64748b}
+body.mob-dark .adm-mob-graph-total{color:#64748b}
 body.mob-dark .mob-promo-title{color:#f1f5f9}
 body.mob-dark .mob-promo-sub{color:#94a3b8}
 body.mob-dark .mob-promo-btn{background:#1e3a2f;color:#6ee7b7;border-color:#1e3a2f}
@@ -2268,4 +2273,10 @@ body.mob-dark .mob-nav-item.active{color:#1D9E75}
   .mob-action-label{font-size:.6rem}
   /* Recent activity wrap */
   #mob-recent-txns{overflow:hidden}
+  /* Hide global topbar on mobile when admin dashboard is showing */
+  #page-dashboard.active ~ header.topbar,
+  #page-dashboard.active .topbar{display:none}
+  body:has(#adm-mob-shell.mob-only){
+    header.topbar{display:none !important}
+  }
 }
