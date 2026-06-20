@@ -2643,7 +2643,7 @@
       </div><!-- end .mob-hide -->
 
       <!-- MOBILE HOME -->
-      <div class="mob-only" style="display:flex;flex-direction:column;height:calc(100dvh - 64px);overflow:hidden" id="mob-home-shell">
+      <div class="mob-only" style="display:flex;flex-direction:column;overflow:hidden" id="mob-home-shell">
         <!-- Header: greeting + profile icon + theme toggle -->
         <div class="mh-header">
           <div class="mh-inner">
@@ -4261,6 +4261,24 @@
   window.addEventListener('touchend', onUp);
   try { const p = JSON.parse(sessionStorage.getItem('fab-pos')||'null'); if(p){fab.style.right=p.r+'px';fab.style.bottom=p.b+'px';} } catch(ex){}
 })();
+</script>
+<script>
+// ── Set mobile home shell height using JS (avoids dvh issues on Android) ──
+function setMobHomeHeight() {
+  const shell = document.getElementById('mob-home-shell');
+  if (!shell) return;
+  const nav = document.getElementById('mob-bottom-nav');
+  const navH = nav ? nav.offsetHeight : 64;
+  shell.style.height = (window.innerHeight - navH) + 'px';
+}
+window.addEventListener('resize', setMobHomeHeight);
+// Run after DOM ready and after a short delay for nav to render
+document.addEventListener('DOMContentLoaded', () => {
+  setMobHomeHeight();
+  setTimeout(setMobHomeHeight, 300);
+});
+setTimeout(setMobHomeHeight, 100);
+setTimeout(setMobHomeHeight, 600);
 </script>
 </body>
 </html>
