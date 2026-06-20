@@ -791,10 +791,17 @@ function showApp() {
   updateSidebar();
   const today = new Date().toISOString().split('T')[0];
   document.querySelectorAll('input[type="date"]').forEach(el => { if(!el.value) el.value = today; });
+  // Route members straight to their profile — skip dashboard lag
+  const _role = currentOrgRole || currentProfile?.role || 'member';
+  const _isMemberOnly = _role === 'member';
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    try { loadDashboard(); } catch(e) { console.error('[GY360] Dashboard error:', e); }
+    try { loadOrgFinancialProfile(); } catch(e) { console.error('[GY360] FinProfile error:', e); }
+    if (_isMemberOnly) {
+      showPage('my_profile');
+    } else {
+      try { loadDashboard(); } catch(e) { console.error('[GY360] Dashboard error:', e); }
+    }
     try { prefetchData(); } catch(e) { console.error('[GY360] Prefetch error:', e); }
-  try { loadOrgFinancialProfile(); } catch(e) { console.error('[GY360] FinProfile error:', e); }
     try { checkSubscriptionAccess(); } catch(e) { console.error('[GY360] Sub check error:', e); }
   }));
 }
@@ -1100,14 +1107,6 @@ function showPage(id) {
   updateMobileNavActive(id);
   // Close mobile menu when navigating
   closeMobileMenu();
-  // Mobile member app: add body class to kill topbar/sidebar
-  const memberMobPages = ['my_profile','my_contributions','my_meetings','my_notices','my_account'];
-  if (memberMobPages.includes(id) && window.innerWidth <= 768) {
-    document.body.classList.add('member-mob-active');
-    setTimeout(updateMobOrgPills, 50);
-  } else {
-    document.body.classList.remove('member-mob-active');
-  }
   const gatedPages={welfare:'welfare',projects:'projects',table_banking:'table_banking'};
   if(gatedPages[id]&&typeof planHas==='function'&&!planHas(gatedPages[id])){showUpgradePrompt(id);return;}
   currentPage = id;
@@ -1124,36 +1123,3 @@ function showPage(id) {
   updateTopbarActions(id);
 }
 
-
-// ── Mobile member UI helpers ──
-function updateMobOrgPills() {
-  const orgName = currentOrg?.name
-    ? currentOrg.name.replace(/\b\w/g, c => c.toUpperCase())
-    : 'Group';
-  const initial = orgName.charAt(0).toUpperCase();
-  const shortName = orgName.length > 20 ? orgName.slice(0, 20) + '…' : orgName;
-
-  // Set all org pills
-  [['mob-org-dot','mob-org-name'],
-   ['mob-fin-org-dot','mob-fin-org-name'],
-   ['mob-mtg-org-dot','mob-mtg-org-name'],
-   ['mob-notices-org-dot','mob-notices-org-name'],
-   ['ma-mob-org-dot','ma-mob-org-name']
-  ].forEach(([dotId, nameId]) => {
-    const dot = document.getElementById(dotId);
-    const name = document.getElementById(nameId);
-    if (dot) dot.textContent = initial;
-    if (name) name.textContent = shortName;
-  });
-
-  // Set greeting
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning,' : hour < 17 ? 'Good afternoon,' : 'Good evening,';
-  const greetEl = document.getElementById('mob-greeting');
-  if (greetEl) greetEl.textContent = greeting;
-
-  // Set member name
-  const firstName = (currentProfile?.full_name || 'Member').split(' ')[0];
-  const nameEl = document.getElementById('mob-member-name');
-  if (nameEl) nameEl.textContent = firstName;
-}
