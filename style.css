@@ -2308,3 +2308,136 @@ body.mob-dark .mob-nav-item.active{color:#1D9E75}
     header.topbar{display:none !important}
   }
 }
+
+/* ═══════════════════════════════════════════
+   FINANCE MOBILE SHELL
+   ═══════════════════════════════════════════ */
+#fin-mob-shell{
+  display:flex;flex-direction:column;overflow:hidden;
+}
+#fin-mob-body{
+  flex:1;overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  padding:.5rem .7rem;
+  display:flex;flex-direction:column;gap:.45rem;
+  background:#f1f5f9;
+}
+
+/* Hero balance card — maroon */
+.fin-mob-hero-card{
+  background:linear-gradient(135deg,var(--maroon-dk),var(--maroon));
+  border-radius:14px;padding:.85rem 1rem .75rem;
+  position:relative;overflow:hidden;flex-shrink:0;
+  box-shadow:0 3px 12px rgba(128,0,32,.2);
+}
+.fin-mob-hero-card::before{
+  content:'';position:absolute;width:130px;height:130px;
+  border-radius:50%;background:rgba(255,255,255,.06);
+  top:-35px;right:-25px;pointer-events:none;
+}
+.fin-mob-year-tag{background:rgba(239,159,39,.25) !important;color:#EF9F27 !important}
+
+/* 2×2 stat grid */
+.fin-mob-stats{
+  display:grid;grid-template-columns:1fr 1fr;gap:.45rem;flex-shrink:0;
+}
+.fin-mob-stat{
+  border-radius:12px;padding:.7rem .85rem;
+  display:flex;flex-direction:column;gap:.15rem;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  position:relative;overflow:hidden;
+}
+.fin-mob-stat::before{
+  content:'';position:absolute;width:60px;height:60px;
+  border-radius:50%;background:rgba(255,255,255,.08);
+  top:-15px;right:-10px;pointer-events:none;
+}
+.fin-mob-stat-teal{background:linear-gradient(135deg,var(--teal-dk),var(--teal));box-shadow:0 2px 8px rgba(15,110,86,.2)}
+.fin-mob-stat-gold{background:linear-gradient(135deg,#78350f,#b45309);box-shadow:0 2px 8px rgba(180,83,9,.18)}
+.fin-mob-stat-maroon{background:linear-gradient(135deg,var(--maroon-dk),var(--maroon));box-shadow:0 2px 8px rgba(128,0,32,.2)}
+.fin-mob-stat-indigo{background:linear-gradient(135deg,#1e1b4b,#3730a3);box-shadow:0 2px 8px rgba(55,48,163,.2)}
+.fin-mob-stat-icon{font-size:.95rem;color:rgba(255,255,255,.7);margin-bottom:.1rem}
+.fin-mob-stat-label{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.6)}
+.fin-mob-stat-val{font-size:.95rem;font-weight:700;color:#fff}
+
+/* Tab pill row */
+.fin-mob-tabs{
+  display:flex;gap:.35rem;overflow-x:auto;flex-shrink:0;
+  scrollbar-width:none;padding-bottom:.1rem;
+}
+.fin-mob-tabs::-webkit-scrollbar{display:none}
+.fin-mob-tab{
+  padding:.35rem .75rem;border-radius:20px;border:0.5px solid var(--border);
+  background:#fff;color:var(--ink-faint);font-size:.7rem;font-weight:600;
+  white-space:nowrap;cursor:pointer;font-family:'Inter',sans-serif;flex-shrink:0;
+  -webkit-tap-highlight-color:transparent;transition:all .12s;
+}
+.fin-mob-tab.active{background:var(--maroon);color:#fff;border-color:var(--maroon)}
+.fin-mob-tab-action{border-color:var(--teal);color:var(--teal)}
+.fin-mob-tab-action.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+.fin-mob-tab-warn{border-color:var(--warning);color:var(--warning)}
+.fin-mob-tab-warn.active{background:var(--warning);color:#fff;border-color:var(--warning)}
+
+/* Tab content area */
+#fin-mob-tab-content{
+  flex:1;min-height:0;
+}
+#fin-mob-tab-content .tab-panel{display:block !important}
+#fin-mob-tab-content .fin-sub-tabs{
+  display:flex;gap:.35rem;margin-bottom:.5rem;overflow-x:auto;
+  scrollbar-width:none;
+}
+#fin-mob-tab-content .fin-sub-tabs::-webkit-scrollbar{display:none}
+#fin-mob-tab-content .fin-sub-tab{
+  padding:.3rem .7rem;border-radius:20px;border:0.5px solid var(--border);
+  background:#fff;color:var(--ink-faint);font-size:.68rem;font-weight:600;
+  white-space:nowrap;cursor:pointer;font-family:'Inter',sans-serif;flex-shrink:0;
+}
+#fin-mob-tab-content .fin-sub-tab.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+#fin-mob-tab-content .table-wrap{border-radius:12px;overflow:hidden}
+#fin-mob-tab-content table{font-size:.7rem}
+#fin-mob-tab-content .fin-form-card{background:#fff;border-radius:12px;padding:.85rem;border:0.5px solid var(--border)}
+#fin-mob-tab-content .fin-form-heading{display:flex;align-items:center;gap:.65rem;margin-bottom:.75rem;padding-bottom:.6rem;border-bottom:0.5px solid var(--border)}
+#fin-mob-tab-content .fin-form-title{font-size:.82rem;font-weight:600;color:var(--ink)}
+#fin-mob-tab-content .fin-form-sub{font-size:.68rem;color:var(--ink-faint)}
+#fin-mob-tab-content .form-row{display:flex;flex-direction:column;gap:.45rem}
+#fin-mob-tab-content .form-group{display:flex;flex-direction:column;gap:.2rem;margin-bottom:.45rem}
+#fin-mob-tab-content .form-label{font-size:.7rem;font-weight:500;color:var(--ink-faint)}
+#fin-mob-tab-content .fin-form-actions{display:flex;gap:.5rem;margin-top:.75rem}
+#fin-mob-tab-content .fin-form-actions .btn{flex:1;font-size:.78rem}
+#fin-mob-tab-content .card{border-radius:12px}
+#fin-mob-tab-content .card-header{padding:.65rem .9rem}
+#fin-mob-tab-content .card-title{font-size:.8rem}
+
+/* Dark mode — finance mobile */
+body.mob-dark #fin-mob-shell .mh-header{background:#1e293b;border-bottom-color:#334155}
+body.mob-dark #fin-mob-shell .mh-inner{color:#f1f5f9}
+body.mob-dark #fin-mob-shell .mh-greeting{color:#94a3b8}
+body.mob-dark #fin-mob-shell .mh-name{color:#e2e8f0}
+body.mob-dark #fin-mob-shell .mh-icon-btn{background:#1e293b;border-color:#334155}
+body.mob-dark #fin-mob-body{background:#0f172a}
+body.mob-dark .fin-mob-tab{background:#1e293b;border-color:#334155;color:#64748b}
+body.mob-dark .fin-mob-tab.active{background:var(--maroon);color:#fff;border-color:var(--maroon)}
+body.mob-dark .fin-mob-tab-action{border-color:var(--teal);color:#4ade80}
+body.mob-dark .fin-mob-tab-action.active{background:var(--teal);color:#fff}
+body.mob-dark #fin-mob-tab-content .fin-sub-tab{background:#1e293b;border-color:#334155;color:#64748b}
+body.mob-dark #fin-mob-tab-content .fin-sub-tab.active{background:var(--teal);color:#fff}
+body.mob-dark #fin-mob-tab-content .fin-form-card{background:#1e293b;border-color:#334155}
+body.mob-dark #fin-mob-tab-content .fin-form-title{color:#e2e8f0}
+body.mob-dark #fin-mob-tab-content .fin-form-sub{color:#64748b}
+body.mob-dark #fin-mob-tab-content .fin-form-heading{border-bottom-color:#334155}
+body.mob-dark #fin-mob-tab-content .form-label{color:#94a3b8}
+body.mob-dark #fin-mob-tab-content .card{background:#1e293b;border-color:#334155}
+body.mob-dark #fin-mob-tab-content .card-header{border-bottom-color:#334155}
+body.mob-dark #fin-mob-tab-content .card-title{color:#e2e8f0}
+body.mob-dark #fin-mob-tab-content table thead tr{background:#162032}
+body.mob-dark #fin-mob-tab-content table tbody tr{border-bottom-color:#334155}
+
+/* Finance mobile — kill topbar/sidebar/padding */
+@media(max-width:768px){
+  body.finance-mob-active .topbar{display:none !important}
+  body.finance-mob-active .sidebar{display:none !important}
+  body.finance-mob-active .main{margin-left:0 !important;padding:0 !important}
+  body.finance-mob-active .content{padding:0 !important}
+  body.finance-mob-active .page.active{padding:0 !important}
+}

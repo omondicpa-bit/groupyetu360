@@ -151,6 +151,9 @@ async function loadFinance() {
       <td>${e.mpesa_ref||'—'}</td>
       <td>${e.project||'—'}</td>
     </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--ink-faint)">No expenses yet</td></tr>';
+
+  // Populate mobile finance shell
+  if (typeof populateFinMob === 'function') populateFinMob();
 }
 
 async function saveTransaction() {

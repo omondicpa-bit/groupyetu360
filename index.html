@@ -812,6 +812,85 @@
     <!-- FINANCE -->
     <div class="page" id="page-finance">
 
+      <!-- ══ FINANCE MOBILE ══ -->
+      <div class="mob-only" id="fin-mob-shell">
+
+        <!-- Header -->
+        <div class="mh-header">
+          <div class="mh-inner">
+            <div class="mh-row">
+              <div>
+                <div class="mh-greeting">Finance</div>
+                <div class="mh-name" style="font-size:.85rem;font-weight:500" id="fin-mob-org">—</div>
+              </div>
+              <div style="display:flex;gap:.5rem">
+                <button class="mh-icon-btn" onclick="showShareoutModal()" title="Year-End Shareout">💰</button>
+                <button class="mh-icon-btn" onclick="toggleWithdrawWindow()" id="fin-mob-withdraw-btn" title="Withdraw window">🔓</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scrollable body -->
+        <div id="fin-mob-body">
+
+          <!-- Balance hero card (maroon) -->
+          <div class="fin-mob-hero-card">
+            <div class="mob-sc-label">🏦 Total bank balance</div>
+            <div class="mob-sc-amount" id="fin-mob-bank-balance">—</div>
+            <div class="mob-sc-meta" id="fin-mob-bank-meta">All funds across group accounts</div>
+            <div class="mob-sc-row" style="margin-top:.35rem">
+              <span class="mob-sc-tag" id="fin-mob-withdraw-status">Withdraw: Closed</span>
+              <span class="mob-sc-tag fin-mob-year-tag" id="fin-mob-year-tag">— this year</span>
+            </div>
+          </div>
+
+          <!-- 2×2 stat cards -->
+          <div class="fin-mob-stats">
+            <div class="fin-mob-stat fin-mob-stat-teal" onclick="switchFinTab(document.querySelector('[onclick*=sub-tab-contributions]'),\'sub-tab-contributions\');switchFinTab(document.querySelector('[onclick*=tab-transactions]'),\'tab-transactions\')">
+              <div class="fin-mob-stat-icon">₭</div>
+              <div class="fin-mob-stat-label">Contributions</div>
+              <div class="fin-mob-stat-val" id="fin-mob-contrib">—</div>
+            </div>
+            <div class="fin-mob-stat fin-mob-stat-gold" onclick="switchFinTab(document.querySelector('[onclick*=sub-tab-income]'),\'sub-tab-income\');switchFinTab(document.querySelector('[onclick*=tab-transactions]'),\'tab-transactions\')">
+              <div class="fin-mob-stat-icon">⚑</div>
+              <div class="fin-mob-stat-label">Other income</div>
+              <div class="fin-mob-stat-val" id="fin-mob-income">—</div>
+            </div>
+            <div class="fin-mob-stat fin-mob-stat-maroon" onclick="switchFinTab(document.querySelector('[onclick*=tab-expenses]'),\'tab-expenses\')">
+              <div class="fin-mob-stat-icon">−</div>
+              <div class="fin-mob-stat-label">Expenses</div>
+              <div class="fin-mob-stat-val" id="fin-mob-exp">—</div>
+            </div>
+            <div class="fin-mob-stat fin-mob-stat-indigo">
+              <div class="fin-mob-stat-icon">≈</div>
+              <div class="fin-mob-stat-label">Net position</div>
+              <div class="fin-mob-stat-val" id="fin-mob-net">—</div>
+            </div>
+          </div>
+
+          <!-- Tab row: view tabs + action tabs -->
+          <div class="fin-mob-tabs">
+            <button class="fin-mob-tab active" onclick="finMobSwitchTab(this,'tab-transactions')">📋 Ledger</button>
+            <button class="fin-mob-tab" onclick="finMobSwitchTab(this,'tab-expenses')">📤 Expenses</button>
+            <button class="fin-mob-tab" onclick="finMobSwitchTab(this,'tab-fines');loadFinesLedger()">⚠ Fines</button>
+            <button class="fin-mob-tab fin-mob-tab-action" onclick="finMobSwitchTab(this,'tab-record')">＋ Payment</button>
+            <button class="fin-mob-tab fin-mob-tab-action" onclick="finMobSwitchTab(this,'tab-income-record')">＋ Income</button>
+            <button class="fin-mob-tab fin-mob-tab-action" onclick="finMobSwitchTab(this,'tab-expense-record')">− Expense</button>
+            <button class="fin-mob-tab fin-mob-tab-warn" onclick="finMobSwitchTab(this,'tab-fine-record')">⚠ Fine</button>
+          </div>
+
+          <!-- Tab content area — reuses existing desktop tab-panels -->
+          <div id="fin-mob-tab-content">
+            <!-- populated by finMobSwitchTab — clones active tab-panel content -->
+          </div>
+
+        </div><!-- end fin-mob-body -->
+      </div><!-- end fin-mob-shell -->
+
+      <!-- ══ DESKTOP FINANCE ══ -->
+      <div class="mob-hide">
+
       <!-- ── FINANCE HERO STRIP ── -->
       <div class="fin-hero">
         <div class="fin-hero-inner">
@@ -1032,7 +1111,9 @@
         </div>
       </div>
 
-    </div>
+      </div><!-- end .mob-hide -->
+
+    </div><!-- end #page-finance -->
 
       <div class="tab-panel" id="tab-fines">
         <div class="card" style="margin-top:.75rem">
@@ -4409,7 +4490,7 @@
 })();
 </script>
 <script>
-// ── Set mobile home shell height using JS (avoids dvh issues on Android) ──
+// ── Set mobile shell heights (avoids dvh issues on Android) ──
 function setMobHomeHeight() {
   const shell = document.getElementById('mob-home-shell');
   if (!shell) return;
@@ -4422,20 +4503,76 @@ function setAdmMobHeight() {
   if (!shell) return;
   const nav = document.getElementById('mob-bottom-nav');
   const navH = (nav && nav.offsetHeight) ? nav.offsetHeight : 64;
-  // Force shell to fill exactly viewport minus nav, ignoring any wrapper padding
-  shell.style.height = (window.innerHeight - navH) + 'px';
-  shell.style.maxHeight = (window.innerHeight - navH) + 'px';
-  shell.style.minHeight = (window.innerHeight - navH) + 'px';
+  const h = (window.innerHeight - navH) + 'px';
+  shell.style.height = h; shell.style.maxHeight = h; shell.style.minHeight = h;
 }
-window.addEventListener('resize', () => { setMobHomeHeight(); setAdmMobHeight(); });
+function setFinMobHeight() {
+  const shell = document.getElementById('fin-mob-shell');
+  if (!shell) return;
+  const nav = document.getElementById('mob-bottom-nav');
+  const navH = (nav && nav.offsetHeight) ? nav.offsetHeight : 64;
+  const h = (window.innerHeight - navH) + 'px';
+  shell.style.height = h; shell.style.maxHeight = h; shell.style.minHeight = h;
+  if (window.innerWidth <= 768) document.body.classList.add('finance-mob-active');
+  else document.body.classList.remove('finance-mob-active');
+}
+function setAllMobHeights() { setMobHomeHeight(); setAdmMobHeight(); setFinMobHeight(); }
+window.addEventListener('resize', setAllMobHeights);
 document.addEventListener('DOMContentLoaded', () => {
-  setMobHomeHeight();
-  setAdmMobHeight();
-  setTimeout(() => { setMobHomeHeight(); setAdmMobHeight(); }, 200);
-  setTimeout(() => { setMobHomeHeight(); setAdmMobHeight(); }, 600);
+  setAllMobHeights();
+  setTimeout(setAllMobHeights, 200);
+  setTimeout(setAllMobHeights, 600);
 });
-setTimeout(() => { setMobHomeHeight(); setAdmMobHeight(); }, 100);
-setTimeout(() => { setMobHomeHeight(); setAdmMobHeight(); }, 500);
+setTimeout(setAllMobHeights, 100);
+setTimeout(setAllMobHeights, 500);
+
+// ── Finance mobile tab switcher ──
+function finMobSwitchTab(btn, panelId) {
+  document.querySelectorAll('.fin-mob-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  const src = document.getElementById(panelId);
+  const dest = document.getElementById('fin-mob-tab-content');
+  if (src && dest) {
+    dest.innerHTML = src.innerHTML;
+    // Re-bind sub-tab clicks inside mobile container
+    dest.querySelectorAll('.fin-sub-tab').forEach(st => {
+      st.addEventListener('click', function() {
+        dest.querySelectorAll('.fin-sub-tab').forEach(x => x.classList.remove('active'));
+        this.classList.add('active');
+        const match = this.getAttribute('onclick')?.match(/'([^']+)'/g);
+        const tid = match && match[0] ? match[0].replace(/'/g,'') : null;
+        if (tid) {
+          dest.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+          const tp = dest.querySelector('#' + tid);
+          if (tp) tp.classList.add('active');
+        }
+      });
+    });
+  }
+  // Keep desktop tab in sync so save/load functions target correct panel
+  const desktopBtn = document.querySelector(`.fin-tabs [onclick*="${panelId}"]`);
+  if (desktopBtn && typeof switchFinTab === 'function') switchFinTab(desktopBtn, panelId);
+}
+
+// ── Populate finance mobile values from loaded desktop data ──
+function populateFinMob() {
+  if (window.innerWidth > 768) return;
+  const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const syncEl = (srcId, destId) => { const s = document.getElementById(srcId); const d = document.getElementById(destId); if (s && d) d.textContent = s.textContent; };
+  setEl('fin-mob-org', currentOrg?.name || '');
+  const bal = currentOrg?.bank_balance || 0;
+  setEl('fin-mob-bank-balance', 'Ksh ' + bal.toLocaleString());
+  setEl('fin-mob-bank-meta', currentOrg?.bank_balance_updated ? 'Updated ' + currentOrg.bank_balance_updated : 'Set in Settings');
+  const wLabel = document.getElementById('withdraw-status-label');
+  setEl('fin-mob-withdraw-status', 'Withdraw: ' + (wLabel ? wLabel.textContent : 'Closed'));
+  syncEl('fin-total-contrib', 'fin-mob-contrib');
+  syncEl('fin-total-income', 'fin-mob-income');
+  syncEl('fin-total-exp', 'fin-mob-exp');
+  syncEl('fin-net', 'fin-mob-net');
+  const firstTabBtn = document.querySelector('.fin-mob-tab');
+  if (firstTabBtn) finMobSwitchTab(firstTabBtn, 'tab-transactions');
+  setFinMobHeight();
+}
 </script>
 </body>
 </html>
