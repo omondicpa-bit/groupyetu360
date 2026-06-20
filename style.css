@@ -1707,7 +1707,8 @@ body.member-mob-active #support-fab{display:none !important}
   body.admin-mob-active .topbar{display:none !important}
   body.admin-mob-active .sidebar{display:none !important}
   body.admin-mob-active .main{margin-left:0 !important;padding:0 !important}
-  body.admin-mob-active .page.active{padding:0 0 72px 0 !important}
+  body.admin-mob-active .content{padding:0 !important}
+  body.admin-mob-active .page.active{padding:0 !important}
 
   /* Upgraded bottom nav */
   .mob-bottom-nav{

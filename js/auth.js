@@ -1136,9 +1136,16 @@ function showPage(id) {
   const memberMobPages = ['my_profile','my_contributions','my_meetings','my_notices','my_account'];
   if (memberMobPages.includes(id) && window.innerWidth <= 768) {
     document.body.classList.add('member-mob-active');
+    document.body.classList.remove('admin-mob-active');
     setTimeout(updateMobOrgPills, 50);
+  } else if (id === 'dashboard' && window.innerWidth <= 768) {
+    document.body.classList.add('admin-mob-active');
+    document.body.classList.remove('member-mob-active');
+    // Set shell height after paint
+    setTimeout(() => { if (typeof setAdmMobHeight === 'function') setAdmMobHeight(); }, 80);
   } else {
     document.body.classList.remove('member-mob-active');
+    document.body.classList.remove('admin-mob-active');
   }
   const gatedPages={welfare:'welfare',projects:'projects',table_banking:'table_banking'};
   if(gatedPages[id]&&typeof planHas==='function'&&!planHas(gatedPages[id])){showUpgradePrompt(id);return;}
