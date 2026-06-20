@@ -440,7 +440,7 @@
     <div class="page" id="page-dashboard">
 
       <!-- ══ ADMIN MOBILE HOME ══ -->
-      <div class="mob-only" style="display:flex;flex-direction:column;overflow:hidden" id="adm-mob-shell">
+      <div class="mob-only" id="adm-mob-shell">
 
         <!-- Header: greeting + org pill + icons -->
         <div class="mh-header">
@@ -463,7 +463,7 @@
         </div>
 
         <!-- Scrollable body -->
-        <div class="mh-body" id="adm-mob-body">
+        <div id="adm-mob-body">
 
           <!-- 4 horizontal swipeable summary cards -->
           <div class="mob-cards-scroll" id="adm-mob-cards-scroll">
@@ -549,11 +549,11 @@
           </div>
 
           <!-- Recent payments -->
-          <div class="mob-section-hdr" style="margin-top:.15rem">
+          <div class="mob-section-hdr" style="margin-top:.15rem;flex-shrink:0">
             <span>Recent Payments</span>
             <button onclick="showPage('finance')" class="mob-see-all">View all →</button>
           </div>
-          <div id="adm-mob-recent-txns" style="background:#fff;border-radius:12px;padding:0 .75rem;border:0.5px solid var(--border)">
+          <div id="adm-mob-recent-txns" style="background:#fff;border-radius:12px;padding:0 .75rem;border:0.5px solid var(--border);flex-shrink:0">
             <div style="color:var(--ink-faint);font-size:.82rem;padding:.75rem 0">Loading…</div>
           </div>
 
@@ -4417,14 +4417,27 @@ function setMobHomeHeight() {
   const navH = nav ? nav.offsetHeight : 64;
   shell.style.height = (window.innerHeight - navH) + 'px';
 }
-window.addEventListener('resize', setMobHomeHeight);
-// Run after DOM ready and after a short delay for nav to render
+function setAdmMobHeight() {
+  const shell = document.getElementById('adm-mob-shell');
+  if (!shell) return;
+  const nav = document.getElementById('mob-bottom-nav');
+  const navH = nav ? nav.offsetHeight : 64;
+  shell.style.height = (window.innerHeight - navH) + 'px';
+  // Apply admin-mob-active only on mobile
+  if (window.innerWidth <= 768) {
+    document.body.classList.add('admin-mob-active');
+  } else {
+    document.body.classList.remove('admin-mob-active');
+  }
+}
+window.addEventListener('resize', () => { setMobHomeHeight(); setAdmMobHeight(); });
 document.addEventListener('DOMContentLoaded', () => {
   setMobHomeHeight();
-  setTimeout(setMobHomeHeight, 300);
+  setAdmMobHeight();
+  setTimeout(() => { setMobHomeHeight(); setAdmMobHeight(); }, 300);
 });
-setTimeout(setMobHomeHeight, 100);
-setTimeout(setMobHomeHeight, 600);
+setTimeout(() => { setMobHomeHeight(); setAdmMobHeight(); }, 100);
+setTimeout(() => { setMobHomeHeight(); setAdmMobHeight(); }, 600);
 </script>
 </body>
 </html>
