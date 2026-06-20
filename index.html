@@ -525,7 +525,7 @@
           <div class="mob-action-row">
             <button class="mob-action-btn" onclick="showPage('finance');setTimeout(()=>switchTab(document.querySelector('[onclick*=tab-record]'),'tab-record'),100)">
               <div class="mob-action-icon">💳</div>
-              <div class="mob-action-label">Pay</div>
+              <div class="mob-action-label">Payment</div>
             </button>
             <button class="mob-action-btn" onclick="showModal('addMember')">
               <div class="mob-action-icon">👤</div>
@@ -542,7 +542,7 @@
           </div>
 
           <!-- Pending approvals alert (hidden until populated) -->
-          <div id="adm-mob-approvals-alert" style="display:none;background:rgba(196,154,48,.1);border-left:3px solid var(--gold);border-radius:0 8px 8px 0;padding:.55rem .85rem;display:none;align-items:center;gap:.6rem">
+          <div id="adm-mob-approvals-alert" style="display:none;background:rgba(196,154,48,.1);border-left:3px solid var(--gold);border-radius:0 8px 8px 0;padding:.55rem .85rem;align-items:center;gap:.6rem">
             <span style="font-size:1rem">⏳</span>
             <span style="font-size:.78rem;color:#5a3a00;font-weight:500;flex:1" id="adm-mob-approvals-text">Members pending approval</span>
             <button onclick="showPage('approvals')" style="font-size:.72rem;font-weight:700;color:var(--maroon);background:transparent;border:none;cursor:pointer;white-space:nowrap">Review →</button>
@@ -555,6 +555,17 @@
           </div>
           <div id="adm-mob-recent-txns" style="background:#fff;border-radius:12px;padding:0 .75rem;border:0.5px solid var(--border)">
             <div style="color:var(--ink-faint);font-size:.82rem;padding:.75rem 0">Loading…</div>
+          </div>
+
+          <!-- Monthly collections mini chart -->
+          <div id="adm-mob-chart-wrap">
+            <div class="adm-chart-title">Monthly Collections</div>
+            <div class="adm-chart-total" id="adm-chart-total">Last 6 months</div>
+            <div class="adm-chart-bars" id="adm-chart-bars">
+              <!-- filled by JS -->
+              <div style="color:var(--ink-faint);font-size:.75rem;align-self:center;width:100%;text-align:center">Loading…</div>
+            </div>
+            <div class="adm-chart-labels" id="adm-chart-labels"></div>
           </div>
 
         </div><!-- end mh-body -->

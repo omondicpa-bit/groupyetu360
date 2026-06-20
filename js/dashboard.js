@@ -362,6 +362,14 @@ async function populateMobileAdminHome(orgId) {
   const shell = document.getElementById('adm-mob-shell');
   if (!shell) return;
 
+  // Toggle admin-mob-active on body (hides topbar/sidebar on mobile)
+  const isMobile = window.innerWidth <= 768;
+  if (isMobile) document.body.classList.add('admin-mob-active');
+  window.addEventListener('resize', () => {
+    if (window.innerWidth <= 768) document.body.classList.add('admin-mob-active');
+    else document.body.classList.remove('admin-mob-active');
+  });
+
   // Set height like member home — Android dvh workaround
   function setAdmHeight() {
     const nav = document.querySelector('.mob-nav');
@@ -451,6 +459,40 @@ async function populateMobileAdminHome(orgId) {
       } else {
         contribEl.innerHTML = '<div style="color:rgba(255,255,255,.45);font-size:.75rem">No contributions yet</div>';
       }
+    }
+
+    // ── Monthly bar chart ──
+    const barsEl = document.getElementById('adm-chart-bars');
+    const labelsEl = document.getElementById('adm-chart-labels');
+    const totalEl = document.getElementById('adm-chart-total');
+    if (barsEl && labelsEl) {
+      const months = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
+        months.push({ key: d.toISOString().slice(0, 7), label: d.toLocaleString('default', { month: 'short' }) });
+      }
+      const monthData = months.map(m => ({
+        label: m.label,
+        total: txns.filter(t => (t.transaction_date || '').startsWith(m.key)).reduce((s, t) => s + Number(t.amount || 0), 0)
+      }));
+      const maxVal = Math.max(...monthData.map(m => m.total), 1);
+      const sixMonthTotal = monthData.reduce((s, m) => s + m.total, 0);
+      if (totalEl) totalEl.textContent = 'Total 6 months: Ksh ' + sixMonthTotal.toLocaleString();
+      const isCurrentMonth = (label) => label === monthData[5].label;
+      barsEl.innerHTML = monthData.map(m => {
+        const pct = Math.round((m.total / maxVal) * 100);
+        const valLabel = m.total >= 1000 ? 'Ksh ' + Math.round(m.total / 1000) + 'K' : m.total > 0 ? 'Ksh ' + m.total : '';
+        const fillColor = isCurrentMonth(m.label) ? 'var(--maroon)' : 'var(--teal)';
+        return `<div class="adm-chart-col">
+          <div class="adm-chart-val">${valLabel}</div>
+          <div class="adm-chart-bar-bg" style="height:${Math.max(pct * 0.52, 3)}px;width:100%">
+            <div class="adm-chart-bar-fill" style="height:100%;background:${fillColor}"></div>
+          </div>
+        </div>`;
+      }).join('');
+      labelsEl.innerHTML = monthData.map(m =>
+        `<div class="adm-chart-label" style="${isCurrentMonth(m.label) ? 'color:var(--maroon);font-weight:700' : ''}">${m.label}</div>`
+      ).join('');
     }
   } catch (e) { console.error('[GY360] adm mob finance fetch:', e); }
 
