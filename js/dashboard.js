@@ -11,6 +11,9 @@ async function loadDashboard() {
   }
   if (currentProfile?.role === 'member') { showPage('my_profile'); return; }
 
+  // Make dashboard page active before populating elements
+  showPage('dashboard');
+
   const orgId = currentOrg.id;
   document.getElementById('page-sub').textContent = currentOrg.name;
 
