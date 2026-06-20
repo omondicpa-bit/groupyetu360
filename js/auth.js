@@ -1057,11 +1057,10 @@ function buildMobileNav() {
     ]);
   } else if (isMember) {
     nav.innerHTML = buildMobNavItems([
-      { icon:'🏠', label:'Home', page:'my_profile' },
-      { icon:'💳', label:'Finance', page:'my_contributions' },
+      { icon:'👤', label:'Profile', page:'my_profile' },
+      { icon:'₭', label:'Payments', page:'my_contributions' },
       { icon:'📅', label:'Meetings', page:'my_meetings' },
-      { icon:'📢', label:'Notices', page:'my_notices' },
-      { icon:'⚙', label:'Account', page:'my_account' },
+      { icon:'❓', label:'Help', page:'faq' },
     ]);
   } else if (isAdmin) {
     nav.innerHTML = buildMobNavItems([
@@ -1101,11 +1100,11 @@ function showPage(id) {
   updateMobileNavActive(id);
   // Close mobile menu when navigating
   closeMobileMenu();
-  // Inject mobile member header on member pages (mobile only)
+  // Mobile member app: add body class to kill topbar/sidebar
   const memberMobPages = ['my_profile','my_contributions','my_meetings','my_notices','my_account'];
   if (memberMobPages.includes(id) && window.innerWidth <= 768) {
-    setTimeout(() => injectMemberMobileHeader(id), 10);
     document.body.classList.add('member-mob-active');
+    setTimeout(updateMobOrgPills, 50);
   } else {
     document.body.classList.remove('member-mob-active');
   }
@@ -1126,86 +1125,35 @@ function showPage(id) {
 }
 
 
-// ── Member mobile header injection ──
-function injectMemberMobileHeader(pageId) {
-  const memberMobPages = ['my_profile','my_contributions','my_meetings','my_notices','my_account'];
-  if (!memberMobPages.includes(pageId)) return;
-
-  const pageEl = document.getElementById('page-' + pageId);
-  if (!pageEl) return;
-
-  // Mark page for mobile member CSS overrides
-  pageEl.classList.add('member-page-mobile');
-
-  // Remove existing injected header if any
-  const existing = pageEl.querySelector('.member-mob-header');
-  if (existing) existing.remove();
-
-  const name = currentProfile?.full_name || 'Member';
-  const firstName = name.split(' ')[0];
+// ── Mobile member UI helpers ──
+function updateMobOrgPills() {
   const orgName = currentOrg?.name
-    ? currentOrg.name.replace(/\b\w/g,c=>c.toUpperCase())
-    : 'Your Group';
-  const orgInitial = orgName.charAt(0).toUpperCase();
+    ? currentOrg.name.replace(/\b\w/g, c => c.toUpperCase())
+    : 'Group';
+  const initial = orgName.charAt(0).toUpperCase();
+  const shortName = orgName.length > 20 ? orgName.slice(0, 20) + '…' : orgName;
 
+  // Set all org pills
+  [['mob-org-dot','mob-org-name'],
+   ['mob-fin-org-dot','mob-fin-org-name'],
+   ['mob-mtg-org-dot','mob-mtg-org-name'],
+   ['mob-notices-org-dot','mob-notices-org-name'],
+   ['ma-mob-org-dot','ma-mob-org-name']
+  ].forEach(([dotId, nameId]) => {
+    const dot = document.getElementById(dotId);
+    const name = document.getElementById(nameId);
+    if (dot) dot.textContent = initial;
+    if (name) name.textContent = shortName;
+  });
+
+  // Set greeting
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const greeting = hour < 12 ? 'Good morning,' : hour < 17 ? 'Good afternoon,' : 'Good evening,';
+  const greetEl = document.getElementById('mob-greeting');
+  if (greetEl) greetEl.textContent = greeting;
 
-  // Page-specific header content
-  const pageMeta = {
-    my_profile:      { title: null, sub: null },   // shows greeting
-    my_contributions:{ title: 'My Finance',    sub: orgName },
-    my_meetings:     { title: 'Meetings',      sub: orgName },
-    my_notices:      { title: 'Notices',       sub: 'From ' + orgName },
-    my_account:      { title: 'My Account',    sub: 'Settings & security' },
-  };
-  const meta = pageMeta[pageId] || {};
-
-  let headerInner = '';
-  if (meta.title) {
-    // Secondary pages: compact title header
-    headerInner = `
-      <div class="mmh-inner">
-        <div class="mmh-top">
-          <div>
-            <div class="mmh-page-title">${meta.title}</div>
-            <div class="mmh-page-sub">${meta.sub}</div>
-          </div>
-          <div class="mmh-group-pill">
-            <div class="mmh-group-dot">${orgInitial}</div>
-            ${orgName.length > 18 ? orgName.slice(0,18)+'…' : orgName}
-          </div>
-        </div>
-      </div>`;
-  } else {
-    // Home (my_profile): full greeting header with notification bell
-    headerInner = `
-      <div class="mmh-inner">
-        <div class="mmh-top">
-          <div>
-            <div class="mmh-greeting">${greeting},</div>
-            <div class="mmh-name">${firstName}</div>
-          </div>
-          <button class="mmh-notif" onclick="showPage('my_notices')" aria-label="Notices">
-            🔔
-            <div class="mmh-notif-dot" id="mmh-notif-dot" style="display:none"></div>
-          </button>
-        </div>
-        <div class="mmh-group-pill">
-          <div class="mmh-group-dot">${orgInitial}</div>
-          ${orgName.length > 22 ? orgName.slice(0,22)+'…' : orgName}
-        </div>
-      </div>`;
-  }
-
-  const headerEl = document.createElement('div');
-  headerEl.className = 'member-mob-header';
-  headerEl.innerHTML = headerInner;
-  pageEl.insertBefore(headerEl, pageEl.firstChild);
-
-  // Show notification dot if there are unread notices
-  if (pageId === 'my_profile') {
-    const dot = document.getElementById('mmh-notif-dot');
-    if (dot && window._unreadNotices > 0) dot.style.display = 'block';
-  }
+  // Set member name
+  const firstName = (currentProfile?.full_name || 'Member').split(' ')[0];
+  const nameEl = document.getElementById('mob-member-name');
+  if (nameEl) nameEl.textContent = firstName;
 }

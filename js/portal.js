@@ -162,8 +162,8 @@ async function loadMyProfile() {
     // Ensure financial profile is loaded before rendering cards
     if (!orgFinProfile.allLoaded) await loadOrgFinancialProfile();
     renderMemberBalanceCards(myRecord, totalContributed);
-    // ── Mobile quick actions (phone only) ──
-    if (window.innerWidth <= 768) renderMemberQuickActions(myRecord, orgFinProfile);
+    // ── Populate mobile home elements ──
+    if (window.innerWidth <= 768) populateMobileProfile(myRecord, orgFinProfile);
     // ── Set hero ──
     const initials = myRecord.full_name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
     const avatarEl = document.getElementById('mp-hero-avatar');
@@ -441,6 +441,8 @@ async function loadMyContributions() {
       }).join('')}
     </div>`;
   }).join('');
+  // ── Populate mobile finance page ──
+  if (window.innerWidth <= 768) populateMobileContributions(txns, mem, orgFinProfile);
 }
 
 
@@ -944,6 +946,16 @@ async function loadMyMeetings() {
       </div>
     </div>`;
   }).join('') : '<div style="padding:1.5rem;text-align:center;font-size:.82rem;color:var(--ink-faint)">No past meetings recorded</div>';
+
+  // ── Populate mobile meetings ──
+  if (window.innerWidth <= 768) {
+    const pastWithAtt = past.map(m => ({
+      ...m,
+      _attended: m._attStatus === 'present' ? true : m._attStatus === 'absent' ? false : null
+    }));
+    const attSummaryMob = { attended: attSummary.present, total: attSummary.total };
+    populateMobileMeetings(upcoming, past, attSummaryMob);
+  }
 }
 
 async function loadMyNotices() {
@@ -964,6 +976,192 @@ async function loadMyNotices() {
     <div style="font-size:2rem;margin-bottom:.75rem">📢</div>
     <div style="font-size:.85rem;color:var(--ink-faint)">No notices from your admin yet</div>
   </div>`;
+
+  // Also populate mobile notices list
+  const mobListEl = document.getElementById('mob-notices-list');
+  if (mobListEl) {
+    mobListEl.innerHTML = logs.length ? logs.map((l,i) => {
+      const dateStr = l.sent_at ? new Date(l.sent_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
+      return `<div class="mh-notice-card" style="animation:portalFadeUp .3s ease ${i*0.05}s both">
+        <div class="mh-notice-date">📢 ${dateStr}</div>
+        <div class="mh-notice-text">${l.body||'—'}</div>
+      </div>`;
+    }).join('') : `<div style="text-align:center;padding:2.5rem 1rem">
+      <div style="font-size:2rem;margin-bottom:.75rem">📭</div>
+      <div style="font-size:.88rem;font-weight:500;color:var(--ink);margin-bottom:.3rem">No notices yet</div>
+      <div style="font-size:.78rem;color:var(--ink-faint)">Your admin hasn't sent any messages yet.</div>
+    </div>`;
+    // Show bell dot if notices exist
+    const dot = document.getElementById('mob-bell-dot');
+    if (dot) dot.style.display = logs.length > 0 ? 'block' : 'none';
+  }
+}
+
+// ── Populate mobile-specific profile elements ──
+function populateMobileProfile(myRecord, fp) {
+  if (!myRecord) return;
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+  // Member summary
+  set('mob-member-num', '#' + (myRecord.member_number || '—'));
+  const statusEl = document.getElementById('mob-member-status');
+  if (statusEl) {
+    const s = myRecord.status || 'unknown';
+    const color = s === 'active' ? 'var(--teal)' : s === 'arrears' ? 'var(--warning)' : 'var(--ink-faint)';
+    statusEl.innerHTML = `<span style="color:${color};font-weight:600;text-transform:capitalize">${s === 'active' ? '✓ Active' : s === 'arrears' ? '⚠ Arrears' : s}</span>`;
+  }
+  set('mob-member-phone', myRecord.phone || '—');
+
+  // Shares/savings rows — show only if org has them
+  const sharesRow = document.getElementById('mob-shares-row');
+  const savingsRow = document.getElementById('mob-savings-row');
+  if (sharesRow && fp?.hasShares) {
+    sharesRow.style.display = '';
+    set('mob-shares-val', 'Ksh ' + Number(myRecord.shares_balance || 0).toLocaleString());
+  }
+  if (savingsRow && fp?.hasSavings) {
+    savingsRow.style.display = '';
+    set('mob-savings-val', 'Ksh ' + Number(myRecord.savings_balance || 0).toLocaleString());
+  }
+
+  // Balance label on quick action card
+  const balLabel = fp?.hasShares && fp?.hasSavings ? 'Shares & Savings'
+    : fp?.hasShares ? (fp.sharesLabel || 'Shares')
+    : fp?.hasSavings ? (fp.savingsLabel || 'Savings')
+    : 'My Balance';
+  const totalBal = (myRecord.shares_balance || 0) + (myRecord.savings_balance || 0);
+  set('mob-bal-label', balLabel);
+  set('mob-bal-sub', totalBal > 0 ? 'Ksh ' + Number(totalBal).toLocaleString() : 'View finance');
+
+  // Payment methods in mobile home
+  const mobPay = document.getElementById('mob-payment-methods');
+  const desktopPay = document.getElementById('mp-payment-methods');
+  if (mobPay && desktopPay) {
+    mobPay.innerHTML = desktopPay.innerHTML;
+  }
+
+  // Fines notice
+  const finesAlert = document.getElementById('mp-fines-alert');
+  const mobFines = document.getElementById('mob-fines-notice');
+  if (mobFines && finesAlert && finesAlert.style.display !== 'none') {
+    mobFines.style.display = 'block';
+  }
+}
+
+// ── Populate mobile contributions page ──
+function populateMobileContributions(txns, mem, fp) {
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  const thisYear = new Date().getFullYear().toString();
+  const total = txns.reduce((s,t)=>s+Number(t.amount||0),0);
+  const yearTotal = txns.filter(t=>(t.transaction_date||t.created_at||'').startsWith(thisYear)).reduce((s,t)=>s+Number(t.amount||0),0);
+
+  set('mob-mc-total', 'Ksh ' + total.toLocaleString());
+  set('mob-mc-year', 'Ksh ' + yearTotal.toLocaleString());
+  set('mob-mc-member-meta', '#' + (mem?.member_number || '—') + ' · ' + (mem?.full_name || ''));
+
+  // Org pill
+  const orgName = currentOrg?.name ? currentOrg.name.replace(/\b\w/g, c => c.toUpperCase()) : 'Group';
+  set('mob-fin-org-name', orgName.length > 18 ? orgName.slice(0,18)+'…' : orgName);
+  const dotEl = document.getElementById('mob-fin-org-dot');
+  if (dotEl) dotEl.textContent = orgName.charAt(0);
+
+  // Shares/savings chips
+  if (fp?.hasShares && mem) {
+    const chip = document.getElementById('mob-mc-shares-chip');
+    if (chip) chip.style.display = '';
+    set('mob-mc-shares', 'Ksh ' + Number(mem.shares_balance||0).toLocaleString());
+    set('mob-mc-shares-lbl', fp.sharesLabel || 'Shares');
+  }
+  if (fp?.hasSavings && mem) {
+    const chip = document.getElementById('mob-mc-savings-chip');
+    if (chip) chip.style.display = '';
+    set('mob-mc-savings', 'Ksh ' + Number(mem.savings_balance||0).toLocaleString());
+    set('mob-mc-savings-lbl', fp.savingsLabel || 'Savings');
+  }
+
+  // Count
+  set('mob-mc-count', txns.length + ' payment' + (txns.length!==1?'s':''));
+
+  // By category
+  const catEl = document.getElementById('mob-mc-by-cat');
+  if (catEl) {
+    const cats = {};
+    txns.forEach(t => { const c=t.contribution_types?.name||'Other'; cats[c]=(cats[c]||0)+Number(t.amount||0); });
+    const entries = Object.entries(cats).sort((a,b)=>b[1]-a[1]);
+    catEl.innerHTML = entries.length ? entries.map(([cat,amt]) => `
+      <div class="mh-amt-row">
+        <span class="mh-amt-label">${cat}</span>
+        <span class="mh-amt-val">Ksh ${amt.toLocaleString()}</span>
+      </div>`).join('') : '<div style="color:var(--ink-faint);font-size:.8rem">No payments yet</div>';
+  }
+
+  // Timeline
+  const tlEl = document.getElementById('mob-mc-timeline');
+  if (tlEl) {
+    tlEl.innerHTML = txns.length ? txns.slice(0,20).map(t => {
+      const date = (t.transaction_date||t.created_at||'').slice(0,10);
+      const dateStr = date ? new Date(date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '—';
+      return `<div class="mh-txn">
+        <div class="mh-txn-dot cr">↓</div>
+        <div style="flex:1">
+          <div class="mh-txn-name">${t.contribution_types?.name||'Payment'}</div>
+          <div class="mh-txn-date">${dateStr}</div>
+        </div>
+        <div class="mh-txn-amt cr">+Ksh ${Number(t.amount||0).toLocaleString()}</div>
+      </div>`;
+    }).join('') : '<div style="color:var(--ink-faint);font-size:.8rem;padding:.5rem 0">No payments recorded yet</div>';
+  }
+}
+
+// ── Populate mobile meetings page ──
+function populateMobileMeetings(upcoming, past, attendanceSummary) {
+  // Org info
+  const orgName = currentOrg?.name ? currentOrg.name.replace(/\b\w/g, c => c.toUpperCase()) : 'Group';
+  const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setEl('mob-mtg-org-name', orgName.length > 18 ? orgName.slice(0,18)+'…' : orgName);
+  const dotEl = document.getElementById('mob-mtg-org-dot');
+  if (dotEl) dotEl.textContent = orgName.charAt(0);
+
+  // Upcoming
+  const upEl = document.getElementById('mob-upcoming-meetings');
+  if (upEl) {
+    upEl.innerHTML = upcoming.length ? upcoming.map(m => {
+      const d = m.meeting_date ? new Date(m.meeting_date) : null;
+      const dateStr = d ? d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}) : '—';
+      const daysAway = d ? Math.ceil((d - new Date()) / 86400000) : null;
+      const badge = daysAway !== null ? (daysAway === 0 ? 'Today' : daysAway === 1 ? 'Tomorrow' : 'In ' + daysAway + ' days') : '';
+      return `<div class="mh-meeting">
+        <div class="mh-meeting-date">📅 ${dateStr}</div>
+        <div class="mh-meeting-name">${m.title||'Meeting'}</div>
+        <div class="mh-meeting-meta">${m.time||''} ${m.location ? '· ' + m.location : ''}</div>
+        ${badge ? `<div class="mh-meeting-badge upcoming">${badge}</div>` : ''}
+      </div>`;
+    }).join('') : '<div style="color:var(--ink-faint);font-size:.82rem;padding:.5rem 0">No upcoming meetings</div>';
+  }
+
+  // Attendance summary
+  const attEl = document.getElementById('mob-attendance-summary');
+  if (attEl && attendanceSummary) {
+    attEl.innerHTML = `
+      <div class="mh-profile-row"><span class="mh-profile-key">Meetings attended</span><span class="mh-profile-val" style="color:var(--teal)">${attendanceSummary.attended||0}</span></div>
+      <div class="mh-profile-row"><span class="mh-profile-key">Total meetings</span><span class="mh-profile-val">${attendanceSummary.total||0}</span></div>
+      <div class="mh-profile-row"><span class="mh-profile-key">Attendance rate</span><span class="mh-profile-val">${attendanceSummary.total ? Math.round((attendanceSummary.attended/attendanceSummary.total)*100)+'%' : '—'}</span></div>`;
+  }
+
+  // Past
+  const pastEl = document.getElementById('mob-past-meetings');
+  if (pastEl) {
+    pastEl.innerHTML = past.length ? past.map(m => {
+      const d = m.meeting_date ? new Date(m.meeting_date) : null;
+      const dateStr = d ? d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
+      const attended = m._attended;
+      return `<div class="mh-meeting" style="border-left-color:${attended===true?'var(--teal)':attended===false?'var(--danger)':'var(--border)'}">
+        <div class="mh-meeting-name">${m.title||'Meeting'}</div>
+        <div class="mh-meeting-meta">${dateStr}${m.location ? ' · ' + m.location : ''}</div>
+        ${attended===true ? '<div class="mh-meeting-badge past-ok">✓ Attended</div>' : attended===false ? '<div class="mh-meeting-badge past-no">✗ Absent</div>' : ''}
+      </div>`;
+    }).join('') : '<div style="color:var(--ink-faint);font-size:.82rem;padding:.5rem 0">No past meetings recorded</div>';
+  }
 }
 
 async function start() {
@@ -1054,135 +1252,3 @@ window.addEventListener('appinstalled', () => {
   document.getElementById('pwa-install-banner')?.remove();
   toast('GroupYetu360 installed! Find it on your home screen.');
 });
-
-// ── Member mobile quick actions ──
-function renderMemberQuickActions(myRecord, fp) {
-  // Remove existing if re-rendering
-  const existing = document.getElementById('mob-qa-section');
-  if (existing) existing.remove();
-
-  const balDisplay = (myRecord?.shares_balance || myRecord?.savings_balance)
-    ? 'Ksh ' + ((myRecord.shares_balance||0) + (myRecord.savings_balance||0)).toLocaleString()
-    : 'View balance';
-
-  // Build dynamic cards based on org financial profile
-  const cards = [];
-
-  // Pay is always first if org has any payment type
-  cards.push({
-    icon: '💳', cls: 't',
-    label: 'Make Payment',
-    sub: 'via M-Pesa / manual',
-    action: `openMemberPaymentModal();showModal('memberPayment')`
-  });
-
-  // Balance card — adapts label to what org has
-  const balLabel = fp.hasShares && fp.hasSavings ? 'Shares & Savings'
-    : fp.hasShares ? fp.sharesLabel || 'Shares'
-    : fp.hasSavings ? fp.savingsLabel || 'Savings'
-    : 'My Balance';
-  cards.push({
-    icon: '💰', cls: 'g',
-    label: balLabel,
-    sub: balDisplay,
-    action: `showPage('my_contributions')`
-  });
-
-  // Meetings always shown
-  cards.push({
-    icon: '📅', cls: 'm',
-    label: 'Meetings',
-    sub: 'Upcoming & past',
-    action: `showPage('my_meetings')`
-  });
-
-  // Notices
-  cards.push({
-    icon: '📢', cls: 'g',
-    label: 'Notices',
-    sub: 'From your admin',
-    action: `showPage('my_notices')`
-  });
-
-  const section = document.createElement('div');
-  section.id = 'mob-qa-section';
-  section.style.padding = '0 0 .5rem';
-
-  // Fines notice bar if any
-  const finesEl = document.getElementById('mp-fines-alert');
-  const hasFines = finesEl && finesEl.style.display !== 'none';
-
-  section.innerHTML = `
-    ${hasFines ? `<div class="mob-notice-bar">⚠ You have an <strong>outstanding fine</strong>. Tap Finance to view details.</div>` : ''}
-    <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin:.6rem 0 .4rem">Quick Actions</div>
-    <div class="mob-quick-actions">
-      ${cards.map(c => `
-        <div class="mob-qa-card" onclick="${c.action}">
-          <div class="mob-qa-icon ${c.cls}">${c.icon}</div>
-          <div class="mob-qa-label">${c.label}</div>
-          <div class="mob-qa-sub">${c.sub}</div>
-        </div>`).join('')}
-    </div>`;
-
-  // Insert after the mobile header, before existing content
-  const pageEl = document.getElementById('page-my_profile');
-  if (!pageEl) return;
-  const header = pageEl.querySelector('.member-mob-header');
-  const insertAfter = header || pageEl.firstChild;
-  if (header) {
-    header.insertAdjacentElement('afterend', section);
-  } else {
-    pageEl.insertBefore(section, pageEl.firstChild);
-  }
-}
-
-// ── Track unread notices for notification dot ──
-async function loadMyNotices() {
-  if (!currentOrg?.id) return;
-  const listEl = document.getElementById('my-notices-list');
-  if (listEl) listEl.innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
-
-  try {
-    const { data: messages, error } = await sb
-      .from('messages')
-      .select('*')
-      .eq('org_id', currentOrg.id)
-      .order('sent_at', { ascending: false });
-
-    if (error) throw error;
-    const msgs = messages || [];
-
-    // Track count for notification dot
-    window._unreadNotices = msgs.length;
-    const dot = document.getElementById('mmh-notif-dot');
-    if (dot) dot.style.display = msgs.length > 0 ? 'block' : 'none';
-
-    const countEl = document.getElementById('notices-count-chip');
-    if (countEl) countEl.textContent = msgs.length ? msgs.length + ' message' + (msgs.length !== 1 ? 's' : '') : 'No messages yet';
-
-    if (!listEl) return;
-    if (!msgs.length) {
-      listEl.innerHTML = `<div style="text-align:center;padding:3rem 1rem;color:var(--ink-faint)">
-        <div style="font-size:2rem;margin-bottom:.75rem">📭</div>
-        <div style="font-size:.9rem;font-weight:600;margin-bottom:.3rem">No notices yet</div>
-        <div style="font-size:.78rem">Your admin hasn't sent any messages yet.</div>
-      </div>`;
-      return;
-    }
-
-    listEl.innerHTML = msgs.map(m => {
-      const date = m.sent_at ? new Date(m.sent_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
-      return `<div style="background:#fff;border:1px solid var(--border);border-left:3px solid var(--teal);
-        border-radius:6px;padding:.9rem 1.1rem;margin-bottom:.65rem;animation:portalFadeUp .3s ease both">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
-          <div style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--teal)">Notice</div>
-          <div style="font-size:.7rem;color:var(--ink-faint)">${date}</div>
-        </div>
-        <div style="font-size:.85rem;color:var(--ink);line-height:1.65">${m.message||m.content||'—'}</div>
-        ${m.sent_by ? `<div style="font-size:.7rem;color:var(--ink-faint);margin-top:.5rem">From: ${m.sent_by}</div>` : ''}
-      </div>`;
-    }).join('');
-  } catch(e) {
-    if (listEl) listEl.innerHTML = `<div style="color:var(--ink-faint);padding:1rem;font-size:.82rem">Could not load notices: ${e.message}</div>`;
-  }
-}

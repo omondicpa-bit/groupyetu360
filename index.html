@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>GroupYetu360 — Community Management Platform</title>
-<!-- Build: v2.6 -->
+<!-- Build: v2.5 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
@@ -2475,31 +2475,87 @@
 
     <!-- MY ACCOUNT (all roles) -->
     <div class="page" id="page-my_account">
-      <div class="section-header"><div><div class="section-title">My Account</div><div class="section-sub">Update your personal information and password</div></div></div>
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-header"><div class="card-title">Personal Information</div></div>
-          <div class="card-body">
-            <div class="form-row single"><div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="acct-name" placeholder="Your full name"/></div></div>
-            <div class="form-row single"><div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" id="acct-phone" placeholder="07XXXXXXXX"/></div></div>
-            <div class="form-row single"><div class="form-group"><label class="form-label">Email Address</label><input class="form-input" id="acct-email" disabled style="background:var(--surface-3);color:var(--ink-faint)"/><div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">Email cannot be changed here. Contact your group admin.</div></div></div>
-            <div class="form-actions"><button class="btn btn-primary" onclick="saveAccountInfo()">Save Changes</button></div>
+
+      <!-- DESKTOP -->
+      <div class="mob-hide">
+        <div class="section-header"><div><div class="section-title">My Account</div><div class="section-sub">Update your personal information and password</div></div></div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Personal Information</div></div>
+            <div class="card-body">
+              <div class="form-row single"><div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="acct-name" placeholder="Your full name"/></div></div>
+              <div class="form-row single"><div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" id="acct-phone" placeholder="07XXXXXXXX"/></div></div>
+              <div class="form-row single"><div class="form-group"><label class="form-label">Email Address</label><input class="form-input" id="acct-email" disabled style="background:var(--surface-3);color:var(--ink-faint)"/><div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">Email cannot be changed here. Contact your group admin.</div></div></div>
+              <div class="form-actions"><button class="btn btn-primary" onclick="saveAccountInfo()">Save Changes</button></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Change Password</div></div>
+            <div class="card-body">
+              <div class="alert alert-info" id="acct-msg" style="display:none"></div>
+              <div class="form-group"><label class="form-label">New Password</label><input class="form-input" type="password" id="acct-new-pass" placeholder="Minimum 6 characters"/></div>
+              <div class="form-group"><label class="form-label">Confirm Password</label><input class="form-input" type="password" id="acct-confirm-pass" placeholder="Repeat new password"/></div>
+              <div class="form-actions"><button class="btn btn-primary" onclick="saveNewPassword()">Update Password</button></div>
+            </div>
           </div>
         </div>
-        <div class="card">
-          <div class="card-header"><div class="card-title">Change Password</div></div>
-          <div class="card-body">
-            <div class="alert alert-info" id="acct-msg" style="display:none"></div>
-            <div class="form-group"><label class="form-label">New Password</label><input class="form-input" type="password" id="acct-new-pass" placeholder="Minimum 6 characters"/></div>
-            <div class="form-group"><label class="form-label">Confirm Password</label><input class="form-input" type="password" id="acct-confirm-pass" placeholder="Repeat new password"/></div>
-            <div class="form-actions"><button class="btn btn-primary" onclick="saveNewPassword()">Update Password</button></div>
+      </div>
+
+      <!-- MOBILE -->
+      <div class="mob-only" style="display:flex;flex-direction:column;min-height:100%">
+        <div class="mh-header">
+          <div class="mh-inner">
+            <div class="mh-row">
+              <div><div class="mh-title">My Account</div><div class="mh-sub">Settings &amp; security</div></div>
+              <div class="mh-org-pill"><div class="mh-org-dot" id="ma-mob-org-dot">G</div><span id="ma-mob-org-name">Group</span></div>
+            </div>
           </div>
+        </div>
+        <div class="mh-body">
+          <div class="mh-section-label">Personal Information</div>
+          <div class="mh-card">
+            <div class="mh-card-body" style="display:flex;flex-direction:column;gap:.55rem">
+              <div class="mh-form-group">
+                <div class="mh-form-label">Full Name</div>
+                <input class="mh-form-input" id="acct-name" placeholder="Your full name"/>
+              </div>
+              <div class="mh-form-group">
+                <div class="mh-form-label">Phone Number</div>
+                <input class="mh-form-input" id="acct-phone" placeholder="07XXXXXXXX"/>
+              </div>
+              <div class="mh-form-group">
+                <div class="mh-form-label">Email Address</div>
+                <input class="mh-form-input" id="acct-email" disabled/>
+                <div class="mh-form-hint">Email cannot be changed here. Contact your group admin.</div>
+              </div>
+              <button class="mh-btn-teal" onclick="saveAccountInfo()">Save Changes</button>
+            </div>
+          </div>
+          <div class="mh-section-label" style="margin-top:.25rem">Change Password</div>
+          <div class="mh-card">
+            <div class="mh-card-body" style="display:flex;flex-direction:column;gap:.55rem">
+              <div class="alert alert-info" id="acct-msg" style="display:none"></div>
+              <div class="mh-form-group">
+                <div class="mh-form-label">New Password</div>
+                <input class="mh-form-input" type="password" id="acct-new-pass" placeholder="Minimum 6 characters"/>
+              </div>
+              <div class="mh-form-group">
+                <div class="mh-form-label">Confirm Password</div>
+                <input class="mh-form-input" type="password" id="acct-confirm-pass" placeholder="Repeat new password"/>
+              </div>
+              <button class="mh-btn-teal" onclick="saveNewPassword()">Update Password</button>
+            </div>
+          </div>
+          <button onclick="signOut()" style="background:transparent;border:1px solid var(--border);border-radius:20px;padding:.55rem 1rem;font-size:.82rem;color:var(--ink-faint);cursor:pointer;width:100%;font-family:'Inter',sans-serif;margin-top:.25rem">⎋ Sign Out</button>
         </div>
       </div>
     </div>
 
     <!-- MEMBER: MY PROFILE -->
     <div class="page" id="page-my_profile">
+
+      <!-- DESKTOP -->
+      <div class="mob-hide">
 
       <!-- ── HERO CARD ── -->
       <div class="mp-hero">
@@ -2526,7 +2582,6 @@
           </div>
         </div>
       </div>
-      <!-- ── BALANCE CARDS — rendered dynamically by renderMemberBalanceCards() ── -->
       <div class="mp-balances" id="mp-bal-cards-container">
         <div class="mp-bal-card" style="animation-delay:.0s">
           <div class="mp-bal-label">Shares Balance</div>
@@ -2544,47 +2599,33 @@
           <div class="mp-bal-meta">Combined holdings</div>
         </div>
       </div>
-
-      <!-- ── MAIN GRID ── -->
       <div class="grid-2" style="margin-bottom:1rem">
-
-        <!-- Personal Details -->
         <div class="card" style="animation:portalFadeUp .4s ease .2s both">
           <div class="card-header">
             <div class="card-title">Personal Details</div>
             <span class="badge badge-grey" id="mp-number" style="font-size:.72rem">—</span>
           </div>
           <div class="card-body" style="padding:.75rem 1.25rem">
-            <table style="width:100%">
-              <tbody id="mp-details"></tbody>
-            </table>
+            <table style="width:100%"><tbody id="mp-details"></tbody></table>
             <div style="margin-top:.85rem;padding-top:.75rem;border-top:1px solid var(--border)">
               <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.6rem">My Contributions by Type</div>
               <div id="mp-contrib-summary"></div>
             </div>
           </div>
         </div>
-
-        <!-- Payment Details + Org Balance -->
         <div style="display:flex;flex-direction:column;gap:1rem">
-
-          <!-- Payment methods — single unified card -->
           <div class="card" style="animation:portalFadeUp .4s ease .3s both">
             <div class="card-header">
               <div class="card-title">💳 How to Pay</div>
               <div class="card-sub">Send payment using any method below</div>
             </div>
-            <div class="card-body" id="mp-payment-methods">
-              <div class="loading"><div class="spinner"></div></div>
-            </div>
+            <div class="card-body" id="mp-payment-methods"><div class="loading"><div class="spinner"></div></div></div>
             <div style="padding:.75rem 1.25rem;border-top:1px solid var(--border);background:var(--surface-2)" id="mp-savings-tier-panel">
               <div style="font-size:.75rem;color:var(--ink-soft);line-height:1.8">
                 <span id="mp-savings-tier-label">Savings/mo:</span> <strong id="mp-savings-tier">—</strong> &nbsp;·&nbsp; Reg. fee: <span id="mp-reg-status">—</span>
               </div>
             </div>
           </div>
-
-          <!-- Org balance if visible -->
           <div class="card" id="org-balance-card" style="display:none;animation:portalFadeUp .4s ease .35s both">
             <div class="card-header"><div class="card-title">Group Bank Balance</div></div>
             <div class="card-body">
@@ -2592,98 +2633,198 @@
               <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.2rem">As of <span id="mp-org-balance-date">—</span></div>
             </div>
           </div>
-
         </div>
-        <!-- hidden paybill for JS compat -->
         <div id="mp-paybill" style="display:none"></div>
         <div id="mp-payment-extra-methods" style="display:none"></div>
       </div>
-
-
-
-      <!-- hidden inputs kept for JS compatibility -->
       <input id="mp-shares-amount" type="hidden" value="Ksh 300"/>
       <div id="mp-status" style="display:none"></div>
+
+      </div><!-- end .mob-hide -->
+
+      <!-- MOBILE HOME -->
+      <div class="mob-only" style="display:flex;flex-direction:column;min-height:100%">
+        <div class="mh-header">
+          <div class="mh-inner">
+            <div class="mh-row">
+              <div>
+                <div class="mh-greeting" id="mob-greeting">Good morning,</div>
+                <div class="mh-name" id="mob-member-name">Loading…</div>
+              </div>
+              <button class="mh-bell" onclick="showPage('my_notices')" aria-label="Notices">
+                🔔<div class="mh-bell-dot" id="mob-bell-dot"></div>
+              </button>
+            </div>
+            <div class="mh-org-pill">
+              <div class="mh-org-dot" id="mob-org-dot">G</div>
+              <span id="mob-org-name">Your Group</span>
+            </div>
+          </div>
+        </div>
+        <div class="mh-body">
+          <!-- Fines notice — shown dynamically -->
+          <div class="mh-notice" id="mob-fines-notice" style="display:none">
+            ⚠ You have an <strong>outstanding fine</strong>. Tap Finance to view details.
+          </div>
+          <!-- Quick actions -->
+          <div class="mh-section-label">Quick Actions</div>
+          <div class="mh-qa-grid" id="mob-qa-grid">
+            <div class="mh-qa-card" onclick="openMemberPaymentModal();showModal('memberPayment')">
+              <div class="mh-qa-icon t">💳</div>
+              <div class="mh-qa-label">Make Payment</div>
+              <div class="mh-qa-sub">via M-Pesa / manual</div>
+            </div>
+            <div class="mh-qa-card" onclick="showPage('my_contributions')">
+              <div class="mh-qa-icon g">💰</div>
+              <div class="mh-qa-label" id="mob-bal-label">My Balance</div>
+              <div class="mh-qa-sub" id="mob-bal-sub">View finance</div>
+            </div>
+            <div class="mh-qa-card" onclick="showPage('my_meetings')">
+              <div class="mh-qa-icon m">📅</div>
+              <div class="mh-qa-label">Meetings</div>
+              <div class="mh-qa-sub" id="mob-mtg-sub">Upcoming &amp; past</div>
+            </div>
+            <div class="mh-qa-card" onclick="showPage('my_notices')">
+              <div class="mh-qa-icon g">📢</div>
+              <div class="mh-qa-label">Notices</div>
+              <div class="mh-qa-sub">From your admin</div>
+            </div>
+          </div>
+          <!-- Member summary card -->
+          <div class="mh-section-label">My Summary</div>
+          <div class="mh-card">
+            <div class="mh-card-body">
+              <div id="mob-profile-rows">
+                <div class="mh-profile-row"><span class="mh-profile-key">Member #</span><span class="mh-profile-val" id="mob-member-num">—</span></div>
+                <div class="mh-profile-row"><span class="mh-profile-key">Status</span><span class="mh-profile-val" id="mob-member-status">—</span></div>
+                <div class="mh-profile-row"><span class="mh-profile-key">Phone</span><span class="mh-profile-val" id="mob-member-phone">—</span></div>
+                <div class="mh-profile-row" id="mob-shares-row" style="display:none"><span class="mh-profile-key">Shares</span><span class="mh-profile-val" style="color:var(--maroon)" id="mob-shares-val">—</span></div>
+                <div class="mh-profile-row" id="mob-savings-row" style="display:none"><span class="mh-profile-key">Savings</span><span class="mh-profile-val" style="color:var(--teal)" id="mob-savings-val">—</span></div>
+              </div>
+            </div>
+          </div>
+          <!-- How to pay -->
+          <div class="mh-section-label">How to Pay</div>
+          <div class="mh-card">
+            <div class="mh-card-body" id="mob-payment-methods">
+              <div style="color:var(--ink-faint);font-size:.8rem">Loading…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- MEMBER: MY CONTRIBUTIONS -->
     <!-- ══ MY CONTRIBUTIONS ══ -->
     <div class="page" id="page-my_contributions">
+
+      <!-- DESKTOP -->
+      <div class="mob-hide">
       <div class="section-header">
         <div><div class="section-title">My Contributions</div><div class="section-sub">Your payment history and balances</div></div>
       </div>
-
-      <!-- Fines & pending notices -->
       <div id="mc-fines-notice" style="margin-bottom:.75rem;display:none"></div>
       <div id="mc-pending-notice" style="margin-bottom:.75rem;display:none"></div>
-
-      <!-- ── BALANCE HERO ── -->
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.75rem;margin-bottom:1.25rem" id="mc-stats-row">
-        <!-- Total paid -->
         <div style="background:linear-gradient(135deg,var(--maroon) 0%,#5a0016 100%);border-radius:8px;padding:1.1rem 1.25rem;color:#fff">
           <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;opacity:.7;margin-bottom:.3rem">Total Paid</div>
           <div id="mc-total" style="font-family:'Crimson Pro',serif;font-size:1.75rem;font-weight:700;line-height:1">—</div>
           <div style="font-size:.68rem;opacity:.65;margin-top:.2rem">All time</div>
         </div>
-        <!-- This year -->
         <div style="background:var(--surface);border:1px solid var(--border);border-top:3px solid #c49a30;border-radius:8px;padding:1.1rem 1.25rem">
           <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.3rem">This Year</div>
           <div id="mc-year" style="font-family:'Crimson Pro',serif;font-size:1.75rem;font-weight:700;color:#c49a30;line-height:1">—</div>
           <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem" id="mc-year-label">2026</div>
         </div>
-        <!-- Shares -->
         <div id="mc-shares-card" style="background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--maroon);border-radius:8px;padding:1.1rem 1.25rem">
           <div id="mc-shares-label" style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.3rem">Shares</div>
           <div id="mc-shares-bal" style="font-family:'Crimson Pro',serif;font-size:1.75rem;font-weight:700;color:var(--maroon);line-height:1">—</div>
           <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">Equity in group</div>
         </div>
-        <!-- Savings -->
         <div id="mc-savings-card" style="background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--teal);border-radius:8px;padding:1.1rem 1.25rem">
           <div id="mc-savings-label" style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.3rem">Savings</div>
           <div id="mc-savings-bal" style="font-family:'Crimson Pro',serif;font-size:1.75rem;font-weight:700;color:var(--teal);line-height:1">—</div>
           <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">Monthly deposits</div>
         </div>
       </div>
-
-      <!-- ── CHART + QUICK INFO ── -->
       <div style="display:grid;grid-template-columns:1fr 280px;gap:1rem;margin-bottom:1.25rem">
-        <!-- Monthly bar chart -->
         <div class="card">
           <div class="card-header"><div class="card-title">Monthly Payments</div><div class="card-sub" id="mc-count-label"></div></div>
           <div style="padding:1rem 1.25rem 1.25rem">
-            <div id="mc-chart" style="display:flex;align-items:flex-end;gap:.4rem;height:110px;border-bottom:1.5px solid var(--border)">
-              <div class="loading"><div class="spinner"></div></div>
-            </div>
+            <div id="mc-chart" style="display:flex;align-items:flex-end;gap:.4rem;height:110px;border-bottom:1.5px solid var(--border)"><div class="loading"><div class="spinner"></div></div></div>
             <div id="mc-chart-labels" style="display:flex;gap:.4rem;margin-top:.4rem;font-size:.62rem;color:var(--ink-faint)"></div>
           </div>
         </div>
-        <!-- Quick info sidebar -->
         <div class="card">
           <div class="card-header"><div class="card-title">Quick Info</div></div>
           <div id="mc-quick-info" style="padding:.75rem 1.25rem"></div>
         </div>
       </div>
-
-      <!-- ── BY CATEGORY ── -->
       <div class="card" style="margin-bottom:1.25rem">
         <div class="card-header"><div class="card-title">By Category</div><div class="card-sub">All-time contributions per type</div></div>
         <div id="mc-by-category" style="padding:.5rem 1.25rem 1rem"></div>
       </div>
-
-      <!-- ── PAYMENT HISTORY TIMELINE ── -->
       <div class="card">
         <div class="card-header">
           <div><div class="card-title">Payment History</div><div class="card-sub" id="mc-history-sub"></div></div>
           <button class="btn btn-primary btn-sm" onclick="openMemberPaymentModal();showModal('memberPayment')" style="background:var(--maroon);font-size:.75rem">+ Make Payment</button>
         </div>
-        <div id="mc-timeline" style="padding:.5rem 0">
-          <div class="loading"><div class="spinner"></div>Loading…</div>
+        <div id="mc-timeline" style="padding:.5rem 0"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+      </div>
+      </div><!-- end .mob-hide -->
+
+      <!-- MOBILE FINANCE -->
+      <div class="mob-only" style="display:flex;flex-direction:column;min-height:100%">
+        <div class="mh-bal-hero">
+          <div class="mh-bal-inner">
+            <div class="mh-row" style="margin-bottom:.5rem">
+              <div>
+                <div class="mh-bal-label">Total Paid — All Time</div>
+                <div class="mh-bal-amount" id="mob-mc-total">—</div>
+                <div class="mh-bal-meta" id="mob-mc-member-meta">Loading…</div>
+              </div>
+              <div class="mh-org-pill">
+                <div class="mh-org-dot" id="mob-fin-org-dot">G</div>
+                <span id="mob-fin-org-name">Group</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mh-body" style="margin-top:-12px">
+          <!-- Stat chips -->
+          <div class="mh-stat-row" id="mob-mc-stat-chips">
+            <div class="mh-stat-chip"><div class="mh-stat-chip-val" id="mob-mc-year">—</div><div class="mh-stat-chip-label">This Year</div></div>
+            <div class="mh-stat-chip" id="mob-mc-shares-chip" style="display:none"><div class="mh-stat-chip-val" style="color:var(--maroon)" id="mob-mc-shares">—</div><div class="mh-stat-chip-label" id="mob-mc-shares-lbl">Shares</div></div>
+            <div class="mh-stat-chip" id="mob-mc-savings-chip" style="display:none"><div class="mh-stat-chip-val" style="color:var(--teal)" id="mob-mc-savings">—</div><div class="mh-stat-chip-label" id="mob-mc-savings-lbl">Savings</div></div>
+          </div>
+          <!-- Pending notice -->
+          <div id="mob-mc-pending" style="display:none" class="mh-notice"></div>
+          <!-- Make payment -->
+          <button class="mh-btn-teal" onclick="openMemberPaymentModal();showModal('memberPayment')">💳 Make Payment</button>
+          <!-- By category -->
+          <div class="mh-section-label">By Category</div>
+          <div class="mh-card">
+            <div class="mh-card-body" id="mob-mc-by-cat">
+              <div style="color:var(--ink-faint);font-size:.8rem">Loading…</div>
+            </div>
+          </div>
+          <!-- Payment history -->
+          <div class="mh-section-label">Payment History <span style="font-weight:400;color:var(--ink-faint)" id="mob-mc-count"></span></div>
+          <div class="mh-card">
+            <div class="mh-card-body" id="mob-mc-timeline">
+              <div style="color:var(--ink-faint);font-size:.8rem">Loading…</div>
+            </div>
+          </div>
         </div>
       </div>
+
     </div>
 
     <!-- MEMBER: MY MEETINGS -->
     <div class="page" id="page-my_meetings">
+      <!-- DESKTOP -->
+      <div class="mob-hide">
       <div class="msg-hero" style="background:linear-gradient(135deg,#0d3d2e 0%,var(--teal) 60%,#1a1a1a 100%);margin-bottom:1.25rem">
         <div>
           <div style="font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:#fff">📅 My Meetings</div>
@@ -2703,10 +2844,37 @@
       </div>
       <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.6rem">Past Meetings</div>
       <div id="my-past-meetings"><div class="loading"><div class="spinner"></div></div></div>
+      </div><!-- end .mob-hide -->
+
+      <!-- MOBILE MEETINGS -->
+      <div class="mob-only" style="display:flex;flex-direction:column;min-height:100%">
+        <div class="mh-header">
+          <div class="mh-inner">
+            <div class="mh-row">
+              <div><div class="mh-title">Meetings</div><div class="mh-sub" id="mob-mtg-header-sub">Upcoming &amp; past</div></div>
+              <div class="mh-org-pill"><div class="mh-org-dot" id="mob-mtg-org-dot">G</div><span id="mob-mtg-org-name">Group</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="mh-body">
+          <div class="mh-section-label">Upcoming</div>
+          <div id="mob-upcoming-meetings"><div style="color:var(--ink-faint);font-size:.82rem;padding:.5rem 0">Loading…</div></div>
+          <div class="mh-section-label" style="margin-top:.25rem">Attendance Summary</div>
+          <div class="mh-card">
+            <div class="mh-card-body" id="mob-attendance-summary">
+              <div style="color:var(--ink-faint);font-size:.82rem">Loading…</div>
+            </div>
+          </div>
+          <div class="mh-section-label" style="margin-top:.25rem">Past Meetings</div>
+          <div id="mob-past-meetings"><div style="color:var(--ink-faint);font-size:.82rem;padding:.5rem 0">Loading…</div></div>
+        </div>
+      </div>
     </div>
 
     <!-- MEMBER: MY NOTICES -->
     <div class="page" id="page-my_notices">
+      <!-- DESKTOP -->
+      <div class="mob-hide">
       <div class="msg-hero" style="background:linear-gradient(135deg,#1a1a1a 0%,#2d2d2d 50%,#0d3d2e 100%);margin-bottom:1.25rem">
         <div>
           <div style="font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:#fff">📢 Notices</div>
@@ -2715,6 +2883,24 @@
         <div id="notices-count-chip" style="font-size:.72rem;color:rgba(255,255,255,.6)"></div>
       </div>
       <div id="my-notices-list"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+      </div><!-- end .mob-hide -->
+
+      <!-- MOBILE NOTICES -->
+      <div class="mob-only" style="display:flex;flex-direction:column;min-height:100%">
+        <div class="mh-header">
+          <div class="mh-inner">
+            <div class="mh-row">
+              <div><div class="mh-title">Notices</div><div class="mh-sub">From your group admin</div></div>
+              <div class="mh-org-pill"><div class="mh-org-dot" id="mob-notices-org-dot">G</div><span id="mob-notices-org-name">Group</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="mh-body">
+          <div id="mob-notices-list">
+            <div style="color:var(--ink-faint);font-size:.82rem">Loading…</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- SUPERADMIN: ALL MEMBERS -->
