@@ -1002,14 +1002,18 @@ function populateMobileProfile(myRecord, fp) {
   if (!myRecord) return;
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
 
-  // Member summary
-  set('mob-member-num', '#' + (myRecord.member_number || '—'));
-  const statusEl = document.getElementById('mob-member-status');
-  if (statusEl) {
+  // Collapsed card — show member number and status badge
+  const memberNum = '#' + (myRecord.member_number || '—');
+  set('mob-member-num-preview', memberNum);
+  const statusBadge = document.getElementById('mob-member-status-badge');
+  if (statusBadge) {
     const s = myRecord.status || 'unknown';
-    const color = s === 'active' ? 'var(--teal)' : s === 'arrears' ? 'var(--warning)' : 'var(--ink-faint)';
-    statusEl.innerHTML = `<span style="color:${color};font-weight:600;text-transform:capitalize">${s === 'active' ? '✓ Active' : s === 'arrears' ? '⚠ Arrears' : s}</span>`;
+    statusBadge.textContent = s === 'active' ? '✓ Active' : s === 'arrears' ? '⚠ Arrears' : s;
+    statusBadge.style.color = s === 'active' ? 'var(--teal)' : s === 'arrears' ? 'var(--warning)' : 'var(--ink-faint)';
+    statusBadge.style.background = s === 'active' ? 'var(--teal-pale)' : s === 'arrears' ? 'var(--warning-pale)' : 'var(--surface-2)';
   }
+
+  // Expandable details
   set('mob-member-phone', myRecord.phone || '—');
 
   // Shares/savings rows — show only if org has them
@@ -1032,13 +1036,6 @@ function populateMobileProfile(myRecord, fp) {
   const totalBal = (myRecord.shares_balance || 0) + (myRecord.savings_balance || 0);
   set('mob-bal-label', balLabel);
   set('mob-bal-sub', totalBal > 0 ? 'Ksh ' + Number(totalBal).toLocaleString() : 'View finance');
-
-  // Payment methods in mobile home
-  const mobPay = document.getElementById('mob-payment-methods');
-  const desktopPay = document.getElementById('mp-payment-methods');
-  if (mobPay && desktopPay) {
-    mobPay.innerHTML = desktopPay.innerHTML;
-  }
 
   // Fines notice
   const finesAlert = document.getElementById('mp-fines-alert');
@@ -1161,6 +1158,19 @@ function populateMobileMeetings(upcoming, past, attendanceSummary) {
         ${attended===true ? '<div class="mh-meeting-badge past-ok">✓ Attended</div>' : attended===false ? '<div class="mh-meeting-badge past-no">✗ Absent</div>' : ''}
       </div>`;
     }).join('') : '<div style="color:var(--ink-faint);font-size:.82rem;padding:.5rem 0">No past meetings recorded</div>';
+  }
+}
+
+// ── Toggle collapsible mobile summary card ──
+function toggleMobSummary() {
+  const details = document.getElementById('mob-summary-details');
+  const arrow = document.getElementById('mob-summary-arrow');
+  if (!details) return;
+  const isOpen = details.style.display !== 'none';
+  details.style.display = isOpen ? 'none' : 'block';
+  if (arrow) {
+    arrow.textContent = isOpen ? '›' : '⌄';
+    arrow.style.transform = isOpen ? '' : 'rotate(0deg)';
   }
 }
 

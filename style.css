@@ -1789,28 +1789,32 @@ body.member-mob-active #support-fab{display:none !important}
 }
 
 /* ── Quick action cards ── */
-.mh-qa-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.mh-qa-grid{display:grid;grid-template-columns:1fr 1fr;gap:.65rem}
 .mh-qa-card{
-  background:#fff;border-radius:12px;padding:.75rem .85rem .65rem;
-  border:0.5px solid var(--border);
-  box-shadow:0 1px 3px rgba(0,0,0,.04);
-  display:flex;flex-direction:column;gap:.2rem;
+  background:var(--teal);border-radius:14px;padding:1rem .95rem .9rem;
+  border:none;
+  box-shadow:0 2px 8px rgba(15,110,86,.25);
+  display:flex;flex-direction:column;gap:.25rem;
   cursor:pointer;-webkit-tap-highlight-color:transparent;
-  transition:transform .1s,box-shadow .1s;
+  transition:transform .12s,box-shadow .12s;
+  min-height:100px;
 }
-.mh-qa-card:active{transform:scale(.96);box-shadow:none}
-.mh-qa-icon{
-  width:30px;height:30px;border-radius:8px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:1.1rem;margin-bottom:.25rem;
+.mh-qa-card:active{transform:scale(.96);box-shadow:0 1px 3px rgba(15,110,86,.15)}
+/* Alternate card — slightly darker teal for visual rhythm */
+.mh-qa-card:nth-child(even){background:var(--teal-dk)}
+.mh-qa-card.mh-qa-teal{background:var(--teal)}
+.mh-qa-card.mh-qa-teal:nth-child(even){background:var(--teal-dk)}
+.mh-qa-icon-lg{
+  font-size:1.5rem;margin-bottom:.3rem;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.15));
 }
-.mh-qa-icon.t{background:var(--teal-pale);color:var(--teal-dk)}
-.mh-qa-icon.g{background:rgba(15,110,86,.1);color:var(--teal)}
-.mh-qa-icon.m{background:var(--teal-pale);color:var(--teal-dk)}
-.mh-qa-label{font-size:.8rem;font-weight:500;color:var(--ink);line-height:1.2}
-.mh-qa-sub{font-size:.7rem;color:var(--ink-faint)}
+.mh-qa-label{font-size:.88rem;font-weight:600;color:#fff;line-height:1.2}
+.mh-qa-sub{font-size:.72rem;color:rgba(255,255,255,.7)}
 
 /* ── Notice bar ── */
+.mh-summary-card{cursor:pointer;border-left:3px solid var(--teal) !important}
+.mh-summary-card:active{opacity:.9}
+#mob-summary-arrow.open{transform:rotate(90deg)}
 .mh-notice{
   background:rgba(196,154,48,.1);border-left:3px solid var(--gold);
   border-radius:0 8px 8px 0;padding:.55rem .85rem;
