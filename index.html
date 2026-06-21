@@ -2351,203 +2351,175 @@
       </div>
 
       <!-- ── PLAN HERO ── -->
-      <div id="billing-hero" style="border-radius:8px;padding:1.5rem 1.75rem;margin-bottom:1.25rem;background:linear-gradient(135deg,var(--maroon) 0%,#5a0016 100%);color:#fff">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+      <div id="billing-hero" style="border-radius:12px;padding:1.5rem 1.75rem;margin-bottom:1.25rem;background:linear-gradient(135deg,var(--maroon) 0%,#5a0016 100%);color:#fff">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem">
           <div>
-            <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;opacity:.65;margin-bottom:.3rem">Current Plan</div>
-            <div id="billing-plan-name" style="font-family:'Crimson Pro',serif;font-size:2rem;font-weight:700">Starter</div>
-            <div id="billing-plan-meta" style="font-size:.78rem;opacity:.75;margin-top:.2rem">Free · Up to 15 members</div>
+            <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;opacity:.6;margin-bottom:.3rem">Current Plan</div>
+            <div id="billing-plan-name" style="font-family:'Crimson Pro',serif;font-size:2.2rem;font-weight:700;line-height:1">Starter</div>
+            <div id="billing-plan-meta" style="font-size:.78rem;opacity:.7;margin-top:.25rem">Free · Up to 15 members</div>
           </div>
-          <div style="text-align:right">
-            <div id="billing-status-badge" style="display:inline-flex;align-items:center;gap:.4rem;background:rgba(255,255,255,.15);padding:.35rem .85rem;border-radius:20px;font-size:.75rem;font-weight:700;margin-bottom:.5rem">
+          <div style="text-align:right;flex-shrink:0">
+            <div id="billing-status-badge" style="display:inline-flex;align-items:center;gap:.4rem;background:rgba(255,255,255,.15);padding:.3rem .85rem;border-radius:20px;font-size:.72rem;font-weight:700;margin-bottom:.4rem">
               <span style="width:6px;height:6px;background:#4ade80;border-radius:50%;display:inline-block"></span> ACTIVE
             </div>
-            <div id="billing-expiry-text" style="font-size:.72rem;opacity:.7">No expiry date set</div>
+            <div id="billing-expiry-text" style="font-size:.7rem;opacity:.65">No expiry</div>
           </div>
         </div>
-        <div style="display:flex;gap:1.5rem;margin-top:1.1rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,.15);flex-wrap:wrap">
+        <div style="display:flex;gap:1.5rem;margin-top:1rem;padding-top:.85rem;border-top:1px solid rgba(255,255,255,.15);flex-wrap:wrap">
           <div id="bf-members" style="font-size:.75rem;opacity:.85">👥 Up to 15 members</div>
-          <div id="bf-sms" style="font-size:.75rem;opacity:.85">💬 Bulk SMS — pay as you go</div>
-          <div id="bf-features" style="font-size:.75rem;opacity:.85">✓ Members, Finance, Meetings, MGR</div>
+          <div id="bf-sms" style="font-size:.75rem;opacity:.85">💬 SMS: pay as you go</div>
+          <div id="bf-features" style="font-size:.75rem;opacity:.85">✓ Members, Finance, Meetings</div>
         </div>
       </div>
 
-      <!-- ── SMS USAGE ── -->
+      <!-- ── SMS BALANCE ── -->
       <div class="card" style="margin-bottom:1.25rem">
         <div class="card-header">
-          <div><div class="card-title">📱 SMS Usage — This Month</div></div>
-          <div style="font-size:.72rem;color:var(--ink-faint)">Ksh 1.50 per SMS · billed to your account</div>
+          <div><div class="card-title">📱 SMS Credit</div></div>
+          <div id="billing-sms-balance" style="font-size:1.1rem;font-weight:700;color:var(--maroon)">— SMS</div>
         </div>
-        <div class="card-body">
-          <div id="sms-usage-content"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+        <div class="card-body" style="padding:.75rem 1.25rem">
+          <div style="font-size:.78rem;color:var(--ink-faint)">Ksh 1.50 per SMS · credit never expires · buy a bundle below to top up</div>
         </div>
       </div>
 
-      <!-- ── PLAN COMPARISON (matches website exactly) ── -->
+      <!-- ── PLANS & PRICING ── -->
       <div class="card" style="margin-bottom:1.25rem">
-        <div class="card-header"><div class="card-title">🚀 Plans & Pricing</div><div class="card-sub">Upgrade to unlock more members and features</div></div>
-        <div class="card-body" style="padding:0">
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));border-top:1px solid var(--border)">
+        <div class="card-header">
+          <div class="card-title">🚀 Plans & Pricing</div>
+          <div id="billing-promo-banner" style="display:none;font-size:.72rem;font-weight:600;color:var(--teal);background:var(--teal-pale,#e6f4ef);padding:.25rem .7rem;border-radius:20px"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));border-top:1px solid var(--border)">
 
-            <!-- Starter -->
-            <div style="padding:1rem;border-right:1px solid var(--border)">
-              <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.4rem">Starter</div>
-              <div style="font-family:'Crimson Pro',serif;font-size:1.5rem;font-weight:700;color:var(--maroon)">Free</div>
-              <div style="font-size:.65rem;color:var(--ink-faint);margin-bottom:.5rem">Forever — no trial needed</div>
-              <div style="font-size:.72rem;font-weight:600;color:var(--teal);background:var(--teal-pale,#e6f4ef);padding:.2rem .5rem;border-radius:3px;display:inline-block;margin-bottom:.75rem">Up to 15 members</div>
-              <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.3rem;margin-top:.5rem">Core Features</div>
-              <div style="font-size:.72rem;color:var(--ink-soft);line-height:1.9">
-                ✓ Member register &amp; portals<br>
-                ✓ Finance &amp; contributions<br>
-                ✓ Rotating savings (MGR)<br>
-                ✓ Meeting scheduler<br>
-                ✓ Bulk SMS (pay as you go)<br>
-                ✓ Customer support<br>
-                ✓ Online group training<br>
-                <span style="color:var(--ink-faint)">— Welfare management<br>
-                — Projects &amp; investments<br>
-                — Table Banking<br>
-                — Priority support</span>
-              </div>
+          <!-- Starter -->
+          <div id="plan-card-starter" style="padding:1.1rem;border-right:1px solid var(--border);position:relative">
+            <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.35rem">Starter</div>
+            <div style="font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:var(--maroon)">Free</div>
+            <div style="font-size:.65rem;color:var(--ink-faint);margin-bottom:.5rem">Forever — no trial</div>
+            <div style="font-size:.7rem;font-weight:600;color:var(--teal);background:var(--teal-pale,#e6f4ef);padding:.2rem .45rem;border-radius:3px;display:inline-block;margin-bottom:.75rem">Up to 15 members</div>
+            <div style="font-size:.7rem;color:var(--ink-soft);line-height:1.85">
+              ✓ Members &amp; portals<br>✓ Finance<br>✓ Meetings<br>✓ MGR<br>✓ SMS (pay as you go)<br>
+              <span style="color:var(--ink-faint)">— Welfare<br>— Projects<br>— Table Banking</span>
             </div>
-
-            <!-- Basic -->
-            <div style="padding:1rem;border-right:1px solid var(--border)">
-              <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--teal);margin-bottom:.4rem">Basic</div>
-              <div style="font-family:'Crimson Pro',serif;font-size:1.5rem;font-weight:700;color:var(--maroon)">Ksh 3,000</div>
-              <div style="font-size:.65rem;color:var(--ink-faint);margin-bottom:.5rem">Ksh 250/month</div>
-              <div style="font-size:.72rem;font-weight:600;color:var(--teal);background:var(--teal-pale,#e6f4ef);padding:.2rem .5rem;border-radius:3px;display:inline-block;margin-bottom:.75rem">Up to 30 members</div>
-              <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.3rem;margin-top:.5rem">Everything in Starter, plus</div>
-              <div style="font-size:.72rem;color:var(--ink-soft);line-height:1.9">
-                ✓ Welfare management<br>
-                ✓ Projects &amp; investments<br>
-                ✓ Table Banking<br>
-                ✓ Rotating savings — full history<br>
-                ✓ Expense management<br>
-                ✓ Priority support<br>
-                ✓ WhatsApp support<br>
-                ✓ Online group training<br>
-                <span style="color:var(--ink-faint)">— M-Pesa STK Push<br>
-                — On-site training</span>
-              </div>
-              <div style="font-size:.65rem;color:var(--ink-faint);margin-top:.75rem"><strong style="color:var(--teal)">2 months free</strong> then Ksh 3,000/yr</div>
-            </div>
-
-            <!-- Standard — featured -->
-            <div style="padding:1rem;border-right:1px solid var(--border);background:var(--maroon-pale);position:relative">
-              <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--maroon)"></div>
-              <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--maroon);margin-bottom:.4rem">Standard ⭐ Most Popular</div>
-              <div style="font-family:'Crimson Pro',serif;font-size:1.5rem;font-weight:700;color:var(--maroon)">Ksh 6,000</div>
-              <div style="font-size:.65rem;color:var(--ink-faint);margin-bottom:.5rem">Ksh 500/month</div>
-              <div style="font-size:.72rem;font-weight:600;color:var(--teal);background:var(--teal-pale,#e6f4ef);padding:.2rem .5rem;border-radius:3px;display:inline-block;margin-bottom:.75rem">Up to 75 members</div>
-              <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.3rem;margin-top:.5rem">Everything in Basic, plus</div>
-              <div style="font-size:.72rem;color:var(--ink-soft);line-height:1.9">
-                ✓ M-Pesa STK Push payments<br>
-                ✓ Auto payment recording<br>
-                ✓ Rotating savings — round mgmt<br>
-                ✓ Priority WhatsApp support<br>
-                ✓ Online group training<br>
-                ✓ On-site training (Nairobi)<br>
-                <span style="color:var(--ink-faint)">— Custom features<br>
-                — Dedicated account manager</span>
-              </div>
-              <div style="font-size:.65rem;color:var(--ink-faint);margin-top:.75rem"><strong style="color:var(--teal)">2 months free</strong> then Ksh 6,000/yr</div>
-            </div>
-
-            <!-- Pro -->
-            <div style="padding:1rem">
-              <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#c49a30;margin-bottom:.4rem">Pro</div>
-              <div style="font-family:'Crimson Pro',serif;font-size:1.5rem;font-weight:700;color:var(--maroon)">Ksh 12,000</div>
-              <div style="font-size:.65rem;color:var(--ink-faint);margin-bottom:.5rem">Ksh 1,000/month</div>
-              <div style="font-size:.72rem;font-weight:600;color:var(--teal);background:var(--teal-pale,#e6f4ef);padding:.2rem .5rem;border-radius:3px;display:inline-block;margin-bottom:.75rem">Unlimited members</div>
-              <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.3rem;margin-top:.5rem">Everything in Standard, plus</div>
-              <div style="font-size:.72rem;color:var(--ink-soft);line-height:1.9">
-                ✓ Unlimited member capacity<br>
-                ✓ Custom features built for you<br>
-                ✓ Advanced financial reports<br>
-                ✓ Dedicated account manager<br>
-                ✓ Priority 24/7 support<br>
-                ✓ On-site training (nationwide)
-              </div>
-              <div style="font-size:.65rem;color:var(--ink-faint);margin-top:.75rem"><strong style="color:var(--teal)">2 months free</strong> then Ksh 12,000/yr</div>
-            </div>
-
+            <div id="plan-btn-starter" style="margin-top:1rem"></div>
           </div>
-          <!-- SMS note matching website -->
-          <div style="border-top:1px solid var(--border);padding:.85rem 1.25rem;background:var(--teal-pale,#e6f4ef);border-radius:0 0 6px 6px">
-            <div style="font-size:.76rem;color:var(--teal);line-height:1.65">
-              <strong>Bulk SMS is pay-as-you-go on all plans.</strong> Ksh 1.50 per SMS. Buy an SMS bundle below to pre-load credit — bundles never expire.
+
+          <!-- Basic -->
+          <div id="plan-card-basic" style="padding:1.1rem;border-right:1px solid var(--border);position:relative">
+            <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--teal);margin-bottom:.35rem">Basic</div>
+            <div style="font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:var(--maroon)">Ksh 3,000</div>
+            <div style="font-size:.65rem;color:var(--ink-faint);margin-bottom:.5rem">Ksh 250/month</div>
+            <div style="font-size:.7rem;font-weight:600;color:var(--teal);background:var(--teal-pale,#e6f4ef);padding:.2rem .45rem;border-radius:3px;display:inline-block;margin-bottom:.75rem">Up to 30 members</div>
+            <div style="font-size:.7rem;color:var(--ink-soft);line-height:1.85">
+              ✓ All Starter features<br>✓ Welfare management<br>✓ Projects &amp; investments<br>✓ Table Banking<br>✓ Priority support<br>✓ WhatsApp support
             </div>
+            <div id="billing-promo-basic" style="font-size:.65rem;color:var(--ink-faint);margin-top:.6rem"></div>
+            <div id="plan-btn-basic" style="margin-top:.75rem"></div>
+          </div>
+
+          <!-- Standard (featured) -->
+          <div id="plan-card-standard" style="padding:1.1rem;border-right:1px solid var(--border);background:var(--maroon-pale);position:relative">
+            <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--maroon);border-radius:0"></div>
+            <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--maroon);margin-bottom:.35rem">Standard ⭐ Most Popular</div>
+            <div style="font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:var(--maroon)">Ksh 6,000</div>
+            <div style="font-size:.65rem;color:var(--ink-faint);margin-bottom:.5rem">Ksh 500/month</div>
+            <div style="font-size:.7rem;font-weight:600;color:var(--teal);background:var(--teal-pale,#e6f4ef);padding:.2rem .45rem;border-radius:3px;display:inline-block;margin-bottom:.75rem">Up to 75 members</div>
+            <div style="font-size:.7rem;color:var(--ink-soft);line-height:1.85">
+              ✓ All Basic features<br>✓ M-Pesa STK Push<br>✓ Auto payment recording<br>✓ MGR round management<br>✓ On-site training (Nairobi)
+            </div>
+            <div id="billing-promo-standard" style="font-size:.65rem;color:var(--ink-faint);margin-top:.6rem"></div>
+            <div id="plan-btn-standard" style="margin-top:.75rem"></div>
+          </div>
+
+          <!-- Pro -->
+          <div id="plan-card-pro" style="padding:1.1rem;position:relative">
+            <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#c49a30;margin-bottom:.35rem">Pro</div>
+            <div style="font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:var(--maroon)">Ksh 12,000</div>
+            <div style="font-size:.65rem;color:var(--ink-faint);margin-bottom:.5rem">Ksh 1,000/month</div>
+            <div style="font-size:.7rem;font-weight:600;color:var(--teal);background:var(--teal-pale,#e6f4ef);padding:.2rem .45rem;border-radius:3px;display:inline-block;margin-bottom:.75rem">Unlimited members</div>
+            <div style="font-size:.7rem;color:var(--ink-soft);line-height:1.85">
+              ✓ All Standard features<br>✓ Custom features for you<br>✓ Advanced reports<br>✓ Dedicated account manager<br>✓ Priority 24/7 support<br>✓ Nationwide on-site training
+            </div>
+            <div id="billing-promo-pro" style="font-size:.65rem;color:var(--ink-faint);margin-top:.6rem"></div>
+            <div id="plan-btn-pro" style="margin-top:.75rem"></div>
+          </div>
+
+        </div>
+        <div style="border-top:1px solid var(--border);padding:.8rem 1.25rem;background:var(--teal-pale,#e6f4ef);border-radius:0 0 8px 8px;font-size:.75rem;color:var(--teal)">
+          <strong>Bulk SMS is pay-as-you-go on all plans.</strong> Ksh 1.50 per SMS. Buy a bundle below to pre-load credit — credit never expires.
+        </div>
+      </div>
+
+      <!-- ── BUY SMS BUNDLE ── -->
+      <div class="card" style="margin-bottom:1.25rem">
+        <div class="card-header"><div class="card-title">💬 Buy SMS Credit</div><div class="card-sub">Pre-load credit · Ksh 1.50/SMS · never expires</div></div>
+        <div class="card-body">
+          <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem">
+            <button class="pay-pill sms" data-sms="50" data-amount="75" onclick="selectSMSBundle(this)">50 SMS · Ksh 75</button>
+            <button class="pay-pill sms" data-sms="100" data-amount="150" onclick="selectSMSBundle(this)">100 SMS · Ksh 150</button>
+            <button class="pay-pill sms" data-sms="200" data-amount="300" onclick="selectSMSBundle(this)">200 SMS · Ksh 300</button>
+            <button class="pay-pill sms" data-sms="500" data-amount="750" onclick="selectSMSBundle(this)">500 SMS · Ksh 750</button>
+            <button class="pay-pill sms" data-sms="1000" data-amount="1500" onclick="selectSMSBundle(this)">1,000 SMS · Ksh 1,500</button>
+          </div>
+          <div id="sms-pay-area" style="display:none">
+            <div id="billing-bank-details" style="border-left:4px solid var(--teal);padding:.75rem 1rem;background:var(--surface);border-radius:4px;margin-bottom:.85rem;font-size:.8rem">Loading payment details…</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">M-Pesa Reference</label>
+                <input class="form-input" id="sms-pay-ref" placeholder="e.g. QBC4X8YZDE"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Amount (Ksh)</label>
+                <input class="form-input" id="sms-pay-amount" readonly style="font-weight:700;color:var(--maroon)"/>
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="submitSMSPayment()" style="background:var(--teal)">✓ I Have Paid — Submit Reference →</button>
+            <div id="sms-pay-status" style="font-size:.78rem;margin-top:.5rem"></div>
           </div>
         </div>
       </div>
 
-      <!-- ── MAKE A PAYMENT ── -->
-      <div class="card" style="margin-bottom:1.25rem">
-        <div class="card-header"><div class="card-title">💳 Make a Payment</div><div class="card-sub">Subscription upgrade or SMS bundle top-up</div></div>
+      <!-- ── UPGRADE PAYMENT ── -->
+      <div class="card" id="billing-upgrade-card" style="display:none;margin-bottom:1.25rem">
+        <div class="card-header">
+          <div><div class="card-title" id="billing-upgrade-title">💳 Upgrade Payment</div></div>
+        </div>
         <div class="card-body">
-          <div id="billing-bank-details" style="border-left:4px solid var(--teal);padding:.75rem 1rem;background:var(--surface);border-radius:4px;margin-bottom:1rem;font-size:.8rem">Loading payment details...</div>
-          <div id="stk-push-wrapper"></div>
-          <input type="hidden" id="pay-req-type" value="subscription_standard"/>
-          <div class="form-group" style="margin-bottom:.85rem">
-            <label class="form-label">Subscription plan</label>
-            <div class="pay-pill-group" id="pay-plan-pills">
-              <div class="pay-pill" data-val="subscription_basic" onclick="selectPayPill(this,'plan')">Basic · Ksh 3,000/yr</div>
-              <div class="pay-pill active" data-val="subscription_standard" onclick="selectPayPill(this,'plan')">Standard · Ksh 6,000/yr</div>
-              <div class="pay-pill" data-val="subscription_pro" onclick="selectPayPill(this,'plan')">Pro · Ksh 12,000/yr</div>
-            </div>
-          </div>
-          <div class="form-group" style="margin-bottom:1rem">
-            <label class="form-label">Or — SMS bundle top-up <span style="font-weight:400;color:var(--ink-faint);font-size:.72rem">(Ksh 1.50/SMS · pay as you go)</span></label>
-            <div class="pay-pill-group" id="pay-sms-pills">
-              <div class="pay-pill sms" data-val="sms_bundle_50" onclick="selectPayPill(this,'sms')">50 SMS · Ksh 75</div>
-              <div class="pay-pill sms" data-val="sms_bundle_100" onclick="selectPayPill(this,'sms')">100 SMS · Ksh 150</div>
-              <div class="pay-pill sms" data-val="sms_bundle_200" onclick="selectPayPill(this,'sms')">200 SMS · Ksh 300</div>
-              <div class="pay-pill sms" data-val="sms_bundle_500" onclick="selectPayPill(this,'sms')">500 SMS · Ksh 750</div>
-              <div class="pay-pill sms" data-val="sms_bundle_1000" onclick="selectPayPill(this,'sms')">1,000 SMS · Ksh 1,500</div>
-            </div>
-          </div>
-          <div class="form-group" style="margin-bottom:1rem">
-            <label class="form-label">Amount (Ksh)</label>
-            <input class="form-input" type="number" id="pay-req-amount" value="6000" readonly style="font-weight:700;color:var(--maroon);font-size:1.1rem"/>
-          </div>
+          <div id="billing-bank-details-upgrade" style="border-left:4px solid var(--maroon);padding:.75rem 1rem;background:var(--surface);border-radius:4px;margin-bottom:.85rem;font-size:.8rem"></div>
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">M-Pesa Reference</label>
-              <input class="form-input" id="pay-req-ref" placeholder="e.g. QBC4X8YZDE"/>
+              <input class="form-input" id="upgrade-pay-ref" placeholder="e.g. QBC4X8YZDE"/>
             </div>
             <div class="form-group">
-              <label class="form-label">Notes (optional)</label>
-              <input class="form-input" id="pay-req-notes" placeholder="Any additional info"/>
+              <label class="form-label">Amount (Ksh)</label>
+              <input class="form-input" id="upgrade-pay-amount" readonly style="font-weight:700;color:var(--maroon)"/>
             </div>
           </div>
+          <input type="hidden" id="upgrade-pay-plan"/>
           <div style="border-left:4px solid var(--warning,#c49a30);padding:.65rem 1rem;background:var(--warning-pale,#fff9e6);border-radius:4px;font-size:.75rem;color:var(--ink-soft);margin-bottom:1rem">
-            ✓ Plan activated immediately upon approval. WhatsApp 0702 903 544 if you experience any delays.
+            ✓ Plan activated within minutes of approval. WhatsApp 0702 903 544 for faster processing.
           </div>
-          <button class="btn btn-primary" onclick="submitPaymentRequest()" style="width:100%;background:var(--maroon);padding:.75rem">
-            ✓ I Have Paid — Submit Reference →
-          </button>
-          <div id="stk-status" style="display:none;margin-top:.75rem"></div>
+          <button class="btn btn-primary" onclick="submitUpgradePayment()" style="background:var(--maroon);width:100%;padding:.75rem">✓ I Have Paid — Submit Reference →</button>
+          <div id="upgrade-pay-status" style="font-size:.78rem;margin-top:.5rem"></div>
         </div>
       </div>
 
       <!-- ── PAYMENT HISTORY ── -->
       <div class="card" style="margin-bottom:1.25rem">
-        <div class="card-header"><div class="card-title">Payment History</div></div>
-        <div id="payment-history"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+        <div class="card-header"><div class="card-title">📋 Payment History</div></div>
+        <div id="payment-history" style="padding:.5rem 0"><div class="loading"><div class="spinner"></div>Loading…</div></div>
       </div>
 
       <!-- ── BILLING FAQ ── -->
       <div class="card">
         <div class="card-header"><div class="card-title">❓ Frequently Asked Questions</div></div>
         <div class="card-body" style="padding:0">
-          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Can I be a member of multiple groups? <span class="faq-arrow">▾</span></div><div class="faq-a">Yes. If another group's admin adds your email and sends an invite, that group appears in your workspace switcher at login. One login, multiple groups.</div></div>
-          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Can I run my own group? <span class="faq-arrow">▾</span></div><div class="faq-a">Absolutely. Click "Register Another Group" in the sidebar, or visit app.groupyetu.org and choose Create Account. Starter plan is free forever for groups with up to 15 members.</div></div>
-          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">When does my plan renew? <span class="faq-arrow">▾</span></div><div class="faq-a">Plans are annual. Your expiry date is shown in the plan card above. We send an SMS reminder 30 days before expiry.</div></div>
-          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">What happens to my data if I don't renew? <span class="faq-arrow">▾</span></div><div class="faq-a">Your data is never deleted for non-payment. The group reverts to Starter limits (15 members) until you renew. SMS credit you've purchased remains.</div></div>
-          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How does SMS billing work? <span class="faq-arrow">▾</span></div><div class="faq-a">SMS is pay-as-you-go on all plans — Ksh 1.50 per message. Buy a bundle above to pre-load credit. Bundles never expire and roll over month to month.</div></div>
-          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How quickly is payment activated? <span class="faq-arrow">▾</span></div><div class="faq-a">Plans are activated immediately upon approval — usually within a few minutes during business hours. If there is any delay, WhatsApp 0702 903 544.</div></div>
-          <div class="faq-item" style="border-bottom:none"><div class="faq-q" onclick="toggleFaq(this)">Can I upgrade mid-year? <span class="faq-arrow">▾</span></div><div class="faq-a">Yes. Pay for the new plan and submit your reference. Upgrade takes effect immediately after approval, with a fresh one-year expiry from that date.</div></div>
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">What happens if my trial expires? <span class="faq-arrow">▾</span></div><div class="faq-a">Your group reverts to the Starter plan (up to 15 members). Premium features like Welfare, Projects and Table Banking are paused — your data is never deleted. Renew to reactivate immediately.</div></div>
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Can I upgrade mid-trial? <span class="faq-arrow">▾</span></div><div class="faq-a">Yes, but upgrading during a free trial cancels the trial and requires payment for the new plan. This prevents the free window from being used multiple times.</div></div>
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How does SMS billing work? <span class="faq-arrow">▾</span></div><div class="faq-a">SMS is pay-as-you-go on all plans — Ksh 1.50 per message. Buy a bundle above to pre-load credit. Credit never expires and rolls over indefinitely.</div></div>
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How quickly is payment activated? <span class="faq-arrow">▾</span></div><div class="faq-a">Usually within minutes during business hours. WhatsApp 0702 903 544 if there is any delay.</div></div>
+          <div class="faq-item" style="border-bottom:none"><div class="faq-q" onclick="toggleFaq(this)">What data is kept if I downgrade? <span class="faq-arrow">▾</span></div><div class="faq-a">All your data is preserved. Only access is restricted — members beyond the plan limit are hidden (not deleted) and premium features are locked until you upgrade again.</div></div>
         </div>
       </div>
     </div>
@@ -2669,6 +2641,18 @@
             <select class="form-select" id="sp-payment-mode" style="width:auto;flex-shrink:0;margin-left:1rem;font-size:.8rem">
               <option value="manual">Manual (bank/paybill)</option>
               <option value="mpesa">M-Pesa STK Push</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0;border-top:1px solid var(--border)">
+            <div>
+              <div style="font-size:.85rem;font-weight:600;color:var(--ink)">Free Trial Duration</div>
+              <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.2rem">How many days new upgraders get free when promo is ON.</div>
+            </div>
+            <select class="form-select" id="sp-promo-days" style="width:auto;flex-shrink:0;margin-left:1rem;font-size:.8rem">
+              <option value="30">30 days</option>
+              <option value="60">60 days</option>
+              <option value="90">90 days</option>
+              <option value="120">120 days</option>
             </select>
           </div>
         </div>
@@ -4268,14 +4252,17 @@
               <div class="picker-plan-opt" data-plan="basic" onclick="selectPickerPlan(this)">
                 <div style="font-size:.7rem;font-weight:700">Basic</div>
                 <div style="font-size:.62rem;opacity:.7">Ksh 3K · 30 members</div>
+                <div class="picker-promo-tag" style="display:none;font-size:.58rem;color:var(--teal);font-weight:700;margin-top:.15rem"></div>
               </div>
               <div class="picker-plan-opt" data-plan="standard" onclick="selectPickerPlan(this)">
                 <div style="font-size:.7rem;font-weight:700">Standard ★</div>
                 <div style="font-size:.62rem;opacity:.7">Ksh 6K · 75 members</div>
+                <div class="picker-promo-tag" style="display:none;font-size:.58rem;color:var(--teal);font-weight:700;margin-top:.15rem"></div>
               </div>
               <div class="picker-plan-opt" data-plan="pro" onclick="selectPickerPlan(this)">
                 <div style="font-size:.7rem;font-weight:700">Pro</div>
                 <div style="font-size:.62rem;opacity:.7">Ksh 12K · Unlimited</div>
+                <div class="picker-promo-tag" style="display:none;font-size:.58rem;color:var(--teal);font-weight:700;margin-top:.15rem"></div>
               </div>
             </div>
             <input type="hidden" id="picker-plan-val" value="starter"/>

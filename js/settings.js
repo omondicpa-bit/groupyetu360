@@ -1704,6 +1704,8 @@ async function loadSASupport() {
     sv('sp-daraja-env',       s.daraja_env||'sandbox');
     sv('sp-daraja-enabled',   String(s.daraja_enabled||'false'));
     sv('sp-payment-mode',     s.payment_mode||'manual');
+    const promoDaysEl = document.getElementById('sp-promo-days');
+    if (promoDaysEl) promoDaysEl.value = s.promo_days||'60';
     const promoEl = document.getElementById('sp-promo-active');
     if (promoEl) promoEl.checked = s.promo_active === true;
   } catch(e) { console.error('loadSASupport:', e); }
@@ -1731,6 +1733,7 @@ async function saveSupportSettings() {
     daraja_enabled:         gv('sp-daraja-enabled') === 'true',
     promo_active:           gc('sp-promo-active'),
     payment_mode:           gv('sp-payment-mode'),
+    promo_days:             gv('sp-promo-days') || '60',
     updated_at:             new Date().toISOString()
   };
   try {
@@ -1777,6 +1780,262 @@ async function loadSAActivity() {
     </tr>`).join('');
   } catch(e) {
     tbody.innerHTML = `<tr><td colspan="5" style="color:var(--danger);padding:1rem">${e.message}</td></tr>`;
+  }
+}
+
+
+// ── BILLING PAGE ──────────────────────────────────────────────────────────────
+
+const PLAN_PRICES = { basic: 3000, standard: 6000, pro: 12000 };
+const PLAN_LABELS = { starter:'Starter', basic:'Basic', standard:'Standard', pro:'Pro' };
+
+async function loadBilling() {
+  if (!currentOrg?.id) return;
+
+  // Refresh org from DB
+  const { data: freshOrg } = await sb.from('organisations').select('*').eq('id', currentOrg.id).single();
+  if (freshOrg) Object.assign(currentOrg, freshOrg);
+
+  // Load platform settings for promo + payment details
+  await loadPlatformSettings();
+
+  updateBillingHero(currentOrg);
+  renderBillingPlanCards();
+  renderBillingBankDetails();
+  loadPaymentHistory();
+
+  // SMS balance
+  const smsEl = document.getElementById('billing-sms-balance');
+  if (smsEl) smsEl.textContent = (currentOrg.sms_balance || 0) + ' SMS';
+}
+
+function renderBillingPlanCards() {
+  const org        = currentOrg;
+  const effectivePlan = getEffectivePlan(org);
+  const rawPlan    = org.plan || 'starter';
+  const isExpired  = org.subscription_status === 'expired';
+  const isTrial    = org.subscription_status === 'trial';
+  const trialUsed  = org.trial_used === true;
+  const promoOn    = isPromoActive();
+  const promoDays  = parseInt(_platformSettings['promo_days'] || '60');
+
+  // Promo banner
+  const promoBanner = document.getElementById('billing-promo-banner');
+  if (promoBanner) {
+    if (promoOn && !trialUsed) {
+      promoBanner.textContent = `🎉 ${promoDays}-day free trial available on first upgrade!`;
+      promoBanner.style.display = '';
+    } else {
+      promoBanner.style.display = 'none';
+    }
+  }
+
+  ['starter','basic','standard','pro'].forEach(plan => {
+    const card = document.getElementById('plan-card-' + plan);
+    const btnEl = document.getElementById('plan-btn-' + plan);
+    const promoEl = document.getElementById('billing-promo-' + plan);
+    if (!card || !btnEl) return;
+
+    const isCurrent = effectivePlan === plan;
+    const isHigher  = PLAN_ORDER.indexOf(plan) > PLAN_ORDER.indexOf(effectivePlan);
+    const isPaid    = plan !== 'starter';
+
+    // Highlight current plan card
+    card.style.outline = isCurrent ? '2px solid var(--teal)' : 'none';
+    card.style.background = plan === 'standard' ? 'var(--maroon-pale)' : (isCurrent ? 'var(--surface-2)' : '');
+
+    // Promo text under price
+    if (promoEl && isPaid) {
+      if (promoOn && !trialUsed) {
+        promoEl.innerHTML = `<strong style="color:var(--teal)">${promoDays} days free</strong> then Ksh ${PLAN_PRICES[plan].toLocaleString()}/yr`;
+      } else {
+        promoEl.innerHTML = `Ksh ${PLAN_PRICES[plan].toLocaleString()}/yr`;
+      }
+    }
+
+    // Action button
+    if (plan === 'starter') {
+      btnEl.innerHTML = isCurrent
+        ? '<div style="font-size:.72rem;font-weight:600;color:var(--teal);padding:.4rem 0">✓ Your current plan</div>'
+        : (isExpired ? '<button class="btn btn-secondary btn-sm" style="width:100%;font-size:.75rem" onclick="downgradeToStarter()">Revert to Starter (free)</button>' : '');
+    } else if (isCurrent && !isExpired) {
+      const expText = org.subscription_expires
+        ? ' · expires ' + new Date(org.subscription_expires).toLocaleDateString('en-KE', {day:'numeric',month:'short',year:'numeric'})
+        : '';
+      btnEl.innerHTML = `<div style="font-size:.72rem;font-weight:600;color:var(--teal);padding:.4rem 0">✓ Current plan${isTrial ? ' (trial)' : ''}${expText}</div>`;
+    } else if (isHigher || isExpired) {
+      // Determine if free trial applies
+      const canGetTrial = promoOn && !trialUsed && !isTrial;
+      // Mid-trial upgrade → must pay
+      const midTrialUpgrade = isTrial && rawPlan !== 'starter' && isHigher;
+
+      if (canGetTrial && !midTrialUpgrade) {
+        btnEl.innerHTML = `<button class="btn btn-primary btn-sm" style="width:100%;background:var(--teal);font-size:.78rem;font-weight:700;padding:.5rem" onclick="activateFreeTrial('${plan}')">
+          🎉 Try ${PLAN_LABELS[plan]} free for ${promoDays} days →
+        </button>`;
+      } else {
+        const price = PLAN_PRICES[plan];
+        const label = midTrialUpgrade ? `Upgrade to ${PLAN_LABELS[plan]} · Ksh ${price.toLocaleString()}` : `Upgrade · Ksh ${price.toLocaleString()}/yr`;
+        btnEl.innerHTML = `<button class="btn btn-primary btn-sm" style="width:100%;background:var(--maroon);font-size:.75rem;padding:.45rem" onclick="showUpgradePayment('${plan}',${price})">
+          ${label} →
+        </button>`;
+      }
+    }
+  });
+}
+
+async function activateFreeTrial(plan) {
+  const org = currentOrg;
+  const promoDays = parseInt(_platformSettings['promo_days'] || '60');
+  if (!confirm(`Activate ${PLAN_LABELS[plan]} plan free for ${promoDays} days?\n\nAfter the trial ends your group returns to Starter. You'll be prompted to pay to keep the plan.\n\nNote: You can only use one free trial ever.`)) return;
+
+  const expires = new Date();
+  expires.setDate(expires.getDate() + promoDays);
+  const expiresStr = expires.toISOString().split('T')[0];
+
+  try {
+    const { error } = await sb.from('organisations').update({
+      plan,
+      subscription_status: 'trial',
+      subscription_expires: expiresStr,
+      trial_used: true,
+      trial_start_date: new Date().toISOString().split('T')[0]
+    }).eq('id', org.id);
+    if (error) throw new Error(error.message);
+    Object.assign(currentOrg, { plan, subscription_status:'trial', subscription_expires: expiresStr, trial_used: true });
+    await logActivity('PLAN UPGRADE', `Free trial activated: ${plan} plan until ${expiresStr}`);
+    // Rebuild sidebar
+    buildSidebar();
+    toast(`✓ You're now on ${PLAN_LABELS[plan]}! Free until ${expires.toLocaleDateString('en-KE',{day:'numeric',month:'long',year:'numeric'})}`);
+    await loadBilling();
+  } catch(e) { toast('Error: ' + e.message); }
+}
+
+function showUpgradePayment(plan, price) {
+  const card = document.getElementById('billing-upgrade-card');
+  const titleEl = document.getElementById('billing-upgrade-title');
+  const amtEl = document.getElementById('upgrade-pay-amount');
+  const planEl = document.getElementById('upgrade-pay-plan');
+  const detailsEl = document.getElementById('billing-bank-details-upgrade');
+  if (!card) return;
+  if (titleEl) titleEl.textContent = `💳 Upgrade to ${PLAN_LABELS[plan]} — Ksh ${price.toLocaleString()}/yr`;
+  if (amtEl) amtEl.value = price;
+  if (planEl) planEl.value = plan;
+  // Payment details
+  const s = _platformSettings;
+  if (detailsEl) {
+    const mode = getPaymentMode();
+    if (mode === 'mpesa' && s.daraja_enabled === true) {
+      detailsEl.innerHTML = `<strong>Pay via M-Pesa STK Push</strong> — enter your phone number and click Pay.`;
+    } else {
+      detailsEl.innerHTML = `Pay to: <strong>${s.bank_name||'KCB Bank'}</strong> · Account: <strong>${s.bank_account||'—'}</strong> · Name: <strong>${s.bank_account_name||'EPH Technologies'}</strong>`
+        + (s.paybill ? `<br>Or M-Pesa Paybill: <strong>${s.paybill}</strong>` : '');
+    }
+  }
+  card.style.display = '';
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function submitUpgradePayment() {
+  const ref = document.getElementById('upgrade-pay-ref')?.value?.trim();
+  const plan = document.getElementById('upgrade-pay-plan')?.value;
+  const amount = document.getElementById('upgrade-pay-amount')?.value;
+  const statusEl = document.getElementById('upgrade-pay-status');
+  if (!ref) { if (statusEl) { statusEl.textContent = '⚠ Please enter your M-Pesa reference'; statusEl.style.color = 'var(--warning)'; } return; }
+  if (statusEl) { statusEl.textContent = 'Submitting…'; statusEl.style.color = 'var(--ink-faint)'; }
+  try {
+    const isTrial = currentOrg.subscription_status === 'trial';
+    const { error } = await sb.from('payment_requests').insert({
+      org_id: currentOrg.id,
+      user_id: currentUser.id,
+      type: 'subscription_' + plan,
+      amount: parseFloat(amount),
+      mpesa_ref: ref,
+      status: 'pending',
+      notes: isTrial ? 'Mid-trial upgrade — trial cancelled on payment' : 'Annual subscription upgrade'
+    });
+    if (error) throw new Error(error.message);
+    await logActivity('PAYMENT SUBMITTED', `Upgrade to ${plan} · Ksh ${amount} · ref ${ref}`);
+    if (statusEl) { statusEl.textContent = '✓ Payment submitted! We\'ll activate your plan within minutes.'; statusEl.style.color = 'var(--success)'; }
+    document.getElementById('upgrade-pay-ref').value = '';
+    setTimeout(() => loadPaymentHistory(), 1500);
+  } catch(e) { if (statusEl) { statusEl.textContent = '✗ ' + e.message; statusEl.style.color = 'var(--danger)'; } }
+}
+
+function selectSMSBundle(btn) {
+  document.querySelectorAll('.pay-pill.sms').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const amount = btn.dataset.amount;
+  const smsArea = document.getElementById('sms-pay-area');
+  const amtEl = document.getElementById('sms-pay-amount');
+  if (smsArea) smsArea.style.display = '';
+  if (amtEl) amtEl.value = amount;
+}
+
+async function submitSMSPayment() {
+  const ref = document.getElementById('sms-pay-ref')?.value?.trim();
+  const amount = document.getElementById('sms-pay-amount')?.value;
+  const smsBtn = document.querySelector('.pay-pill.sms.active');
+  const smsCount = smsBtn?.dataset?.sms;
+  const statusEl = document.getElementById('sms-pay-status');
+  if (!ref) { if (statusEl) { statusEl.textContent = '⚠ Enter your M-Pesa reference'; statusEl.style.color = 'var(--warning)'; } return; }
+  if (statusEl) { statusEl.textContent = 'Submitting…'; statusEl.style.color = 'var(--ink-faint)'; }
+  try {
+    const { error } = await sb.from('payment_requests').insert({
+      org_id: currentOrg.id,
+      user_id: currentUser.id,
+      type: 'sms_bundle',
+      amount: parseFloat(amount),
+      mpesa_ref: ref,
+      status: 'pending',
+      notes: `SMS bundle: ${smsCount} SMS · Ksh ${amount}`
+    });
+    if (error) throw new Error(error.message);
+    await logActivity('SMS PURCHASE', `${smsCount} SMS bundle submitted · Ksh ${amount} · ref ${ref}`);
+    if (statusEl) { statusEl.textContent = '✓ Submitted! SMS credit added after verification.'; statusEl.style.color = 'var(--success)'; }
+    document.getElementById('sms-pay-ref').value = '';
+  } catch(e) { if (statusEl) { statusEl.textContent = '✗ ' + e.message; statusEl.style.color = 'var(--danger)'; } }
+}
+
+function renderBillingBankDetails() {
+  // Also populate the SMS pay section
+  const s = _platformSettings;
+  const html = `Pay to: <strong>${s.bank_name||'KCB Bank'}</strong> · Account: <strong>${s.bank_account||'—'}</strong> · Name: <strong>${s.bank_account_name||'EPH Technologies'}</strong>`
+    + (s.paybill ? `<br>Or M-Pesa Paybill: <strong>${s.paybill}</strong>` : '');
+  const el = document.getElementById('billing-bank-details');
+  if (el) el.innerHTML = html;
+}
+
+async function loadPaymentHistory() {
+  const el = document.getElementById('payment-history');
+  if (!el || !currentOrg?.id) return;
+  try {
+    const { data } = await sb.from('payment_requests')
+      .select('*').eq('org_id', currentOrg.id)
+      .order('created_at', { ascending: false }).limit(20);
+    if (!data?.length) {
+      el.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--ink-faint);font-size:.82rem">No payment history yet.</div>';
+      return;
+    }
+    const statusColor = { pending:'#c49a30', approved:'#16a34a', rejected:'#dc2626' };
+    el.innerHTML = `<table style="width:100%;border-collapse:collapse">
+      <thead><tr style="font-size:.65rem;text-transform:uppercase;color:var(--ink-faint);border-bottom:1px solid var(--border)">
+        <th style="padding:.5rem 1.25rem;text-align:left">Date</th>
+        <th style="padding:.5rem;text-align:left">Type</th>
+        <th style="padding:.5rem;text-align:right">Amount</th>
+        <th style="padding:.5rem;text-align:left">Ref</th>
+        <th style="padding:.5rem;text-align:left">Status</th>
+      </tr></thead>
+      <tbody>${data.map(r => `<tr style="border-bottom:0.5px solid var(--border);font-size:.78rem">
+        <td style="padding:.6rem 1.25rem;color:var(--ink-faint)">${new Date(r.created_at).toLocaleDateString('en-KE',{day:'numeric',month:'short',year:'numeric'})}</td>
+        <td style="padding:.6rem .5rem">${r.type?.replace(/_/g,' ')||'—'}</td>
+        <td style="padding:.6rem .5rem;text-align:right;font-weight:600">Ksh ${Number(r.amount||0).toLocaleString()}</td>
+        <td style="padding:.6rem .5rem;color:var(--ink-faint);font-size:.72rem">${r.mpesa_ref||'—'}</td>
+        <td style="padding:.6rem .5rem"><span style="font-size:.68rem;font-weight:700;color:${statusColor[r.status]||'#888'};text-transform:uppercase">${r.status||'—'}</span></td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  } catch(e) {
+    el.innerHTML = '<div style="padding:1rem;color:var(--danger);font-size:.8rem">Could not load history: ' + e.message + '</div>';
   }
 }
 

@@ -535,6 +535,19 @@ function selectPickerPlan(el) {
   document.getElementById('picker-plan-val').value = el.dataset.plan;
 }
 
+function updatePickerPromoTags() {
+  const promoOn = isPromoActive();
+  const promoDays = parseInt(_platformSettings['promo_days'] || '60');
+  document.querySelectorAll('.picker-promo-tag').forEach(el => {
+    if (promoOn) {
+      el.textContent = `🎉 ${promoDays} days free`;
+      el.style.display = '';
+    } else {
+      el.style.display = 'none';
+    }
+  });
+}
+
 async function pickerCreateOrg() {
   const orgName = document.getElementById('picker-org-name')?.value?.trim();
   const plan = document.getElementById('picker-plan-val')?.value || 'starter';
@@ -639,6 +652,10 @@ async function showOrgPicker() {
   document.getElementById('app-screen').classList.remove('visible');
   const picker = document.getElementById('org-picker-screen');
   if (picker) picker.style.display = 'flex';
+
+  // Load platform settings for dynamic promo tags
+  await loadPlatformSettings();
+  updatePickerPromoTags();
 
   // Set user name
   const nameEl = document.getElementById('org-picker-user-name');
