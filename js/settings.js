@@ -763,15 +763,18 @@ async function loadSAMembers() {
 
 function renderSAMembers(list, orgMap) {
   const map = orgMap || window._saOrgMap || {};
-  document.getElementById('sa-all-members').innerHTML = list.length ? list.map((m,i) => `
-    <tr>
-      <td>${m.member_number||String(i+1).padStart(3,'0')}</td>
+  document.getElementById('sa-all-members').innerHTML = list.length ? list.map((m,i) => {
+    const dispNum = m.display_number || (m.internal_number ? String(m.internal_number).padStart(3,'0') : m.member_number) || String(i+1).padStart(3,'0');
+    return `<tr>
+      <td>${dispNum}${m.is_founder ? ' 🏛' : ''}</td>
       <td><strong>${m.full_name}</strong></td>
       <td>${m.phone||'—'}</td>
       <td><span class="badge badge-maroon" style="text-transform:capitalize;font-size:.62rem">${(map[m.org_id]||'Unknown').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase())}</span></td>
       <td>Ksh ${m.savings_tier?.toLocaleString()||'—'}/mo</td>
       <td><span class="badge ${m.status==='active'?'badge-green':m.status==='arrears'?'badge-warn':'badge-grey'}">${m.status}</span></td>
-    </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--ink-faint)">No members found</td></tr>';
+      <td><button class="btn btn-ghost btn-sm" style="font-size:.65rem" onclick="saViewMember('${m.id}','${m.org_id}')">View →</button></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--ink-faint)">No members found</td></tr>';
 }
 
 function _oldFilterSAOrgs_DISABLED(q) {
@@ -1068,29 +1071,36 @@ function renderODMembers(members) {
   document.getElementById('od-members-list').innerHTML = members.length ? members.map(m=>{
     const bal = Number(m.shares_balance||0)+Number(m.savings_balance||0);
     const hasPortal = !!m.portal_email;
+    const dispNum = m.display_number || (m.internal_number ? String(m.internal_number).padStart(3,'0') : m.member_number) || '—';
     return `<tr>
-      <td style="font-weight:700;color:var(--maroon)">${m.member_number||'—'}</td>
+      <td style="font-weight:700;color:var(--maroon)">${dispNum}${m.is_founder ? ' 🏛' : ''}</td>
       <td><strong>${m.full_name}</strong><div style="font-size:.68rem;color:var(--ink-faint)">${m.email||''}</div></td>
       <td style="font-size:.78rem">${m.phone||'—'}</td>
       <td><span class="badge ${m.status==='active'?'badge-green':m.status==='arrears'?'badge-warn':m.status==='deregistered'?'badge-red':'badge-grey'}" style="font-size:.62rem">${m.status}</span></td>
       <td style="font-weight:600">Ksh ${bal.toLocaleString()}</td>
       <td><span class="${hasPortal?'badge badge-green':'badge badge-grey'}" style="font-size:.6rem">${hasPortal?'✓ Linked':'—'}</span></td>
-      <td><button class="btn btn-secondary btn-sm" style="font-size:.65rem" onclick="saViewMember('${m.id}')">View</button></td>
+      <td><button class="btn btn-secondary btn-sm" style="font-size:.65rem" onclick="saViewMember('${m.id}','${m.org_id}')">View</button></td>
     </tr>`;
   }).join('') : '<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--ink-faint)">No members yet</td></tr>';
 }
 
-async function saViewMember(memberId) {
-  // Quick member detail modal for support
-  const m = _odAllMembers.find(m=>m.id===memberId);
-  if (!m) return;
-  alert(`Member: ${m.full_name}
-Phone: ${m.phone||'—'}
-Email: ${m.email||'—'}
-Portal: ${m.portal_email||'Not linked'}
-Status: ${m.status}
-Shares: Ksh ${Number(m.shares_balance||0).toLocaleString()}
-Savings: Ksh ${Number(m.savings_balance||0).toLocaleString()}`);
+async function saViewMember(memberId, orgId) {
+  // Temporarily patch currentOrg so openMemberDetail queries the right org
+  const _prevOrg = currentOrg;
+  const _prevFinProfile = window.orgFinProfile;
+  if (orgId && orgId !== currentOrg?.id) {
+    const { data: org } = await sb.from('organisations').select('*').eq('id', orgId).single();
+    if (org) {
+      currentOrg = org;
+      // Load fin profile for this org so balance cards render correctly
+      try { await loadOrgFinancialProfile(); } catch(e) {}
+    }
+  }
+  // Open the standard member detail modal — it now includes the superadmin account panel
+  await openMemberDetail(memberId);
+  // Restore original org context after modal is open
+  currentOrg = _prevOrg;
+  if (_prevFinProfile) window.orgFinProfile = _prevFinProfile;
 }
 
 function filterODMembers(q) {
