@@ -3165,12 +3165,12 @@
 
     <!-- SUPERADMIN: ALL MEMBERS -->
     <div class="page" id="page-sa_members">
-      <div class="section-header"><div><div class="section-title">All Members — Platform Wide</div><div class="section-sub">Every member across all organisations</div></div></div>
-      <div class="search-bar"><input class="search-input" placeholder="Search by name, phone or organisation…" oninput="filterSAMembers(this.value)"/></div>
+      <div class="section-header"><div><div class="section-title">All Users</div><div class="section-sub">Every registered account on the platform</div></div></div>
+      <div class="search-bar"><input class="search-input" placeholder="Search by name, email or phone…" oninput="filterSAMembers(this.value)"/></div>
       <div class="table-wrap card">
         <table>
-          <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>Organisation</th><th>Savings/mo</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody id="sa-all-members"><tr><td colspan="7"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr></tbody>
+          <thead><tr><th>Name / Email</th><th>Phone</th><th>Groups</th><th>Role</th><th>Memberships</th><th>Actions</th></tr></thead>
+          <tbody id="sa-all-members"><tr><td colspan="6"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr></tbody>
         </table>
       </div>
     </div>
@@ -4191,6 +4191,61 @@
 </div>
 
 <!-- ══ REGISTER NEW ORG MODAL (from within app) ══ -->
+<!-- MODAL: SA User Detail -->
+<div class="modal-overlay" id="modal-saUserDetail">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="sau-name">User Detail</div>
+        <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.2rem" id="sau-email"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('saUserDetail')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- User info strip -->
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1rem;padding:.75rem 1rem;background:var(--surface-2);border-radius:8px;border:0.5px solid var(--border)">
+        <div style="flex:1;min-width:120px">
+          <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Phone</div>
+          <div style="font-size:.85rem;font-weight:600" id="sau-phone">—</div>
+        </div>
+        <div style="flex:1;min-width:120px">
+          <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Platform Role</div>
+          <div style="font-size:.85rem;font-weight:600;color:var(--maroon)" id="sau-role">—</div>
+        </div>
+      </div>
+
+      <!-- Group memberships -->
+      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.5rem">Group Memberships</div>
+      <div id="sau-orgs-list" style="border:0.5px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:1rem">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+
+      <!-- Superadmin account management -->
+      <div id="sau-sa-section" style="padding:.85rem 1rem;background:var(--maroon-pale);border:1.5px solid var(--maroon);border-radius:8px">
+        <div style="font-size:.72rem;font-weight:700;color:var(--maroon);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.4rem">⚙ Account Management</div>
+        <div style="font-size:.75rem;color:var(--ink-faint);margin-bottom:.65rem">Update this user's login credentials. Changes take effect immediately across all their groups.</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">New Email Address</label>
+            <input class="form-input" type="email" id="sau-sa-email" placeholder="Leave blank to keep current"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">New Password</label>
+            <input class="form-input" type="password" id="sau-sa-password" placeholder="Leave blank to keep current" autocomplete="new-password"/>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:.75rem;margin-top:.25rem">
+          <button class="btn btn-primary btn-sm" onclick="saUpdateUserAccount()" style="background:var(--maroon);font-size:.78rem">Apply Changes →</button>
+          <button class="btn btn-secondary btn-sm" onclick="saResendPortalInvite(document.getElementById('sau-email').textContent, document.getElementById('sau-name').textContent)" style="font-size:.75rem">✉ Resend Invite</button>
+          <span id="sau-sa-status" style="font-size:.75rem"></span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-registerNewOrg">
   <div class="modal" style="max-width:520px">
     <div class="modal-header">

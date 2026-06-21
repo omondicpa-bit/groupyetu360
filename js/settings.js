@@ -747,55 +747,205 @@ function toast(msg) {
 
 
 // ── SUPERADMIN: ALL MEMBERS ──
-let allSAMembers = [];
+let allSAUsers = [];   // one entry per auth user (profile)
+let allSAOrgsMap = {}; // orgId → org name
+let allSAUserOrgs = []; // all user_orgs rows
+let allSAMemberRows = []; // all member rows (for org memberships per user)
+
 async function loadSAMembers() {
-  document.getElementById('sa-all-members').innerHTML = '<tr><td colspan="6"><div class="loading"><div class="spinner"></div>Loading all members…</div></td></tr>';
-  const [membersRes, orgsRes] = await Promise.all([
-    sb.from('members').select('*').order('full_name'),
-    sb.from('organisations').select('id,name')
+  document.getElementById('sa-all-members').innerHTML = '<tr><td colspan="6"><div class="loading"><div class="spinner"></div>Loading all users…</div></td></tr>';
+  // Fetch profiles, user_orgs, members and orgs in parallel
+  const [profilesRes, userOrgsRes, membersRes, orgsRes] = await Promise.all([
+    sb.from('profiles').select('*').order('full_name'),
+    sb.from('user_orgs').select('*'),
+    sb.from('members').select('id,org_id,user_id,portal_email,member_number,internal_number,display_number,is_founder,status,shares_balance,savings_balance'),
+    sb.from('organisations').select('id,name,plan,status')
   ]);
-  allSAMembers = membersRes.data || [];
-  const orgMap = {};
-  (orgsRes.data||[]).forEach(o => orgMap[o.id] = o.name);
-  renderSAMembers(allSAMembers, orgMap);
-  window._saOrgMap = orgMap;
+  allSAUsers = profilesRes.data || [];
+  allSAUserOrgs = userOrgsRes.data || [];
+  allSAMemberRows = membersRes.data || [];
+  allSAOrgsMap = {};
+  (orgsRes.data||[]).forEach(o => allSAOrgsMap[o.id] = o);
+  window._saOrgMap = allSAOrgsMap;
+  renderSAUsers(allSAUsers);
 }
 
-function renderSAMembers(list, orgMap) {
-  const map = orgMap || window._saOrgMap || {};
-  document.getElementById('sa-all-members').innerHTML = list.length ? list.map((m,i) => {
-    const dispNum = m.display_number || (m.internal_number ? String(m.internal_number).padStart(3,'0') : m.member_number) || String(i+1).padStart(3,'0');
+function renderSAUsers(list) {
+  const tbody = document.getElementById('sa-all-members');
+  if (!tbody) return;
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--ink-faint)">No users found</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(u => {
+    // Find all orgs this user belongs to
+    const userOrgRows = allSAUserOrgs.filter(uo => uo.user_id === u.id);
+    const orgCount = userOrgRows.length;
+    const orgNames = userOrgRows.map(uo => {
+      const org = allSAOrgsMap[uo.org_id];
+      return org ? org.name : null;
+    }).filter(Boolean);
+    // Find their member records
+    const memberRows = allSAMemberRows.filter(m => m.user_id === u.id || m.portal_email === u.email);
+    const isFounder = memberRows.some(m => m.is_founder);
+    // Display
+    const orgBadges = orgCount
+      ? orgNames.slice(0,2).map(n => `<span class="badge badge-maroon" style="font-size:.58rem;text-transform:capitalize;margin-right:2px">${n}</span>`).join('') + (orgCount > 2 ? `<span style="font-size:.65rem;color:var(--ink-faint)"> +${orgCount-2} more</span>` : '')
+      : '<span style="font-size:.68rem;color:var(--ink-faint)">No groups</span>';
+    const roleBadge = u.role === 'superadmin'
+      ? '<span class="badge" style="background:var(--maroon);color:#fff;font-size:.58rem">SUPERADMIN</span>'
+      : u.role === 'admin'
+      ? '<span class="badge badge-green" style="font-size:.58rem">ADMIN</span>'
+      : '<span class="badge badge-grey" style="font-size:.58rem">MEMBER</span>';
     return `<tr>
-      <td>${dispNum}${m.is_founder ? ' 🏛' : ''}</td>
-      <td><strong>${m.full_name}</strong></td>
-      <td>${m.phone||'—'}</td>
-      <td><span class="badge badge-maroon" style="text-transform:capitalize;font-size:.62rem">${(map[m.org_id]||'Unknown').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase())}</span></td>
-      <td>Ksh ${m.savings_tier?.toLocaleString()||'—'}/mo</td>
-      <td><span class="badge ${m.status==='active'?'badge-green':m.status==='arrears'?'badge-warn':'badge-grey'}">${m.status}</span></td>
-      <td><button class="btn btn-ghost btn-sm" style="font-size:.65rem" onclick="saViewMember('${m.id}','${m.org_id}')">View →</button></td>
+      <td><strong>${u.full_name||'—'}</strong>${isFounder ? ' <span title="Founding member in at least one group" style="font-size:.8rem">🏛</span>' : ''}<div style="font-size:.65rem;color:var(--ink-faint)">${u.email||'—'}</div></td>
+      <td style="font-size:.78rem">${u.phone||'—'}</td>
+      <td>${orgBadges}</td>
+      <td>${roleBadge}</td>
+      <td><span class="badge ${orgCount?'badge-green':'badge-grey'}" style="font-size:.6rem">${orgCount} org${orgCount!==1?'s':''}</span></td>
+      <td><button class="btn btn-ghost btn-sm" style="font-size:.65rem" onclick="saViewUser('${u.id}')">View →</button></td>
     </tr>`;
-  }).join('') : '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--ink-faint)">No members found</td></tr>';
+  }).join('');
 }
-
-function _oldFilterSAOrgs_DISABLED(q) {
-  const rows = document.querySelectorAll('#sa-org-list .org-row');
-  const ql = q.toLowerCase();
-  rows.forEach(row => {
-    const text = row.textContent.toLowerCase();
-    row.style.display = (!q || text.includes(ql)) ? '' : 'none';
-  });
-}
-
-// filterSAOrgs defined above
 
 function filterSAMembers(q) {
-  const map = window._saOrgMap || {};
-  const f = allSAMembers.filter(m =>
-    m.full_name.toLowerCase().includes(q.toLowerCase()) ||
-    (m.phone||'').includes(q) ||
-    (map[m.org_id]||'').toLowerCase().includes(q.toLowerCase())
+  if (!q || q.length < 2) { renderSAUsers(allSAUsers); return; }
+  const ql = q.toLowerCase();
+  const f = allSAUsers.filter(u =>
+    (u.full_name||'').toLowerCase().includes(ql) ||
+    (u.email||'').toLowerCase().includes(ql) ||
+    (u.phone||'').includes(q)
   );
-  renderSAMembers(f, map);
+  renderSAUsers(f);
+}
+
+// ── SA USER DETAIL MODAL ──
+async function saViewUser(userId) {
+  const u = allSAUsers.find(x => x.id === userId);
+  if (!u) return;
+
+  // Header
+  const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const setHTML = (id, v) => { const el = document.getElementById(id); if (el) el.innerHTML = v; };
+
+  setEl('sau-name', u.full_name || '—');
+  setEl('sau-email', u.email || '—');
+  setEl('sau-phone', u.phone || '—');
+  setEl('sau-role', u.role || 'member');
+
+  // Clear SA fields
+  const saEmail = document.getElementById('sau-sa-email');
+  const saPwd = document.getElementById('sau-sa-password');
+  const saStatus = document.getElementById('sau-sa-status');
+  if (saEmail) saEmail.value = '';
+  if (saPwd) saPwd.value = '';
+  if (saStatus) saStatus.textContent = '';
+  const saSection = document.getElementById('sau-sa-section');
+  if (saSection) saSection.dataset.userId = userId;
+
+  // Build org memberships
+  const userOrgRows = allSAUserOrgs.filter(uo => uo.user_id === userId);
+  const memberRows = allSAMemberRows.filter(m => m.user_id === userId || m.portal_email === u.email);
+
+  if (!userOrgRows.length && !memberRows.length) {
+    setHTML('sau-orgs-list',
+      `<div style="padding:1rem;text-align:center;color:var(--ink-faint);font-size:.82rem">
+        No group memberships found.
+        <div style="margin-top:.5rem">
+          <button class="btn btn-secondary btn-sm" onclick="saResendPortalInvite('${u.email}','${u.full_name||''}')">✉ Resend Portal Invite</button>
+        </div>
+      </div>`
+    );
+  } else {
+    const rows = userOrgRows.map(uo => {
+      const org = allSAOrgsMap[uo.org_id] || {};
+      const memberRecord = memberRows.find(m => m.org_id === uo.org_id);
+      const dispNum = memberRecord
+        ? (memberRecord.display_number || (memberRecord.internal_number ? String(memberRecord.internal_number).padStart(3,'0') : memberRecord.member_number) || '—')
+        : '—';
+      const bal = memberRecord ? (Number(memberRecord.shares_balance||0) + Number(memberRecord.savings_balance||0)) : 0;
+      const isFounder = memberRecord?.is_founder;
+      return `<div style="display:flex;align-items:center;gap:.75rem;padding:.65rem .85rem;border-bottom:0.5px solid var(--border)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${org.name||'Unknown'}</div>
+          <div style="font-size:.68rem;color:var(--ink-faint)">${uo.role||'member'} · Member #${dispNum}${isFounder?' 🏛':''}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:.78rem;font-weight:600;color:var(--maroon)">Ksh ${bal.toLocaleString()}</div>
+          <span class="badge ${memberRecord?.status==='active'?'badge-green':memberRecord?.status==='arrears'?'badge-warn':'badge-grey'}" style="font-size:.58rem">${memberRecord?.status||'—'}</span>
+        </div>
+        ${memberRecord ? `<button class="btn btn-ghost btn-sm" style="font-size:.62rem;flex-shrink:0" onclick="saViewMember('${memberRecord.id}','${uo.org_id}')">Detail →</button>` : ''}
+      </div>`;
+    });
+    // Also add any member rows not covered by user_orgs (orphaned member records linked by email)
+    const coveredOrgIds = new Set(userOrgRows.map(uo => uo.org_id));
+    memberRows.filter(m => !coveredOrgIds.has(m.org_id)).forEach(m => {
+      const org = allSAOrgsMap[m.org_id] || {};
+      const dispNum = m.display_number || (m.internal_number ? String(m.internal_number).padStart(3,'0') : m.member_number) || '—';
+      const bal = Number(m.shares_balance||0) + Number(m.savings_balance||0);
+      rows.push(`<div style="display:flex;align-items:center;gap:.75rem;padding:.65rem .85rem;border-bottom:0.5px solid var(--border);opacity:.75">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${org.name||'Unknown'} <span style="font-size:.62rem;color:var(--ink-faint)">(email-linked)</span></div>
+          <div style="font-size:.68rem;color:var(--ink-faint)">member · #${dispNum}${m.is_founder?' 🏛':''}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:.78rem;font-weight:600;color:var(--maroon)">Ksh ${bal.toLocaleString()}</div>
+          <span class="badge ${m.status==='active'?'badge-green':m.status==='arrears'?'badge-warn':'badge-grey'}" style="font-size:.58rem">${m.status||'—'}</span>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="font-size:.62rem;flex-shrink:0" onclick="saViewMember('${m.id}','${m.org_id}')">Detail →</button>
+      </div>`);
+    });
+    setHTML('sau-orgs-list', rows.join(''));
+  }
+
+  showModal('saUserDetail');
+}
+
+async function saResendPortalInvite(email, name) {
+  if (!email) { toast('No email on this account'); return; }
+  try {
+    await sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://app.groupyetu.org/#' });
+    toast(`✓ Password reset link sent to ${email}`);
+    await logActivity('SA PORTAL INVITE', `Superadmin resent portal invite to ${email} (${name})`);
+  } catch(e) { toast('Error: ' + e.message); }
+}
+
+async function saUpdateUserAccount() {
+  const section = document.getElementById('sau-sa-section');
+  const userId = section?.dataset.userId;
+  const newEmail = document.getElementById('sau-sa-email')?.value?.trim();
+  const newPassword = document.getElementById('sau-sa-password')?.value;
+  const statusEl = document.getElementById('sau-sa-status');
+  if (!userId) { if (statusEl) { statusEl.textContent = '⚠ No user ID'; statusEl.style.color = 'var(--warning)'; } return; }
+  if (!newEmail && !newPassword) { if (statusEl) { statusEl.textContent = 'Enter a new email or password.'; statusEl.style.color = 'var(--ink-faint)'; } return; }
+  if (statusEl) { statusEl.textContent = 'Updating…'; statusEl.style.color = 'var(--ink-faint)'; }
+  try {
+    const session = await sb.auth.getSession();
+    const jwt = session?.data?.session?.access_token;
+    const body = { user_id: userId };
+    if (newEmail) body.email = newEmail;
+    if (newPassword) body.password = newPassword;
+    const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/admin-user-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${jwt}` },
+      body: JSON.stringify(body)
+    });
+    const result = await res.json();
+    if (!res.ok || result.error) { if (statusEl) { statusEl.textContent = '✗ ' + (result.error||'Failed'); statusEl.style.color = 'var(--danger)'; } return; }
+    // Update profile table too
+    const profileUpdates = {};
+    if (newEmail) profileUpdates.email = newEmail;
+    if (Object.keys(profileUpdates).length) await sb.from('profiles').update(profileUpdates).eq('id', userId);
+    if (statusEl) {
+      statusEl.textContent = '✓ ' + [newEmail ? `Email → ${newEmail}` : '', newPassword ? 'Password updated' : ''].filter(Boolean).join(' · ');
+      statusEl.style.color = 'var(--success)';
+    }
+    if (document.getElementById('sau-sa-email')) document.getElementById('sau-sa-email').value = '';
+    if (document.getElementById('sau-sa-password')) document.getElementById('sau-sa-password').value = '';
+    await logActivity('SA ACCOUNT UPDATE', `Superadmin updated auth for user ${userId}${newEmail?' — email changed':''}${newPassword?' — password reset':''}`);
+    // Refresh user list
+    await loadSAMembers();
+  } catch(e) { if (statusEl) { statusEl.textContent = '✗ ' + e.message; statusEl.style.color = 'var(--danger)'; } }
 }
 
 // ── SUPERADMIN: REVENUE PAGE ──
