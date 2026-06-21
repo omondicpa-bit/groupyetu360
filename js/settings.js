@@ -1752,8 +1752,134 @@ async function saveSupportSettings() {
 // ── SA BILLING ─────────────────────────────────────────────────────────────────
 
 async function loadSABilling() {
-  // Already handled by loadSuperAdmin — redirect there
-  loadSuperAdmin();
+  // Load pending payment requests
+  const pendingEl = document.getElementById('sa-billing-pending');
+  const subsEl    = document.getElementById('sa-billing-subs');
+  if (pendingEl) pendingEl.innerHTML = '<div class="loading"><div class="spinner"></div>Loading…</div>';
+  if (subsEl)    subsEl.innerHTML    = '<div class="loading"><div class="spinner"></div>Loading…</div>';
+
+  try {
+    // Stats
+    const [reqRes, orgsRes] = await Promise.all([
+      sb.from('payment_requests').select('*,organisations(name)').order('created_at', { ascending: false }),
+      sb.from('organisations').select('id,name,plan,subscription_status,subscription_expires,sms_balance')
+    ]);
+
+    const requests = reqRes.data || [];
+    const orgs     = orgsRes.data || [];
+
+    const pending  = requests.filter(r => r.status === 'pending');
+    const active   = orgs.filter(o => ['trial','active'].includes(o.subscription_status) && o.plan !== 'starter');
+    const soon     = orgs.filter(o => {
+      if (!o.subscription_expires) return false;
+      const days = Math.ceil((new Date(o.subscription_expires) - new Date()) / 86400000);
+      return days >= 0 && days <= 30;
+    });
+
+    // Stat cards
+    const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    setEl('sa-bill-stat-pending', pending.length);
+    setEl('sa-bill-stat-active',  active.length);
+    setEl('sa-bill-stat-expiring', soon.length);
+
+    // Pending requests table
+    if (pendingEl) {
+      if (!pending.length) {
+        pendingEl.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--ink-faint);font-size:.82rem">No pending payment requests.</div>';
+      } else {
+        const statusColor = { pending:'#c49a30', approved:'#16a34a', rejected:'#dc2626' };
+        pendingEl.innerHTML = `<table style="width:100%;border-collapse:collapse">
+          <thead><tr style="font-size:.65rem;text-transform:uppercase;color:var(--ink-faint);border-bottom:1px solid var(--border)">
+            <th style="padding:.5rem 1.25rem;text-align:left">Date</th>
+            <th style="padding:.5rem;text-align:left">Organisation</th>
+            <th style="padding:.5rem;text-align:left">Type</th>
+            <th style="padding:.5rem;text-align:right">Amount</th>
+            <th style="padding:.5rem;text-align:left">Ref</th>
+            <th style="padding:.5rem;text-align:left">Action</th>
+          </tr></thead>
+          <tbody>${pending.map(r => `<tr style="border-bottom:0.5px solid var(--border);font-size:.78rem">
+            <td style="padding:.6rem 1.25rem;color:var(--ink-faint)">${new Date(r.created_at).toLocaleDateString('en-KE',{day:'numeric',month:'short'})}</td>
+            <td style="padding:.6rem .5rem;font-weight:600">${r.organisations?.name||'—'}</td>
+            <td style="padding:.6rem .5rem;color:var(--ink-faint)">${r.type?.replace(/_/g,' ')||'—'}</td>
+            <td style="padding:.6rem .5rem;text-align:right;font-weight:600;color:var(--maroon)">Ksh ${Number(r.amount||0).toLocaleString()}</td>
+            <td style="padding:.6rem .5rem;font-size:.72rem">${r.mpesa_ref||'—'}</td>
+            <td style="padding:.6rem .5rem;display:flex;gap:.35rem">
+              <button class="btn btn-primary btn-sm" style="font-size:.68rem;background:var(--teal)" onclick="approvePayment('${r.id}','${r.org_id}','${r.type}',${r.amount})">✓ Approve</button>
+              <button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="rejectPayment('${r.id}')">✗</button>
+            </td>
+          </tr>`).join('')}</tbody>
+        </table>`;
+      }
+    }
+
+    // All subscriptions table
+    if (subsEl) {
+      subsEl.innerHTML = `<table style="width:100%;border-collapse:collapse">
+        <thead><tr style="font-size:.65rem;text-transform:uppercase;color:var(--ink-faint);border-bottom:1px solid var(--border)">
+          <th style="padding:.5rem 1.25rem;text-align:left">Organisation</th>
+          <th style="padding:.5rem;text-align:left">Plan</th>
+          <th style="padding:.5rem;text-align:left">Status</th>
+          <th style="padding:.5rem;text-align:left">Expires</th>
+          <th style="padding:.5rem;text-align:right">SMS</th>
+          <th style="padding:.5rem;text-align:left">Action</th>
+        </tr></thead>
+        <tbody>${orgs.map(o => {
+          const days = o.subscription_expires ? Math.ceil((new Date(o.subscription_expires)-new Date())/86400000) : null;
+          const expText = days === null ? 'No expiry' : days < 0 ? `Expired ${Math.abs(days)}d ago` : `${days}d remaining`;
+          const expColor = days !== null && days < 0 ? 'var(--danger)' : days !== null && days < 30 ? 'var(--warning)' : 'var(--ink-faint)';
+          return `<tr style="border-bottom:0.5px solid var(--border);font-size:.78rem">
+            <td style="padding:.6rem 1.25rem;font-weight:600">${o.name}</td>
+            <td style="padding:.6rem .5rem"><span class="badge badge-${o.plan==='pro'?'gold':o.plan==='standard'?'maroon':o.plan==='basic'?'green':'grey'}" style="font-size:.62rem">${(o.plan||'starter').toUpperCase()}</span></td>
+            <td style="padding:.6rem .5rem"><span style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:${o.subscription_status==='active'?'#16a34a':o.subscription_status==='trial'?'#c49a30':'#dc2626'}">${o.subscription_status||'—'}</span></td>
+            <td style="padding:.6rem .5rem;font-size:.72rem;color:${expColor}">${expText}</td>
+            <td style="padding:.6rem .5rem;text-align:right">${o.sms_balance||0}</td>
+            <td style="padding:.6rem .5rem"><button class="btn btn-ghost btn-sm" style="font-size:.65rem" onclick="openOrgDetail('${o.id}')">Edit →</button></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>`;
+    }
+  } catch(e) {
+    if (pendingEl) pendingEl.innerHTML = `<div style="padding:1rem;color:var(--danger);font-size:.8rem">${e.message}</div>`;
+  }
+}
+
+async function approvePayment(reqId, orgId, type, amount) {
+  if (!confirm('Approve this payment and activate the plan/SMS?')) return;
+  try {
+    // Update request status
+    await sb.from('payment_requests').update({ status: 'approved' }).eq('id', reqId);
+
+    if (type.startsWith('subscription_')) {
+      const plan = type.replace('subscription_','');
+      const expires = new Date();
+      expires.setFullYear(expires.getFullYear() + 1);
+      await sb.from('organisations').update({
+        plan,
+        subscription_status: 'active',
+        subscription_expires: expires.toISOString().split('T')[0],
+        trial_used: true
+      }).eq('id', orgId);
+    } else if (type === 'sms_bundle') {
+      // Determine SMS count from amount
+      const smsMap = { 75:50, 150:100, 300:200, 750:500, 1500:1000 };
+      const smsCount = smsMap[amount] || Math.floor(amount / 1.5);
+      const { data: org } = await sb.from('organisations').select('sms_balance').eq('id', orgId).single();
+      await sb.from('organisations').update({ sms_balance: (org?.sms_balance||0) + smsCount }).eq('id', orgId);
+    }
+
+    await logActivity('PAYMENT APPROVED', `Payment ${reqId} approved for org ${orgId} · type: ${type}`);
+    toast('✓ Payment approved and plan/SMS activated');
+    loadSABilling();
+  } catch(e) { toast('Error: ' + e.message); }
+}
+
+async function rejectPayment(reqId) {
+  if (!confirm('Reject this payment request?')) return;
+  try {
+    await sb.from('payment_requests').update({ status: 'rejected' }).eq('id', reqId);
+    toast('Payment rejected');
+    loadSABilling();
+  } catch(e) { toast('Error: ' + e.message); }
 }
 
 // ── SA ACTIVITY LOG ────────────────────────────────────────────────────────────
