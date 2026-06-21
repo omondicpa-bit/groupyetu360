@@ -3198,34 +3198,71 @@
 
 <!-- MODALS -->
 <div class="modal-overlay" id="modal-addMember">
-  <div class="modal" style="max-width:460px">
+  <div class="modal" style="max-width:520px">
     <div class="modal-header">
-      <div class="modal-title">Add New Member</div>
+      <div>
+        <div class="modal-title">Add New Member</div>
+        <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.1rem">Financial records can be completed from the member detail page</div>
+      </div>
       <button class="modal-close" onclick="closeModal('addMember')">✕</button>
     </div>
-    <div class="modal-body">
-      <div style="font-size:.78rem;color:var(--ink-faint);margin-bottom:1.1rem;line-height:1.6">
-        Enter the member's basic details. Full profile information (ID, balances, savings tier etc.) can be completed from the member's detail page.
-      </div>
-      <div class="form-group">
-        <label class="form-label">Full Name <span style="color:var(--maroon)">*</span></label>
-        <input class="form-input" id="nm-name" placeholder="e.g. Jane Achieng Omondi"/>
-      </div>
+    <div class="modal-body" style="padding:1rem 1.25rem">
+
+      <!-- Name + Phone -->
       <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Full Name <span style="color:var(--maroon)">*</span></label>
+          <input class="form-input" id="nm-name" placeholder="e.g. Jane Achieng Omondi"/>
+        </div>
         <div class="form-group">
           <label class="form-label">Phone Number</label>
           <input class="form-input" id="nm-phone" placeholder="07XXXXXXXX"/>
         </div>
+      </div>
+
+      <!-- Join Date + Status -->
+      <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Email (for portal access)</label>
-          <input class="form-input" type="email" id="nm-email" placeholder="member@email.com"/>
+          <label class="form-label">Join Date</label>
+          <input class="form-input" type="date" id="nm-date"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-select" id="nm-status">
+            <option value="active">Active</option>
+            <option value="arrears">Arrears</option>
+            <option value="inactive">Inactive</option>
+          </select>
         </div>
       </div>
-      <!-- Hidden fields kept for saveMember() compatibility -->
+
+      <!-- Registration Fee -->
+      <div class="form-group">
+        <label class="form-label">Registration Fee</label>
+        <select class="form-select" id="nm-reg">
+          <option value="true">Paid ✓</option>
+          <option value="false">Pending</option>
+        </select>
+      </div>
+
+      <!-- Portal Access -->
+      <div style="border-top:0.5px solid var(--border);margin:.85rem 0 .75rem"></div>
+      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.55rem">Portal Access <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></div>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input class="form-input" type="email" id="nm-email" placeholder="member@email.com"
+          oninput="document.getElementById('nm-invite-row').style.display=this.value.trim()?'flex':'none'"/>
+      </div>
+      <div id="nm-invite-row" style="display:none;background:var(--teal-pale);border:1px solid var(--teal-mid);border-radius:6px;padding:.6rem .85rem;font-size:.78rem;color:var(--ink);margin-top:-.35rem;margin-bottom:.5rem;align-items:center;gap:.5rem">
+        <span style="flex:1">✉ A portal invite will be sent to this email after saving.</span>
+        <label style="display:flex;align-items:center;gap:.35rem;font-size:.75rem;cursor:pointer">
+          <input type="checkbox" id="nm-send-invite" checked style="accent-color:var(--teal)"/> Send invite
+        </label>
+      </div>
+
+      <!-- Hidden compat fields -->
       <input type="hidden" id="nm-id" value=""/>
-      <input type="hidden" id="nm-date" value=""/>
       <input type="hidden" id="nm-savings" value="0"/>
-      <input type="hidden" id="nm-reg" value="false"/>
       <input type="hidden" id="nm-opening-shares" value="0"/>
       <input type="hidden" id="nm-opening-savings" value="0"/>
       <input type="hidden" id="nm-password" value=""/>
@@ -4484,7 +4521,7 @@
 
 
   <!-- GroupYetu360 Scripts — load order matters -->
-  <script src="js/auth.js"></script>
+  <script src="js/auth.js?v=2026062101"></script>
   <script src="js/utils.js"></script>
   <script src="js/dashboard.js"></script>
   <script src="js/members.js"></script>

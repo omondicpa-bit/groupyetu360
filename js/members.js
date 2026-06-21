@@ -171,51 +171,55 @@ async function saveMember() {
   if (!currentOrg?.id) return;
   const openingShares = parseFloat(document.getElementById('nm-opening-shares').value)||0;
   const openingSavings = parseFloat(document.getElementById('nm-opening-savings').value)||0;
+  const fullName = document.getElementById('nm-name').value.trim();
+  const email = document.getElementById('nm-email')?.value?.trim();
+  const regPaid = document.getElementById('nm-reg').value === 'true';
+  const status = document.getElementById('nm-status')?.value || 'active';
+  const joinDate = document.getElementById('nm-date').value || new Date().toISOString().split('T')[0];
+
+  if (!fullName) { toast('Please enter a name'); return; }
+
   const payload = {
     org_id: currentOrg.id,
-    full_name: document.getElementById('nm-name').value.trim(),
-    id_number: document.getElementById('nm-id').value.trim(),
-    phone: document.getElementById('nm-phone').value.trim(),
-    join_date: document.getElementById('nm-date').value || null,
-    savings_tier: parseInt(document.getElementById('nm-savings').value),
-    registration_paid: document.getElementById('nm-reg').value === 'true',
-    registration_date: document.getElementById('nm-reg').value === 'true' ? new Date().toISOString().split('T')[0] : null,
+    full_name: fullName,
+    id_number: document.getElementById('nm-id').value.trim() || null,
+    phone: document.getElementById('nm-phone').value.trim() || null,
+    join_date: joinDate,
+    savings_tier: parseInt(document.getElementById('nm-savings').value)||0,
+    registration_paid: regPaid,
+    registration_date: regPaid ? joinDate : null,
     member_number: String(allMembers.length + 1).padStart(3,'0'),
-    status: 'active',
+    internal_number: allMembers.length + 1,
+    status,
+    portal_email: email || null,
     opening_shares: openingShares,
     opening_savings: openingSavings,
     shares_balance: openingShares,
     savings_balance: openingSavings
   };
-  if (!payload.full_name) { toast('Please enter a name'); return; }
+
   const { error } = await sb.from('members').insert(payload);
   if (error) { toast('Error: ' + error.message); return; }
-  // Create portal account if email provided
-  const email = document.getElementById('nm-email')?.value?.trim();
-  const password = document.getElementById('nm-password')?.value?.trim();
-  if (email && password && password.length >= 6) {
+
+  // Send portal invite if email provided and checkbox checked
+  const sendInvite = document.getElementById('nm-send-invite')?.checked;
+  if (email && sendInvite) {
     try {
-      const { data: authData, error: authErr } = await sb.auth.admin?.createUser
-        ? await sb.auth.admin.createUser({ email, password, email_confirm: true })
-        : await sb.auth.signUp({ email, password, options: { data: { full_name: payload.full_name } } });
-      if (!authErr && authData?.user) {
-        await sb.from('profiles').upsert({
-          id: authData.user.id,
-          org_id: currentOrg.id,
-          role: 'member',
-          full_name: payload.full_name,
-          phone: payload.phone
-        });
-        toast('Member added with portal access ✓');
-      } else {
-        toast('Member added. Portal account: ' + (authErr?.message || 'check email'));
-      }
+      await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://app.groupyetu.org/#'
+      });
+      toast('✓ Member added — portal invite sent to ' + email);
     } catch(e) {
-      toast('Member record saved. Portal account creation failed: ' + e.message);
+      toast('Member added. Invite failed: ' + e.message);
     }
   } else {
     toast('Member added successfully');
   }
+
+  // Reset invite row visibility
+  const invRow = document.getElementById('nm-invite-row');
+  if (invRow) invRow.style.display = 'none';
+
   closeModal('addMember');
   await loadMembers();
   populateSelects();

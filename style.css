@@ -2509,3 +2509,33 @@ body.mob-dark #fin-mob-tab-content table tbody tr{border-bottom-color:#334155}
   letter-spacing:.04em;
   box-shadow:0 2px 8px rgba(128,0,32,.25);
 }
+
+/* ── Add Member modal — mobile compact ── */
+@media(max-width:768px){
+  #modal-addMember .modal{
+    max-width:100% !important;
+    border-radius:16px 16px 0 0;
+    max-height:92vh;
+    padding-bottom:72px;
+  }
+  #modal-addMember .modal-body{
+    padding:.75rem !important;
+  }
+  #modal-addMember .form-row{
+    flex-direction:column;gap:.45rem;
+  }
+  #modal-addMember .form-group{
+    margin-bottom:.4rem;
+  }
+  #modal-addMember .form-label{
+    font-size:.72rem;
+  }
+  #modal-addMember .modal-footer{
+    padding:.75rem;
+    flex-direction:row;
+    gap:.5rem;
+  }
+  #modal-addMember .btn{
+    flex:1;font-size:.82rem;
+  }
+}
