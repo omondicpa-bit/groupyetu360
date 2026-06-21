@@ -679,6 +679,91 @@ async function showOrgPicker() {
   }).join('');
 }
 
+// ── PLAN GATING UTILITIES ─────────────────────────────────────────────────────
+
+const PLAN_LIMITS = { starter: 15, basic: 30, standard: 75, pro: Infinity };
+const PLAN_ORDER  = ['starter','basic','standard','pro'];
+
+function getEffectivePlan(org) {
+  if (!org) return 'starter';
+  const plan = org.plan || 'starter';
+  const status = org.subscription_status || 'active';
+  // If expired → drop to starter regardless of paid plan
+  if (status === 'expired') return 'starter';
+  return plan;
+}
+
+function getPlanMemberLimit(org) {
+  return PLAN_LIMITS[getEffectivePlan(org)] ?? 15;
+}
+
+function planHasFeature(org, requiredPlan) {
+  const effective = getEffectivePlan(org);
+  return PLAN_ORDER.indexOf(effective) >= PLAN_ORDER.indexOf(requiredPlan);
+}
+
+// Called on app load and org switch — checks expiry and downgrades if lapsed
+async function checkSubscriptionStatus() {
+  if (!currentOrg?.id || currentOrg.plan === 'starter') return;
+  const expires = currentOrg.subscription_expires;
+  if (!expires) return;
+  const now = new Date(); now.setHours(0,0,0,0);
+  const exp = new Date(expires);
+  if (exp < now && currentOrg.subscription_status !== 'expired') {
+    // Mark expired in DB
+    await sb.from('organisations').update({ subscription_status: 'expired' }).eq('id', currentOrg.id);
+    currentOrg.subscription_status = 'expired';
+    // Rebuild sidebar to reflect downgrade
+    buildSidebar();
+    showBanner('⚠ Your subscription has expired. You have been moved to the Starter plan. <a href="#" onclick="showPage(\'billing\')">Upgrade now →</a>', 'warning');
+  }
+}
+
+// Fetch platform settings (promo toggle, payment mode, payment details)
+let _platformSettings = {};
+async function loadPlatformSettings() {
+  try {
+    const { data } = await sb.from('platform_settings').select('*').limit(1).maybeSingle();
+    _platformSettings = data || {};
+  } catch(e) {}
+}
+
+function isPromoActive() {
+  return _platformSettings['promo_active'] === true || _platformSettings['promo_active'] === 'true';
+}
+
+function getPaymentMode() {
+  return _platformSettings['payment_mode'] || 'manual';
+}
+
+function showBanner(html, type='info') {
+  let el = document.getElementById('app-banner');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'app-banner';
+    el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;padding:.6rem 1.2rem;font-size:.82rem;display:flex;align-items:center;justify-content:space-between;gap:1rem';
+    document.body.appendChild(el);
+  }
+  const colors = { warning:'#7c2d12', info:'#1e3a5f', success:'#14532d' };
+  const bgs    = { warning:'#fef3c7', info:'#dbeafe', success:'#dcfce7' };
+  el.style.background = bgs[type]||bgs.info;
+  el.style.color = colors[type]||colors.info;
+  el.style.borderBottom = `2px solid ${colors[type]||colors.info}`;
+  el.innerHTML = `<span>${html}</span><button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:inherit">✕</button>`;
+}
+
+function showUpgradePrompt(page) {
+  const plan = getEffectivePlan(currentOrg);
+  const expired = currentOrg?.subscription_status === 'expired';
+  const msg = expired
+    ? `Your subscription has expired. Upgrade to access ${page.replace('_',' ')}.`
+    : `This feature requires a higher plan. You are on <strong>${plan.toUpperCase()}</strong>.`;
+  // Show upgrade modal
+  const el = document.getElementById('upgrade-prompt-msg');
+  if (el) el.innerHTML = msg;
+  showModal('upgradePrompt');
+}
+
 async function selectOrg(orgId) {
   // Reset member cache — crucial for multi-org so My Profile/Contributions reload fresh
   window._myMemberId = null;
@@ -726,6 +811,10 @@ async function selectOrg(orgId) {
   buildOrgSwitcherDropdown();
   // Reload financial profile for new org
   try { await loadOrgFinancialProfile(); } catch(e) {}
+
+  // Check subscription expiry and enforce plan
+  await loadPlatformSettings();
+  await checkSubscriptionStatus();
 
   // Resolve my member record for this org (for self-view detection and founder guard)
   try {
@@ -1026,8 +1115,8 @@ function buildNav() {
 
   } else {
     // Admin / officer / treasurer
-    const plan = currentOrg?._effectivePlan || currentOrg?.plan || 'starter';
-    const hasBasic = ['basic','standard','pro'].includes(plan);
+    const plan = getEffectivePlan(currentOrg);
+    const hasBasic = planHasFeature(currentOrg, 'basic');
     const gatedLink = (page, icon, label, ok) => ok
       ? `<a class="nav-item" onclick="showPage('${page}')" href="#"><span class="nav-icon">${icon}</span> ${label}</a>`
       : `<a class="nav-item nav-item-locked" onclick="showUpgradePrompt('${page}');return false" href="#"><span class="nav-icon">${icon}</span> ${label} <span style="margin-left:auto;font-size:.7rem">🔒</span></a>`;

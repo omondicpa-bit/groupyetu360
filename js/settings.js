@@ -693,23 +693,30 @@ async function toggleOrgStatus(orgId, currentStatus) {
 
 async function saveOrg() {
   const plan = document.getElementById('ao-plan').value;
-  // 2-month free trial expiry for all new orgs
-  const trialExpiry = new Date();
-  trialExpiry.setMonth(trialExpiry.getMonth() + 2);
+  // Trial only applies to paid plans and only if promo is active
+  const isPaidPlan = plan !== 'starter';
+  const promoOn = isPromoActive();
   const payload = {
     name: document.getElementById('ao-name').value.trim(),
     reg_number: document.getElementById('ao-reg').value.trim(),
     paybill: document.getElementById('ao-paybill').value.trim(),
     plan,
     status: document.getElementById('ao-status').value,
-    subscription_status: 'trial',
-    subscription_expires: trialExpiry.toISOString().split('T')[0],
-    sms_bundle: { starter:50, basic:200, standard:500, pro:1000 }[plan] || 50
+    subscription_status: isPaidPlan ? 'trial' : 'active',
+    subscription_expires: isPaidPlan && promoOn ? (() => { const d = new Date(); d.setDate(d.getDate()+60); return d.toISOString().split('T')[0]; })() : null,
+    trial_used: isPaidPlan,
+    trial_start_date: isPaidPlan ? new Date().toISOString().split('T')[0] : null,
+    sms_balance: 0
   };
   if (!payload.name) { toast('Please enter an organisation name'); return; }
   const { error } = await sb.from('organisations').insert(payload);
   if (error) { toast('Error: '+error.message); return; }
-  toast('✓ Organisation onboarded — 2-month free trial until ' + trialExpiry.toDateString());
+  const msg = isPaidPlan && promoOn
+    ? `✓ Organisation onboarded on ${plan.toUpperCase()} — 60-day trial until ${payload.subscription_expires}`
+    : isPaidPlan
+    ? `✓ Organisation onboarded on ${plan.toUpperCase()} — payment required`
+    : `✓ Organisation onboarded on Starter (free)`;
+  toast(msg);
   closeModal('addOrg');
   loadSuperAdmin();
 }
@@ -1670,5 +1677,106 @@ async function handleDeclinedRole() {
     errEl.classList.add('show');
   }
   await sb.auth.signOut();
+}
+
+
+// ── SA SUPPORT / PLATFORM SETTINGS ────────────────────────────────────────────
+
+async function loadSASupport() {
+  try {
+    const { data: s } = await sb.from('platform_settings').select('*').limit(1).maybeSingle();
+    if (!s) return;
+    const sv = (id, val) => { const el = document.getElementById(id); if (el) el.value = val||''; };
+    sv('sp-phone',            s.support_phone||'');
+    sv('sp-email',            s.support_email||'');
+    sv('sp-bank-name',        s.bank_name||'');
+    sv('sp-bank-account',     s.bank_account||'');
+    sv('sp-bank-account-name',s.bank_account_name||'');
+    sv('sp-paybill',          s.paybill||'');
+    sv('sp-whatsapp',         s.whatsapp||'');
+    sv('sp-at-username',      s.at_username||'');
+    sv('sp-at-key',           s.at_api_key||'');
+    sv('sp-at-sender',        s.at_sender_id||'');
+    sv('sp-daraja-key',       s.daraja_consumer_key||'');
+    sv('sp-daraja-secret',    s.daraja_consumer_secret||'');
+    sv('sp-daraja-shortcode', s.daraja_shortcode||'');
+    sv('sp-daraja-passkey',   s.daraja_passkey||'');
+    sv('sp-daraja-env',       s.daraja_env||'sandbox');
+    sv('sp-daraja-enabled',   String(s.daraja_enabled||'false'));
+    sv('sp-payment-mode',     s.payment_mode||'manual');
+    const promoEl = document.getElementById('sp-promo-active');
+    if (promoEl) promoEl.checked = s.promo_active === true;
+  } catch(e) { console.error('loadSASupport:', e); }
+}
+
+async function saveSupportSettings() {
+  const gv = id => { const el = document.getElementById(id); return el ? el.value?.trim()||null : null; };
+  const gc = id => { const el = document.getElementById(id); return el ? el.checked : false; };
+  const payload = {
+    support_phone:          gv('sp-phone'),
+    support_email:          gv('sp-email'),
+    bank_name:              gv('sp-bank-name'),
+    bank_account:           gv('sp-bank-account'),
+    bank_account_name:      gv('sp-bank-account-name'),
+    paybill:                gv('sp-paybill'),
+    whatsapp:               gv('sp-whatsapp'),
+    at_username:            gv('sp-at-username'),
+    at_api_key:             gv('sp-at-key'),
+    at_sender_id:           gv('sp-at-sender'),
+    daraja_consumer_key:    gv('sp-daraja-key'),
+    daraja_consumer_secret: gv('sp-daraja-secret'),
+    daraja_shortcode:       gv('sp-daraja-shortcode'),
+    daraja_passkey:         gv('sp-daraja-passkey'),
+    daraja_env:             gv('sp-daraja-env'),
+    daraja_enabled:         gv('sp-daraja-enabled') === 'true',
+    promo_active:           gc('sp-promo-active'),
+    payment_mode:           gv('sp-payment-mode'),
+    updated_at:             new Date().toISOString()
+  };
+  try {
+    // Single-row table — always update row id=1, insert if missing
+    const { data: existing } = await sb.from('platform_settings').select('id').limit(1).maybeSingle();
+    if (existing?.id) {
+      await sb.from('platform_settings').update(payload).eq('id', existing.id);
+    } else {
+      await sb.from('platform_settings').insert(payload);
+    }
+    await loadPlatformSettings();
+    toast('✓ Platform settings saved');
+  } catch(e) { toast('Error saving settings: ' + e.message); }
+}
+
+// ── SA BILLING ─────────────────────────────────────────────────────────────────
+
+async function loadSABilling() {
+  // Already handled by loadSuperAdmin — redirect there
+  loadSuperAdmin();
+}
+
+// ── SA ACTIVITY LOG ────────────────────────────────────────────────────────────
+
+async function loadSAActivity() {
+  const tbody = document.getElementById('sa-activity-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="5"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr>';
+  try {
+    const orgFilter  = document.getElementById('activity-filter-org')?.value || '';
+    const typeFilter = document.getElementById('activity-filter-action')?.value || '';
+    let q = sb.from('activity_log').select('*,profiles(full_name,email)').order('created_at', { ascending: false }).limit(200);
+    if (orgFilter)  q = q.eq('org_id', orgFilter);
+    if (typeFilter) q = q.ilike('action', `%${typeFilter}%`);
+    const { data, error } = await q;
+    if (error) throw error;
+    if (!data?.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--ink-faint)">No activity found</td></tr>'; return; }
+    tbody.innerHTML = data.map(r => `<tr>
+      <td style="font-size:.72rem;color:var(--ink-faint)">${new Date(r.created_at).toLocaleString()}</td>
+      <td style="font-size:.78rem;font-weight:600">${r.action||'—'}</td>
+      <td style="font-size:.75rem">${r.profiles?.full_name||r.user_id?.slice(0,8)||'—'}</td>
+      <td style="font-size:.75rem;color:var(--ink-faint)">${r.description||'—'}</td>
+      <td style="font-size:.72rem;color:var(--ink-faint)">${r.org_id?.slice(0,8)||'—'}</td>
+    </tr>`).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="5" style="color:var(--danger);padding:1rem">${e.message}</td></tr>`;
+  }
 }
 

@@ -779,6 +779,9 @@
         </div>
       </div>
 
+      <!-- Plan limit banner (shown when org exceeds plan member cap) -->
+      <div id="members-limit-banner" style="display:none;background:#fef3c7;border:1.5px solid #d97706;border-radius:8px;padding:.65rem 1rem;font-size:.8rem;color:#7c2d12;margin-bottom:.85rem"></div>
+
       <!-- Status filter pills + search -->
       <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap">
         <div style="display:flex;gap:.35rem" id="member-status-filters">
@@ -2642,7 +2645,35 @@
 
     <!-- SUPERADMIN SUPPORT SETTINGS -->
     <div class="page" id="page-sa_support">
-      <div class="section-header"><div><div class="section-title">Support Settings</div><div class="section-sub">Configure contact details shown to all organisations</div></div></div>
+      <div class="section-header"><div><div class="section-title">Platform Settings</div><div class="section-sub">Configure contact details, payment options and platform controls</div></div></div>
+
+      <!-- Promo & Payment Controls -->
+      <div class="card" style="max-width:600px;margin-bottom:1.25rem">
+        <div class="card-header"><div class="card-title">🎯 Subscription Controls</div></div>
+        <div class="card-body">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0;border-bottom:1px solid var(--border)">
+            <div>
+              <div style="font-size:.85rem;font-weight:600;color:var(--ink)">Free Trial Promo (60 days)</div>
+              <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.2rem">When ON, new organisations upgrading for the first time get 60 days free. Existing trials are unaffected when turned off.</div>
+            </div>
+            <label style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;margin-left:1rem">
+              <input type="checkbox" id="sp-promo-active" style="opacity:0;width:0;height:0">
+              <span onclick="this.previousElementSibling.click()" style="position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:24px;transition:.3s" id="sp-promo-slider"></span>
+            </label>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0">
+            <div>
+              <div style="font-size:.85rem;font-weight:600;color:var(--ink)">Payment Mode</div>
+              <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.2rem">Controls how upgrade payment is collected from organisations.</div>
+            </div>
+            <select class="form-select" id="sp-payment-mode" style="width:auto;flex-shrink:0;margin-left:1rem;font-size:.8rem">
+              <option value="manual">Manual (bank/paybill)</option>
+              <option value="mpesa">M-Pesa STK Push</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       <div class="card" style="max-width:600px">
         <div class="card-header"><div class="card-title">Platform Contact Details</div></div>
         <div class="card-body">
@@ -4282,6 +4313,24 @@
 </div>
 
 <!-- ══ REGISTER NEW ORG MODAL (from within app) ══ -->
+<!-- MODAL: Upgrade Prompt -->
+<div class="modal-overlay" id="modal-upgradePrompt">
+  <div class="modal" style="max-width:440px;text-align:center">
+    <div class="modal-header" style="justify-content:flex-end">
+      <button class="modal-close" onclick="closeModal('upgradePrompt')">✕</button>
+    </div>
+    <div class="modal-body" style="padding-top:0">
+      <div style="font-size:2.5rem;margin-bottom:.5rem">🔒</div>
+      <div style="font-size:1.1rem;font-weight:700;color:var(--maroon);margin-bottom:.5rem">Upgrade Required</div>
+      <div id="upgrade-prompt-msg" style="font-size:.85rem;color:var(--ink-soft);margin-bottom:1.25rem;line-height:1.6"></div>
+      <div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-primary" style="background:var(--maroon)" onclick="closeModal('upgradePrompt');showPage('billing')">View Plans & Upgrade →</button>
+        <button class="btn btn-secondary" onclick="closeModal('upgradePrompt')">Maybe Later</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: SA User Detail -->
 <div class="modal-overlay" id="modal-saUserDetail">
   <div class="modal" style="max-width:580px">

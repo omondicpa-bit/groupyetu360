@@ -6,9 +6,25 @@
 async function loadMembers() {
   if (!currentOrg?.id) return;
   // Always fetch fresh from DB — never use stale allMembers from previous org
-  const { data } = await sb.from('members').select('*').eq('org_id', currentOrg.id).order('member_number');
-  allMembers = data || [];
+  const { data } = await sb.from('members').select('*').eq('org_id', currentOrg.id).order('internal_number,member_number');
+  const allFetched = data || [];
+  const limit = getPlanMemberLimit(currentOrg);
+  const overLimit = allFetched.length > limit;
+  // Cap display to plan limit (excess members hidden until upgrade)
+  allMembers = isFinite(limit) ? allFetched.slice(0, limit) : allFetched;
   populateSelects(); // refresh dropdowns with new org's members
+
+  // Show over-limit banner
+  const bannerEl = document.getElementById('members-limit-banner');
+  if (bannerEl) {
+    if (overLimit) {
+      const plan = getEffectivePlan(currentOrg);
+      bannerEl.innerHTML = `⚠ Your group has ${allFetched.length} members but your <strong>${plan.toUpperCase()}</strong> plan allows ${limit}. Showing first ${limit} only. <a href="#" onclick="showPage('billing')" style="color:var(--maroon);font-weight:700">Upgrade to see all →</a>`;
+      bannerEl.style.display = 'block';
+    } else {
+      bannerEl.style.display = 'none';
+    }
+  }
 
   // For orgs without member balances (welfare/subscription), fetch total contributed per member
   const fp = orgFinProfile;
@@ -169,6 +185,16 @@ function renderMemberGrid(list) {
 
 async function saveMember() {
   if (!currentOrg?.id) return;
+
+  // ── Plan member limit check ──
+  const limit = getPlanMemberLimit(currentOrg);
+  if (isFinite(limit) && allMembers.length >= limit) {
+    const plan = getEffectivePlan(currentOrg);
+    toast(`⚠ Member limit reached. Your ${plan.toUpperCase()} plan allows up to ${limit} members. Upgrade to add more.`);
+    closeModal('addMember');
+    showPage('billing');
+    return;
+  }
   const openingShares = parseFloat(document.getElementById('nm-opening-shares').value)||0;
   const openingSavings = parseFloat(document.getElementById('nm-opening-savings').value)||0;
   const fullName = document.getElementById('nm-name').value.trim();
