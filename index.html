@@ -238,67 +238,66 @@
           <div style="text-align:center;margin-top:.75rem;font-size:.72rem;color:var(--ink-faint)">Already have access? <a onclick="switchAuthTab('login')" style="color:var(--maroon);cursor:pointer;font-weight:600">Sign in</a></div>
         </div>
 
-        <!-- REGISTER -->
+        <!-- REGISTER — account only, no org details -->
         <div class="auth-panel" id="auth-register">
           <div class="auth-error" id="register-error"></div>
           <div class="auth-success" id="register-success"></div>
-          <div class="form-group">
-            <label class="form-label">Group / Organisation Name</label>
-            <input class="form-input" type="text" id="reg-org-name" placeholder="e.g. Westlands Investment Chama"/>
+
+          <div style="font-size:.78rem;color:var(--ink-soft);margin-bottom:1.1rem;line-height:1.6;padding:.6rem .85rem;background:var(--teal-pale);border-left:3px solid var(--teal);border-radius:0 6px 6px 0">
+            Create your account first. You'll set up or join a group on the next step.
           </div>
+
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Your Full Name</label>
-              <input class="form-input" type="text" id="reg-name" placeholder="Admin name"/>
+              <label class="form-label">Full Name <span style="color:var(--maroon)">*</span></label>
+              <div class="input-wrap">
+                <span class="input-icon">👤</span>
+                <input class="form-input" type="text" id="reg-name" placeholder="Your full name"/>
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">Phone</label>
-              <input class="form-input" type="text" id="reg-phone" placeholder="07XXXXXXXX"/>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Email Address</label>
-            <input class="form-input" type="email" id="reg-email" placeholder="admin@youremail.com"/>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Password</label>
-            <input class="form-input" type="password" id="reg-password" placeholder="Minimum 6 characters"/>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Plan <span style="font-weight:400;color:var(--gold)">— all plans include 2 months free</span></label>
-            <input type="hidden" id="reg-plan" value="standard"/>
-            <div class="reg-plan-grid" id="reg-plan-cards">
-              <div class="reg-plan-card" data-plan="starter" onclick="selectRegPlan(this)">
-                <div class="rpc-check">✓</div>
-                <div class="rpc-name">Starter</div>
-                <div class="rpc-price">Free</div>
-                <div class="rpc-mem">15 members</div>
-              </div>
-              <div class="reg-plan-card" data-plan="basic" onclick="selectRegPlan(this)">
-                <div class="rpc-check">✓</div>
-                <div class="rpc-name">Basic</div>
-                <div class="rpc-price">Ksh 3,000</div>
-                <div class="rpc-mem">30 members</div>
-              </div>
-              <div class="reg-plan-card selected" data-plan="standard" onclick="selectRegPlan(this)">
-                <div class="rpc-popular">Popular</div>
-                <div class="rpc-check">✓</div>
-                <div class="rpc-name">Standard</div>
-                <div class="rpc-price">Ksh 6,000</div>
-                <div class="rpc-mem">75 members</div>
-              </div>
-              <div class="reg-plan-card" data-plan="pro" onclick="selectRegPlan(this)">
-                <div class="rpc-check">✓</div>
-                <div class="rpc-name">Pro</div>
-                <div class="rpc-price">Ksh 12,000</div>
-                <div class="rpc-mem">Unlimited</div>
+              <div class="input-wrap">
+                <span class="input-icon">📱</span>
+                <input class="form-input" type="text" id="reg-phone" placeholder="07XXXXXXXX"/>
               </div>
             </div>
-            <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.4rem;text-align:center">Ksh/year · 2 months free on paid plans</div>
           </div>
-          <button class="btn btn-primary" onclick="registerOrg()">Create Your Organisation →</button>
 
-          <div class="auth-or" style="margin-top:1rem">or</div>
+          <div class="form-group">
+            <label class="form-label">Email Address <span style="color:var(--maroon)">*</span></label>
+            <div class="input-wrap">
+              <span class="input-icon">✉</span>
+              <input class="form-input" type="email" id="reg-email" placeholder="your@email.com"/>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Password <span style="color:var(--maroon)">*</span></label>
+              <div class="input-wrap">
+                <span class="input-icon">🔑</span>
+                <input class="form-input" type="password" id="reg-password" placeholder="Min 6 characters"/>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Confirm Password <span style="color:var(--maroon)">*</span></label>
+              <div class="input-wrap">
+                <span class="input-icon">🔑</span>
+                <input class="form-input" type="password" id="reg-confirm-password" placeholder="Repeat password"/>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hidden compat field -->
+          <input type="hidden" id="reg-org-name" value=""/>
+          <input type="hidden" id="reg-plan" value="standard"/>
+
+          <button class="btn btn-primary" onclick="registerAccount()" style="margin-top:.25rem">
+            Create Account →
+          </button>
+
+          <div class="auth-or" style="margin-top:.85rem">or</div>
           <button class="btn-google" onclick="signInWithGoogle()">
             <svg width="16" height="16" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
             Sign up with Google
@@ -4215,11 +4214,66 @@
       <div class="org-picker-list" id="org-picker-list">
         <div class="loading" style="padding:1.5rem;text-align:center"><div class="spinner"></div></div>
       </div>
+
+      <!-- Action cards — always visible -->
       <div class="org-picker-divider">or</div>
-      <button class="btn-new-org" onclick="showOrgPickerRegister()">
-        <span style="font-size:1.1rem">＋</span>
-        Register a New Organisation
-      </button>
+      <div style="display:flex;flex-direction:column;gap:.6rem">
+
+        <!-- Create a Group -->
+        <div id="picker-create-section">
+          <button class="btn-new-org" onclick="togglePickerCreate()" id="picker-create-btn">
+            <span style="font-size:1.1rem">＋</span> Create a New Group
+          </button>
+          <div id="picker-create-form" style="display:none;margin-top:.65rem;background:rgba(255,255,255,.06);border-radius:10px;padding:.85rem;border:1px solid rgba(255,255,255,.12)">
+            <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.5);margin-bottom:.6rem">Group Details</div>
+            <div class="form-group" style="margin-bottom:.5rem">
+              <input class="form-input" id="picker-org-name" placeholder="Group / Organisation name *" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:#fff"/>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:.4rem;margin-bottom:.6rem" id="picker-plan-grid">
+              <div class="picker-plan-opt selected" data-plan="starter" onclick="selectPickerPlan(this)">
+                <div style="font-size:.7rem;font-weight:700">Starter</div>
+                <div style="font-size:.62rem;opacity:.7">Free · 15 members</div>
+              </div>
+              <div class="picker-plan-opt" data-plan="basic" onclick="selectPickerPlan(this)">
+                <div style="font-size:.7rem;font-weight:700">Basic</div>
+                <div style="font-size:.62rem;opacity:.7">Ksh 3K · 30 members</div>
+              </div>
+              <div class="picker-plan-opt" data-plan="standard" onclick="selectPickerPlan(this)">
+                <div style="font-size:.7rem;font-weight:700">Standard ★</div>
+                <div style="font-size:.62rem;opacity:.7">Ksh 6K · 75 members</div>
+              </div>
+              <div class="picker-plan-opt" data-plan="pro" onclick="selectPickerPlan(this)">
+                <div style="font-size:.7rem;font-weight:700">Pro</div>
+                <div style="font-size:.62rem;opacity:.7">Ksh 12K · Unlimited</div>
+              </div>
+            </div>
+            <input type="hidden" id="picker-plan-val" value="starter"/>
+            <div id="picker-create-error" style="font-size:.72rem;color:#f87171;margin-bottom:.4rem;display:none"></div>
+            <div id="picker-create-success" style="font-size:.72rem;color:#4ade80;margin-bottom:.4rem;display:none"></div>
+            <button class="btn btn-primary" onclick="pickerCreateOrg()" style="width:100%;background:var(--teal);font-size:.82rem">
+              Create Group →
+            </button>
+          </div>
+        </div>
+
+        <!-- Join with Org Code -->
+        <div id="picker-join-section">
+          <button class="btn-new-org" onclick="togglePickerJoin()" id="picker-join-btn" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15)">
+            <span style="font-size:1.1rem">🔑</span> Join with Org Code
+          </button>
+          <div id="picker-join-form" style="display:none;margin-top:.65rem;background:rgba(255,255,255,.06);border-radius:10px;padding:.85rem;border:1px solid rgba(255,255,255,.12)">
+            <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.5);margin-bottom:.6rem">Enter the code shared by your group admin</div>
+            <input class="form-input" id="picker-org-code" placeholder="e.g. GYTPHA" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:#fff;text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:.5rem"/>
+            <div id="picker-join-error" style="font-size:.72rem;color:#f87171;margin-bottom:.4rem;display:none"></div>
+            <div id="picker-join-success" style="font-size:.72rem;color:#4ade80;margin-bottom:.4rem;display:none"></div>
+            <button class="btn btn-primary" onclick="pickerJoinOrg()" style="width:100%;font-size:.82rem">
+              Request to Join →
+            </button>
+          </div>
+        </div>
+
+      </div>
+
       <div class="org-picker-footer">
         <a onclick="signOut()">Sign out of GroupYetu360</a>
       </div>

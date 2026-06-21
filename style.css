@@ -2539,3 +2539,18 @@ body.mob-dark #fin-mob-tab-content table tbody tr{border-bottom-color:#334155}
     flex:1;font-size:.82rem;
   }
 }
+
+/* ── Org picker inline plan options ── */
+.picker-plan-opt{
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:7px;padding:.45rem .6rem;
+  cursor:pointer;color:rgba(255,255,255,.75);
+  transition:all .15s;-webkit-tap-highlight-color:transparent;
+}
+.picker-plan-opt:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.25)}
+.picker-plan-opt.selected{
+  background:rgba(15,110,86,.3);
+  border-color:var(--teal);
+  color:#fff;
+}

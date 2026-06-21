@@ -476,73 +476,130 @@ function cancel2FA() {
 
 // signIn defined above
 
-async function registerOrg() {
-  const orgName = document.getElementById('reg-org-name').value.trim();
+// ── Account-only registration (Step 1) ──
+async function registerAccount() {
   const name = document.getElementById('reg-name').value.trim();
   const phone = document.getElementById('reg-phone').value.trim();
   const email = document.getElementById('reg-email').value.trim();
   const password = document.getElementById('reg-password').value;
-  const plan = document.getElementById('reg-plan').value;
+  const confirm = document.getElementById('reg-confirm-password')?.value;
   const errEl = document.getElementById('register-error');
   const sucEl = document.getElementById('register-success');
   errEl.classList.remove('show'); sucEl.classList.remove('show');
-  if (!orgName||!name||!email||!password) { errEl.textContent='Please fill all fields'; errEl.classList.add('show'); return; }
-  if (password.length < 6) { errEl.textContent='Password must be at least 6 characters'; errEl.classList.add('show'); return; }
 
-  // Create auth user
-  const { data: authData, error: authErr } = await sb.auth.signUp({ email, password, options: { data: { full_name: name } } });
-  if (authErr) { errEl.textContent = authErr.message; errEl.classList.add('show'); return; }
+  if (!name || !email || !password) { errEl.textContent = 'Please fill in all required fields'; errEl.classList.add('show'); return; }
+  if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters'; errEl.classList.add('show'); return; }
+  if (confirm !== undefined && confirm !== '' && confirm !== password) { errEl.textContent = 'Passwords do not match'; errEl.classList.add('show'); return; }
 
-  // Create organisation
-  // Generate unique org code: GY + 4 random chars
-  const orgCode = 'GY' + Math.random().toString(36).toUpperCase().slice(2,6);
+  sucEl.textContent = 'Creating your account…'; sucEl.classList.add('show');
 
-  const { data: org, error: orgErr } = await sb.from('organisations')
-    .insert({ name: orgName, plan, status: 'active', org_code: orgCode })
-    .select().single();
-  if (orgErr) { errEl.textContent = 'Error creating organisation: ' + orgErr.message; errEl.classList.add('show'); return; }
-
-  // Set profile — admin role, linked to org directly
-  const { error: profileErr } = await sb.from('profiles').upsert({
-    id: authData.user.id,
-    org_id: org.id,
-    role: 'admin',
-    full_name: name,
-    phone
+  const { data: authData, error: authErr } = await sb.auth.signUp({
+    email, password, options: { data: { full_name: name } }
   });
-  if (profileErr) console.error('Profile error:', profileErr);
+  if (authErr) { sucEl.classList.remove('show'); errEl.textContent = authErr.message; errEl.classList.add('show'); return; }
 
-  // Add to user_orgs junction table
-  try {
-    await sb.from('user_orgs').upsert({
-      user_id: authData.user.id, org_id: org.id, role: 'admin'
-    });
-  } catch(e) { console.log('user_orgs upsert:', e.message); }
+  // Create profile immediately — no org linked yet
+  await sb.from('profiles').upsert({
+    id: authData.user.id, full_name: name, phone: phone || null, role: 'member'
+  });
 
-  sucEl.textContent = 'Organisation created! Signing you in…';
-  sucEl.classList.add('show');
+  sucEl.textContent = '✓ Account created! Loading your workspace…';
 
-  // Auto-create founder as Member #001 via SECURITY DEFINER function (bypasses RLS)
-  const founderInsert = {
-    p_org_id: org.id,
-    p_user_id: authData.user.id,
-    p_full_name: name,
-    p_phone: phone || null,
-    p_email: email,
-    p_join_date: new Date().toISOString().split('T')[0]
-  };
-  const { error: founderErr } = await sb.rpc('insert_founder_member', founderInsert);
-  if (founderErr) console.error('[GY360] Founder member insert failed:', founderErr.message);
-  else console.log('[GY360] Founder member created for new org:', org.id);
-
-  // Sign in automatically
   setTimeout(async () => {
     const { error: signInErr } = await sb.auth.signInWithPassword({ email, password });
-    if (signInErr) {
-      errEl.textContent = 'Created but could not sign in: ' + signInErr.message;
-      errEl.classList.add('show');
-    }
-  }, 1200);
+    if (signInErr) { errEl.textContent = 'Created but sign-in failed: ' + signInErr.message; errEl.classList.add('show'); }
+  }, 800);
+}
+
+// Backwards-compatible alias
+async function registerOrg() { return registerAccount(); }
+
+// ── Org Picker inline helpers ──
+function togglePickerCreate() {
+  const form = document.getElementById('picker-create-form');
+  const joinForm = document.getElementById('picker-join-form');
+  if (joinForm) joinForm.style.display = 'none';
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+function togglePickerJoin() {
+  const form = document.getElementById('picker-join-form');
+  const createForm = document.getElementById('picker-create-form');
+  if (createForm) createForm.style.display = 'none';
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+function selectPickerPlan(el) {
+  document.querySelectorAll('.picker-plan-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('picker-plan-val').value = el.dataset.plan;
+}
+
+async function pickerCreateOrg() {
+  const orgName = document.getElementById('picker-org-name')?.value?.trim();
+  const plan = document.getElementById('picker-plan-val')?.value || 'starter';
+  const errEl = document.getElementById('picker-create-error');
+  const sucEl = document.getElementById('picker-create-success');
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+  if (sucEl) { sucEl.style.display = 'none'; }
+
+  if (!orgName) {
+    if (errEl) { errEl.textContent = 'Please enter a group name'; errEl.style.display = 'block'; }
+    return;
+  }
+  if (!currentUser?.id) {
+    if (errEl) { errEl.textContent = 'Session error — please sign in again'; errEl.style.display = 'block'; }
+    return;
+  }
+
+  if (sucEl) { sucEl.textContent = 'Creating group…'; sucEl.style.display = 'block'; }
+
+  // Set fields that registerNewOrg reads
+  const nameInput = document.getElementById('new-org-name');
+  const planInput = document.getElementById('new-org-plan');
+  const roleInput = document.getElementById('new-org-role');
+  if (nameInput) nameInput.value = orgName;
+  if (planInput) planInput.value = plan;
+  if (roleInput) roleInput.value = 'admin';
+
+  await registerNewOrg();
+}
+
+async function pickerJoinOrg() {
+  const code = document.getElementById('picker-org-code')?.value?.trim().toUpperCase();
+  const errEl = document.getElementById('picker-join-error');
+  const sucEl = document.getElementById('picker-join-success');
+  if (errEl) { errEl.style.display = 'none'; }
+  if (sucEl) { sucEl.style.display = 'none'; }
+
+  if (!code) {
+    if (errEl) { errEl.textContent = 'Please enter an org code'; errEl.style.display = 'block'; }
+    return;
+  }
+
+  // Find org by code
+  const { data: org, error } = await sb.from('organisations').select('id,name').eq('org_code', code).maybeSingle();
+  if (error || !org) {
+    if (errEl) { errEl.textContent = 'Organisation not found. Check the code and try again.'; errEl.style.display = 'block'; }
+    return;
+  }
+
+  // Submit a pending member request
+  try {
+    await sb.from('pending_members').insert({
+      org_id: org.id,
+      user_id: currentUser.id,
+      full_name: currentProfile?.full_name || currentUser.email,
+      email: currentUser.email,
+      phone: currentProfile?.phone || null,
+      status: 'pending'
+    });
+    if (sucEl) { sucEl.textContent = `✓ Request sent to ${org.name}. Your admin will approve you shortly.`; sucEl.style.display = 'block'; }
+    if (errEl) errEl.style.display = 'none';
+    if (document.getElementById('picker-org-code')) document.getElementById('picker-org-code').value = '';
+  } catch(e) {
+    if (errEl) { errEl.textContent = 'Error: ' + e.message; errEl.style.display = 'block'; }
+  }
 }
 
 /* ════════════════════════════════════════════════
