@@ -1206,8 +1206,7 @@ async function saDeleteOrg() {
   if (!currentDetailOrgId) return;
   const org = _saOrgs.find(o=>o.id===currentDetailOrgId);
   if (!org) return;
-  const confirm1 = prompt(`Type "${org.name}" to confirm deletion:`);
-  if (confirm1 !== org.name) { toast('Cancelled — name did not match'); return; }
+  if (!confirm(`Delete "${org.name}"?\n\nThis cannot be undone.`)) return;
   const { error } = await sb.from('organisations').delete().eq('id',currentDetailOrgId);
   if (error) { toast('Error: '+error.message); return; }
   toast(`✓ ${org.name} deleted`);
@@ -1326,10 +1325,7 @@ async function deleteOrg() {
   if (!currentDetailOrgId) return;
   const { data: org } = await sb.from('organisations').select('name').eq('id', currentDetailOrgId).single();
   if (!org) { toast('Organisation not found'); return; }
-  const typedName = prompt('Type the organisation name to confirm deletion:\n\n' + org.name + '\n\nThis will permanently delete ALL data for this organisation.');
-  if (!typedName || typedName.trim().toLowerCase() !== org.name.toLowerCase()) {
-    toast('Name did not match — deletion cancelled.'); return;
-  }
+  if (!confirm(`Delete "${org.name}" and ALL its data?\n\nThis will permanently remove all members, transactions, meetings and records.\n\nThis cannot be undone.`)) return;
   toast('Deleting ' + org.name + '…');
   const id = currentDetailOrgId;
   const del = async (table, col='org_id') => {
