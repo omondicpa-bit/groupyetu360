@@ -85,15 +85,18 @@ function toggleMembersView() {
 function renderMemberList(list) {
   const tbody = document.getElementById('member-list-table');
   if (!tbody) return;
-  tbody.innerHTML = list.length ? list.map(m => `<tr onclick="openMemberDetail('${m.id}')" style="cursor:pointer">
-    <td style="font-weight:700;color:var(--maroon)">#${m.member_number||'—'}</td>
+  tbody.innerHTML = list.length ? list.map(m => {
+    const dispNum = m.display_number || (m.internal_number ? String(m.internal_number).padStart(3,'0') : m.member_number) || '—';
+    return `<tr onclick="openMemberDetail('${m.id}')" style="cursor:pointer">
+    <td style="font-weight:700;color:var(--maroon)">#${dispNum}${m.is_founder ? ' <span title="Founding Member" style="font-size:.8rem">🏛</span>' : ''}</td>
     <td><strong>${m.full_name}</strong><div style="font-size:.68rem;color:var(--ink-faint)">${m.email||''}</div></td>
     <td>${m.phone||'—'}</td>
     <td style="font-weight:600;color:var(--maroon)">Ksh ${Number(m.shares_balance||0).toLocaleString()}</td>
     <td style="font-weight:600;color:var(--teal)">Ksh ${Number(m.savings_balance||0).toLocaleString()}</td>
     <td><span class="badge ${m.status==='active'?'badge-green':m.status==='arrears'?'badge-warn':'badge-grey'}">${m.status}</span></td>
     <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openMemberDetail('${m.id}')">View →</button></td>
-  </tr>`).join('') : '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--ink-faint)">No members found</td></tr>';
+  </tr>`;
+  }).join('') : '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--ink-faint)">No members found</td></tr>';
 }
 
 function renderMemberGrid(list) {
@@ -224,12 +227,49 @@ let currentMemberId = null;
 
 async function openMemberDetail(memberId) {
   currentMemberId = memberId;
-  // Check if viewing own record — hide admin-only actions
-  const isSelf = window._myMemberId === memberId || false;
+  const isSelf = window._myMemberId === memberId;
   const { data: m } = await sb.from('members').select('*').eq('id', memberId).single();
   if (!m) return;
+
+  // Determine display number: prefer display_number if set, else internal_number, else member_number
+  const displayNum = m.display_number || (m.internal_number ? String(m.internal_number).padStart(3,'0') : m.member_number) || '—';
+  const internalNum = m.internal_number ? String(m.internal_number).padStart(3,'0') : m.member_number || '—';
+  const isFounder = m.is_founder === true;
+  const isSuperAdmin = currentProfile?.role === 'superadmin';
+
   document.getElementById('md-name').textContent = m.full_name;
-  document.getElementById('md-number').textContent = 'Member #' + (m.member_number||'—') + ' · ' + (m.phone||'—');
+  document.getElementById('md-number').textContent =
+    `Member #${displayNum}` +
+    (m.display_number && m.internal_number ? ` · Internal #${internalNum}` : '') +
+    ` · ${m.phone || '—'}`;
+
+  // Founder badge — show/hide
+  let founderBadge = document.getElementById('md-founder-badge');
+  if (!founderBadge) {
+    founderBadge = document.createElement('div');
+    founderBadge.id = 'md-founder-badge';
+    founderBadge.className = 'md-founder-badge';
+    const modalHeader = document.querySelector('#modal-memberDetail .modal-header > div:first-child');
+    if (modalHeader) modalHeader.appendChild(founderBadge);
+  }
+  if (isFounder) {
+    founderBadge.innerHTML = '🏛 Founding Member · Group Admin';
+    founderBadge.style.display = '';
+  } else {
+    founderBadge.style.display = 'none';
+  }
+
+  // Founder cannot be deleted by any org-level admin — only superadmin can
+  const deleteBtn = document.querySelector('#modal-memberDetail .btn-danger');
+  if (deleteBtn) {
+    if (isFounder && !isSuperAdmin) {
+      deleteBtn.style.display = 'none';
+    } else {
+      deleteBtn.style.display = '';
+      deleteBtn.title = isFounder ? 'Superadmin only: remove founding member' : '';
+      if (isFounder) deleteBtn.style.background = 'var(--maroon-dk)';
+    }
+  }
   document.getElementById('md-shares-bal').textContent = 'Ksh ' + (m.shares_balance||0).toLocaleString();
   document.getElementById('md-savings-bal').textContent = 'Ksh ' + (m.savings_balance||0).toLocaleString();
   document.getElementById('md-total-bal').textContent = 'Ksh ' + ((m.shares_balance||0)+(m.savings_balance||0)).toLocaleString();
@@ -286,6 +326,9 @@ async function openMemberDetail(memberId) {
   document.getElementById('md-edit-opening-shares').value = m.opening_shares||0;
   document.getElementById('md-edit-opening-savings').value = m.opening_savings||0;
   document.getElementById('md-edit-reg').value = m.registration_paid?'true':'false';
+  // Display number field
+  const dispNumEl = document.getElementById('md-edit-display-number');
+  if (dispNumEl) dispNumEl.value = m.display_number || '';
   const regDateEl = document.getElementById('md-edit-reg-date');
   const regRenewalEl = document.getElementById('md-edit-reg-renewal');
   if (regDateEl) regDateEl.value = m.registration_date||'';
@@ -369,7 +412,8 @@ async function saveMemberDetail() {
     opening_shares: openingShares,
     opening_savings: openingSavings,
     shares_balance: (current.shares_balance||0) + sharesDiff,
-    savings_balance: (current.savings_balance||0) + savingsDiff
+    savings_balance: (current.savings_balance||0) + savingsDiff,
+    display_number: document.getElementById('md-edit-display-number')?.value?.trim() || null
   };
   const portalEmail = document.getElementById('md-edit-email')?.value?.trim();
   if (portalEmail) updates.portal_email = portalEmail;
@@ -594,13 +638,22 @@ async function saveAdjustment() {
 
 async function deleteMember() {
   if (!currentMemberId) return;
-  const { data: m } = await sb.from('members').select('full_name').eq('id', currentMemberId).single();
-  if (!confirm('Delete ' + m.full_name + '? This will remove all their records. This cannot be undone.')) return;
+  const { data: m } = await sb.from('members').select('full_name,is_founder').eq('id', currentMemberId).single();
+  // Founder protection — only superadmin can remove the founding member
+  if (m.is_founder && currentProfile?.role !== 'superadmin') {
+    toast('⚠ The founding member cannot be removed. Contact GroupYetu support if needed.');
+    return;
+  }
+  if (m.is_founder && currentProfile?.role === 'superadmin') {
+    if (!confirm(`SUPERADMIN ACTION: You are about to remove the FOUNDING MEMBER (${m.full_name}). This is irreversible. Are you absolutely sure?`)) return;
+  } else {
+    if (!confirm('Delete ' + m.full_name + '? This will remove all their records. This cannot be undone.')) return;
+  }
   await sb.from('balance_adjustments').delete().eq('member_id', currentMemberId);
   await sb.from('transactions').delete().eq('member_id', currentMemberId);
   await sb.from('attendance').delete().eq('member_id', currentMemberId);
   await sb.from('members').delete().eq('id', currentMemberId);
-  await logActivity('DELETE MEMBER', `Deleted member: ${m.full_name}`, 'member', currentMemberId);
+  await logActivity('DELETE MEMBER', `Deleted member: ${m.full_name}${m.is_founder?' [FOUNDER]':''}`, 'member', currentMemberId);
   toast(m.full_name + ' removed');
   closeModal('memberDetail');
   currentMemberId = null;

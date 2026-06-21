@@ -656,6 +656,26 @@ async function selectOrg(orgId) {
   buildOrgSwitcherDropdown();
   // Reload financial profile for new org
   try { await loadOrgFinancialProfile(); } catch(e) {}
+
+  // Resolve my member record for this org (for self-view detection and founder guard)
+  try {
+    const email = currentUser?.email;
+    const uid = currentUser?.id;
+    // Try user_id match first, then fall back to portal_email
+    let myMember = null;
+    if (uid) {
+      const { data: byUid } = await sb.from('members')
+        .select('id,is_founder').eq('org_id', orgId).eq('user_id', uid).maybeSingle();
+      myMember = byUid;
+    }
+    if (!myMember && email) {
+      const { data: byEmail } = await sb.from('members')
+        .select('id,is_founder').eq('org_id', orgId).eq('portal_email', email).maybeSingle();
+      myMember = byEmail;
+    }
+    window._myMemberId = myMember?.id || null;
+    window._myMemberIsFounder = myMember?.is_founder || false;
+  } catch(e) { console.warn('[GY360] my member lookup failed:', e); }
 }
 
 async function switchOrg(orgId) {
@@ -748,7 +768,7 @@ async function registerNewOrg() {
   sucEl.textContent = '✓ Organisation created! Switching to it now…';
   sucEl.classList.add('show');
 
-  // Auto-create founder as Member #001 — use latest profile data
+  // Auto-create founder as Member #001 with full founder rule fields
   const founderName = currentProfile?.full_name || currentUser?.email?.split('@')[0] || 'Founder';
   const founderPhone = currentProfile?.phone || null;
   const { data: founderMember, error: founderErr } = await sb.from('members').insert({
@@ -756,14 +776,20 @@ async function registerNewOrg() {
     full_name: founderName,
     phone: founderPhone,
     portal_email: currentUser.email,
+    user_id: currentUser.id,
     member_number: '001',
+    internal_number: 1,
+    is_founder: true,
     status: 'active',
     registration_paid: true,
     join_date: new Date().toISOString().split('T')[0],
-    notes: 'Founding member'
+    notes: 'Founding member — auto-enrolled on group registration'
   }).select().single();
   if (founderErr) console.error('Founder member creation failed:', founderErr.message);
-  else console.log('Founder member created:', founderMember.id);
+  else {
+    window._myMemberId = founderMember?.id || null;
+    console.log('[GY360] Founder member created:', founderMember?.id);
+  }
 
   // Log activity
   await logActivity('ORG CREATED', `New organisation created: ${name}`);

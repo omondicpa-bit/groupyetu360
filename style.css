@@ -2495,3 +2495,17 @@ body.mob-dark #fin-mob-tab-content table tbody tr{border-bottom-color:#334155}
   /* Ensure sidebar covers pull tab */
   .sidebar.mob-open ~ #sidebar-pull-tab{opacity:0;pointer-events:none}
 }
+
+/* ═══════════════════════════════════════════
+   FOUNDER BADGE — member detail modal
+   ═══════════════════════════════════════════ */
+.md-founder-badge{
+  display:inline-flex;align-items:center;gap:.35rem;
+  margin-top:.35rem;
+  background:linear-gradient(135deg,var(--maroon-dk),var(--maroon));
+  color:#fff;
+  font-size:.68rem;font-weight:700;
+  padding:.25rem .7rem;border-radius:20px;
+  letter-spacing:.04em;
+  box-shadow:0 2px 8px rgba(128,0,32,.25);
+}

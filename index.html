@@ -3410,6 +3410,7 @@
       <div>
         <div class="modal-title" id="md-name">Member Detail</div>
         <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.15rem" id="md-number"></div>
+        <div id="md-founder-badge" class="md-founder-badge" style="display:none"></div>
       </div>
       <button class="modal-close" onclick="closeModal('memberDetail')">✕</button>
     </div>
@@ -3437,6 +3438,13 @@
         <div class="form-row">
           <div class="form-group"><label class="form-label">ID Number</label><input class="form-input" id="md-edit-id"/></div>
           <div class="form-group"><label class="form-label">Join Date</label><input class="form-input" type="date" id="md-edit-date"/></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Member Number (Your Records)</label>
+            <input class="form-input" id="md-edit-display-number" placeholder="e.g. 007, M-2024-001 — leave blank to use system number"/>
+            <div class="field-hint">Overrides the display number shown on lists and cards. Our internal system number is always preserved.</div>
+          </div>
         </div>
         <div class="form-row">
           <div class="form-group" id="md-savings-tier-row"><label class="form-label">Savings/mo (Ksh)</label>
