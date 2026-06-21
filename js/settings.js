@@ -1914,8 +1914,8 @@ async function loadSAActivity() {
 
 // ── BILLING PAGE ──────────────────────────────────────────────────────────────
 
-const PLAN_PRICES = { basic: 3000, standard: 6000, pro: 12000 };
-const PLAN_LABELS = { starter:'Starter', basic:'Basic', standard:'Standard', pro:'Pro' };
+var PLAN_PRICES = PLAN_PRICES || { basic: 3000, standard: 6000, pro: 12000 };
+var PLAN_LABELS = PLAN_LABELS || { starter:'Starter', basic:'Basic', standard:'Standard', pro:'Pro' };
 
 async function loadBilling() {
   if (!currentOrg?.id) return;

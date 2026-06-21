@@ -698,8 +698,8 @@ async function showOrgPicker() {
 
 // ── PLAN GATING UTILITIES ─────────────────────────────────────────────────────
 
-const PLAN_LIMITS = { starter: 15, basic: 30, standard: 75, pro: Infinity };
-const PLAN_ORDER  = ['starter','basic','standard','pro'];
+var PLAN_LIMITS = PLAN_LIMITS || { starter: 15, basic: 30, standard: 75, pro: Infinity };
+var PLAN_ORDER  = PLAN_ORDER  || ['starter','basic','standard','pro'];
 
 function getEffectivePlan(org) {
   if (!org) return 'starter';
