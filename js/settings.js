@@ -901,6 +901,33 @@ async function saViewUser(userId) {
   showModal('saUserDetail');
 }
 
+async function saDeleteUser() {
+  const section = document.getElementById('sau-sa-section');
+  const userId = section?.dataset.userId;
+  const userName = document.getElementById('sau-name')?.textContent || 'this user';
+  const statusEl = document.getElementById('sau-delete-status');
+  if (!userId) return;
+
+  // Double confirm
+  if (!confirm(`Delete ${userName}?\n\nThis will permanently remove their account, all group memberships, and activity history. This cannot be undone.`)) return;
+  if (!confirm(`Are you absolutely sure? "${userName}" will be gone forever.`)) return;
+
+  if (statusEl) { statusEl.textContent = 'Deleting…'; statusEl.style.color = 'var(--ink-faint)'; }
+
+  try {
+    const { error } = await sb.rpc('delete_user_completely', { p_user_id: userId });
+    if (error) throw new Error(error.message);
+    if (statusEl) { statusEl.textContent = '✓ User deleted.'; statusEl.style.color = 'var(--success)'; }
+    await logActivity('SA DELETE USER', `Superadmin permanently deleted user ${userId} (${userName})`);
+    setTimeout(async () => {
+      closeModal('saUserDetail');
+      await loadSAMembers();
+    }, 1200);
+  } catch(e) {
+    if (statusEl) { statusEl.textContent = '✗ ' + e.message; statusEl.style.color = 'var(--danger)'; }
+  }
+}
+
 async function saResendPortalInvite(email, name) {
   if (!email) { toast('No email on this account'); return; }
   try {
