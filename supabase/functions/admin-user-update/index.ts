@@ -7,13 +7,11 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // ── 1. Verify caller is authenticated ──
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'No authorization header' }), {
@@ -21,26 +19,39 @@ serve(async (req) => {
       })
     }
 
-    // Create a client with the caller's JWT to verify their role
+    // Use service role to verify caller — avoids RLS issues with profiles
+    const adminClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    // Get caller's user ID from their JWT
     const callerClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: authHeader } } }
     )
+    const { data: { user: callerUser }, error: userErr } = await callerClient.auth.getUser()
+    if (userErr || !callerUser) {
+      return new Response(JSON.stringify({ error: 'Invalid session' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
 
-    // Get caller's profile — must be superadmin
-    const { data: callerProfile, error: profileErr } = await callerClient
+    // Use service role to check profile role — bypasses RLS completely
+    const { data: profile, error: profileErr } = await adminClient
       .from('profiles')
       .select('role')
+      .eq('id', callerUser.id)
       .single()
 
-    if (profileErr || callerProfile?.role !== 'superadmin') {
+    if (profileErr || profile?.role !== 'superadmin') {
       return new Response(JSON.stringify({ error: 'Forbidden — superadmin only' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    // ── 2. Parse request body ──
+    // Parse request
     const { user_id, email, password } = await req.json()
 
     if (!user_id) {
@@ -48,19 +59,13 @@ serve(async (req) => {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
-
     if (!email && !password) {
-      return new Response(JSON.stringify({ error: 'Provide at least email or password to update' }), {
+      return new Response(JSON.stringify({ error: 'Provide email or password to update' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    // ── 3. Use service-role client to update auth user ──
-    const adminClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
+    // Update auth user via admin API
     const updatePayload: { email?: string; password?: string } = {}
     if (email) updatePayload.email = email
     if (password) updatePayload.password = password
@@ -73,14 +78,15 @@ serve(async (req) => {
       })
     }
 
-    // ── 4. If email changed, also update the profiles table ──
+    // Sync email to profiles table
     if (email) {
       await adminClient.from('profiles').update({ email }).eq('id', user_id)
     }
 
-    return new Response(JSON.stringify({ success: true, user: { id: data.user.id, email: data.user.email } }), {
-      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
+    return new Response(
+      JSON.stringify({ success: true, user: { id: data.user.id, email: data.user.email } }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
 
   } catch (err) {
     return new Response(JSON.stringify({ error: String(err) }), {

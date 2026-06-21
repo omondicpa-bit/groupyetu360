@@ -522,23 +522,16 @@ async function registerOrg() {
   sucEl.textContent = 'Organisation created! Signing you in…';
   sucEl.classList.add('show');
 
-  // Auto-create founder as Member #001
-  // Note: authData.user.id is available immediately after signUp even before email confirmation
+  // Auto-create founder as Member #001 via SECURITY DEFINER function (bypasses RLS)
   const founderInsert = {
-    org_id: org.id,
-    full_name: name,
-    phone: phone || null,
-    portal_email: email,
-    user_id: authData.user.id,
-    member_number: '001',
-    internal_number: 1,
-    is_founder: true,
-    status: 'active',
-    registration_paid: true,
-    join_date: new Date().toISOString().split('T')[0],
-    notes: 'Founding member — auto-enrolled on group registration'
+    p_org_id: org.id,
+    p_user_id: authData.user.id,
+    p_full_name: name,
+    p_phone: phone || null,
+    p_email: email,
+    p_join_date: new Date().toISOString().split('T')[0]
   };
-  const { error: founderErr } = await sb.from('members').insert(founderInsert);
+  const { error: founderErr } = await sb.rpc('insert_founder_member', founderInsert);
   if (founderErr) console.error('[GY360] Founder member insert failed:', founderErr.message);
   else console.log('[GY360] Founder member created for new org:', org.id);
 
@@ -788,29 +781,23 @@ async function registerNewOrg() {
   // Auto-create founder as Member #001 with full founder rule fields
   const founderName = currentProfile?.full_name || currentUser?.email?.split('@')[0] || 'Founder';
   const founderPhone = currentProfile?.phone || null;
-  const { data: founderMember, error: founderErr } = await sb.from('members').insert({
-    org_id: org.id,
-    full_name: founderName,
-    phone: founderPhone,
-    portal_email: currentUser.email,
-    user_id: currentUser.id,
-    member_number: '001',
-    internal_number: 1,
-    is_founder: true,
-    status: 'active',
-    registration_paid: true,
-    join_date: new Date().toISOString().split('T')[0],
-    notes: 'Founding member — auto-enrolled on group registration'
-  }).select().single();
+  // Auto-create founder as Member #001 via SECURITY DEFINER function (bypasses RLS)
+  const { data: founderMember, error: founderErr } = await sb.rpc('insert_founder_member', {
+    p_org_id: org.id,
+    p_user_id: currentUser.id,
+    p_full_name: founderName,
+    p_phone: founderPhone,
+    p_email: currentUser.email,
+    p_join_date: new Date().toISOString().split('T')[0]
+  });
 
   if (founderErr) {
     console.error('[GY360] Founder member insert failed:', founderErr.message);
-    // Non-fatal — org was created, still proceed but warn
     errEl.textContent = 'Group created but member auto-enrol failed: ' + founderErr.message;
     errEl.classList.add('show');
   } else {
-    window._myMemberId = founderMember?.id || null;
-    console.log('[GY360] Founder member created:', founderMember?.id);
+    window._myMemberId = founderMember || null;
+    console.log('[GY360] Founder member created:', founderMember);
   }
 
   sucEl.textContent = '✓ Organisation created! Switching to it now…';
