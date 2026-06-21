@@ -333,16 +333,51 @@ async function openMemberDetail(memberId) {
   const regRenewalEl = document.getElementById('md-edit-reg-renewal');
   if (regDateEl) regDateEl.value = m.registration_date||'';
   if (regRenewalEl) regRenewalEl.value = m.registration_renewal||'';
-  document.getElementById('md-edit-email').value = m.portal_email||'';
-  const invSt = document.getElementById('md-invite-status'); if(invSt) invSt.style.display='none';
+  // ── Portal Access section — founder vs normal member ──
+  const portalNormal = document.getElementById('md-portal-normal');
+  const portalFounder = document.getElementById('md-portal-founder');
+  const promoteBtn = document.getElementById('promote-btn');
+  const saAccountSection = document.getElementById('md-sa-account-section');
+
+  if (isFounder) {
+    // Founder: hide email/invite, hide Set Portal Role, show read-only note
+    if (portalNormal) portalNormal.style.display = 'none';
+    if (portalFounder) portalFounder.style.display = '';
+    if (promoteBtn) promoteBtn.style.display = 'none';
+    // Email field still needs a value for saveMemberDetail — keep hidden input in sync
+    const emailEl = document.getElementById('md-edit-email');
+    if (emailEl) emailEl.value = m.portal_email || '';
+  } else {
+    // Normal member
+    if (portalNormal) portalNormal.style.display = '';
+    if (portalFounder) portalFounder.style.display = 'none';
+    if (promoteBtn) promoteBtn.style.display = isSelf ? 'none' : '';
+    document.getElementById('md-edit-email').value = m.portal_email || '';
+  }
+
+  // Superadmin account management section — visible for ALL members when superadmin is viewing
+  if (saAccountSection) {
+    saAccountSection.style.display = isSuperAdmin ? '' : 'none';
+    // Clear fields and status
+    const saEmail = document.getElementById('md-sa-email');
+    const saPwd = document.getElementById('md-sa-password');
+    const saStatus = document.getElementById('md-sa-account-status');
+    if (saEmail) saEmail.value = '';
+    if (saPwd) saPwd.value = '';
+    if (saStatus) saStatus.textContent = '';
+    // Store the member's auth user_id for the update call
+    saAccountSection.dataset.userId = m.user_id || '';
+    saAccountSection.dataset.currentEmail = m.portal_email || '';
+  }
+
+  const invSt = document.getElementById('md-invite-status');
+  if (invSt) invSt.style.display = 'none';
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('adj-date').value = today;
 
   // Hide admin-only fields when viewing own member record
   const roleField = document.getElementById('md-role-field');
   if (roleField) roleField.style.display = isSelf ? 'none' : '';
-  const portalBtn = document.getElementById('md-portal-btn');
-  if (portalBtn) portalBtn.style.display = isSelf ? 'none' : '';
   const debitCreditTab = document.getElementById('debit-credit-tab');
   if (debitCreditTab) debitCreditTab.style.display = isSelf ? 'none' : '';
   const modalTitle = document.querySelector('#modal-memberDetail .modal-title');
@@ -639,7 +674,6 @@ async function saveAdjustment() {
 async function deleteMember() {
   if (!currentMemberId) return;
   const { data: m } = await sb.from('members').select('full_name,is_founder').eq('id', currentMemberId).single();
-  // Founder protection — only superadmin can remove the founding member
   if (m.is_founder && currentProfile?.role !== 'superadmin') {
     toast('⚠ The founding member cannot be removed. Contact GroupYetu support if needed.');
     return;
@@ -658,6 +692,74 @@ async function deleteMember() {
   closeModal('memberDetail');
   currentMemberId = null;
   loadMembers();
+}
+
+async function saUpdateMemberAccount() {
+  // Superadmin only — updates auth email and/or password via edge function
+  if (currentProfile?.role !== 'superadmin') {
+    toast('⚠ Superadmin only');
+    return;
+  }
+  const section = document.getElementById('md-sa-account-section');
+  const userId = section?.dataset.userId;
+  const currentEmail = section?.dataset.currentEmail;
+  const newEmail = document.getElementById('md-sa-email')?.value?.trim();
+  const newPassword = document.getElementById('md-sa-password')?.value;
+  const statusEl = document.getElementById('md-sa-account-status');
+
+  if (!userId) {
+    if (statusEl) { statusEl.textContent = '⚠ No auth account linked to this member yet.'; statusEl.style.color = 'var(--warning)'; }
+    return;
+  }
+  if (!newEmail && !newPassword) {
+    if (statusEl) { statusEl.textContent = 'Enter a new email or password.'; statusEl.style.color = 'var(--ink-faint)'; }
+    return;
+  }
+
+  if (statusEl) { statusEl.textContent = 'Updating…'; statusEl.style.color = 'var(--ink-faint)'; }
+
+  try {
+    const session = await sb.auth.getSession();
+    const jwt = session?.data?.session?.access_token;
+
+    const body = { user_id: userId };
+    if (newEmail) body.email = newEmail;
+    if (newPassword) body.password = newPassword;
+
+    const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/admin-user-update', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${jwt}`
+      },
+      body: JSON.stringify(body)
+    });
+
+    const result = await res.json();
+
+    if (!res.ok || result.error) {
+      if (statusEl) { statusEl.textContent = '✗ ' + (result.error || 'Update failed'); statusEl.style.color = 'var(--danger)'; }
+      return;
+    }
+
+    // If email changed, update the members table too
+    if (newEmail) {
+      await sb.from('members').update({ portal_email: newEmail }).eq('id', currentMemberId);
+    }
+
+    if (statusEl) {
+      statusEl.textContent = '✓ ' + [newEmail ? `Email → ${newEmail}` : '', newPassword ? 'Password updated' : ''].filter(Boolean).join(' · ');
+      statusEl.style.color = 'var(--success)';
+    }
+    // Clear fields
+    if (document.getElementById('md-sa-email')) document.getElementById('md-sa-email').value = '';
+    if (document.getElementById('md-sa-password')) document.getElementById('md-sa-password').value = '';
+
+    await logActivity('SA ACCOUNT UPDATE', `Superadmin updated auth account for member ${currentMemberId}${newEmail?' — email changed':''}${newPassword?' — password reset':''}`, 'member', currentMemberId);
+
+  } catch(e) {
+    if (statusEl) { statusEl.textContent = '✗ ' + e.message; statusEl.style.color = 'var(--danger)'; }
+  }
 }
 
 

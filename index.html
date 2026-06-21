@@ -3469,17 +3469,48 @@
             <option value="false">Pending</option>
           </select>
         </div>
-        <div style="font-size:.72rem;font-weight:600;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin:.75rem 0 .5rem">Portal Access</div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Email Address</label>
-            <div style="display:flex;gap:.5rem;align-items:flex-start">
-              <input class="form-input" type="email" id="md-edit-email" placeholder="member@email.com" style="flex:1"/>
-              <button class="btn btn-secondary btn-sm" onclick="sendMemberPortalInvite()" style="white-space:nowrap;padding:.52rem .85rem;font-size:.75rem;flex-shrink:0">✉ Send Invite</button>
+        <!-- Portal Access — hidden for founder (managed via their own account) -->
+        <div id="md-portal-access-section">
+          <div style="font-size:.72rem;font-weight:600;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin:.75rem 0 .5rem">Portal Access</div>
+          <!-- Normal members: show email + invite -->
+          <div id="md-portal-normal">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <div style="display:flex;gap:.5rem;align-items:flex-start">
+                  <input class="form-input" type="email" id="md-edit-email" placeholder="member@email.com" style="flex:1"/>
+                  <button class="btn btn-secondary btn-sm" onclick="sendMemberPortalInvite()" style="white-space:nowrap;padding:.52rem .85rem;font-size:.75rem;flex-shrink:0">✉ Send Invite</button>
+                </div>
+                <div id="md-invite-status" style="display:none;font-size:.74rem;margin-top:.35rem"></div>
+              </div>
             </div>
-            <div id="md-invite-status" style="display:none;font-size:.74rem;margin-top:.35rem"></div>
+          </div>
+          <!-- Founder: read-only note -->
+          <div id="md-portal-founder" style="display:none;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:.75rem 1rem;font-size:.8rem;color:var(--ink-faint)">
+            🔐 This member's portal access is tied to their account login. Email and password can only be changed by the member themselves via My Account, or by a Superadmin using the Account Management section below.
           </div>
         </div>
+
+        <!-- Superadmin Account Management — always visible to superadmin only -->
+        <div id="md-sa-account-section" style="display:none;margin-top:.85rem;padding:.85rem 1rem;background:var(--maroon-pale);border:1.5px solid var(--maroon);border-radius:8px">
+          <div style="font-size:.72rem;font-weight:700;color:var(--maroon);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.6rem">⚙ Superadmin — Account Management</div>
+          <div style="font-size:.75rem;color:var(--ink-faint);margin-bottom:.75rem">Update this member's auth account directly. Changes take effect immediately.</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">New Email Address</label>
+              <input class="form-input" type="email" id="md-sa-email" placeholder="Leave blank to keep current"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">New Password</label>
+              <input class="form-input" type="password" id="md-sa-password" placeholder="Leave blank to keep current" autocomplete="new-password"/>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:.75rem;margin-top:.35rem">
+            <button class="btn btn-primary btn-sm" onclick="saUpdateMemberAccount()" style="background:var(--maroon);font-size:.78rem">Apply Changes →</button>
+            <span id="md-sa-account-status" style="font-size:.75rem"></span>
+          </div>
+        </div>
+
         <div class="form-actions">
           <button class="btn btn-primary" onclick="saveMemberDetail()">Save Changes</button>
           <button class="btn btn-secondary btn-sm" onclick="promoteToAdmin()" id="promote-btn" style="margin-left:.5rem">👤 Set Portal Role</button>
