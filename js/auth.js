@@ -522,6 +522,26 @@ async function registerOrg() {
   sucEl.textContent = 'Organisation created! Signing you in…';
   sucEl.classList.add('show');
 
+  // Auto-create founder as Member #001
+  // Note: authData.user.id is available immediately after signUp even before email confirmation
+  const founderInsert = {
+    org_id: org.id,
+    full_name: name,
+    phone: phone || null,
+    portal_email: email,
+    user_id: authData.user.id,
+    member_number: '001',
+    internal_number: 1,
+    is_founder: true,
+    status: 'active',
+    registration_paid: true,
+    join_date: new Date().toISOString().split('T')[0],
+    notes: 'Founding member — auto-enrolled on group registration'
+  };
+  const { error: founderErr } = await sb.from('members').insert(founderInsert);
+  if (founderErr) console.error('[GY360] Founder member insert failed:', founderErr.message);
+  else console.log('[GY360] Founder member created for new org:', org.id);
+
   // Sign in automatically
   setTimeout(async () => {
     const { error: signInErr } = await sb.auth.signInWithPassword({ email, password });
@@ -756,17 +776,14 @@ async function registerNewOrg() {
 
   if (orgErr) { errEl.textContent='Error: '+orgErr.message; errEl.classList.add('show'); return; }
 
-  // Add to user_orgs
-  await sb.from('user_orgs').upsert({ user_id: currentUser.id, org_id: org.id, role });
+  // Founder always gets admin role in their own org regardless of form selection
+  await sb.from('user_orgs').upsert({ user_id: currentUser.id, org_id: org.id, role: 'admin' });
 
   // Update profile role for this new org
   await sb.from('profiles').upsert({
-    id: currentUser.id, org_id: org.id, role,
+    id: currentUser.id, org_id: org.id, role: 'admin',
     full_name: currentProfile?.full_name || ''
   });
-
-  sucEl.textContent = '✓ Organisation created! Switching to it now…';
-  sucEl.classList.add('show');
 
   // Auto-create founder as Member #001 with full founder rule fields
   const founderName = currentProfile?.full_name || currentUser?.email?.split('@')[0] || 'Founder';
@@ -785,11 +802,19 @@ async function registerNewOrg() {
     join_date: new Date().toISOString().split('T')[0],
     notes: 'Founding member — auto-enrolled on group registration'
   }).select().single();
-  if (founderErr) console.error('Founder member creation failed:', founderErr.message);
-  else {
+
+  if (founderErr) {
+    console.error('[GY360] Founder member insert failed:', founderErr.message);
+    // Non-fatal — org was created, still proceed but warn
+    errEl.textContent = 'Group created but member auto-enrol failed: ' + founderErr.message;
+    errEl.classList.add('show');
+  } else {
     window._myMemberId = founderMember?.id || null;
     console.log('[GY360] Founder member created:', founderMember?.id);
   }
+
+  sucEl.textContent = '✓ Organisation created! Switching to it now…';
+  sucEl.classList.add('show');
 
   // Log activity
   await logActivity('ORG CREATED', `New organisation created: ${name}`);
