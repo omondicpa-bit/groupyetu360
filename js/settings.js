@@ -501,7 +501,7 @@ async function saveSettings() {
   toast('Settings saved successfully');
 }
 
-let _editingContribTypeId = null;
+var _editingContribTypeId = null;
 
 function editContribType(typeId) {
   const type = allContribTypes.find(t => t.id === typeId);
@@ -589,7 +589,7 @@ async function saveContribType() {
 
 
 // ── SUPER ADMIN ──
-let _saOrgs = [], _saMemberCount = {};
+var _saOrgs = [], _saMemberCount = {};
 
 async function loadSuperAdmin() {
   document.getElementById('sa-org-list').innerHTML = '<div class="loading"><div class="spinner"></div>Loading…</div>';
@@ -756,10 +756,10 @@ function toast(msg) {
 
 
 // ── SUPERADMIN: ALL MEMBERS ──
-let allSAUsers = [];   // one entry per auth user (profile)
-let allSAOrgsMap = {}; // orgId → org name
-let allSAUserOrgs = []; // all user_orgs rows
-let allSAMemberRows = []; // all member rows (for org memberships per user)
+var allSAUsers = [];   // one entry per auth user (profile)
+var allSAOrgsMap = {}; // orgId → org name
+var allSAUserOrgs = []; // all user_orgs rows
+var allSAMemberRows = []; // all member rows (for org memberships per user)
 
 async function loadSAMembers() {
   document.getElementById('sa-all-members').innerHTML = '<tr><td colspan="6"><div class="loading"><div class="spinner"></div>Loading all users…</div></td></tr>';
@@ -1014,9 +1014,9 @@ async function loadSAFinance() {
 }
 
 // ── ORG DETAIL ──
-let currentDetailOrgId = null;
+var currentDetailOrgId = null;
 // Store all org members for search filtering in od modal
-let _odAllMembers = [];
+var _odAllMembers = [];
 
 async function openOrgDetail(orgId) {
   currentDetailOrgId = orgId;
@@ -1441,8 +1441,8 @@ async function deleteOrg() {
 
 
 // ── APPROVALS ──
-let currentPendingId = null;
-let currentPendingUserId = null;
+var currentPendingId = null;
+var currentPendingUserId = null;
 
 
 // Update approvals hero count
