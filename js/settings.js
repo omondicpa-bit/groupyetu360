@@ -743,7 +743,9 @@ function showModal(id) {
   if (id==='memberPayment') openMemberPaymentModal();
 }
 function closeModal(id) { document.getElementById('modal-'+id)?.classList.remove('open'); }
-document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); }));
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); }));
+});
 
 // ── TOAST ──
 function toast(msg) {
