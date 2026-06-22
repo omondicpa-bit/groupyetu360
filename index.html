@@ -1616,7 +1616,7 @@
       <div class="msg-hero">
         <div>
           <div class="msg-hero-title">✉ Messages</div>
-          <div id="msg-page-sub" class="msg-hero-sub">Bulk SMS to members via Africa's Talking</div>
+          <div id="msg-page-sub" class="msg-hero-sub">Bulk SMS to your group members</div>
         </div>
         <div style="display:flex;align-items:center;gap:.5rem">
           <div class="msg-status-dot inactive" id="msg-status-dot"></div>
@@ -2694,14 +2694,30 @@
           <div class="form-row"><div class="form-group"><label class="form-label">Account Number</label><input class="form-input" id="sp-bank-account" placeholder="Account number"/></div><div class="form-group"><label class="form-label">Account Name</label><input class="form-input" id="sp-bank-account-name" placeholder="e.g. EPH Technologies"/></div></div>
           <div class="form-row single"><div class="form-group"><label class="form-label">M-Pesa Paybill (if any)</label><input class="form-input" id="sp-paybill" placeholder="Optional"/></div></div>
           <div class="form-row single"><div class="form-group"><label class="form-label">WhatsApp Support Link</label><input class="form-input" id="sp-whatsapp" placeholder="e.g. https://wa.me/254702903544?text=Hello%20GroupYetu360"/></div></div>
-          <div style="font-size:.78rem;font-weight:600;color:var(--ink);margin:1rem 0 .5rem;padding-top:.75rem;border-top:1px solid var(--border)">SMS Integration (Africa's Talking)</div>
-          <div class="alert alert-info" style="margin-bottom:.75rem">&#8505; All organisations use these credentials. Orgs only see SMS Active/Inactive status.</div>
+          <div style="font-size:.78rem;font-weight:600;color:var(--ink);margin:1rem 0 .5rem;padding-top:.75rem;border-top:1px solid var(--border)">SMS Integration</div>
+          <div class="alert alert-info" style="margin-bottom:.75rem">&#8505; All organisations use these credentials for bulk SMS. Orgs only see Active/Inactive status.</div>
+          <div class="form-row single">
+            <div class="form-group">
+              <label class="form-label">Active SMS Provider</label>
+              <select class="form-select" id="sp-sms-provider">
+                <option value="leopard">SMS Leopard (Primary)</option>
+                <option value="celcom">Celcom Africa</option>
+                <option value="at">Africa's Talking (Backup)</option>
+              </select>
+            </div>
+          </div>
+          <div style="font-size:.75rem;font-weight:600;color:var(--ink-soft);margin:.75rem 0 .4rem">SMS Leopard</div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Access Token</label><input class="form-input" type="password" id="sp-leopard-token" placeholder="Paste your SMS Leopard Access Token"/></div>
+            <div class="form-group"><label class="form-label">Sender ID (optional)</label><input class="form-input" id="sp-leopard-sender" placeholder="e.g. GroupYetu (once approved)"/></div>
+          </div>
+          <div style="font-size:.75rem;font-weight:600;color:var(--ink-soft);margin:.75rem 0 .4rem">Africa's Talking (Backup)</div>
           <div class="form-row">
             <div class="form-group"><label class="form-label">AT Username</label><input class="form-input" id="sp-at-username" placeholder="Your AT account username"/></div>
             <div class="form-group"><label class="form-label">AT API Key</label><input class="form-input" type="password" id="sp-at-key" placeholder="Your AT API key"/></div>
           </div>
           <div class="form-row single">
-            <div class="form-group"><label class="form-label">Sender ID</label><input class="form-input" id="sp-at-sender" placeholder="e.g. GY360 (once approved by AT)"/></div>
+            <div class="form-group"><label class="form-label">AT Sender ID</label><input class="form-input" id="sp-at-sender" placeholder="e.g. GY360 (once approved by AT)"/></div>
           </div>
 
           <div style="font-size:.78rem;font-weight:600;color:var(--ink);margin:1rem 0 .5rem;padding-top:.75rem;border-top:1px solid var(--border)">M-Pesa Daraja (Automated Subscription Payments)</div>
@@ -4655,14 +4671,14 @@
 
 
   <!-- GroupYetu360 Scripts — load order matters -->
-  <script src="js/auth.js?v=2026062208"></script>
-  <script src="js/utils.js?v=2026062208"></script>
-  <script src="js/dashboard.js?v=2026062208"></script>
-  <script src="js/members.js?v=2026062208"></script>
-  <script src="js/finance.js?v=2026062208"></script>
-  <script src="js/settings.js?v=2026062208"></script>
-  <script src="js/portal.js?v=2026062208"></script>
-  <script src="js/modules.js?v=2026062208"></script>
+  <script src="js/auth.js?v=2026062209"></script>
+  <script src="js/utils.js?v=2026062209"></script>
+  <script src="js/dashboard.js?v=2026062209"></script>
+  <script src="js/members.js?v=2026062209"></script>
+  <script src="js/finance.js?v=2026062209"></script>
+  <script src="js/settings.js?v=2026062209"></script>
+  <script src="js/portal.js?v=2026062209"></script>
+  <script src="js/modules.js?v=2026062209"></script>
   <script>
     // Bootstrap — runs after all JS files are loaded
     async function start() {

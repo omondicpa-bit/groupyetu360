@@ -669,6 +669,13 @@ async function loadSASupport() {
   setVal('sp-bank-account-name', s.bank_account_name||'EPH Technologies');
   setVal('sp-paybill', s.paybill||'');
   setVal('sp-whatsapp', s.whatsapp||'https://wa.me/254702903544?text=Hello%20GroupYetu360%20Support');
+  // SMS provider selector
+  const provEl = document.getElementById('sp-sms-provider');
+  if (provEl) provEl.value = s.sms_provider || 'leopard';
+  // SMS Leopard
+  setVal('sp-leopard-token', s.sms_leopard_access_token||'');
+  setVal('sp-leopard-sender', s.sms_leopard_sender_id||'');
+  // Africa's Talking (backup)
   setVal('sp-at-username', s.at_username||'');
   setVal('sp-at-key', s.at_api_key||'');
   setVal('sp-at-sender', s.at_sender_id||'');
@@ -684,6 +691,7 @@ async function loadSASupport() {
 
 async function saveSupportSettings() {
   const atKey = document.getElementById('sp-at-key')?.value?.trim();
+  const leopardToken = document.getElementById('sp-leopard-token')?.value?.trim();
   const darajaKey = document.getElementById('sp-daraja-key')?.value?.trim();
   const darajaSecret = document.getElementById('sp-daraja-secret')?.value?.trim();
   const darajaPasskey = document.getElementById('sp-daraja-passkey')?.value?.trim();
@@ -696,6 +704,12 @@ async function saveSupportSettings() {
     bank_account_name: document.getElementById('sp-bank-account-name')?.value?.trim(),
     paybill: document.getElementById('sp-paybill')?.value?.trim()||null,
     whatsapp: document.getElementById('sp-whatsapp')?.value?.trim()||null,
+    // SMS provider
+    sms_provider: document.getElementById('sp-sms-provider')?.value || 'leopard',
+    // SMS Leopard
+    sms_leopard_access_token: leopardToken || null,
+    sms_leopard_sender_id: document.getElementById('sp-leopard-sender')?.value?.trim()||null,
+    // Africa's Talking (backup)
     at_username: document.getElementById('sp-at-username')?.value?.trim()||null,
     at_api_key: atKey || null,
     at_sender_id: document.getElementById('sp-at-sender')?.value?.trim()||null,
@@ -710,6 +724,133 @@ async function saveSupportSettings() {
   const { error } = await sb.from('platform_settings').upsert(payload);
   if (error) { toast('Error: '+error.message); return; }
   toast('Support settings saved successfully');
+}
+
+
+/* ════════════════════════════════════════════════════
+   SMS — UNIFIED SEND LAYER
+   Routes to SMS Leopard (primary) or Africa's Talking (backup)
+   based on platform_settings.sms_provider
+════════════════════════════════════════════════════ */
+
+// Format a phone number to E.164 (254XXXXXXXXX)
+function formatPhone(phone) {
+  if (!phone) return '';
+  let p = phone.toString().replace(/\s+/g, '').replace(/[^0-9+]/g, '');
+  if (p.startsWith('+254')) return p.replace('+', '');
+  if (p.startsWith('254')) return p;
+  if (p.startsWith('0')) return '254' + p.slice(1);
+  if (p.startsWith('7') || p.startsWith('1')) return '254' + p;
+  return p;
+}
+
+// Track SMS usage in sms_usage table (deducts from bundle)
+async function trackSmsUsage(orgId, count) {
+  if (!orgId || !count) return;
+  try {
+    const month = new Date().toISOString().slice(0, 7);
+    const { data: existing } = await sb.from('sms_usage')
+      .select('id, messages_sent').eq('org_id', orgId).eq('month', month).maybeSingle();
+    if (existing) {
+      await sb.from('sms_usage').update({
+        messages_sent: (existing.messages_sent || 0) + count
+      }).eq('id', existing.id);
+    } else {
+      await sb.from('sms_usage').insert({ org_id: orgId, month, messages_sent: count });
+    }
+    // Deduct from org sms_bundle
+    const { data: org } = await sb.from('organisations').select('sms_bundle').eq('id', orgId).single();
+    if (org) {
+      const newBundle = Math.max(0, (org.sms_bundle || 0) - count);
+      await sb.from('organisations').update({ sms_bundle: newBundle }).eq('id', orgId);
+      if (currentOrg?.id === orgId) currentOrg.sms_bundle = newBundle;
+    }
+  } catch(e) {
+    console.log('trackSmsUsage error:', e.message);
+  }
+}
+
+// Unified SMS sender — reads sms_provider from platform_settings
+// to: array of raw phone strings (will be formatted automatically)
+// message: string
+// Returns { sent: N, failed: N }
+async function sendSMS(to, message) {
+  if (!to?.length || !message) return { sent: 0, failed: to?.length || 0 };
+
+  const recipients = to.map(formatPhone).filter(Boolean);
+  if (!recipients.length) return { sent: 0, failed: 0 };
+
+  // Load platform settings
+  let provider = 'leopard';
+  let senderId = null;
+  let atKey = null, atUser = 'sandbox', atSender = null;
+
+  try {
+    const { data: ps } = await sb.from('platform_settings').select('*').maybeSingle();
+    if (ps) {
+      provider = ps.sms_provider || 'leopard';
+      senderId = ps.sms_leopard_sender_id || null;
+      atKey = ps.at_api_key || null;
+      atUser = ps.at_username || 'sandbox';
+      atSender = ps.at_sender_id || null;
+    }
+  } catch(e) {
+    console.log('sendSMS: could not load platform settings, defaulting to leopard');
+  }
+
+  const SUPABASE_URL = 'https://eengldzvvgplgzvbutal.supabase.co/functions/v1';
+
+  // ── SMS LEOPARD ──
+  if (provider === 'leopard') {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/sms-leopard`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        },
+        body: JSON.stringify({ to: recipients, message, senderId })
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`sms-leopard edge function error ${res.status}: ${err}`);
+      }
+      const result = await res.json();
+      return { sent: result.sent || 0, failed: result.failed || 0 };
+    } catch(e) {
+      console.error('sendSMS [leopard] error:', e.message);
+      return { sent: 0, failed: recipients.length };
+    }
+  }
+
+  // ── AFRICA'S TALKING (backup) ──
+  if (provider === 'at') {
+    if (!atKey) return { sent: 0, failed: recipients.length };
+    try {
+      const res = await fetch(`${SUPABASE_URL}/send-sms`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        },
+        body: JSON.stringify({
+          username: atUser,
+          apiKey: atKey,
+          to: recipients,
+          message,
+          senderId: atSender
+        })
+      });
+      const result = await res.json();
+      return { sent: result.sent || 0, failed: result.failed || 0 };
+    } catch(e) {
+      console.error('sendSMS [at] error:', e.message);
+      return { sent: 0, failed: recipients.length };
+    }
+  }
+
+  console.warn('sendSMS: unknown provider', provider);
+  return { sent: 0, failed: recipients.length };
 }
 
 
