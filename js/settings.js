@@ -1,3 +1,37 @@
+// ── GLOBAL CART ALIASES — always available regardless of parse order ─────────
+window.addSMSToCart = function(btn) {
+  document.querySelectorAll('.pay-pill.sms').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (typeof _billingCart !== 'undefined') {
+    _billingCart.sms = parseInt(btn.dataset.sms);
+    _billingCart.smsAmount = parseInt(btn.dataset.amount);
+    if (typeof refreshCartUI === 'function') refreshCartUI();
+    document.getElementById('billing-cart-card')?.scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+};
+window.addPlanToCart = function(plan, price, isFree) {
+  if (typeof _billingCart !== 'undefined') {
+    _billingCart.plan = plan;
+    _billingCart.planAmount = price;
+    _billingCart.planIsFree = isFree;
+    if (typeof refreshCartUI === 'function') refreshCartUI();
+    document.getElementById('billing-cart-card')?.scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+};
+window.activateFreeTrialFromCart = function() {
+  activateFreeTrialFromCart_impl();
+};
+window.submitCartPayment = function() {
+  submitCartPayment_impl();
+};
+window.clearBillingCart = function() {
+  if (typeof _billingCart !== 'undefined') {
+    _billingCart = { plan: null, planAmount: 0, sms: 0, smsAmount: 0 };
+    document.querySelectorAll('.pay-pill.sms').forEach(b => b.classList.remove('active'));
+    if (typeof refreshCartUI === 'function') refreshCartUI();
+  }
+};
+
 
 function updateBillingHero(org) {
   if (!org) return;
@@ -2113,7 +2147,7 @@ function refreshCartUI() {
   }
 }
 
-async function activateFreeTrialFromCart() {
+async function activateFreeTrialFromCart_impl() {
   const plan = _billingCart.plan;
   const statusEl = document.getElementById('cart-trial-status');
   if (!plan) return;
@@ -2143,7 +2177,7 @@ async function activateFreeTrialFromCart() {
   }
 }
 
-async function submitCartPayment() {
+async function submitCartPayment_impl() {
   const ref    = document.getElementById('cart-pay-ref')?.value?.trim();
   const amount = document.getElementById('cart-pay-amount')?.value;
   const statusEl = document.getElementById('cart-pay-status');
