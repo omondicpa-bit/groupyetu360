@@ -675,6 +675,8 @@ async function loadSASupport() {
   // SMS Leopard
   setVal('sp-leopard-token', s.sms_leopard_access_token||'');
   setVal('sp-leopard-sender', s.sms_leopard_sender_id||'');
+  const savedBadge = document.getElementById('sp-leopard-saved');
+  if (savedBadge) savedBadge.style.display = s.sms_leopard_access_token ? 'inline' : 'none';
   // Africa's Talking (backup)
   setVal('sp-at-username', s.at_username||'');
   setVal('sp-at-key', s.at_api_key||'');
@@ -782,13 +784,14 @@ async function sendSMS(to, message) {
 
   // Load platform settings
   let provider = 'leopard';
-  let senderId = null;
+  let leopardToken = null, senderId = null;
   let atKey = null, atUser = 'sandbox', atSender = null;
 
   try {
     const { data: ps } = await sb.from('platform_settings').select('*').maybeSingle();
     if (ps) {
       provider = ps.sms_provider || 'leopard';
+      leopardToken = ps.sms_leopard_access_token || null;
       senderId = ps.sms_leopard_sender_id || null;
       atKey = ps.at_api_key || null;
       atUser = ps.at_username || 'sandbox';
@@ -800,30 +803,39 @@ async function sendSMS(to, message) {
 
   const SUPABASE_URL = 'https://eengldzvvgplgzvbutal.supabase.co/functions/v1';
 
-  // ── SMS LEOPARD ──
+  // ── SMS LEOPARD (direct browser call — avoids Supabase Edge Function DNS restriction) ──
   if (provider === 'leopard') {
+    if (!leopardToken) {
+      console.error('sendSMS [leopard]: no access token in platform_settings');
+      return { sent: 0, failed: recipients.length };
+    }
     try {
-      const res = await fetch(`${SUPABASE_URL}/sms-leopard`, {
+      const destination = recipients.map(number => ({ number }));
+      const res = await fetch('https://sms.smsleopard.com/api/sms/v1/send', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_KEY}`
+          'Authorization': `Bearer ${leopardToken}`
         },
-        body: JSON.stringify({ to: recipients, message, senderId })
+        body: JSON.stringify({
+          source: senderId || 'GroupYetu',
+          message,
+          destination
+        })
       });
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(`sms-leopard edge function error ${res.status}: ${err}`);
-      }
       const result = await res.json();
-      return { sent: result.sent || 0, failed: result.failed || 0 };
+      console.log('[sendSMS leopard] response:', JSON.stringify(result));
+      if (!res.ok) throw new Error(result?.message || `HTTP ${res.status}`);
+      const sent = result?.sent ?? (result?.success ? recipients.length : 0);
+      const failed = result?.failed ?? 0;
+      return { sent, failed };
     } catch(e) {
       console.error('sendSMS [leopard] error:', e.message);
       return { sent: 0, failed: recipients.length };
     }
   }
 
-  // ── AFRICA'S TALKING (backup) ──
+  // ── AFRICA'S TALKING (backup, via Edge Function) ──
   if (provider === 'at') {
     if (!atKey) return { sent: 0, failed: recipients.length };
     try {
