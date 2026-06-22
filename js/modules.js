@@ -206,60 +206,19 @@ async function sendMeetingReminders() {
       return;
     }
 
-    // Get platform AT credentials
-    let atKey = null, atUser = 'sandbox', atSender = null;
-    try {
-      const { data: ps } = await sb.from('platform_settings')
-        .select('at_api_key,at_username,at_sender_id').maybeSingle();
-      if (ps?.at_api_key) {
-        atKey = ps.at_api_key;
-        atUser = ps.at_username || 'sandbox';
-        atSender = ps.at_sender_id;
-      }
-    } catch(e) {}
-
-    if (!atKey) {
-      if (statusEl) {
-        statusEl.style.display = 'block';
-        statusEl.innerHTML = '<div class="alert alert-warn">SMS not configured. Contact GroupYetu360 support to activate SMS.</div>';
-      }
-      if (btn) { btn.disabled = false; btn.textContent = '📱 Send Reminders'; }
-      return;
-    }
-
     // Send reminder for each upcoming meeting
     let totalSent = 0;
     for (const meeting of meetings) {
       const meetDate = new Date(meeting.meeting_date).toDateString();
       const message = `Dear Member, reminder: ${currentOrg.name} meeting is on ${meetDate} at ${meeting.meeting_time||'8:30 PM'} (${meeting.venue||'Online'}). Please be available. Regards, GroupYetu360.`;
 
-      // Get active members with phones
-      const phones = allMembers
-        .filter(m => m.phone && m.status === 'active')
-        .map(m => formatPhone(m.phone));
-
+      const phones = allMembers.filter(m => m.phone && m.status === 'active').map(m => m.phone);
       if (!phones.length) continue;
 
-      const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/send-sms', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_KEY}`
-        },
-        body: JSON.stringify({
-          username: atUser,
-          apiKey: atKey,
-          to: phones,
-          message,
-          senderId: atSender
-        })
-      });
-
-      const result = await res.json();
+      const result = await sendSMS(phones, message);
       const sent = result?.sent || 0;
       totalSent += sent;
 
-      // Log it
       await sb.from('messages_log').insert({
         org_id: currentOrg.id,
         recipient_type: 'meeting_reminder',
@@ -268,8 +227,7 @@ async function sendMeetingReminders() {
         sent_by: currentUser.id
       });
 
-      // Track SMS usage
-      await trackSmsUsage(currentOrg.id, sent);
+      if (sent > 0) await trackSmsUsage(currentOrg.id, sent);
     }
 
     if (statusEl) {
@@ -765,21 +723,26 @@ async function loadMessages() {
   renderPaymentMethods(currentOrg, 'msg-payment-methods-display', true);
 
   // ── SMS Status ──
-  let hasAT = false;
+  let smsActive = false;
   try {
-    const { data: ps } = await sb.from('platform_settings').select('at_api_key').maybeSingle();
-    hasAT = !!ps?.at_api_key;
+    const { data: ps } = await sb.from('platform_settings').select('sms_provider,sms_leopard_access_token,at_api_key').maybeSingle();
+    if (ps) {
+      const provider = ps.sms_provider || 'leopard';
+      if (provider === 'leopard') smsActive = !!ps.sms_leopard_access_token;
+      else if (provider === 'at') smsActive = !!ps.at_api_key;
+      else smsActive = true; // celcom — assume active if selected
+    }
   } catch(e) {}
 
   // Update hero dot
   const dot = document.getElementById('msg-status-dot');
   const lbl = document.getElementById('msg-status-label');
-  if (dot) dot.className = 'msg-status-dot ' + (hasAT ? 'active' : 'inactive');
-  if (lbl) lbl.textContent = hasAT ? 'SMS Active' : 'SMS Inactive';
+  if (dot) dot.className = 'msg-status-dot ' + (smsActive ? 'active' : 'inactive');
+  if (lbl) lbl.textContent = smsActive ? 'SMS Active' : 'SMS Inactive';
 
   const statusEl = document.getElementById('sms-status-body');
   if (statusEl) {
-    if (hasAT) {
+    if (smsActive) {
       // Show bundle usage
       const used = currentOrg?.sms_used || 0;
       const bundle = currentOrg?.sms_bundle || 0;
@@ -867,73 +830,24 @@ async function sendSms() {
   if (!body) { toast('Please enter a message'); return; }
   const recipientType = document.getElementById('sms-recipients').value;
 
-  // Get phone numbers based on recipient type
-  let recipients = [];
+  // Get raw phone numbers based on recipient type (sendSMS() will format them)
+  let rawPhones = [];
   if (recipientType === 'all') {
-    recipients = allMembers.filter(m => m.phone).map(m => formatPhone(m.phone));
+    rawPhones = allMembers.filter(m => m.phone).map(m => m.phone);
   } else if (recipientType === 'active') {
-    recipients = allMembers.filter(m => m.phone && m.status === 'active').map(m => formatPhone(m.phone));
+    rawPhones = allMembers.filter(m => m.phone && m.status === 'active').map(m => m.phone);
   } else if (recipientType === 'arrears') {
-    recipients = allMembers.filter(m => m.phone && m.status === 'arrears').map(m => formatPhone(m.phone));
+    rawPhones = allMembers.filter(m => m.phone && m.status === 'arrears').map(m => m.phone);
   }
 
-  if (!recipients.length) { toast('No phone numbers found for selected recipients'); return; }
+  if (!rawPhones.length) { toast('No phone numbers found for selected recipients'); return; }
 
-  // Check if org has AT credentials
-  const atKey = currentOrg?.at_api_key;
-  const atUser = currentOrg?.at_username || 'sandbox';
-
-  if (!atKey) {
-    // Log only — no AT credentials
-    await sb.from('messages_log').insert({
-      org_id: currentOrg?.id,
-      recipient_type: recipientType,
-      body,
-      recipient_count: recipients.length,
-      sent_by: currentUser.id
-    });
-    toast(`Message logged. Add Africa's Talking credentials in Settings to send live SMS.`);
-    document.getElementById('sms-body').value='';
-    updateSmsCount('');
-    loadMessages();
-    return;
-  }
-
-  // Send via Africa's Talking
-  toast('Sending SMS to ' + recipients.length + ' recipients…');
+  toast('Sending SMS to ' + rawPhones.length + ' recipients…');
   try {
-    const formData = new URLSearchParams();
-    formData.append('username', atUser);
-    formData.append('to', recipients.join(','));
-    formData.append('message', body);
-    if (currentOrg?.at_sender_id) formData.append('from', currentOrg.at_sender_id);
+    const result = await sendSMS(rawPhones, body);
+    const sent = result?.sent || 0;
+    const failed = result?.failed || 0;
 
-    // Call Edge Function via direct fetch with anon key
-    const edgeRes = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/send-sms', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_KEY}`
-      },
-      body: JSON.stringify({
-        username: atUser,
-        apiKey: atKey,
-        to: recipients,
-        message: body,
-        senderId: atSender
-      })
-    });
-
-    if (!edgeRes.ok) {
-      const errText = await edgeRes.text();
-      throw new Error(`Edge Function error ${edgeRes.status}: ${errText}`);
-    }
-
-    const smsResult = await edgeRes.json();
-    const sent = smsResult?.sent || 0;
-    const failed = smsResult?.failed || 0;
-
-    // Log to database
     await sb.from('messages_log').insert({
       org_id: currentOrg?.id,
       recipient_type: recipientType,
@@ -942,9 +856,8 @@ async function sendSms() {
       sent_by: currentUser.id
     });
 
-    if (smsResult?.sent > 0) {
-      await trackSmsUsage(currentOrg.id, smsResult.sent);
-    }
+    if (sent > 0) await trackSmsUsage(currentOrg.id, sent);
+
     if (failed > 0) {
       toast(`SMS sent to ${sent} recipients. ${failed} failed.`);
     } else {
@@ -952,7 +865,6 @@ async function sendSms() {
     }
   } catch(e) {
     console.error('SMS error:', e);
-    // Still log the attempt
     await sb.from('messages_log').insert({
       org_id: currentOrg?.id,
       recipient_type: recipientType,
@@ -969,57 +881,24 @@ async function sendSms() {
 }
 
 async function testSms() {
-  const body = document.getElementById('sms-body').value.trim() || `GroupYetu360 test SMS. Your platform is connected to Africa's Talking.`;
+  const body = document.getElementById('sms-body').value.trim() || `GroupYetu360 test SMS. Platform SMS is active and working.`;
   const myPhone = currentProfile?.phone;
   if (!myPhone) { toast('Add your phone number in My Account first'); return; }
-  let atKey = null, atUser = 'sandbox', atSender = null;
+  toast('Sending test SMS to ' + myPhone + '…');
   try {
-    const { data: ps } = await sb.from('platform_settings').select('at_api_key,at_username,at_sender_id').maybeSingle();
-    if (ps?.at_api_key) { atKey = ps.at_api_key; atUser = ps.at_username||'sandbox'; atSender = ps.at_sender_id; }
-  } catch(e) {}
-  if (!atKey) { toast('SMS not configured. Contact GroupYetu360 support.'); return; }
-  try {
-    const formData = new URLSearchParams();
-    formData.append('username', atUser);
-    formData.append('to', formatPhone(myPhone));
-    formData.append('message', body);
-    const baseUrl = atUser === 'sandbox'
-      ? 'https://api.sandbox.africastalking.com/version1/messaging'
-      : 'https://api.africastalking.com/version1/messaging';
-    const testRes = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/send-sms', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_KEY}`
-      },
-      body: JSON.stringify({
-        username: atUser,
-        apiKey: atKey,
-        to: [formatPhone(myPhone)],
-        message: body,
-        senderId: atSender
-      })
-    });
-    const testResult = await testRes.json();
-    console.log('Test SMS result:', testResult);
-    if (testResult?.sent > 0) {
+    const result = await sendSMS([myPhone], body);
+    console.log('Test SMS result:', result);
+    if (result?.sent > 0) {
       toast(`✓ Test SMS sent to ${myPhone}. Check your phone!`);
     } else {
-      toast(`SMS attempted. Status: ${JSON.stringify(testResult)}`);
+      toast(`SMS attempted but 0 delivered. Check Edge Function logs. Raw: ${JSON.stringify(result)}`);
     }
   } catch(e) {
     toast('Test failed: ' + e.message);
   }
 }
 
-function formatPhone(phone) {
-  // Convert Kenyan numbers to international format
-  phone = phone.replace(/\s+/g, '').replace(/-/g, '');
-  if (phone.startsWith('0')) return '+254' + phone.slice(1);
-  if (phone.startsWith('254')) return '+' + phone;
-  if (phone.startsWith('+')) return phone;
-  return '+254' + phone;
-}
+// formatPhone() is defined in utils.js — available globally
 
 
 /* ── Payment methods renderer ── */
