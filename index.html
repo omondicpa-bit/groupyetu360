@@ -2625,6 +2625,16 @@
           </div>
         </div>
         <div id="sa-activity-list"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+        <table style="width:100%;border-collapse:collapse;display:none" id="sa-activity-table">
+          <thead><tr style="font-size:.65rem;text-transform:uppercase;color:var(--ink-faint);border-bottom:1px solid var(--border)">
+            <th style="padding:.5rem 1.25rem;text-align:left">Time</th>
+            <th style="padding:.5rem;text-align:left">Action</th>
+            <th style="padding:.5rem;text-align:left">User</th>
+            <th style="padding:.5rem;text-align:left">Detail</th>
+            <th style="padding:.5rem;text-align:left">Org</th>
+          </tr></thead>
+          <tbody id="sa-activity-tbody"></tbody>
+        </table>
       </div>
     </div>
 
@@ -2641,15 +2651,12 @@
               <div style="font-size:.85rem;font-weight:600;color:var(--ink)">Free Trial Promo (60 days)</div>
               <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.2rem">When ON, new organisations upgrading for the first time get 60 days free. Existing trials are unaffected when turned off.</div>
             </div>
-            <label style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;margin-left:1rem">
-              <input type="checkbox" id="sp-promo-active" style="opacity:0;width:0;height:0;position:absolute">
-              <span onclick="document.getElementById('sp-promo-active').click()" id="sp-promo-slider" style="position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:24px;transition:.3s"></span>
-            </label>
-            <style>
-              #sp-promo-active:checked + #sp-promo-slider { background: var(--teal, #2a9d8f); }
-              #sp-promo-active:checked + #sp-promo-slider::after { transform: translateX(20px); }
-              #sp-promo-slider::after { content:''; position:absolute; left:2px; top:2px; width:20px; height:20px; background:#fff; border-radius:50%; transition:.3s; }
-            </style>
+            <div style="flex-shrink:0;margin-left:1rem">
+              <input type="checkbox" id="sp-promo-active" style="display:none" onchange="updatePromoToggleUI()">
+              <div onclick="document.getElementById('sp-promo-active').click()" id="sp-promo-toggle-ui" style="width:44px;height:24px;border-radius:24px;background:#ccc;position:relative;cursor:pointer;transition:.3s">
+                <div id="sp-promo-knob" style="width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.3)"></div>
+              </div>
+            </div>
           </div>
           <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0">
             <div>
@@ -4648,14 +4655,14 @@
 
 
   <!-- GroupYetu360 Scripts — load order matters -->
-  <script src="js/auth.js?v=2026062205"></script>
-  <script src="js/utils.js?v=2026062205"></script>
-  <script src="js/dashboard.js?v=2026062205"></script>
-  <script src="js/members.js?v=2026062205"></script>
-  <script src="js/finance.js?v=2026062205"></script>
-  <script src="js/settings.js?v=2026062205"></script>
-  <script src="js/portal.js?v=2026062205"></script>
-  <script src="js/modules.js?v=2026062205"></script>
+  <script src="js/auth.js?v=2026062206"></script>
+  <script src="js/utils.js?v=2026062206"></script>
+  <script src="js/dashboard.js?v=2026062206"></script>
+  <script src="js/members.js?v=2026062206"></script>
+  <script src="js/finance.js?v=2026062206"></script>
+  <script src="js/settings.js?v=2026062206"></script>
+  <script src="js/portal.js?v=2026062206"></script>
+  <script src="js/modules.js?v=2026062206"></script>
   <script>
     // Bootstrap — runs after all JS files are loaded
     async function start() {

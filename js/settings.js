@@ -1684,6 +1684,16 @@ async function handleDeclinedRole() {
 
 // ── SA SUPPORT / PLATFORM SETTINGS ────────────────────────────────────────────
 
+function updatePromoToggleUI() {
+  const checkbox = document.getElementById('sp-promo-active');
+  const ui       = document.getElementById('sp-promo-toggle-ui');
+  const knob     = document.getElementById('sp-promo-knob');
+  if (!checkbox || !ui || !knob) return;
+  const on = checkbox.checked;
+  ui.style.background  = on ? '#2a9d8f' : '#ccc';
+  knob.style.transform = on ? 'translateX(20px)' : 'translateX(0)';
+}
+
 async function loadSASupport() {
   try {
     const { data: s } = await sb.from('platform_settings').select('*').limit(1).maybeSingle();
@@ -1709,7 +1719,7 @@ async function loadSASupport() {
     const promoDaysEl = document.getElementById('sp-promo-days');
     if (promoDaysEl) promoDaysEl.value = s.promo_days||'60';
     const promoEl = document.getElementById('sp-promo-active');
-    if (promoEl) promoEl.checked = s.promo_active === true;
+    if (promoEl) { promoEl.checked = s.promo_active === true; updatePromoToggleUI(); }
   } catch(e) { console.error('loadSASupport:', e); }
 }
 
@@ -1887,24 +1897,32 @@ async function rejectPayment(reqId) {
 // ── SA ACTIVITY LOG ────────────────────────────────────────────────────────────
 
 async function loadSAActivity() {
-  const tbody = document.getElementById('sa-activity-tbody');
+  const listEl  = document.getElementById('sa-activity-list');
+  const tableEl = document.getElementById('sa-activity-table');
+  const tbody   = document.getElementById('sa-activity-tbody');
   if (!tbody) return;
+  if (listEl)  listEl.innerHTML  = '';
+  if (tableEl) tableEl.style.display = 'none';
   tbody.innerHTML = '<tr><td colspan="5"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr>';
+  if (tableEl) tableEl.style.display = '';
   try {
-    const orgFilter  = document.getElementById('activity-filter-org')?.value || '';
+    const orgFilter  = document.getElementById('activity-filter-org')?.value  || '';
     const typeFilter = document.getElementById('activity-filter-action')?.value || '';
     let q = sb.from('activity_log').select('*,profiles(full_name,email)').order('created_at', { ascending: false }).limit(200);
     if (orgFilter)  q = q.eq('org_id', orgFilter);
     if (typeFilter) q = q.ilike('action', `%${typeFilter}%`);
     const { data, error } = await q;
     if (error) throw error;
-    if (!data?.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--ink-faint)">No activity found</td></tr>'; return; }
-    tbody.innerHTML = data.map(r => `<tr>
-      <td style="font-size:.72rem;color:var(--ink-faint)">${new Date(r.created_at).toLocaleString()}</td>
-      <td style="font-size:.78rem;font-weight:600">${r.action||'—'}</td>
-      <td style="font-size:.75rem">${r.profiles?.full_name||r.user_id?.slice(0,8)||'—'}</td>
-      <td style="font-size:.75rem;color:var(--ink-faint)">${r.description||'—'}</td>
-      <td style="font-size:.72rem;color:var(--ink-faint)">${r.org_id?.slice(0,8)||'—'}</td>
+    if (!data?.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--ink-faint)">No activity found</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(r => `<tr style="border-bottom:0.5px solid var(--border)">
+      <td style="font-size:.72rem;color:var(--ink-faint);padding:.5rem 1.25rem">${new Date(r.created_at).toLocaleString()}</td>
+      <td style="font-size:.75rem;font-weight:600;padding:.5rem">${r.action||'—'}</td>
+      <td style="font-size:.73rem;padding:.5rem">${r.profiles?.full_name||r.user_id?.slice(0,8)||'—'}</td>
+      <td style="font-size:.73rem;color:var(--ink-faint);padding:.5rem">${r.description||'—'}</td>
+      <td style="font-size:.7rem;color:var(--ink-faint);padding:.5rem">${r.org_id?.slice(0,8)||'—'}</td>
     </tr>`).join('');
   } catch(e) {
     tbody.innerHTML = `<tr><td colspan="5" style="color:var(--danger);padding:1rem">${e.message}</td></tr>`;
