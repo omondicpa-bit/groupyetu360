@@ -1950,7 +1950,10 @@ function renderBillingPlanCards() {
   const isTrial    = org.subscription_status === 'trial';
   const trialUsed  = org.trial_used === true;
   const promoOn    = isPromoActive();
-  const promoDays  = parseInt(_platformSettings['promo_days'] || '60');
+  const promoDays  = parseInt((_platformSettings && _platformSettings['promo_days']) || '60');
+  const planOrder  = (typeof PLAN_ORDER !== 'undefined') ? PLAN_ORDER : ['starter','basic','standard','pro'];
+  const planPrices = (typeof PLAN_PRICES !== 'undefined') ? PLAN_PRICES : { basic:3000, standard:6000, pro:12000 };
+  const planLabels = (typeof PLAN_LABELS !== 'undefined') ? PLAN_LABELS : { starter:'Starter', basic:'Basic', standard:'Standard', pro:'Pro' };
 
   const promoBanner = document.getElementById('billing-promo-banner');
   if (promoBanner) {
@@ -1969,7 +1972,7 @@ function renderBillingPlanCards() {
     if (!card || !btnEl) return;
 
     const isCurrent = effectivePlan === plan;
-    const isHigher  = PLAN_ORDER.indexOf(plan) > PLAN_ORDER.indexOf(effectivePlan);
+    const isHigher  = planOrder.indexOf(plan) > planOrder.indexOf(effectivePlan);
     const isPaid    = plan !== 'starter';
     const midTrialUpgrade = isTrial && isHigher;
 
@@ -1979,8 +1982,8 @@ function renderBillingPlanCards() {
     // Promo sub-text
     if (promoEl && isPaid) {
       promoEl.innerHTML = (promoOn && !trialUsed && !midTrialUpgrade)
-        ? `<strong style="color:var(--teal)">${promoDays} days free</strong>, then Ksh ${PLAN_PRICES[plan].toLocaleString()}/yr`
-        : `Ksh ${PLAN_PRICES[plan].toLocaleString()}/yr`;
+        ? `<strong style="color:var(--teal)">${promoDays} days free</strong>, then Ksh ${planPrices[plan].toLocaleString()}/yr`
+        : `Ksh ${planPrices[plan].toLocaleString()}/yr`;
     }
 
     // Action button
@@ -1997,11 +2000,11 @@ function renderBillingPlanCards() {
       const canFreeTrial = promoOn && !trialUsed && !midTrialUpgrade;
       if (canFreeTrial) {
         btnEl.innerHTML = `<button class="btn btn-primary btn-sm" style="width:100%;background:var(--teal);font-size:.78rem;font-weight:700;padding:.5rem" onclick="addPlanToCart('${plan}', 0, true)">
-          🎉 Try ${PLAN_LABELS[plan]} free for ${promoDays} days →
+          🎉 Try ${planLabels[plan]} free for ${promoDays} days →
         </button>`;
       } else {
-        const price = PLAN_PRICES[plan];
-        const label = midTrialUpgrade ? `Upgrade to ${PLAN_LABELS[plan]} · Ksh ${price.toLocaleString()}` : `Upgrade · Ksh ${price.toLocaleString()}/yr`;
+        const price = planPrices[plan];
+        const label = midTrialUpgrade ? `Upgrade to ${planLabels[plan]} · Ksh ${price.toLocaleString()}` : `Upgrade · Ksh ${price.toLocaleString()}/yr`;
         btnEl.innerHTML = `<button class="btn btn-primary btn-sm" style="width:100%;background:var(--maroon);font-size:.75rem;padding:.45rem" onclick="addPlanToCart('${plan}', ${price}, false)">
           ${label} →
         </button>`;
