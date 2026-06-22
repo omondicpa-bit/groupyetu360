@@ -2354,7 +2354,7 @@
       <div id="billing-hero" style="border-radius:12px;padding:1.5rem 1.75rem;margin-bottom:1.25rem;background:linear-gradient(135deg,var(--maroon) 0%,#5a0016 100%);color:#fff">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem">
           <div>
-            <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;opacity:.6;margin-bottom:.3rem">Current Plan</div>
+            <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;opacity:.6;margin-bottom:.3rem">Current Plan</div>
             <div id="billing-plan-name" style="font-family:'Crimson Pro',serif;font-size:2.2rem;font-weight:700;line-height:1">Starter</div>
             <div id="billing-plan-meta" style="font-size:.78rem;opacity:.7;margin-top:.25rem">Free · Up to 15 members</div>
           </div>
@@ -2417,9 +2417,9 @@
             <div id="plan-btn-basic" style="margin-top:.75rem"></div>
           </div>
 
-          <!-- Standard (featured) -->
+          <!-- Standard -->
           <div id="plan-card-standard" style="padding:1.1rem;border-right:1px solid var(--border);background:var(--maroon-pale);position:relative">
-            <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--maroon);border-radius:0"></div>
+            <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--maroon)"></div>
             <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--maroon);margin-bottom:.35rem">Standard ⭐ Most Popular</div>
             <div style="font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:var(--maroon)">Ksh 6,000</div>
             <div style="font-size:.65rem;color:var(--ink-faint);margin-bottom:.5rem">Ksh 500/month</div>
@@ -2438,7 +2438,7 @@
             <div style="font-size:.65rem;color:var(--ink-faint);margin-bottom:.5rem">Ksh 1,000/month</div>
             <div style="font-size:.7rem;font-weight:600;color:var(--teal);background:var(--teal-pale,#e6f4ef);padding:.2rem .45rem;border-radius:3px;display:inline-block;margin-bottom:.75rem">Unlimited members</div>
             <div style="font-size:.7rem;color:var(--ink-soft);line-height:1.85">
-              ✓ All Standard features<br>✓ Custom features for you<br>✓ Advanced reports<br>✓ Dedicated account manager<br>✓ Priority 24/7 support<br>✓ Nationwide on-site training
+              ✓ All Standard features<br>✓ Custom features<br>✓ Advanced reports<br>✓ Dedicated account manager<br>✓ Priority 24/7 support<br>✓ Nationwide on-site training
             </div>
             <div id="billing-promo-pro" style="font-size:.65rem;color:var(--ink-faint);margin-top:.6rem"></div>
             <div id="plan-btn-pro" style="margin-top:.75rem"></div>
@@ -2446,84 +2446,97 @@
 
         </div>
         <div style="border-top:1px solid var(--border);padding:.8rem 1.25rem;background:var(--teal-pale,#e6f4ef);border-radius:0 0 8px 8px;font-size:.75rem;color:var(--teal)">
-          <strong>Bulk SMS is pay-as-you-go on all plans.</strong> Ksh 1.50 per SMS. Buy a bundle below to pre-load credit — credit never expires.
+          <strong>Bulk SMS is pay-as-you-go on all plans.</strong> Ksh 1.50 per SMS. Buy a bundle to pre-load credit — credit never expires.
+        </div>
+      </div>
+
+      <!-- ── CART & CHECKOUT ── -->
+      <div class="card" id="billing-cart-card" style="display:none;margin-bottom:1.25rem;border:2px solid var(--teal)">
+        <div class="card-header" style="background:var(--teal-pale,#e6f4ef)">
+          <div><div class="card-title" style="color:var(--teal)">🛒 Your Order</div></div>
+          <button onclick="clearBillingCart()" style="background:none;border:none;cursor:pointer;font-size:.75rem;color:var(--ink-faint)">Clear ✕</button>
+        </div>
+        <div class="card-body">
+          <!-- Cart items -->
+          <div id="billing-cart-items" style="margin-bottom:1rem"></div>
+
+          <!-- Cart total -->
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:.75rem 0;border-top:2px solid var(--border);margin-bottom:1rem">
+            <div style="font-weight:700;font-size:.9rem">Total</div>
+            <div id="billing-cart-total" style="font-size:1.1rem;font-weight:700;color:var(--maroon)">Ksh 0</div>
+          </div>
+
+          <!-- Free trial activation (shown when total = 0 and plan in cart) -->
+          <div id="cart-free-trial-section" style="display:none">
+            <div style="background:var(--teal-pale,#e6f4ef);border:1.5px solid var(--teal);border-radius:8px;padding:.85rem 1rem;margin-bottom:.85rem;font-size:.8rem;color:var(--teal)">
+              🎉 <strong>Free trial available!</strong> Activate your plan now — no payment needed. Trial ends on <strong id="cart-trial-expiry-date"></strong>.
+            </div>
+            <button class="btn btn-primary" style="width:100%;background:var(--teal);font-size:.9rem;padding:.75rem;font-weight:700" onclick="activateFreeTrialFromCart()">
+              ✓ Activate Free Trial — Ksh 0
+            </button>
+            <div id="cart-trial-status" style="font-size:.78rem;margin-top:.5rem"></div>
+          </div>
+
+          <!-- Payment section (shown when payment required) -->
+          <div id="cart-payment-section" style="display:none">
+            <div id="cart-bank-details" style="border-left:4px solid var(--maroon);padding:.75rem 1rem;background:var(--surface);border-radius:4px;margin-bottom:.85rem;font-size:.8rem;line-height:1.7"></div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">M-Pesa Reference</label>
+                <input class="form-input" id="cart-pay-ref" placeholder="e.g. QBC4X8YZDE"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Amount to Pay (Ksh)</label>
+                <input class="form-input" id="cart-pay-amount" readonly style="font-weight:700;color:var(--maroon)"/>
+              </div>
+            </div>
+            <div style="border-left:4px solid var(--warning,#c49a30);padding:.65rem 1rem;background:#fff9e6;border-radius:4px;font-size:.75rem;color:var(--ink-soft);margin-bottom:1rem">
+              ✓ Plan activated within minutes of approval. WhatsApp <strong>0702 903 544</strong> for faster processing.
+            </div>
+            <button class="btn btn-primary" onclick="submitCartPayment()" style="width:100%;background:var(--maroon);padding:.75rem;font-size:.9rem;font-weight:700">
+              ✓ I Have Paid — Submit Reference →
+            </button>
+            <div id="cart-pay-status" style="font-size:.78rem;margin-top:.5rem"></div>
+          </div>
         </div>
       </div>
 
       <!-- ── BUY SMS BUNDLE ── -->
       <div class="card" style="margin-bottom:1.25rem">
-        <div class="card-header"><div class="card-title">💬 Buy SMS Credit</div><div class="card-sub">Pre-load credit · Ksh 1.50/SMS · never expires</div></div>
-        <div class="card-body">
-          <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem">
-            <button class="pay-pill sms" data-sms="50" data-amount="75" onclick="selectSMSBundle(this)">50 SMS · Ksh 75</button>
-            <button class="pay-pill sms" data-sms="100" data-amount="150" onclick="selectSMSBundle(this)">100 SMS · Ksh 150</button>
-            <button class="pay-pill sms" data-sms="200" data-amount="300" onclick="selectSMSBundle(this)">200 SMS · Ksh 300</button>
-            <button class="pay-pill sms" data-sms="500" data-amount="750" onclick="selectSMSBundle(this)">500 SMS · Ksh 750</button>
-            <button class="pay-pill sms" data-sms="1000" data-amount="1500" onclick="selectSMSBundle(this)">1,000 SMS · Ksh 1,500</button>
-          </div>
-          <div id="sms-pay-area" style="display:none">
-            <div id="billing-bank-details" style="border-left:4px solid var(--teal);padding:.75rem 1rem;background:var(--surface);border-radius:4px;margin-bottom:.85rem;font-size:.8rem">Loading payment details…</div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">M-Pesa Reference</label>
-                <input class="form-input" id="sms-pay-ref" placeholder="e.g. QBC4X8YZDE"/>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Amount (Ksh)</label>
-                <input class="form-input" id="sms-pay-amount" readonly style="font-weight:700;color:var(--maroon)"/>
-              </div>
-            </div>
-            <button class="btn btn-primary" onclick="submitSMSPayment()" style="background:var(--teal)">✓ I Have Paid — Submit Reference →</button>
-            <div id="sms-pay-status" style="font-size:.78rem;margin-top:.5rem"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── UPGRADE PAYMENT ── -->
-      <div class="card" id="billing-upgrade-card" style="display:none;margin-bottom:1.25rem">
         <div class="card-header">
-          <div><div class="card-title" id="billing-upgrade-title">💳 Upgrade Payment</div></div>
+          <div class="card-title">💬 Buy SMS Credit</div>
+          <div class="card-sub">Pre-load credit · Ksh 1.50/SMS · never expires</div>
         </div>
         <div class="card-body">
-          <div id="billing-bank-details-upgrade" style="border-left:4px solid var(--maroon);padding:.75rem 1rem;background:var(--surface);border-radius:4px;margin-bottom:.85rem;font-size:.8rem"></div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">M-Pesa Reference</label>
-              <input class="form-input" id="upgrade-pay-ref" placeholder="e.g. QBC4X8YZDE"/>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Amount (Ksh)</label>
-              <input class="form-input" id="upgrade-pay-amount" readonly style="font-weight:700;color:var(--maroon)"/>
-            </div>
+          <div style="display:flex;flex-wrap:wrap;gap:.5rem">
+            <button class="pay-pill sms" data-sms="50" data-amount="75" onclick="addSMSToCart(this)">50 SMS · Ksh 75</button>
+            <button class="pay-pill sms" data-sms="100" data-amount="150" onclick="addSMSToCart(this)">100 SMS · Ksh 150</button>
+            <button class="pay-pill sms" data-sms="200" data-amount="300" onclick="addSMSToCart(this)">200 SMS · Ksh 300</button>
+            <button class="pay-pill sms" data-sms="500" data-amount="750" onclick="addSMSToCart(this)">500 SMS · Ksh 750</button>
+            <button class="pay-pill sms" data-sms="1000" data-amount="1500" onclick="addSMSToCart(this)">1,000 SMS · Ksh 1,500</button>
           </div>
-          <input type="hidden" id="upgrade-pay-plan"/>
-          <div style="border-left:4px solid var(--warning,#c49a30);padding:.65rem 1rem;background:var(--warning-pale,#fff9e6);border-radius:4px;font-size:.75rem;color:var(--ink-soft);margin-bottom:1rem">
-            ✓ Plan activated within minutes of approval. WhatsApp 0702 903 544 for faster processing.
-          </div>
-          <button class="btn btn-primary" onclick="submitUpgradePayment()" style="background:var(--maroon);width:100%;padding:.75rem">✓ I Have Paid — Submit Reference →</button>
-          <div id="upgrade-pay-status" style="font-size:.78rem;margin-top:.5rem"></div>
+          <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.6rem">Select a bundle to add to your order above ↑</div>
         </div>
       </div>
 
       <!-- ── PAYMENT HISTORY ── -->
       <div class="card" style="margin-bottom:1.25rem">
         <div class="card-header"><div class="card-title">📋 Payment History</div></div>
-        <div id="payment-history" style="padding:.5rem 0"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+        <div id="payment-history"><div class="loading"><div class="spinner"></div>Loading…</div></div>
       </div>
 
-      <!-- ── BILLING FAQ ── -->
+      <!-- ── FAQ ── -->
       <div class="card">
         <div class="card-header"><div class="card-title">❓ Frequently Asked Questions</div></div>
         <div class="card-body" style="padding:0">
-          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">What happens if my trial expires? <span class="faq-arrow">▾</span></div><div class="faq-a">Your group reverts to the Starter plan (up to 15 members). Premium features like Welfare, Projects and Table Banking are paused — your data is never deleted. Renew to reactivate immediately.</div></div>
-          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Can I upgrade mid-trial? <span class="faq-arrow">▾</span></div><div class="faq-a">Yes, but upgrading during a free trial cancels the trial and requires payment for the new plan. This prevents the free window from being used multiple times.</div></div>
-          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How does SMS billing work? <span class="faq-arrow">▾</span></div><div class="faq-a">SMS is pay-as-you-go on all plans — Ksh 1.50 per message. Buy a bundle above to pre-load credit. Credit never expires and rolls over indefinitely.</div></div>
-          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How quickly is payment activated? <span class="faq-arrow">▾</span></div><div class="faq-a">Usually within minutes during business hours. WhatsApp 0702 903 544 if there is any delay.</div></div>
-          <div class="faq-item" style="border-bottom:none"><div class="faq-q" onclick="toggleFaq(this)">What data is kept if I downgrade? <span class="faq-arrow">▾</span></div><div class="faq-a">All your data is preserved. Only access is restricted — members beyond the plan limit are hidden (not deleted) and premium features are locked until you upgrade again.</div></div>
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">What happens if my trial expires? <span class="faq-arrow">▾</span></div><div class="faq-a">Your group reverts to Starter (up to 15 members). Premium features are paused — your data is never deleted. Renew to reactivate immediately.</div></div>
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Can I get a second free trial? <span class="faq-arrow">▾</span></div><div class="faq-a">No. Each group gets one free trial ever. Once used — even if the promo is still running — future upgrades require payment. This is to keep the offer fair for all groups.</div></div>
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How does SMS billing work? <span class="faq-arrow">▾</span></div><div class="faq-a">SMS is pay-as-you-go — Ksh 1.50 per message. Buy a bundle to pre-load credit. Credit never expires and rolls over indefinitely.</div></div>
+          <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How quickly is payment activated? <span class="faq-arrow">▾</span></div><div class="faq-a">Usually within minutes during business hours. WhatsApp 0702 903 544 for faster processing.</div></div>
+          <div class="faq-item" style="border-bottom:none"><div class="faq-q" onclick="toggleFaq(this)">What data is kept if I downgrade? <span class="faq-arrow">▾</span></div><div class="faq-a">All data is preserved. Members beyond the plan limit are hidden (not deleted) and premium features locked until you upgrade again.</div></div>
         </div>
       </div>
     </div>
-
     <!-- ══ HELP & FAQs PAGE (all users) ══ -->
     <div class="page" id="page-faq">
       <div class="section-header"><div><div class="section-title">Help & FAQs</div><div class="section-sub">Common questions answered</div></div></div>
@@ -4268,7 +4281,16 @@
             <input type="hidden" id="picker-plan-val" value="starter"/>
             <div id="picker-create-error" style="font-size:.72rem;color:#f87171;margin-bottom:.4rem;display:none"></div>
             <div id="picker-create-success" style="font-size:.72rem;color:#4ade80;margin-bottom:.4rem;display:none"></div>
-            <button class="btn btn-primary" onclick="pickerCreateOrg()" style="width:100%;background:var(--teal);font-size:.82rem">
+
+            <!-- Payment prompt (shown when paid plan selected + promo OFF) -->
+            <div id="picker-payment-prompt" style="display:none;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:.75rem;margin-bottom:.65rem">
+              <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.5);margin-bottom:.4rem">Payment Required to Activate</div>
+              <div id="picker-payment-details" style="font-size:.72rem;color:rgba(255,255,255,.75);margin-bottom:.5rem;line-height:1.6"></div>
+              <input class="form-input" id="picker-pay-ref" placeholder="M-Pesa reference (e.g. QBC4X8YZ)" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:#fff;font-size:.78rem;margin-bottom:.4rem"/>
+              <div style="font-size:.65rem;color:rgba(255,255,255,.45)">Your group will be created on Starter now. Plan activates after payment is verified.</div>
+            </div>
+
+            <button class="btn btn-primary" onclick="pickerCreateOrg()" style="width:100%;background:var(--teal);font-size:.82rem" id="picker-create-btn">
               Create Group →
             </button>
           </div>
@@ -4621,14 +4643,14 @@
 
 
   <!-- GroupYetu360 Scripts — load order matters -->
-  <script src="js/auth.js?v=2026062202"></script>
-  <script src="js/utils.js?v=2026062202"></script>
-  <script src="js/dashboard.js?v=2026062202"></script>
-  <script src="js/members.js?v=2026062202"></script>
-  <script src="js/finance.js?v=2026062202"></script>
-  <script src="js/settings.js?v=2026062202"></script>
-  <script src="js/portal.js?v=2026062202"></script>
-  <script src="js/modules.js?v=2026062202"></script>
+  <script src="js/auth.js?v=2026062203"></script>
+  <script src="js/utils.js?v=2026062203"></script>
+  <script src="js/dashboard.js?v=2026062203"></script>
+  <script src="js/members.js?v=2026062203"></script>
+  <script src="js/finance.js?v=2026062203"></script>
+  <script src="js/settings.js?v=2026062203"></script>
+  <script src="js/portal.js?v=2026062203"></script>
+  <script src="js/modules.js?v=2026062203"></script>
   <script>
     // Bootstrap — runs after all JS files are loaded
     async function start() {

@@ -532,7 +532,25 @@ function togglePickerJoin() {
 function selectPickerPlan(el) {
   document.querySelectorAll('.picker-plan-opt').forEach(o => o.classList.remove('selected'));
   el.classList.add('selected');
-  document.getElementById('picker-plan-val').value = el.dataset.plan;
+  const plan = el.dataset.plan;
+  document.getElementById('picker-plan-val').value = plan;
+
+  const prompt = document.getElementById('picker-payment-prompt');
+  const detailsEl = document.getElementById('picker-payment-details');
+  const btn = document.getElementById('picker-create-btn');
+  if (!prompt) return;
+
+  if (plan !== 'starter' && !isPromoActive()) {
+    const price = (typeof PLAN_PRICES !== 'undefined' && PLAN_PRICES[plan]) || 0;
+    const s = _platformSettings || {};
+    prompt.style.display = '';
+    if (detailsEl) detailsEl.innerHTML = 'Pay Ksh ' + price.toLocaleString() + ' to activate ' + plan.toUpperCase() + ':<br><strong>' + (s.bank_name||'KCB Bank') + '</strong> · Account: <strong>' + (s.bank_account||'—') + '</strong>' + (s.paybill ? ' · Paybill: <strong>' + s.paybill + '</strong>' : '');
+    if (btn) btn.textContent = 'Create Group & Submit Payment →';
+  } else {
+    prompt.style.display = 'none';
+    const label = typeof PLAN_LABELS !== 'undefined' ? (PLAN_LABELS[plan]||plan) : plan;
+    if (btn) btn.textContent = plan === 'starter' ? 'Create Group →' : 'Create Group & Activate ' + label + ' Free →';
+  }
 }
 
 function updatePickerPromoTags() {
@@ -550,32 +568,73 @@ function updatePickerPromoTags() {
 
 async function pickerCreateOrg() {
   const orgName = document.getElementById('picker-org-name')?.value?.trim();
-  const plan = document.getElementById('picker-plan-val')?.value || 'starter';
-  const errEl = document.getElementById('picker-create-error');
-  const sucEl = document.getElementById('picker-create-success');
+  const plan    = document.getElementById('picker-plan-val')?.value || 'starter';
+  const errEl   = document.getElementById('picker-create-error');
+  const sucEl   = document.getElementById('picker-create-success');
   if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
   if (sucEl) { sucEl.style.display = 'none'; }
 
-  if (!orgName) {
-    if (errEl) { errEl.textContent = 'Please enter a group name'; errEl.style.display = 'block'; }
-    return;
-  }
-  if (!currentUser?.id) {
-    if (errEl) { errEl.textContent = 'Session error — please sign in again'; errEl.style.display = 'block'; }
-    return;
-  }
+  if (!orgName) { if (errEl) { errEl.textContent = 'Please enter a group name'; errEl.style.display = 'block'; } return; }
+  if (!currentUser?.id) { if (errEl) { errEl.textContent = 'Session error — please sign in again'; errEl.style.display = 'block'; } return; }
 
   if (sucEl) { sucEl.textContent = 'Creating group…'; sucEl.style.display = 'block'; }
 
-  // Set fields that registerNewOrg reads
+  const isPaidPlan = plan !== 'starter';
+  const promoOn    = isPromoActive();
+  const promoDays  = parseInt(_platformSettings['promo_days'] || '60');
+  const payRef     = document.getElementById('picker-pay-ref')?.value?.trim();
+
+  // Always create org on Starter first
   const nameInput = document.getElementById('new-org-name');
   const planInput = document.getElementById('new-org-plan');
   const roleInput = document.getElementById('new-org-role');
   if (nameInput) nameInput.value = orgName;
-  if (planInput) planInput.value = plan;
+  if (planInput) planInput.value = 'starter'; // always start on starter
   if (roleInput) roleInput.value = 'admin';
 
   await registerNewOrg();
+
+  // After org created, handle paid plan activation
+  if (isPaidPlan && currentOrg?.id) {
+    if (promoOn) {
+      // Promo ON: activate free trial immediately
+      const expires = new Date();
+      expires.setDate(expires.getDate() + promoDays);
+      const expiresStr = expires.toISOString().split('T')[0];
+      try {
+        await sb.from('organisations').update({
+          plan,
+          subscription_status: 'trial',
+          subscription_expires: expiresStr,
+          trial_used: true,
+          trial_start_date: new Date().toISOString().split('T')[0]
+        }).eq('id', currentOrg.id);
+        Object.assign(currentOrg, { plan, subscription_status:'trial', subscription_expires: expiresStr, trial_used: true });
+        buildSidebar();
+        toast('✓ ' + (typeof PLAN_LABELS!=='undefined'?PLAN_LABELS[plan]:plan) + ' plan activated free until ' + expires.toLocaleDateString('en-KE',{day:'numeric',month:'long',year:'numeric'}));
+      } catch(e) { console.error('Trial activation failed:', e); }
+    } else if (payRef) {
+      // Promo OFF + ref provided: submit payment request
+      const price = (typeof PLAN_PRICES!=='undefined' && PLAN_PRICES[plan]) || 0;
+      try {
+        await sb.from('payment_requests').insert({
+          org_id: currentOrg.id,
+          user_id: currentUser.id,
+          type: 'subscription_' + plan,
+          amount: price,
+          mpesa_ref: payRef,
+          status: 'pending',
+          notes: 'New group registration payment'
+        });
+        toast('✓ Group created on Starter. Payment submitted — ' + (typeof PLAN_LABELS!=='undefined'?PLAN_LABELS[plan]:plan) + ' will be activated after verification.');
+      } catch(e) { console.error('Payment request failed:', e); }
+    } else {
+      // Promo OFF + no ref: just notify them
+      setTimeout(() => {
+        showBanner('Your group is on Starter. Visit Billing & SMS to upgrade to ' + plan.toUpperCase() + '.', 'info');
+      }, 1500);
+    }
+  }
 }
 
 async function pickerJoinOrg() {
@@ -926,8 +985,9 @@ async function registerNewOrg() {
   if (!name) { errEl.textContent='Please enter an organisation name'; errEl.classList.add('show'); return; }
 
   const orgCode = 'GY' + Math.random().toString(36).toUpperCase().slice(2,6);
+  // Always create on Starter — pickerCreateOrg handles paid plan activation separately
   const { data: org, error: orgErr } = await sb.from('organisations')
-    .insert({ name, plan, status:'active', org_code: orgCode, subscription_status:'trial' })
+    .insert({ name, plan: 'starter', status:'active', org_code: orgCode, subscription_status:'active', sms_balance: 0 })
     .select().single();
 
   if (orgErr) { errEl.textContent='Error: '+orgErr.message; errEl.classList.add('show'); return; }
