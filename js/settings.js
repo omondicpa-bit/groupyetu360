@@ -1614,8 +1614,8 @@ async function approveMember() {
       org_id: currentOrg.id,
       full_name: pending.full_name,
       phone: pending.phone,
+      portal_email: pending.email || null,
       member_number: document.getElementById('approve-member-num').value,
-      savings_tier: parseInt(document.getElementById('approve-savings').value),
       registration_paid: false,
       status: 'active',
       join_date: new Date().toISOString().split('T')[0]
@@ -1629,6 +1629,15 @@ async function approveMember() {
     role: 'member',
     org_id: currentOrg.id
   }).eq('id', currentPendingUserId);
+
+  // Ensure user_orgs row exists so they can find this org in the workspace picker
+  try {
+    await sb.from('user_orgs').upsert({
+      user_id: currentPendingUserId,
+      org_id: currentOrg.id,
+      role: 'member'
+    }, { onConflict: 'user_id,org_id' });
+  } catch(e) { console.warn('user_orgs upsert failed:', e); }
 
   // Mark pending request as approved
   await sb.from('pending_members').update({
