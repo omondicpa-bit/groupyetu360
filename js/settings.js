@@ -1609,12 +1609,13 @@ async function approveMember() {
   const { data: pending } = await sb.from('pending_members').select('*').eq('id', currentPendingId).single();
 
   if (!linkMemberId) {
-    // Create new member record
+    // Create new member record — include user_id to link auth account immediately
     const { data: newMember, error: memberErr } = await sb.from('members').insert({
       org_id: currentOrg.id,
       full_name: pending.full_name,
       phone: pending.phone,
       portal_email: pending.email || null,
+      user_id: currentPendingUserId || null,
       member_number: document.getElementById('approve-member-num').value,
       registration_paid: false,
       status: 'active',
@@ -1622,9 +1623,15 @@ async function approveMember() {
     }).select().single();
     if (memberErr) { toast('Error creating member: ' + memberErr.message); return; }
     memberId = newMember.id;
+  } else {
+    // Linking to existing member — update their user_id and portal_email
+    await sb.from('members').update({
+      user_id: currentPendingUserId || null,
+      portal_email: pending.email || null
+    }).eq('id', linkMemberId);
   }
 
-  // Update profile role to member
+  // Update profile role to member and link to org
   await sb.from('profiles').update({
     role: 'member',
     org_id: currentOrg.id
