@@ -728,7 +728,7 @@ async function loadMessages() {
     const { data: ps } = await sb.from('platform_settings').select('sms_provider,sms_leopard_access_token,at_api_key').maybeSingle();
     if (ps) {
       const provider = ps.sms_provider || 'leopard';
-      if (provider === 'leopard') smsActive = !!ps.sms_leopard_access_token;
+      if (provider === 'leopard') smsActive = !!(ps.sms_leopard_api_key && ps.sms_leopard_api_secret);
       else if (provider === 'at') smsActive = !!ps.at_api_key;
       else smsActive = true; // celcom — assume active if selected
     }

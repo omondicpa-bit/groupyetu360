@@ -673,10 +673,11 @@ async function loadSASupport() {
   const provEl = document.getElementById('sp-sms-provider');
   if (provEl) provEl.value = s.sms_provider || 'leopard';
   // SMS Leopard
-  setVal('sp-leopard-token', s.sms_leopard_access_token||'');
+  setVal('sp-leopard-key', s.sms_leopard_api_key||'');
+  setVal('sp-leopard-secret', s.sms_leopard_api_secret||'');
   setVal('sp-leopard-sender', s.sms_leopard_sender_id||'');
   const savedBadge = document.getElementById('sp-leopard-saved');
-  if (savedBadge) savedBadge.style.display = s.sms_leopard_access_token ? 'inline' : 'none';
+  if (savedBadge) savedBadge.style.display = s.sms_leopard_api_key ? 'inline' : 'none';
   // Africa's Talking (backup)
   setVal('sp-at-username', s.at_username||'');
   setVal('sp-at-key', s.at_api_key||'');
@@ -693,7 +694,8 @@ async function loadSASupport() {
 
 async function saveSupportSettings() {
   const atKey = document.getElementById('sp-at-key')?.value?.trim();
-  const leopardToken = document.getElementById('sp-leopard-token')?.value?.trim();
+  const leopardKey = document.getElementById('sp-leopard-key')?.value?.trim();
+  const leopardSecret = document.getElementById('sp-leopard-secret')?.value?.trim();
   const darajaKey = document.getElementById('sp-daraja-key')?.value?.trim();
   const darajaSecret = document.getElementById('sp-daraja-secret')?.value?.trim();
   const darajaPasskey = document.getElementById('sp-daraja-passkey')?.value?.trim();
@@ -709,7 +711,8 @@ async function saveSupportSettings() {
     // SMS provider
     sms_provider: document.getElementById('sp-sms-provider')?.value || 'leopard',
     // SMS Leopard
-    sms_leopard_access_token: leopardToken || null,
+    sms_leopard_api_key: leopardKey || null,
+    sms_leopard_api_secret: leopardSecret || null,
     sms_leopard_sender_id: document.getElementById('sp-leopard-sender')?.value?.trim()||null,
     // Africa's Talking (backup)
     at_username: document.getElementById('sp-at-username')?.value?.trim()||null,
@@ -784,14 +787,15 @@ async function sendSMS(to, message) {
 
   // Load platform settings
   let provider = 'leopard';
-  let leopardToken = null, senderId = null;
+  let leopardKey = null, leopardSecret = null, senderId = null;
   let atKey = null, atUser = 'sandbox', atSender = null;
 
   try {
     const { data: ps } = await sb.from('platform_settings').select('*').maybeSingle();
     if (ps) {
       provider = ps.sms_provider || 'leopard';
-      leopardToken = ps.sms_leopard_access_token || null;
+      leopardKey = ps.sms_leopard_api_key || null;
+      leopardSecret = ps.sms_leopard_api_secret || null;
       senderId = ps.sms_leopard_sender_id || null;
       atKey = ps.at_api_key || null;
       atUser = ps.at_username || 'sandbox';
@@ -805,20 +809,22 @@ async function sendSMS(to, message) {
 
   // ── SMS LEOPARD (direct browser call — avoids Supabase Edge Function DNS restriction) ──
   if (provider === 'leopard') {
-    if (!leopardToken) {
-      console.error('sendSMS [leopard]: no access token in platform_settings');
+    if (!leopardKey || !leopardSecret) {
+      console.error('sendSMS [leopard]: API key/secret not configured in platform_settings');
       return { sent: 0, failed: recipients.length };
     }
     try {
       const destination = recipients.map(number => ({ number }));
-      const res = await fetch('https://sms.smsleopard.com/api/sms/v1/send', {
+      // Basic Auth: base64(API_KEY:API_SECRET)
+      const basicAuth = btoa(`${leopardKey}:${leopardSecret}`);
+      const res = await fetch('https://api.smsleopard.com/v1/sms/send', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${leopardToken}`
+          'Authorization': `Basic ${basicAuth}`
         },
         body: JSON.stringify({
-          source: senderId || 'GroupYetu',
+          source: senderId || 'SMS_Leopard',
           message,
           destination
         })
@@ -826,8 +832,9 @@ async function sendSMS(to, message) {
       const result = await res.json();
       console.log('[sendSMS leopard] response:', JSON.stringify(result));
       if (!res.ok) throw new Error(result?.message || `HTTP ${res.status}`);
-      const sent = result?.sent ?? (result?.success ? recipients.length : 0);
-      const failed = result?.failed ?? 0;
+      // Leopard returns { successes: [{number,messageid}], errors: [{...}] }
+      const sent = result?.successes?.length ?? (result?.sent ?? 0);
+      const failed = result?.errors?.length ?? (result?.failed ?? 0);
       return { sent, failed };
     } catch(e) {
       console.error('sendSMS [leopard] error:', e.message);
