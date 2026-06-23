@@ -5,6 +5,23 @@
 // ── FINANCE ──
 async function loadFinance() {
   if (!currentOrg?.id) return;
+
+  // ── Role gating for finance page ──
+  const canRecord = canDo('recordPayment');
+  // Record Payment tab — hide for officer/member
+  const recordTab = document.querySelector('.fin-tab.record');
+  if (recordTab) recordTab.style.display = canRecord ? '' : 'none';
+  // Record Payment topbar button
+  const recPayBtn = document.querySelector('[onclick*="recordPayment"]');
+  if (recPayBtn && recPayBtn.closest('header')) recPayBtn.style.display = canRecord ? '' : 'none';
+  // Expense, fine, withdrawal controls
+  ['fin-shareout-btn','fin-withdraw-pill','withdraw-toggle-btn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && !canRecord) el.style.display = 'none';
+  });
+  // Delete transaction buttons — rendered later, handled via event delegation below
+  document.querySelectorAll('.txn-delete-btn').forEach(b => { b.style.display = canRecord ? '' : 'none'; });
+
   // Hero org name
   const heroOrg = document.getElementById('fin-hero-org');
   if (heroOrg) heroOrg.textContent = currentOrg.name + ' — ' + new Date().getFullYear() + ' Financial Year';
@@ -157,6 +174,7 @@ async function loadFinance() {
 }
 
 async function saveTransaction() {
+  if (!canDo('recordPayment')) { toast('⚠ You do not have permission to record payments.'); return; }
   if (!currentOrg?.id) return;
   const memberId = document.getElementById('pay-member').value || null;
   const typeId = document.getElementById('pay-type').value || null;

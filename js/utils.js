@@ -732,3 +732,49 @@ function renderDashboardModules(members, txns, projs) {
   const tbCard = document.getElementById('dash-tb-card');
   if (tbCard) tbCard.style.display = fp.hasTableBanking ? '' : 'none';
 }
+
+
+/* ════════════════════════════════════════════════════
+   ROLE-BASED PERMISSION GATING
+   Single source of truth for all canDo() checks.
+   Roles: superadmin > admin > treasurer > officer > member
+════════════════════════════════════════════════════ */
+function canDo(action) {
+  const role = (typeof currentOrgRole !== 'undefined' ? currentOrgRole : null)
+    || currentProfile?.role || 'member';
+
+  const rules = {
+    // Member management
+    addMember:        ['superadmin','admin'],
+    editMember:       ['superadmin','admin'],
+    deleteMember:     ['superadmin'],
+    inviteMember:     ['superadmin','admin'],
+    setPortalRole:    ['superadmin','admin'],
+    approveMember:    ['superadmin','admin'],
+
+    // Finance
+    recordPayment:    ['superadmin','admin','treasurer'],
+    deleteTransaction:['superadmin','admin','treasurer'],
+    editFinanceSettings: ['superadmin','admin','treasurer'],
+
+    // Meetings
+    createMeeting:    ['superadmin','admin','officer'],
+    editMeeting:      ['superadmin','admin','officer'],
+
+    // Power Tools
+    sendSms:          ['superadmin','admin'],
+    manageProjects:   ['superadmin','admin'],
+    manageMGR:        ['superadmin','admin','treasurer'],
+
+    // Org settings
+    editSettings:     ['superadmin','admin'],
+    viewBilling:      ['superadmin','admin'],
+    viewApprovals:    ['superadmin','admin'],
+
+    // View-only (read)
+    viewFinance:      ['superadmin','admin','treasurer','officer'],
+    viewMembers:      ['superadmin','admin','treasurer','officer'],
+  };
+
+  return (rules[action] || []).includes(role);
+}

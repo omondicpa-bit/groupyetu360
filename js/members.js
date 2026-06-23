@@ -5,6 +5,9 @@
 // ── MEMBERS ──
 async function loadMembers() {
   if (!currentOrg?.id) return;
+  // Gate Add Member button based on role
+  const addBtn = document.getElementById('add-member-btn');
+  if (addBtn) addBtn.style.display = canDo('addMember') ? '' : 'none';
   // Always fetch fresh from DB — never use stale allMembers from previous org
   const { data } = await sb.from('members').select('*').eq('org_id', currentOrg.id).order('internal_number,member_number');
   const allFetched = data || [];
@@ -406,6 +409,37 @@ async function openMemberDetail(memberId) {
   // Hide admin-only fields when viewing own member record
   const roleField = document.getElementById('md-role-field');
   if (roleField) roleField.style.display = isSelf ? 'none' : '';
+
+  // Role gating — officer/member gets read-only member detail
+  const canEdit = canDo('editMember');
+  const canInvite = canDo('inviteMember');
+  const canSetRole = canDo('setPortalRole');
+
+  // Save Changes button
+  const saveBtn = document.querySelector('#modal-memberDetail .btn-primary[onclick="saveMemberDetail()"]');
+  if (saveBtn) saveBtn.style.display = canEdit ? '' : 'none';
+
+  // Invite / Send Invite button
+  const inviteBtn = document.querySelector('#modal-memberDetail .btn[onclick*="sendMemberPortalInvite"]') ||
+    document.querySelector('#modal-memberDetail button[onclick*="sendMemberPortalInvite"]');
+  if (inviteBtn) inviteBtn.style.display = canInvite ? '' : 'none';
+  const emailInput = document.getElementById('md-edit-email');
+  if (emailInput) emailInput.disabled = !canEdit;
+
+  // Set Portal Role button
+  const promoteButton = document.getElementById('promote-btn');
+  if (promoteButton) promoteButton.style.display = canSetRole && !isSelf ? '' : 'none';
+
+  // All form inputs in member detail — disable for read-only roles
+  if (!canEdit) {
+    ['md-edit-name','md-edit-phone','md-edit-id','md-edit-date','md-edit-savings',
+     'md-edit-status','md-edit-reg','md-edit-display-number','md-edit-reg-date',
+     'md-edit-reg-renewal','md-edit-opening-shares','md-edit-opening-savings'
+    ].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.disabled = true;
+    });
+  }
   const debitCreditTab = document.getElementById('debit-credit-tab');
   if (debitCreditTab) debitCreditTab.style.display = isSelf ? 'none' : '';
   const modalTitle = document.querySelector('#modal-memberDetail .modal-title');

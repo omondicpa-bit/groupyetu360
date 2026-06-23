@@ -496,6 +496,7 @@ function loadPaymentMethodsSettings(org) {
 }
 
 async function saveSettings() {
+  if (!canDo('editSettings')) { toast('⚠ Only admins can edit organisation settings.'); return; }
   if (!currentOrg?.id) return;
   // Build payment methods object
   const paymentMethods = {
@@ -1600,6 +1601,7 @@ async function openApproveModal(pendingId, userId, name, phone, email) {
 }
 
 async function approveMember() {
+  if (!canDo('approveMember')) { toast('⚠ You do not have permission to approve members.'); return; }
   if (!currentPendingId || !currentPendingUserId) return;
   const linkMemberId = document.getElementById('approve-link-member').value;
   const notes = document.getElementById('approve-notes').value.trim();
@@ -1665,6 +1667,7 @@ async function approveMember() {
 }
 
 async function declineMember() {
+  if (!canDo('approveMember')) { toast('⚠ You do not have permission to decline members.'); return; }
   if (!currentPendingId) return;
   const notes = document.getElementById('approve-notes').value.trim();
   const { data: pending } = await sb.from('pending_members').select('full_name').eq('id', currentPendingId).single();

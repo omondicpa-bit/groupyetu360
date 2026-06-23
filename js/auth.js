@@ -1378,18 +1378,22 @@ function buildNav() {
     <a class="nav-item" onclick="showPage('meetings')" href="#"><span class="nav-icon">◷</span> Meetings</a>`;
 
     // ── POWER TOOLS (collapsible) ──
-    nav += `
-    <button class="nav-collapsible" onclick="toggleNavSection('nav-power-tools',this)" aria-expanded="false">
-      <span>⚡ Power Tools</span>
-      <span class="nav-caret">▾</span>
-    </button>
-    <div class="nav-collapsible-body" id="nav-power-tools" style="display:none">
-      <a class="nav-item nav-item-sub" onclick="showPage('mgr')" href="#"><span class="nav-icon">🔄</span> Rotating Savings</a>
-      ${gatedLink('welfare','♡','Welfare',hasBasic)}
-      ${gatedLink('projects','⚑','Projects',hasBasic)}
-      ${gatedLink('table_banking','🏦','Table Banking',hasBasic)}
-      <a class="nav-item nav-item-sub" onclick="showPage('messages')" href="#"><span class="nav-icon">✉</span> Messages</a>
-    </div>`;
+    // Officer: read-only, hide SMS/messages; Treasurer: finance tools only
+    const showPowerTools = canDo('sendSms') || canDo('manageMGR') || canDo('manageProjects');
+    if (showPowerTools) {
+      nav += `
+      <button class="nav-collapsible" onclick="toggleNavSection('nav-power-tools',this)" aria-expanded="false">
+        <span>⚡ Power Tools</span>
+        <span class="nav-caret">▾</span>
+      </button>
+      <div class="nav-collapsible-body" id="nav-power-tools" style="display:none">
+        ${canDo('manageMGR') ? `<a class="nav-item nav-item-sub" onclick="showPage('mgr')" href="#"><span class="nav-icon">🔄</span> Rotating Savings</a>` : ''}
+        ${canDo('manageMGR') ? gatedLink('welfare','♡','Welfare',hasBasic) : ''}
+        ${canDo('manageProjects') ? gatedLink('projects','⚑','Projects',hasBasic) : ''}
+        ${canDo('manageMGR') ? gatedLink('table_banking','🏦','Table Banking',hasBasic) : ''}
+        ${canDo('sendSms') ? `<a class="nav-item nav-item-sub" onclick="showPage('messages')" href="#"><span class="nav-icon">✉</span> Messages</a>` : ''}
+      </div>`;
+    }
 
     // ── MY PORTAL (collapsible) ──
     nav += `
@@ -1404,15 +1408,16 @@ function buildNav() {
     </div>`;
 
     // ── ADMIN (collapsible) ──
+    const hasAdminNavItems = canDo('viewApprovals') || canDo('editSettings') || canDo('viewBilling');
     nav += `
     <button class="nav-collapsible" onclick="toggleNavSection('nav-admin-tools',this)" aria-expanded="false">
       <span>⚙ Admin</span>
       <span class="nav-caret">▾</span>
     </button>
     <div class="nav-collapsible-body" id="nav-admin-tools" style="display:none">
-      <a class="nav-item nav-item-sub" onclick="showPage('approvals')" href="#"><span class="nav-icon">✓</span> Approvals <span class="nav-badge" id="approvals-badge" style="display:none">0</span></a>
-      <a class="nav-item nav-item-sub" onclick="showPage('settings')" href="#"><span class="nav-icon">⚙</span> Settings</a>
-      <a class="nav-item nav-item-sub" onclick="showPage('billing')" href="#"><span class="nav-icon">💳</span> Billing & SMS</a>
+      ${canDo('viewApprovals') ? `<a class="nav-item nav-item-sub" onclick="showPage('approvals')" href="#"><span class="nav-icon">✓</span> Approvals <span class="nav-badge" id="approvals-badge" style="display:none">0</span></a>` : ''}
+      ${canDo('editSettings') ? `<a class="nav-item nav-item-sub" onclick="showPage('settings')" href="#"><span class="nav-icon">⚙</span> Settings</a>` : ''}
+      ${canDo('viewBilling') ? `<a class="nav-item nav-item-sub" onclick="showPage('billing')" href="#"><span class="nav-icon">💳</span> Billing & SMS</a>` : ''}
       <a class="nav-item nav-item-sub" onclick="showPage('my_account')" href="#"><span class="nav-icon">👤</span> My Account</a>
     </div>`;
   }
@@ -1422,10 +1427,12 @@ function buildNav() {
   const topbar = document.getElementById('topbar-actions');
   if (isSuperAdmin) {
     topbar.innerHTML = `<button class="topbar-btn" onclick="showModal('addOrg')">+ Onboard Organisation</button>`;
-  } else if (role === 'admin' || role === 'officer') {
-    topbar.innerHTML = `
-      <button class="topbar-btn outline" onclick="showModal('recordPayment')">+ Record Payment</button>
-      <button class="topbar-btn" onclick="showModal('addMember')">+ Add Member</button>`;
+  } else if (role === 'admin' || role === 'officer' || role === 'treasurer') {
+    const canAdd = canDo('addMember');
+    const canPay = canDo('recordPayment');
+    topbar.innerHTML =
+      (canPay ? `<button class="topbar-btn outline" onclick="showModal('recordPayment')">+ Record Payment</button>` : '') +
+      (canAdd ? `<button class="topbar-btn" onclick="showModal('addMember')">+ Add Member</button>` : '');
   } else {
     // member portal
     topbar.innerHTML = `
