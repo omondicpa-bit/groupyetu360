@@ -758,7 +758,7 @@ async function pickerJoinOrg() {
 ════════════════════════════════════════════════ */
 
 let _userOrgs = []; // all orgs this user belongs to
-let currentOrgRole = 'member'; // role in the CURRENT org (from user_orgs, not profiles)
+var currentOrgRole = 'member'; // role in the CURRENT org (from user_orgs, not profiles) — var for global scope
 
 async function loadUserOrgs() {
   if (!currentUser?.id) return [];
@@ -1249,6 +1249,7 @@ function showApp() {
   }
   buildNav();
   updateSidebar();
+  if (typeof gateQuickActions === 'function') gateQuickActions();
   const today = new Date().toISOString().split('T')[0];
   document.querySelectorAll('input[type="date"]').forEach(el => { if(!el.value) el.value = today; });
   requestAnimationFrame(() => requestAnimationFrame(() => {

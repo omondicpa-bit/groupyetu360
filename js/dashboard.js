@@ -14,6 +14,9 @@ async function loadDashboard() {
   // Make dashboard page active before populating elements
   showPage('dashboard');
 
+  // Gate Quick Actions immediately after page shows
+  gateQuickActions();
+
   const orgId = currentOrg.id;
   document.getElementById('page-sub').textContent = currentOrg.name;
 
@@ -570,4 +573,44 @@ async function populateMobileAdminHome(orgId) {
       setEl('adm-mob-approvals-text', pending.length + ' member' + (pending.length !== 1 ? 's' : '') + ' pending approval');
     }
   } catch (e) { console.error('[GY360] adm mob approvals fetch:', e); }
+}
+
+
+/* ── ROLE-BASED QUICK ACTION GATING ── */
+function gateQuickActions() {
+  // Desktop Quick Actions
+  const gates = {
+    'qa-add-member':      canDo('addMember'),
+    'qa-record-payment':  canDo('recordPayment'),
+    'qa-send-sms':        canDo('sendSms'),
+    'qa-schedule-meeting':canDo('createMeeting'),
+    'qa-welfare-event':   canDo('recordPayment'),
+    'qa-record-expense':  canDo('recordPayment'),
+    // Mobile
+    'mob-qa-payment':     canDo('recordPayment'),
+    'mob-qa-add-member':  canDo('addMember'),
+    'mob-qa-sms':         canDo('sendSms'),
+    'mob-qa-meeting':     canDo('createMeeting'),
+    // Members page Add button
+    'add-member-btn':     canDo('addMember'),
+  };
+  Object.entries(gates).forEach(([id, allowed]) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = allowed ? '' : 'none';
+  });
+
+  // Topbar buttons
+  const topbar = document.getElementById('topbar-actions');
+  if (topbar) {
+    const addBtn = topbar.querySelector('[onclick*="addMember"]');
+    const payBtn = topbar.querySelector('[onclick*="recordPayment"]');
+    if (addBtn) addBtn.style.display = canDo('addMember') ? '' : 'none';
+    if (payBtn) payBtn.style.display = canDo('recordPayment') ? '' : 'none';
+  }
+
+  // Finance tabs — Record Payment and Record Expense tabs
+  document.querySelectorAll('.fin-tab.record').forEach(tab => {
+    const isExpense = tab.getAttribute('onclick')?.includes('expense');
+    tab.style.display = canDo('recordPayment') ? '' : 'none';
+  });
 }

@@ -525,20 +525,20 @@
           </div>
 
           <!-- Quick action buttons row -->
-          <div class="mob-action-row">
-            <button class="mob-action-btn" onclick="showPage('finance');setTimeout(()=>switchTab(document.querySelector('[onclick*=tab-record]'),'tab-record'),100)">
+          <div class="mob-action-row" id="mob-action-row">
+            <button id="mob-qa-payment" class="mob-action-btn" onclick="showPage('finance');setTimeout(()=>switchTab(document.querySelector('[onclick*=tab-record]'),'tab-record'),100)">
               <div class="mob-action-icon">💳</div>
               <div class="mob-action-label">Payment</div>
             </button>
-            <button class="mob-action-btn" onclick="showModal('addMember')">
+            <button id="mob-qa-add-member" class="mob-action-btn" onclick="showModal('addMember')">
               <div class="mob-action-icon">👤</div>
               <div class="mob-action-label">Add Member</div>
             </button>
-            <button class="mob-action-btn" onclick="showPage('messages')">
+            <button id="mob-qa-sms" class="mob-action-btn" onclick="showPage('messages')">
               <div class="mob-action-icon">✉️</div>
               <div class="mob-action-label">SMS</div>
             </button>
-            <button class="mob-action-btn" onclick="showModal('scheduleMeeting')">
+            <button id="mob-qa-meeting" class="mob-action-btn" onclick="showModal('scheduleMeeting')">
               <div class="mob-action-icon">📅</div>
               <div class="mob-action-label">Meeting</div>
             </button>
@@ -693,23 +693,23 @@
           <!-- Quick Actions -->
           <div class="card">
             <div class="card-header"><div class="card-title">Quick Actions</div></div>
-            <div style="padding:.75rem 1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
-              <button class="btn btn-secondary" onclick="showModal('addMember')" style="font-size:.75rem;padding:.55rem .5rem;gap:.35rem">
+            <div id="quick-actions-grid" style="padding:.75rem 1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+              <button id="qa-add-member" class="btn btn-secondary" onclick="showModal('addMember')" style="font-size:.75rem;padding:.55rem .5rem;gap:.35rem">
                 ＋ Add Member
               </button>
-              <button class="btn btn-secondary" onclick="showPage('finance');setTimeout(()=>switchTab(document.querySelector('[onclick*=tab-record]'),'tab-record'),100)" style="font-size:.75rem;padding:.55rem .5rem">
+              <button id="qa-record-payment" class="btn btn-secondary" onclick="showPage('finance');setTimeout(()=>switchTab(document.querySelector('[onclick*=tab-record]'),'tab-record'),100)" style="font-size:.75rem;padding:.55rem .5rem">
                 ₭ Record Payment
               </button>
-              <button class="btn btn-secondary" onclick="showPage('messages')" style="font-size:.75rem;padding:.55rem .5rem">
+              <button id="qa-send-sms" class="btn btn-secondary" onclick="showPage('messages')" style="font-size:.75rem;padding:.55rem .5rem">
                 ✉ Send SMS
               </button>
-              <button class="btn btn-secondary" onclick="showModal('scheduleMeeting')" style="font-size:.75rem;padding:.55rem .5rem">
+              <button id="qa-schedule-meeting" class="btn btn-secondary" onclick="showModal('scheduleMeeting')" style="font-size:.75rem;padding:.55rem .5rem">
                 📅 Schedule Meeting
               </button>
-              <button class="btn btn-secondary" onclick="showModal('welfareEvent')" style="font-size:.75rem;padding:.55rem .5rem">
+              <button id="qa-welfare-event" class="btn btn-secondary" onclick="showModal('welfareEvent')" style="font-size:.75rem;padding:.55rem .5rem">
                 ♡ Welfare Event
               </button>
-              <button class="btn btn-secondary" onclick="showPage('finance');setTimeout(()=>switchTab(document.querySelector('[onclick*=tab-expense-record]'),'tab-expense-record'),100)" style="font-size:.75rem;padding:.55rem .5rem">
+              <button id="qa-record-expense" class="btn btn-secondary" onclick="showPage('finance');setTimeout(()=>switchTab(document.querySelector('[onclick*=tab-expense-record]'),'tab-expense-record'),100)" style="font-size:.75rem;padding:.55rem .5rem">
                 − Record Expense
               </button>
             </div>
@@ -4677,14 +4677,14 @@
 
 
   <!-- GroupYetu360 Scripts — load order matters -->
-  <script src="js/auth.js?v=2026062216"></script>
-  <script src="js/utils.js?v=2026062216"></script>
-  <script src="js/dashboard.js?v=2026062216"></script>
-  <script src="js/members.js?v=2026062216"></script>
-  <script src="js/finance.js?v=2026062216"></script>
-  <script src="js/settings.js?v=2026062216"></script>
-  <script src="js/portal.js?v=2026062216"></script>
-  <script src="js/modules.js?v=2026062216"></script>
+  <script src="js/auth.js?v=2026062301"></script>
+  <script src="js/utils.js?v=2026062301"></script>
+  <script src="js/dashboard.js?v=2026062301"></script>
+  <script src="js/members.js?v=2026062301"></script>
+  <script src="js/finance.js?v=2026062301"></script>
+  <script src="js/settings.js?v=2026062301"></script>
+  <script src="js/portal.js?v=2026062301"></script>
+  <script src="js/modules.js?v=2026062301"></script>
   <script>
     // Bootstrap — runs after all JS files are loaded
     async function start() {

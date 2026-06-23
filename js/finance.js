@@ -222,6 +222,7 @@ async function saveTransaction() {
 }
 
 async function saveModalTransaction() {
+  if (!canDo('recordPayment')) { toast('⚠ You do not have permission to record payments.'); return; }
   if (!currentOrg?.id) return;
   const payload = {
     org_id: currentOrg.id,
@@ -274,6 +275,7 @@ function clearIncForm() {
 }
 
 async function saveExpense() {
+  if (!canDo('recordPayment')) { toast('⚠ You do not have permission to record expenses.'); return; }
   if (!currentOrg?.id) return;
   const payload = {
     org_id: currentOrg.id,

@@ -187,6 +187,7 @@ function renderMemberGrid(list) {
 // filterMembers defined above
 
 async function saveMember() {
+  if (!canDo('addMember')) { toast('⚠ You do not have permission to add members.'); return; }
   if (!currentOrg?.id) return;
 
   // ── Plan member limit check ──
@@ -488,6 +489,7 @@ async function loadMemberHistory(memberId) {
 }
 
 async function saveMemberDetail() {
+  if (!canDo('editMember')) { toast('⚠ You do not have permission to edit members.'); return; }
   if (!currentMemberId) return;
   const openingShares = parseFloat(document.getElementById('md-edit-opening-shares').value)||0;
   const openingSavings = parseFloat(document.getElementById('md-edit-opening-savings').value)||0;
