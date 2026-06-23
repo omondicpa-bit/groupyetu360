@@ -1769,8 +1769,8 @@ async function saveSupportSettings() {
     paybill:                gv('sp-paybill'),
     whatsapp:               gv('sp-whatsapp'),
     sms_provider:           gv('sp-sms-provider') || 'leopard',
-    sms_leopard_api_key:    gv('sp-leopard-key'),
-    sms_leopard_api_secret: gv('sp-leopard-secret'),
+    ...(gv('sp-leopard-key') ? { sms_leopard_api_key: gv('sp-leopard-key') } : {}),
+    ...(gv('sp-leopard-secret') ? { sms_leopard_api_secret: gv('sp-leopard-secret') } : {}),
     sms_leopard_sender_id:  gv('sp-leopard-sender'),
     at_username:            gv('sp-at-username'),
     at_api_key:             gv('sp-at-key'),
@@ -1850,11 +1850,11 @@ async function loadSABilling() {
           <tbody>${pending.map(r => `<tr style="border-bottom:0.5px solid var(--border);font-size:.78rem">
             <td style="padding:.6rem 1.25rem;color:var(--ink-faint)">${new Date(r.created_at).toLocaleDateString('en-KE',{day:'numeric',month:'short'})}</td>
             <td style="padding:.6rem .5rem;font-weight:600">${r.organisations?.name||'—'}</td>
-            <td style="padding:.6rem .5rem;color:var(--ink-faint)">${r.type?.replace(/_/g,' ')||'—'}</td>
+            <td style="padding:.6rem .5rem;color:var(--ink-faint)">${(r.payment_type||r.type||'—').replace(/_/g,' ')}</td>
             <td style="padding:.6rem .5rem;text-align:right;font-weight:600;color:var(--maroon)">Ksh ${Number(r.amount||0).toLocaleString()}</td>
             <td style="padding:.6rem .5rem;font-size:.72rem">${r.mpesa_ref||'—'}</td>
             <td style="padding:.6rem .5rem;display:flex;gap:.35rem">
-              <button class="btn btn-primary btn-sm" style="font-size:.68rem;background:var(--teal)" onclick="approvePayment('${r.id}','${r.org_id}','${r.type}',${r.amount})">✓ Approve</button>
+              <button class="btn btn-primary btn-sm" style="font-size:.68rem;background:var(--teal)" onclick="approvePayment('${r.id}','${r.org_id}','${r.payment_type||r.type||''}',${r.amount})">✓ Approve</button>
               <button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="rejectPayment('${r.id}')">✗</button>
             </td>
           </tr>`).join('')}</tbody>
@@ -1899,8 +1899,9 @@ async function approvePayment(reqId, orgId, type, amount) {
     // Update request status
     await sb.from('payment_requests').update({ status: 'approved' }).eq('id', reqId);
 
-    if (type.startsWith('subscription_')) {
-      const plan = type.replace('subscription_','');
+    const payType = type || '';
+    if (payType.startsWith('subscription_')) {
+      const plan = payType.replace('subscription_','');
       const expires = new Date();
       expires.setFullYear(expires.getFullYear() + 1);
       await sb.from('organisations').update({
@@ -1909,7 +1910,7 @@ async function approvePayment(reqId, orgId, type, amount) {
         subscription_expires: expires.toISOString().split('T')[0],
         trial_used: true
       }).eq('id', orgId);
-    } else if (type === 'sms_bundle') {
+    } else if (payType === 'sms_bundle' || payType.startsWith('sms_bundle')) {
       // Determine SMS count from amount
       const smsMap = { 75:50, 150:100, 300:200, 750:500, 1500:1000 };
       const smsCount = smsMap[amount] || Math.floor(amount / 1.5);
@@ -1917,7 +1918,7 @@ async function approvePayment(reqId, orgId, type, amount) {
       await sb.from('organisations').update({ sms_balance: (org?.sms_balance||0) + smsCount }).eq('id', orgId);
     }
 
-    await logActivity('PAYMENT APPROVED', `Payment ${reqId} approved for org ${orgId} · type: ${type}`);
+    await logActivity('PAYMENT APPROVED', `Payment ${reqId} approved for org ${orgId} · type: ${payType}`);
     toast('✓ Payment approved and plan/SMS activated');
     loadSABilling();
   } catch(e) { toast('Error: ' + e.message); }
@@ -2196,8 +2197,8 @@ async function submitCartPayment_impl() {
 
     const { error } = await sb.from('payment_requests').insert({
       org_id: currentOrg.id,
-      user_id: currentUser.id,
-      type: items[0] || 'payment',
+      member_id: currentUser.id,
+      payment_type: items[0] || 'payment',
       amount: parseFloat(amount),
       mpesa_ref: ref,
       status: 'pending',

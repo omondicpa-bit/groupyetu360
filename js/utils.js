@@ -387,11 +387,13 @@ async function loadSASupport() {
   const provEl = document.getElementById('sp-sms-provider');
   if (provEl) provEl.value = s.sms_provider || 'leopard';
   // SMS Leopard
-  setVal('sp-leopard-key', s.sms_leopard_api_key||'');
-  setVal('sp-leopard-secret', s.sms_leopard_api_secret||'');
   setVal('sp-leopard-sender', s.sms_leopard_sender_id||'');
   const savedBadge = document.getElementById('sp-leopard-saved');
   if (savedBadge) savedBadge.style.display = s.sms_leopard_api_key ? 'inline' : 'none';
+  const keyEl = document.getElementById('sp-leopard-key');
+  const secEl = document.getElementById('sp-leopard-secret');
+  if (keyEl && !keyEl.value) keyEl.placeholder = s.sms_leopard_api_key ? '••••••••••••• (saved — leave blank to keep)' : 'Your SMS Leopard API Key';
+  if (secEl && !secEl.value) secEl.placeholder = s.sms_leopard_api_secret ? '••••••••••••• (saved — leave blank to keep)' : 'Your SMS Leopard API Secret';
   // Africa's Talking (backup)
   setVal('sp-at-username', s.at_username||'');
   setVal('sp-at-key', s.at_api_key||'');
@@ -408,8 +410,8 @@ async function loadSASupport() {
 
 async function saveSupportSettings() {
   const atKey = document.getElementById('sp-at-key')?.value?.trim();
-  const leopardKey = document.getElementById('sp-leopard-key')?.value?.trim();
-  const leopardSecret = document.getElementById('sp-leopard-secret')?.value?.trim();
+  const leopardKey = document.getElementById('sp-leopard-key')?.value?.trim() || undefined;
+  const leopardSecret = document.getElementById('sp-leopard-secret')?.value?.trim() || undefined;
   const darajaKey = document.getElementById('sp-daraja-key')?.value?.trim();
   const darajaSecret = document.getElementById('sp-daraja-secret')?.value?.trim();
   const darajaPasskey = document.getElementById('sp-daraja-passkey')?.value?.trim();
@@ -425,8 +427,8 @@ async function saveSupportSettings() {
     // SMS provider
     sms_provider: document.getElementById('sp-sms-provider')?.value || 'leopard',
     // SMS Leopard
-    sms_leopard_api_key: leopardKey || null,
-    sms_leopard_api_secret: leopardSecret || null,
+    ...(leopardKey !== undefined && { sms_leopard_api_key: leopardKey }),
+    ...(leopardSecret !== undefined && { sms_leopard_api_secret: leopardSecret }),
     sms_leopard_sender_id: document.getElementById('sp-leopard-sender')?.value?.trim()||null,
     // Africa's Talking (backup)
     at_username: document.getElementById('sp-at-username')?.value?.trim()||null,
