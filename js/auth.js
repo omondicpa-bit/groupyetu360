@@ -566,12 +566,10 @@ async function registerAccount() {
     id: authData.user.id, full_name: name, phone: phone || null, role: 'member'
   });
 
-  sucEl.textContent = '✓ Account created! Loading your workspace…';
-
-  setTimeout(async () => {
-    const { error: signInErr } = await sb.auth.signInWithPassword({ email, password });
-    if (signInErr) { errEl.textContent = 'Created but sign-in failed: ' + signInErr.message; errEl.classList.add('show'); }
-  }, 800);
+  sucEl.textContent = '✓ Account created! Check your email to confirm and get started.';
+  sucEl.classList.add('show');
+  // Do NOT auto sign-in — user must confirm email first (Supabase "Confirm email" is ON)
+  // They will be redirected back to the app after clicking the confirmation link.
 }
 
 // Backwards-compatible alias
