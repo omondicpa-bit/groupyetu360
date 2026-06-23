@@ -2195,9 +2195,17 @@ async function submitCartPayment_impl() {
     if (_billingCart.sms > 0) items.push(`sms_${_billingCart.sms}`);
     const notes = items.join(' + ') + (currentOrg.subscription_status === 'trial' ? ' (mid-trial upgrade — trial cancelled)' : '');
 
+    // Look up member_id for current user in this org
+    let memberId = null;
+    try {
+      const { data: mem } = await sb.from('members')
+        .select('id').eq('org_id', currentOrg.id).eq('user_id', currentUser.id).maybeSingle();
+      memberId = mem?.id || null;
+    } catch(e) {}
+
     const { error } = await sb.from('payment_requests').insert({
       org_id: currentOrg.id,
-      member_id: currentUser.id,
+      member_id: memberId,
       payment_type: items[0] || 'payment',
       amount: parseFloat(amount),
       mpesa_ref: ref,
