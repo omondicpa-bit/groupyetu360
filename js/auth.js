@@ -47,10 +47,28 @@ async function init() {
         showAuthScreen();
       }
     } else if (event === 'PASSWORD_RECOVERY') {
-      // Triggered when user clicks a reset/invite link — show password reset UI
+      // Triggered when user clicks a reset/invite/confirmation link
       if (!session) return;
       currentUser = session.user;
-      showPasswordResetScreen();
+      const meta = session.user.user_metadata || {};
+      if (meta.invite_org_id) {
+        // Invited member — show set password screen (they have no password yet)
+        showPasswordResetScreen();
+      } else {
+        // Self-registered user confirming email OR forgot password reset
+        // If profile exists → they registered with a password → show confirmed screen
+        // If no profile → treat as reset/invite → show set password screen
+        try {
+          const { data: profile } = await sb.from('profiles').select('id').eq('id', session.user.id).maybeSingle();
+          if (profile) {
+            showEmailConfirmedScreen();
+          } else {
+            showPasswordResetScreen();
+          }
+        } catch(e) {
+          showPasswordResetScreen();
+        }
+      }
     } else if (event === 'SIGNED_OUT') {
       showAuthScreen();
     }
@@ -1160,6 +1178,36 @@ function showPasswordResetScreen() {
   const sEl = document.getElementById('auth-form-sub');
   if (hEl) hEl.textContent = 'Set your password';
   if (sEl) sEl.textContent = 'You were invited to GroupYetu360. Set a password to get started.';
+}
+
+function showEmailConfirmedScreen() {
+  // Self-registered user clicked confirmation link — email confirmed, prompt login
+  sb.auth.signOut();
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('app-screen').classList.remove('visible');
+  const picker = document.getElementById('org-picker-screen');
+  if (picker) picker.style.display = 'none';
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.auth-panel').forEach(p => p.classList.remove('active'));
+  const forgotPanel = document.getElementById('auth-forgot');
+  if (forgotPanel) {
+    forgotPanel.classList.add('active');
+    forgotPanel.innerHTML = `
+      <div style="text-align:center;margin-bottom:1.25rem">
+        <div style="font-size:2.5rem;margin-bottom:.5rem">✅</div>
+        <div style="font-size:.9rem;font-weight:700;color:#fff;margin-bottom:.5rem">Email confirmed!</div>
+        <div style="font-size:.8rem;color:rgba(255,255,255,.6);line-height:1.6">
+          Your GroupYetu360 account is now active.<br>Sign in with the password you set during registration.
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="switchAuthTab('login')" style="width:100%;margin-top:.75rem">
+        Sign In →
+      </button>`;
+  }
+  const hEl = document.getElementById('auth-form-heading');
+  const sEl = document.getElementById('auth-form-sub');
+  if (hEl) hEl.textContent = 'Email confirmed';
+  if (sEl) sEl.textContent = "You're all set — sign in to get started.";
 }
 
 async function setNewPassword() {
