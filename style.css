@@ -1385,13 +1385,7 @@ body.member-mob-active #support-fab{display:none !important}
   font-size:.75rem;color:rgba(255,255,255,.45);text-align:center;
   line-height:1.75;max-width:220px;position:relative;z-index:1
 }
-.opl-stats{
-  margin-top:2.25rem;position:relative;z-index:1;
-  display:flex;gap:1.5rem
-}
-.opl-stat{text-align:center}
-.opl-stat-val{font-size:1.5rem;font-weight:700;color:var(--gold-lt,#d4af37);line-height:1}
-.opl-stat-lbl{font-size:.6rem;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.1em;margin-top:.2rem}
+
 
 /* RIGHT PANEL — Maroon */
 .org-picker-right{
@@ -1491,7 +1485,7 @@ body.member-mob-active #support-fab{display:none !important}
   }
   .opl-brand{margin-bottom:0;text-align:left}
   .opl-brand-name{font-size:1.6rem}
-  .opl-headline,.opl-sub,.opl-stats{display:none}
+  .opl-headline,.opl-sub{display:none}
   .org-picker-right{padding:1.5rem 1.25rem}
 }
 

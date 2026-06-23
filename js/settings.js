@@ -804,7 +804,14 @@ async function loadSAMembers() {
     sb.from('members').select('id,org_id,user_id,portal_email,member_number,internal_number,display_number,is_founder,status,shares_balance,savings_balance'),
     sb.from('organisations').select('id,name,plan,status')
   ]);
-  allSAUsers = profilesRes.data || [];
+  // Deduplicate profiles by id (old schema had one row per org)
+  const rawProfiles = profilesRes.data || [];
+  const seenIds = new Set();
+  allSAUsers = rawProfiles.filter(p => {
+    if (seenIds.has(p.id)) return false;
+    seenIds.add(p.id);
+    return true;
+  });
   allSAUserOrgs = userOrgsRes.data || [];
   allSAMemberRows = membersRes.data || [];
   allSAOrgsMap = {};
@@ -821,15 +828,18 @@ function renderSAUsers(list) {
     return;
   }
   tbody.innerHTML = list.map(u => {
-    // Find all orgs this user belongs to
+    // Find all orgs this user belongs to via user_orgs
     const userOrgRows = allSAUserOrgs.filter(uo => uo.user_id === u.id);
-    const orgCount = userOrgRows.length;
-    const orgNames = userOrgRows.map(uo => {
-      const org = allSAOrgsMap[uo.org_id];
+    // Also find org membership via members table (catches older records)
+    const memberRows = allSAMemberRows.filter(m => m.user_id === u.id);
+    const memberOrgIds = memberRows.map(m => m.org_id).filter(Boolean);
+    // Merge org IDs from both sources
+    const allOrgIds = [...new Set([...userOrgRows.map(uo => uo.org_id), ...memberOrgIds])];
+    const orgCount = allOrgIds.length;
+    const orgNames = allOrgIds.map(orgId => {
+      const org = allSAOrgsMap[orgId];
       return org ? org.name : null;
     }).filter(Boolean);
-    // Find their member records
-    const memberRows = allSAMemberRows.filter(m => m.user_id === u.id || m.portal_email === u.email);
     const isFounder = memberRows.some(m => m.is_founder);
     // Display
     const orgBadges = orgCount
@@ -1947,7 +1957,7 @@ async function loadSAActivity() {
   try {
     const orgFilter  = document.getElementById('activity-filter-org')?.value  || '';
     const typeFilter = document.getElementById('activity-filter-action')?.value || '';
-    let q = sb.from('activity_log').select('*,profiles(full_name,email)').order('created_at', { ascending: false }).limit(200);
+    let q = sb.from('activity_log').select('*,profiles(full_name)').order('created_at', { ascending: false }).limit(200);
     if (orgFilter)  q = q.eq('org_id', orgFilter);
     if (typeFilter) q = q.ilike('action', `%${typeFilter}%`);
     const { data, error } = await q;
