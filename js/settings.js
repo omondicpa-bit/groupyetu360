@@ -2242,7 +2242,7 @@ async function loadPaymentHistory() {
       </tr></thead>
       <tbody>${data.map(r => `<tr style="border-bottom:0.5px solid var(--border);font-size:.78rem">
         <td style="padding:.6rem 1.25rem;color:var(--ink-faint)">${new Date(r.created_at).toLocaleDateString('en-KE',{day:'numeric',month:'short',year:'numeric'})}</td>
-        <td style="padding:.6rem .5rem">${r.type?.replace(/_/g,' ')||'—'}</td>
+        <td style="padding:.6rem .5rem">${(r.type||r.payment_type||'—').replace(/_/g,' ')}</td>
         <td style="padding:.6rem .5rem;text-align:right;font-weight:600">Ksh ${Number(r.amount||0).toLocaleString()}</td>
         <td style="padding:.6rem .5rem;color:var(--ink-faint);font-size:.72rem">${r.mpesa_ref||'—'}</td>
         <td style="padding:.6rem .5rem;text-align:center"><span style="font-size:.68rem;font-weight:700;color:${sc[r.status]||'#888'};text-transform:uppercase">${r.status||'—'}</span></td>
