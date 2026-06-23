@@ -173,6 +173,8 @@ function showAuthScreen() {
   document.getElementById('auth-screen').style.display = 'flex';
   document.getElementById('pending-screen').style.display = 'none';
   document.getElementById('app-screen').classList.remove('visible');
+  const picker = document.getElementById('org-picker-screen');
+  if (picker) picker.style.display = 'none';
   document.getElementById('auth-step-1').style.display = 'block';
   document.getElementById('auth-step-2').style.display = 'none';
 }
@@ -728,8 +730,10 @@ async function loadUserOrgs() {
       .select('org_id, role, organisations(*)')
       .eq('user_id', currentUser.id);
     if (rows?.length) {
-      _userOrgs = rows.map(r => ({ ...r.organisations, _role: r.role }));
-      return _userOrgs;
+      _userOrgs = rows
+        .filter(r => r.organisations && r.organisations.id)
+        .map(r => ({ ...r.organisations, _role: r.role }));
+      if (_userOrgs.length) return _userOrgs;
     }
   } catch(e) { /* table may not exist yet */ }
 
