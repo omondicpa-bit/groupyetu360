@@ -1357,16 +1357,20 @@ body.member-mob-active #support-fab{display:none !important}
 }
 .org-picker-inner{
   width:100%;max-width:560px;
+  max-height:calc(100vh - 3rem);
+  overflow-y:auto;
   animation:pickerFadeUp .5s ease both
 }
+.org-picker-inner::-webkit-scrollbar{width:4px}
+.org-picker-inner::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:2px}
 .org-picker-brand{
   text-align:center;margin-bottom:2rem
 }
 .org-picker-brand-name{
-  font-family:'Crimson Pro',serif;font-size:2rem;font-weight:700;color:#fff;
-  margin-bottom:.2rem
+  font-family:'Crimson Pro',serif;font-size:2.2rem;font-weight:700;color:#fff;
+  margin-bottom:.2rem;letter-spacing:-.01em
 }
-.org-picker-brand-name span{color:var(--gold-lt)}
+.org-picker-brand-name span{color:var(--gold-lt,#d4af37)}
 .org-picker-brand-tag{font-size:.72rem;color:rgba(255,255,255,.4);letter-spacing:.15em;text-transform:uppercase}
 .org-picker-card{
   background:rgba(255,255,255,.06);
@@ -1380,12 +1384,13 @@ body.member-mob-active #support-fab{display:none !important}
   font-size:.78rem;color:rgba(255,255,255,.5);margin-bottom:.25rem
 }
 .org-picker-user{
-  font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:#fff;
-  margin-bottom:1.25rem
+  font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:var(--gold-lt,#d4af37);
+  margin-bottom:1.25rem;line-height:1.2
 }
 .org-picker-label{
-  font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;
-  color:rgba(255,255,255,.4);margin-bottom:.65rem
+  font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.14em;
+  color:var(--teal-mid,#1f9e75);margin-bottom:.65rem;
+  border-bottom:1px solid rgba(31,158,117,.2);padding-bottom:.5rem
 }
 .org-picker-list{
   display:flex;flex-direction:column;gap:.5rem;

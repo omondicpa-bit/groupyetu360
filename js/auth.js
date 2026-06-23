@@ -37,9 +37,13 @@ async function init() {
         await loadProfileAndOrg();
       } catch(e) {
         console.error('[GY360] loadProfileAndOrg error:', e);
-        // Don't sign out on error — just show auth screen
         showAuthScreen();
       }
+    } else if (event === 'PASSWORD_RECOVERY') {
+      // Triggered when user clicks a reset/invite link — show password reset UI
+      if (!session) return;
+      currentUser = session.user;
+      showPasswordResetScreen();
     } else if (event === 'SIGNED_OUT') {
       showAuthScreen();
     }
@@ -66,7 +70,42 @@ async function loadProfileAndOrg() {
     return;
   }
   currentProfile = profile;
-  if (!profile) { showAuthScreen(); return; }
+  if (!profile) {
+    // No profile yet — check if this user was invited as a member via portal_email
+    try {
+      const email = currentUser.email;
+      const { data: memberRow } = await sb.from('members')
+        .select('id,org_id,portal_email').eq('portal_email', email).maybeSingle();
+      if (memberRow?.org_id) {
+        // Create profile and user_orgs entry to link them
+        const { data: orgData } = await sb.from('organisations').select('*').eq('id', memberRow.org_id).single();
+        await sb.from('profiles').upsert({
+          id: currentUser.id,
+          full_name: currentUser.user_metadata?.full_name || email.split('@')[0],
+          email,
+          org_id: memberRow.org_id,
+          role: 'member'
+        });
+        await sb.from('user_orgs').upsert({
+          user_id: currentUser.id,
+          org_id: memberRow.org_id,
+          role: 'member'
+        });
+        await sb.from('members').update({ user_id: currentUser.id }).eq('id', memberRow.id);
+        // Reload profile
+        const { data: newProfile } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
+        currentProfile = newProfile;
+        currentOrg = orgData;
+        currentOrgRole = 'member';
+        _userOrgs = [{ ...orgData, _role: 'member' }];
+        showApp();
+        buildOrgSwitcherDropdown();
+        return;
+      }
+    } catch(e) { console.warn('[GY360] invite link-up error:', e); }
+    showAuthScreen();
+    return;
+  }
 
   // Superadmin
   if (profile.role === 'superadmin') {
@@ -1052,6 +1091,57 @@ function toggleSidebar() {
     toggle.innerHTML = sidebar.classList.contains('collapsed') ? '&#9776;' : '&#10005;';
     toggle.style.left = sidebar.classList.contains('collapsed') ? '8px' : '248px';
   }
+}
+
+function showPasswordResetScreen() {
+  // Show auth screen configured for setting a new password after invite/reset link
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('app-screen').classList.remove('visible');
+  const picker = document.getElementById('org-picker-screen');
+  if (picker) picker.style.display = 'none';
+  // Show forgot panel reused for new password entry
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.auth-panel').forEach(p => p.classList.remove('active'));
+  const forgotPanel = document.getElementById('auth-forgot');
+  if (forgotPanel) {
+    forgotPanel.classList.add('active');
+    // Replace with set-new-password form
+    forgotPanel.innerHTML = `
+      <div style="margin-bottom:1rem;font-size:.82rem;color:rgba(255,255,255,.7);line-height:1.6">
+        Welcome to GroupYetu360! Set a password to complete your account setup.
+      </div>
+      <div class="form-group">
+        <input class="form-input" type="password" id="new-password-input" placeholder="Choose a password (min 6 characters)" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:#fff"/>
+      </div>
+      <div class="form-group">
+        <input class="form-input" type="password" id="new-password-confirm" placeholder="Confirm your password" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:#fff"/>
+      </div>
+      <div id="new-password-error" class="auth-error" style="display:none"></div>
+      <div id="new-password-success" class="auth-error" style="display:none;color:#4ade80"></div>
+      <button class="btn btn-primary" onclick="setNewPassword()" style="width:100%;margin-top:.5rem">
+        Set Password & Enter App →
+      </button>`;
+  }
+  const hEl = document.getElementById('auth-form-heading');
+  const sEl = document.getElementById('auth-form-sub');
+  if (hEl) hEl.textContent = 'Set your password';
+  if (sEl) sEl.textContent = 'You were invited to GroupYetu360. Set a password to get started.';
+}
+
+async function setNewPassword() {
+  const pw = document.getElementById('new-password-input')?.value?.trim();
+  const conf = document.getElementById('new-password-confirm')?.value?.trim();
+  const errEl = document.getElementById('new-password-error');
+  const sucEl = document.getElementById('new-password-success');
+  if (!pw || pw.length < 6) { if(errEl){errEl.textContent='Password must be at least 6 characters';errEl.style.display='block';} return; }
+  if (pw !== conf) { if(errEl){errEl.textContent='Passwords do not match';errEl.style.display='block';} return; }
+  if(errEl) errEl.style.display='none';
+  const { error } = await sb.auth.updateUser({ password: pw });
+  if (error) { if(errEl){errEl.textContent=error.message;errEl.style.display='block';} return; }
+  if(sucEl){sucEl.textContent='✓ Password set! Loading your workspace…';sucEl.style.display='block';}
+  setTimeout(async () => {
+    try { await loadProfileAndOrg(); } catch(e) { showAuthScreen(); }
+  }, 1200);
 }
 
 async function signOut() {

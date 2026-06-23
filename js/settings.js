@@ -2173,7 +2173,7 @@ async function activateFreeTrialFromCart_impl() {
     if (error) throw new Error(error.message);
     Object.assign(currentOrg, { plan, subscription_status:'trial', subscription_expires: expiresStr, trial_used: true });
     await logActivity('PLAN UPGRADE', `Free trial activated: ${plan} until ${expiresStr}`);
-    buildSidebar();
+    if (typeof buildNav === 'function') buildNav();
     toast(`✓ ${PLAN_LABELS[plan]} activated free until ${expires.toLocaleDateString('en-KE',{day:'numeric',month:'long',year:'numeric'})}`);
     clearBillingCart();
     await loadBilling();
