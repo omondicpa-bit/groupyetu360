@@ -725,15 +725,26 @@ async function deleteMember() {
   } else {
     if (!confirm('Delete ' + m.full_name + '? This will remove all their records. This cannot be undone.')) return;
   }
-  await sb.from('balance_adjustments').delete().eq('member_id', currentMemberId);
-  await sb.from('transactions').delete().eq('member_id', currentMemberId);
-  await sb.from('attendance').delete().eq('member_id', currentMemberId);
-  await sb.from('members').delete().eq('id', currentMemberId);
-  await logActivity('DELETE MEMBER', `Deleted member: ${m.full_name}${m.is_founder?' [FOUNDER]':''}`, 'member', currentMemberId);
-  toast(m.full_name + ' removed');
-  closeModal('memberDetail');
-  currentMemberId = null;
-  loadMembers();
+  try {
+    const { error: e1 } = await sb.from('balance_adjustments').delete().eq('member_id', currentMemberId);
+    if (e1) console.warn('balance_adjustments delete:', e1.message);
+    const { error: e2 } = await sb.from('transactions').delete().eq('member_id', currentMemberId);
+    if (e2) console.warn('transactions delete:', e2.message);
+    const { error: e3 } = await sb.from('attendance').delete().eq('member_id', currentMemberId);
+    if (e3) console.warn('attendance delete:', e3.message);
+    const { error: e4 } = await sb.from('members').delete().eq('id', currentMemberId);
+    if (e4) {
+      toast('❌ Could not delete member: ' + e4.message);
+      return;
+    }
+    await logActivity('DELETE MEMBER', `Deleted member: ${m.full_name}${m.is_founder?' [FOUNDER]':''}`, 'member', currentMemberId);
+    toast(m.full_name + ' removed');
+    closeModal('memberDetail');
+    currentMemberId = null;
+    loadMembers();
+  } catch(e) {
+    toast('❌ Delete failed: ' + e.message);
+  }
 }
 
 async function saUpdateMemberAccount() {
