@@ -4259,95 +4259,109 @@
 
 <!-- ══ ORG PICKER SCREEN ══ -->
 <div class="org-picker-screen" id="org-picker-screen">
-  <div class="org-picker-inner">
-    <div class="org-picker-brand">
-      <div class="org-picker-brand-name">GroupYetu<span>360</span></div>
-      <div class="org-picker-brand-tag">Community Management</div>
+
+  <!-- LEFT: Teal branding panel -->
+  <div class="org-picker-left">
+    <div class="opl-brand">
+      <div class="opl-brand-name">GroupYetu<span>360</span></div>
+      <div class="opl-brand-tag">Community Management</div>
     </div>
-    <div class="org-picker-card">
-      <div class="org-picker-welcome">Welcome back,</div>
-      <div class="org-picker-user" id="org-picker-user-name">—</div>
-      <div class="org-picker-label">Choose a workspace</div>
-      <div class="org-picker-list" id="org-picker-list">
-        <div class="loading" style="padding:1.5rem;text-align:center"><div class="spinner"></div></div>
+    <div class="opl-headline">Your community,<br>one platform.</div>
+    <div class="opl-sub">Manage contributions, members, meetings and more — all in one place.</div>
+    <div class="opl-stats">
+      <div class="opl-stat">
+        <div class="opl-stat-val" id="picker-stat-orgs">—</div>
+        <div class="opl-stat-lbl">Groups</div>
       </div>
-
-      <!-- Action cards — always visible -->
-      <div class="org-picker-divider">or</div>
-      <div style="display:flex;flex-direction:column;gap:.6rem">
-
-        <!-- Create a Group -->
-        <div id="picker-create-section">
-          <button class="btn-new-org" onclick="togglePickerCreate()" id="picker-create-btn">
-            <span style="font-size:1.1rem">＋</span> Create a New Group
-          </button>
-          <div id="picker-create-form" style="display:none;margin-top:.65rem;background:rgba(255,255,255,.06);border-radius:10px;padding:.85rem;border:1px solid rgba(255,255,255,.12)">
-            <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.5);margin-bottom:.6rem">Group Details</div>
-            <div class="form-group" style="margin-bottom:.5rem">
-              <input class="form-input" id="picker-org-name" placeholder="Group / Organisation name *" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:#fff"/>
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:.4rem;margin-bottom:.6rem" id="picker-plan-grid">
-              <div class="picker-plan-opt selected" data-plan="starter" onclick="selectPickerPlan(this)">
-                <div style="font-size:.7rem;font-weight:700">Starter</div>
-                <div style="font-size:.62rem;opacity:.7">Free · 15 members</div>
-              </div>
-              <div class="picker-plan-opt" data-plan="basic" onclick="selectPickerPlan(this)">
-                <div style="font-size:.7rem;font-weight:700">Basic</div>
-                <div style="font-size:.62rem;opacity:.7">Ksh 3K · 30 members</div>
-                <div class="picker-promo-tag" style="display:none;font-size:.58rem;color:var(--teal);font-weight:700;margin-top:.15rem"></div>
-              </div>
-              <div class="picker-plan-opt" data-plan="standard" onclick="selectPickerPlan(this)">
-                <div style="font-size:.7rem;font-weight:700">Standard ★</div>
-                <div style="font-size:.62rem;opacity:.7">Ksh 6K · 75 members</div>
-                <div class="picker-promo-tag" style="display:none;font-size:.58rem;color:var(--teal);font-weight:700;margin-top:.15rem"></div>
-              </div>
-              <div class="picker-plan-opt" data-plan="pro" onclick="selectPickerPlan(this)">
-                <div style="font-size:.7rem;font-weight:700">Pro</div>
-                <div style="font-size:.62rem;opacity:.7">Ksh 12K · Unlimited</div>
-                <div class="picker-promo-tag" style="display:none;font-size:.58rem;color:var(--teal);font-weight:700;margin-top:.15rem"></div>
-              </div>
-            </div>
-            <input type="hidden" id="picker-plan-val" value="starter"/>
-            <div id="picker-create-error" style="font-size:.72rem;color:#f87171;margin-bottom:.4rem;display:none"></div>
-            <div id="picker-create-success" style="font-size:.72rem;color:#4ade80;margin-bottom:.4rem;display:none"></div>
-
-            <!-- Payment prompt (shown when paid plan selected + promo OFF) -->
-            <div id="picker-payment-prompt" style="display:none;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:.75rem;margin-bottom:.65rem">
-              <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.5);margin-bottom:.4rem">Payment Required to Activate</div>
-              <div id="picker-payment-details" style="font-size:.72rem;color:rgba(255,255,255,.75);margin-bottom:.5rem;line-height:1.6"></div>
-              <input class="form-input" id="picker-pay-ref" placeholder="M-Pesa reference (e.g. QBC4X8YZ)" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:#fff;font-size:.78rem;margin-bottom:.4rem"/>
-              <div style="font-size:.65rem;color:rgba(255,255,255,.45)">Your group will be created on Starter now. Plan activates after payment is verified.</div>
-            </div>
-
-            <button class="btn btn-primary" onclick="pickerCreateOrg()" style="width:100%;background:var(--teal);font-size:.82rem" id="picker-create-btn">
-              Create Group →
-            </button>
-          </div>
-        </div>
-
-        <!-- Join with Org Code -->
-        <div id="picker-join-section">
-          <button class="btn-new-org" onclick="togglePickerJoin()" id="picker-join-btn" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15)">
-            <span style="font-size:1.1rem">🔑</span> Join with Org Code
-          </button>
-          <div id="picker-join-form" style="display:none;margin-top:.65rem;background:rgba(255,255,255,.06);border-radius:10px;padding:.85rem;border:1px solid rgba(255,255,255,.12)">
-            <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.5);margin-bottom:.6rem">Enter the code shared by your group admin</div>
-            <input class="form-input" id="picker-org-code" placeholder="e.g. GYTPHA" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:#fff;text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:.5rem"/>
-            <div id="picker-join-error" style="font-size:.72rem;color:#f87171;margin-bottom:.4rem;display:none"></div>
-            <div id="picker-join-success" style="font-size:.72rem;color:#4ade80;margin-bottom:.4rem;display:none"></div>
-            <button class="btn btn-primary" onclick="pickerJoinOrg()" style="width:100%;font-size:.82rem">
-              Request to Join →
-            </button>
-          </div>
-        </div>
-
-      </div>
-
-      <div class="org-picker-footer">
-        <a href="#" onclick="event.preventDefault();signOut()">Sign out of GroupYetu360</a>
+      <div class="opl-stat">
+        <div class="opl-stat-val" id="picker-stat-members">—</div>
+        <div class="opl-stat-lbl">Members</div>
       </div>
     </div>
   </div>
+
+  <!-- RIGHT: Maroon workspace picker -->
+  <div class="org-picker-right">
+    <div class="org-picker-welcome">Welcome back,</div>
+    <div class="org-picker-user" id="org-picker-user-name">—</div>
+    <div class="org-picker-label">Choose a workspace</div>
+    <div class="org-picker-list" id="org-picker-list">
+      <div class="loading" style="padding:1.5rem;text-align:center"><div class="spinner"></div></div>
+    </div>
+
+    <!-- Action cards -->
+    <div class="org-picker-divider">or</div>
+    <div style="display:flex;flex-direction:column;gap:.45rem">
+
+      <!-- Create a Group -->
+      <div id="picker-create-section">
+        <button class="btn-new-org" onclick="togglePickerCreate()" id="picker-create-btn">
+          <span style="font-size:1.05rem">＋</span> Create a New Group
+        </button>
+        <div id="picker-create-form" style="display:none;margin-top:.6rem;background:rgba(255,255,255,.06);border-radius:10px;padding:.85rem;border:1px solid rgba(255,255,255,.12)">
+          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.5);margin-bottom:.6rem">Group Details</div>
+          <div class="form-group" style="margin-bottom:.5rem">
+            <input class="form-input" id="picker-org-name" placeholder="Group / Organisation name *" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:#fff"/>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:.4rem;margin-bottom:.6rem" id="picker-plan-grid">
+            <div class="picker-plan-opt selected" data-plan="starter" onclick="selectPickerPlan(this)">
+              <div style="font-size:.7rem;font-weight:700">Starter</div>
+              <div style="font-size:.62rem;opacity:.7">Free · 15 members</div>
+            </div>
+            <div class="picker-plan-opt" data-plan="basic" onclick="selectPickerPlan(this)">
+              <div style="font-size:.7rem;font-weight:700">Basic</div>
+              <div style="font-size:.62rem;opacity:.7">Ksh 3K · 30 members</div>
+              <div class="picker-promo-tag" style="display:none;font-size:.58rem;color:var(--teal);font-weight:700;margin-top:.15rem"></div>
+            </div>
+            <div class="picker-plan-opt" data-plan="standard" onclick="selectPickerPlan(this)">
+              <div style="font-size:.7rem;font-weight:700">Standard ★</div>
+              <div style="font-size:.62rem;opacity:.7">Ksh 6K · 75 members</div>
+              <div class="picker-promo-tag" style="display:none;font-size:.58rem;color:var(--teal);font-weight:700;margin-top:.15rem"></div>
+            </div>
+            <div class="picker-plan-opt" data-plan="pro" onclick="selectPickerPlan(this)">
+              <div style="font-size:.7rem;font-weight:700">Pro</div>
+              <div style="font-size:.62rem;opacity:.7">Ksh 12K · Unlimited</div>
+              <div class="picker-promo-tag" style="display:none;font-size:.58rem;color:var(--teal);font-weight:700;margin-top:.15rem"></div>
+            </div>
+          </div>
+          <input type="hidden" id="picker-plan-val" value="starter"/>
+          <div id="picker-create-error" style="font-size:.72rem;color:#f87171;margin-bottom:.4rem;display:none"></div>
+          <div id="picker-create-success" style="font-size:.72rem;color:#4ade80;margin-bottom:.4rem;display:none"></div>
+          <div id="picker-payment-prompt" style="display:none;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:.75rem;margin-bottom:.65rem">
+            <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.5);margin-bottom:.4rem">Payment Required to Activate</div>
+            <div id="picker-payment-details" style="font-size:.72rem;color:rgba(255,255,255,.75);margin-bottom:.5rem;line-height:1.6"></div>
+            <input class="form-input" id="picker-pay-ref" placeholder="M-Pesa reference (e.g. QBC4X8YZ)" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:#fff;font-size:.78rem;margin-bottom:.4rem"/>
+            <div style="font-size:.65rem;color:rgba(255,255,255,.45)">Your group will be created on Starter now. Plan activates after payment is verified.</div>
+          </div>
+          <button class="btn btn-primary" onclick="pickerCreateOrg()" style="width:100%;background:var(--teal);font-size:.82rem" id="picker-create-btn">
+            Create Group →
+          </button>
+        </div>
+      </div>
+
+      <!-- Join with Org Code -->
+      <div id="picker-join-section">
+        <button class="btn-new-org" onclick="togglePickerJoin()" id="picker-join-btn" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15)">
+          <span style="font-size:1.05rem">🔑</span> Join with Org Code
+        </button>
+        <div id="picker-join-form" style="display:none;margin-top:.6rem;background:rgba(255,255,255,.06);border-radius:10px;padding:.85rem;border:1px solid rgba(255,255,255,.12)">
+          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.5);margin-bottom:.6rem">Enter the code shared by your group admin</div>
+          <input class="form-input" id="picker-org-code" placeholder="e.g. GYTPHA" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:#fff;text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:.5rem"/>
+          <div id="picker-join-error" style="font-size:.72rem;color:#f87171;margin-bottom:.4rem;display:none"></div>
+          <div id="picker-join-success" style="font-size:.72rem;color:#4ade80;margin-bottom:.4rem;display:none"></div>
+          <button class="btn btn-primary" onclick="pickerJoinOrg()" style="width:100%;font-size:.82rem">
+            Request to Join →
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="org-picker-footer">
+      <a href="#" onclick="event.preventDefault();signOut()">Sign out of GroupYetu360</a>
+    </div>
+  </div>
+
 </div>
 
 <!-- ══ REGISTER NEW ORG MODAL (from within app) ══ -->

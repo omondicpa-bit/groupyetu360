@@ -1347,121 +1347,153 @@ body.member-mob-active #support-fab{display:none !important}
 @keyframes pickerFadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
 @keyframes orgCardIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 
+/* ── ORG PICKER — Split teal/maroon layout ── */
 .org-picker-screen{
   position:fixed;inset:0;z-index:9000;
-  background:linear-gradient(160deg,#2a0008 0%,#5c0018 35%,#800020 60%,#063d2e 100%);
-  background-size:200% 200%;
-  animation:gradientShift 10s ease infinite;
-  display:none;align-items:center;justify-content:center;
-  padding:1.5rem
+  background:#1a0008;
+  display:none;align-items:stretch;justify-content:stretch
 }
-.org-picker-inner{
-  width:100%;max-width:560px;
-  max-height:calc(100vh - 3rem);
-  overflow-y:auto;
-  animation:pickerFadeUp .5s ease both
+
+/* LEFT PANEL — Teal */
+.org-picker-left{
+  width:40%;min-width:260px;
+  background:linear-gradient(160deg,#042e22 0%,#063d2e 40%,#0a5c44 75%,#1a7a5a 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:3rem 2.5rem;position:relative;overflow:hidden;flex-shrink:0
 }
-.org-picker-inner::-webkit-scrollbar{width:4px}
-.org-picker-inner::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:2px}
-.org-picker-brand{
-  text-align:center;margin-bottom:2rem
+.org-picker-left::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 25% 75%,rgba(255,255,255,.05) 0%,transparent 60%)
 }
-.org-picker-brand-name{
-  font-family:'Crimson Pro',serif;font-size:2.2rem;font-weight:700;color:#fff;
-  margin-bottom:.2rem;letter-spacing:-.01em
+.org-picker-left::after{
+  content:'';position:absolute;top:-30%;right:-20%;
+  width:300px;height:300px;border-radius:50%;
+  background:radial-gradient(circle,rgba(31,158,117,.15) 0%,transparent 70%)
 }
-.org-picker-brand-name span{color:var(--gold-lt,#d4af37)}
-.org-picker-brand-tag{font-size:.72rem;color:rgba(255,255,255,.4);letter-spacing:.15em;text-transform:uppercase}
-.org-picker-card{
-  background:rgba(255,255,255,.06);
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:16px;
-  padding:1.75rem;
-  backdrop-filter:blur(10px);
-  box-shadow:0 24px 64px rgba(0,0,0,.3)
+.opl-brand{text-align:center;margin-bottom:2.5rem;position:relative;z-index:1}
+.opl-brand-name{
+  font-family:'Crimson Pro',serif;font-size:2.4rem;font-weight:700;
+  color:#fff;letter-spacing:-.02em;margin-bottom:.25rem
 }
-.org-picker-welcome{
-  font-size:.78rem;color:rgba(255,255,255,.5);margin-bottom:.25rem
+.opl-brand-name span{color:var(--gold-lt,#d4af37)}
+.opl-brand-tag{font-size:.65rem;color:rgba(255,255,255,.35);letter-spacing:.2em;text-transform:uppercase}
+.opl-headline{
+  font-size:1.25rem;font-weight:700;color:#fff;text-align:center;
+  line-height:1.4;margin-bottom:.75rem;position:relative;z-index:1
 }
+.opl-sub{
+  font-size:.75rem;color:rgba(255,255,255,.45);text-align:center;
+  line-height:1.75;max-width:220px;position:relative;z-index:1
+}
+.opl-stats{
+  margin-top:2.25rem;position:relative;z-index:1;
+  display:flex;gap:1.5rem
+}
+.opl-stat{text-align:center}
+.opl-stat-val{font-size:1.5rem;font-weight:700;color:var(--gold-lt,#d4af37);line-height:1}
+.opl-stat-lbl{font-size:.6rem;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.1em;margin-top:.2rem}
+
+/* RIGHT PANEL — Maroon */
+.org-picker-right{
+  flex:1;
+  background:linear-gradient(160deg,#3d0010 0%,#5c0018 45%,#6e001e 100%);
+  display:flex;flex-direction:column;
+  padding:2.5rem 2.25rem;
+  overflow-y:auto
+}
+.org-picker-right::-webkit-scrollbar{width:4px}
+.org-picker-right::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px}
+.org-picker-welcome{font-size:.78rem;color:rgba(255,255,255,.45);margin-bottom:.2rem}
 .org-picker-user{
-  font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:var(--gold-lt,#d4af37);
-  margin-bottom:1.25rem;line-height:1.2
+  font-family:'Crimson Pro',serif;font-size:1.75rem;font-weight:700;
+  color:var(--gold-lt,#d4af37);margin-bottom:1.5rem;line-height:1.2
 }
 .org-picker-label{
-  font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.14em;
-  color:var(--teal-mid,#1f9e75);margin-bottom:.65rem;
-  border-bottom:1px solid rgba(31,158,117,.2);padding-bottom:.5rem
+  font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.15em;
+  color:var(--teal-mid,#1f9e75);margin-bottom:.7rem;
+  border-bottom:1px solid rgba(31,158,117,.2);padding-bottom:.45rem
 }
 .org-picker-list{
-  display:flex;flex-direction:column;gap:.5rem;
-  max-height:320px;overflow-y:auto;
-  margin-bottom:1.25rem
+  display:flex;flex-direction:column;gap:.45rem;
+  max-height:45vh;overflow-y:auto;margin-bottom:1.25rem
 }
-.org-picker-list::-webkit-scrollbar{width:4px}
-.org-picker-list::-webkit-scrollbar-track{background:rgba(255,255,255,.05)}
-.org-picker-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:2px}
+.org-picker-list::-webkit-scrollbar{width:3px}
+.org-picker-list::-webkit-scrollbar-track{background:rgba(255,255,255,.04)}
+.org-picker-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:2px}
 .org-picker-item{
-  display:flex;align-items:center;gap:.85rem;
-  background:rgba(255,255,255,.07);
-  border:1px solid rgba(255,255,255,.1);
-  border-radius:10px;padding:.9rem 1.1rem;
+  display:flex;align-items:center;gap:.8rem;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:10px;padding:.85rem 1rem;
   cursor:pointer;transition:all .18s;
   animation:orgCardIn .35s ease both
 }
 .org-picker-item:hover{
-  background:rgba(255,255,255,.14);
-  border-color:rgba(255,255,255,.25);
+  background:rgba(255,255,255,.12);
+  border-color:rgba(255,255,255,.2);
   transform:translateX(4px)
 }
 .org-picker-item:active{transform:translateX(2px)}
 .opi-icon{
-  width:42px;height:42px;border-radius:10px;
-  background:linear-gradient(135deg,var(--maroon),#5a0016);
+  width:40px;height:40px;border-radius:9px;
+  background:linear-gradient(135deg,#800020,#5a0016);
   display:flex;align-items:center;justify-content:center;
-  font-family:'Crimson Pro',serif;font-size:1.1rem;font-weight:700;
+  font-family:'Crimson Pro',serif;font-size:1rem;font-weight:700;
   color:#fff;flex-shrink:0
 }
-.opi-icon.teal{background:linear-gradient(135deg,var(--teal),var(--teal-dk))}
-.opi-name{font-size:.88rem;font-weight:700;color:#fff;margin-bottom:.2rem}
-.opi-meta{font-size:.68rem;color:rgba(255,255,255,.45);display:flex;gap:.5rem;flex-wrap:wrap}
+.opi-icon.teal{background:linear-gradient(135deg,var(--teal,#1f9e75),var(--teal-dk,#063d2e))}
+.opi-name{font-size:.85rem;font-weight:700;color:#fff;margin-bottom:.18rem}
+.opi-meta{font-size:.65rem;color:rgba(255,255,255,.4);display:flex;gap:.45rem;flex-wrap:wrap;align-items:center}
 .opi-role{
-  font-size:.6rem;font-weight:700;padding:.15rem .45rem;border-radius:3px;
-  background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.06em
+  font-size:.58rem;font-weight:700;padding:.12rem .4rem;border-radius:3px;
+  background:rgba(255,255,255,.1);color:rgba(255,255,255,.65);
+  text-transform:uppercase;letter-spacing:.06em
 }
-.opi-role.admin{background:rgba(196,154,48,.2);color:var(--gold-lt)}
-.opi-role.member{background:rgba(31,158,117,.2);color:var(--teal-mid)}
-.opi-arrow{color:rgba(255,255,255,.3);font-size:1.1rem;margin-left:auto;flex-shrink:0;transition:color .15s}
-.org-picker-item:hover .opi-arrow{color:rgba(255,255,255,.8)}
+.opi-role.admin{background:rgba(196,154,48,.22);color:var(--gold-lt,#d4af37)}
+.opi-role.member{background:rgba(31,158,117,.2);color:var(--teal-mid,#1f9e75)}
+.opi-arrow{color:rgba(255,255,255,.25);font-size:1rem;margin-left:auto;flex-shrink:0;transition:color .15s}
+.org-picker-item:hover .opi-arrow{color:rgba(255,255,255,.7)}
+
 .org-picker-divider{
-  display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;
-  color:rgba(255,255,255,.25);font-size:.68rem
+  display:flex;align-items:center;gap:.65rem;margin-bottom:.85rem;
+  color:rgba(255,255,255,.2);font-size:.65rem
 }
 .org-picker-divider::before,.org-picker-divider::after{
-  content:'';flex:1;height:1px;background:rgba(255,255,255,.1)
+  content:'';flex:1;height:1px;background:rgba(255,255,255,.08)
 }
 .btn-new-org{
-  display:flex;align-items:center;justify-content:center;gap:.6rem;
-  width:100%;padding:.75rem;
-  background:rgba(255,255,255,.08);
-  border:1.5px dashed rgba(255,255,255,.2);
-  border-radius:10px;cursor:pointer;
-  font-size:.82rem;font-weight:600;color:rgba(255,255,255,.75);
-  font-family:'Inter',sans-serif;
-  transition:all .18s
+  display:flex;align-items:center;justify-content:center;gap:.55rem;
+  width:100%;padding:.7rem;
+  background:rgba(255,255,255,.06);
+  border:1.5px dashed rgba(255,255,255,.16);
+  border-radius:9px;cursor:pointer;
+  font-size:.8rem;font-weight:600;color:rgba(255,255,255,.65);
+  font-family:'Inter',sans-serif;transition:all .18s;margin-bottom:.4rem
 }
 .btn-new-org:hover{
-  background:rgba(255,255,255,.14);
-  border-color:rgba(255,255,255,.4);
-  color:#fff
+  background:rgba(255,255,255,.12);
+  border-color:rgba(255,255,255,.35);color:#fff
 }
-.org-picker-footer{
-  text-align:center;margin-top:1.1rem
-}
+.org-picker-footer{text-align:center;margin-top:1rem}
 .org-picker-footer a{
-  font-size:.72rem;color:rgba(255,255,255,.35);cursor:pointer;
+  font-size:.7rem;color:rgba(255,255,255,.28);cursor:pointer;
   transition:color .15s;text-decoration:none
 }
-.org-picker-footer a:hover{color:rgba(255,255,255,.65)}
+.org-picker-footer a:hover{color:rgba(255,255,255,.6)}
+
+/* Mobile: stack vertically, hide left panel on small screens */
+@media(max-width:640px){
+  .org-picker-screen{flex-direction:column}
+  .org-picker-left{
+    width:100%;min-width:unset;padding:1.75rem 1.5rem;
+    flex-direction:row;justify-content:flex-start;gap:1.25rem;
+    min-height:unset
+  }
+  .opl-brand{margin-bottom:0;text-align:left}
+  .opl-brand-name{font-size:1.6rem}
+  .opl-headline,.opl-sub,.opl-stats{display:none}
+  .org-picker-right{padding:1.5rem 1.25rem}
+}
 
 /* ── Org switcher in sidebar ── */
 .org-switcher-btn{

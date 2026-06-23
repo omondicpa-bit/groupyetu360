@@ -785,6 +785,16 @@ async function showOrgPicker() {
   const nameEl = document.getElementById('org-picker-user-name');
   if (nameEl) nameEl.textContent = currentProfile?.full_name || currentUser?.email || 'there';
 
+  // Populate left panel stats from platform settings if available
+  try {
+    const statOrgs = document.getElementById('picker-stat-orgs');
+    const statMembers = document.getElementById('picker-stat-members');
+    if (statOrgs && window._platformSettings) {
+      statOrgs.textContent = window._platformSettings.total_orgs || '—';
+      statMembers.textContent = window._platformSettings.total_members || '—';
+    }
+  } catch(e) {}
+
   // Load orgs
   const orgs = await loadUserOrgs();
   const listEl = document.getElementById('org-picker-list');
