@@ -32,6 +32,13 @@ async function init() {
       if (!session) return;
       // Avoid double-loading if we already have a matching session
       if (event === 'INITIAL_SESSION' && currentProfile) return;
+      // Guard: if SIGNED_IN fires but the session user differs from currentUser,
+      // it means a signUp() call (e.g. admin inviting a member) triggered this.
+      // Do NOT switch the current admin's session.
+      if (event === 'SIGNED_IN' && currentUser && session.user.id !== currentUser.id) {
+        console.log('[GY360] Ignoring SIGNED_IN for different user (invite signUp side-effect)');
+        return;
+      }
       currentUser = session.user;
       try {
         await loadProfileAndOrg();
@@ -71,33 +78,48 @@ async function loadProfileAndOrg() {
   }
   currentProfile = profile;
   if (!profile) {
-    // No profile yet — check if this user was invited as a member via portal_email
+    // No profile yet — try to auto-link via invite metadata or portal_email
     try {
       const email = currentUser.email;
-      const { data: memberRow } = await sb.from('members')
-        .select('id,org_id,portal_email').eq('portal_email', email).maybeSingle();
-      if (memberRow?.org_id) {
-        // Create profile and user_orgs entry to link them
-        const { data: orgData } = await sb.from('organisations').select('*').eq('id', memberRow.org_id).single();
+      const meta = currentUser.user_metadata || {};
+
+      // Priority 1: invite metadata embedded in signUp options.data
+      let inviteOrgId = meta.invite_org_id || null;
+      let inviteMemberId = meta.invite_member_id || null;
+
+      // Priority 2: fallback — look up members table by portal_email
+      if (!inviteOrgId) {
+        const { data: memberRow } = await sb.from('members')
+          .select('id,org_id,portal_email').eq('portal_email', email).maybeSingle();
+        if (memberRow?.org_id) {
+          inviteOrgId = memberRow.org_id;
+          inviteMemberId = memberRow.id;
+        }
+      }
+
+      if (inviteOrgId) {
+        const { data: orgData } = await sb.from('organisations').select('*').eq('id', inviteOrgId).single();
+        const role = meta.invite_role || 'member';
         await sb.from('profiles').upsert({
           id: currentUser.id,
-          full_name: currentUser.user_metadata?.full_name || email.split('@')[0],
+          full_name: meta.full_name || email.split('@')[0],
           email,
-          org_id: memberRow.org_id,
-          role: 'member'
+          org_id: inviteOrgId,
+          role
         });
         await sb.from('user_orgs').upsert({
           user_id: currentUser.id,
-          org_id: memberRow.org_id,
-          role: 'member'
+          org_id: inviteOrgId,
+          role
         });
-        await sb.from('members').update({ user_id: currentUser.id }).eq('id', memberRow.id);
-        // Reload profile
+        if (inviteMemberId) {
+          await sb.from('members').update({ user_id: currentUser.id }).eq('id', inviteMemberId);
+        }
         const { data: newProfile } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
         currentProfile = newProfile;
         currentOrg = orgData;
-        currentOrgRole = 'member';
-        _userOrgs = [{ ...orgData, _role: 'member' }];
+        currentOrgRole = role;
+        _userOrgs = [{ ...orgData, _role: role }];
         showApp();
         buildOrgSwitcherDropdown();
         return;

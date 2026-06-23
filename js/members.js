@@ -555,29 +555,33 @@ async function sendMemberPortalInvite() {
       }
 
     } else {
-      // ── NEW USER — sign up + send invite email ────────────────────────
+      // ── NEW USER — sign up + send confirmation email ─────────────────
       const tempPw = Math.random().toString(36).slice(2, 10) + 'Aa1!';
       const { data: authData, error: signUpErr } = await sb.auth.signUp({
         email, password: tempPw,
-        options: { data: { full_name: m?.full_name || '' } }
+        options: {
+          data: {
+            full_name: m?.full_name || '',
+            invite_org_id: currentOrg.id,
+            invite_org_name: currentOrg.name,
+            invite_member_id: currentMemberId
+          },
+          emailRedirectTo: appUrl
+        }
       });
 
       if (signUpErr) {
-        // Account exists but we couldn't find them by phone — send reset link
-        await sb.auth.resetPasswordForEmail(email, { redirectTo: appUrl });
-        setStatus('⚠ Account exists — password reset link sent', true);
-        toast('Reset link sent to ' + email);
+        // Account already exists — link them directly, no email needed
+        setStatus('⚠ Account exists — please use "Link Existing User" instead', false);
+        toast('Account already exists for ' + email);
         return;
       }
 
       if (authData?.user?.id) {
-        // New user — profile insert will work (they're inserting for themselves via signUp)
-        // Use RPC so it works regardless
         await linkUserToOrg(authData.user.id, 'member', m?.full_name, m?.phone);
-        await sb.auth.resetPasswordForEmail(email, { redirectTo: appUrl });
       }
 
-      setStatus('✓ Invite sent — check email for password-set link', true);
+      setStatus('✓ Invite sent — ' + (m?.full_name || email) + ' will receive an email to set their password', true);
       toast('✓ Invite sent to ' + email);
       await logActivity('PORTAL INVITE', 'Sent invite to ' + email, 'member', currentMemberId);
     }
@@ -642,12 +646,20 @@ Current: ${existingProfile?.role || 'no portal account'}`
     } else {
       const tempPw = Math.random().toString(36).slice(2,10) + 'Aa1!';
       const { data: authData, error: authErr } = await sb.auth.signUp({
-        email, password: tempPw, options: { data: { full_name: m.full_name } }
+        email, password: tempPw,
+        options: {
+          data: {
+            full_name: m.full_name,
+            invite_org_id: currentOrg.id,
+            invite_org_name: currentOrg.name,
+            invite_member_id: currentMemberId
+          },
+          emailRedirectTo: 'https://app.groupyetu.org/'
+        }
       });
       if (authErr) { toast('Error: ' + authErr.message); return; }
       if (authData?.user?.id) {
         await linkUserToOrg(authData.user.id, role.toLowerCase(), m.full_name, m.phone);
-        await sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://app.groupyetu.org/' });
       }
       toast(m.full_name + ' set as ' + role + ' — invite sent');
     }
