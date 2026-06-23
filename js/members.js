@@ -289,15 +289,13 @@ async function openMemberDetail(memberId) {
     founderBadge.style.display = 'none';
   }
 
-  // Founder cannot be deleted by any org-level admin — only superadmin can
-  const deleteBtn = document.querySelector('#modal-memberDetail .btn-danger');
+  // Delete button — superadmin only
+  const deleteBtn = document.getElementById('delete-member-btn');
   if (deleteBtn) {
-    if (isFounder && !isSuperAdmin) {
-      deleteBtn.style.display = 'none';
-    } else {
-      deleteBtn.style.display = '';
-      deleteBtn.title = isFounder ? 'Superadmin only: remove founding member' : '';
-      if (isFounder) deleteBtn.style.background = 'var(--maroon-dk)';
+    deleteBtn.style.display = isSuperAdmin ? '' : 'none';
+    if (isSuperAdmin && isFounder) {
+      deleteBtn.style.background = 'var(--maroon-dk)';
+      deleteBtn.title = 'Superadmin: remove founding member';
     }
   }
   document.getElementById('md-shares-bal').textContent = 'Ksh ' + (m.shares_balance||0).toLocaleString();
@@ -594,79 +592,93 @@ async function sendMemberPortalInvite() {
 
 async function promoteToAdmin() {
   if (!currentMemberId) return;
-  const { data: m } = await sb.from('members').select('full_name,portal_email,phone').eq('id', currentMemberId).single();
+  const isSuperAdmin = currentProfile?.role === 'superadmin';
+  const { data: m } = await sb.from('members').select('full_name,portal_email,phone,is_founder,user_id').eq('id', currentMemberId).single();
   if (!m) return;
 
-  // Check if this member already has a portal account
+  // Get current role from profiles via user_id
   let existingProfile = null;
-  if (m.portal_email) {
-    const { data: profiles } = await sb.from('profiles').select('*').eq('org_id', currentOrg.id);
-    existingProfile = profiles?.find(p => p.full_name?.toLowerCase() === m.full_name?.toLowerCase()
-      || p.phone === m.phone);
+  if (m.user_id) {
+    const { data: prof } = await sb.from('profiles').select('id,role').eq('id', m.user_id).maybeSingle();
+    existingProfile = prof;
+  } else if (m.portal_email) {
+    const { data: profs } = await sb.from('profiles').select('id,role').eq('org_id', currentOrg.id);
+    existingProfile = profs?.find(p => p.id === m.user_id) || null;
   }
 
-  // Show role selection dialog
-  const role = prompt(
-    `Set portal role for ${m.full_name}:
+  const currentRole = existingProfile?.role || 'no portal account';
 
-Type one of:
-- admin
-- treasurer
-- officer
-- member
-
-Current: ${existingProfile?.role || 'no portal account'}`
-  );
-
-  if (!role || !['admin','treasurer','officer','member'].includes(role.toLowerCase())) {
-    toast('Invalid role. Choose: admin, treasurer, officer, or member');
+  // Build role buttons — founder change restricted to superadmin
+  const roles = ['admin','treasurer','officer','member'];
+  const isFounder = m.is_founder;
+  if (isFounder && !isSuperAdmin) {
+    toast("⚠ Only the platform SuperAdmin can change the founding member's role.");
     return;
   }
 
-  if (existingProfile) {
-    // Update existing profile role
-    await sb.from('profiles').update({ role: role.toLowerCase() }).eq('id', existingProfile.id);
-    toast(`${m.full_name} role updated to ${role}`);
-  } else {
-    const email = m.portal_email || prompt('Enter ' + m.full_name + ' email address:');
-    if (!email) { toast('Email required'); return; }
-    await sb.from('members').update({ portal_email: email }).eq('id', currentMemberId);
+  // Show role picker modal
+  const overlay = document.createElement('div');
+  overlay.id = 'role-picker-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10000;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:1.75rem;max-width:380px;width:90%;box-shadow:0 24px 64px rgba(0,0,0,.2)">
+      <div style="font-size:1rem;font-weight:700;color:#1a1a1a;margin-bottom:.3rem">Change Portal Role</div>
+      <div style="font-size:.78rem;color:#666;margin-bottom:1.25rem">
+        <strong>${m.full_name}</strong>${isFounder ? ' <span style="color:#800020;font-size:.7rem;font-weight:700">FOUNDER</span>' : ''}<br>
+        Current role: <strong style="text-transform:capitalize">${currentRole}</strong>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1.25rem">
+        ${roles.map(r => `
+          <button onclick="confirmRoleChange('${r}')" style="
+            padding:.65rem;border-radius:8px;border:2px solid ${currentRole===r?'#800020':'#e0e0e0'};
+            background:${currentRole===r?'#fff5f7':'#fafafa'};color:${currentRole===r?'#800020':'#333'};
+            font-size:.82rem;font-weight:${currentRole===r?'700':'500'};cursor:pointer;
+            text-transform:capitalize;transition:all .15s"
+            onmouseover="this.style.borderColor='#800020';this.style.background='#fff5f7'"
+            onmouseout="if('${r}'!=='${currentRole}'){this.style.borderColor='#e0e0e0';this.style.background='#fafafa'}">
+            ${r==='admin'?'🔑 ':r==='treasurer'?'💰 ':r==='officer'?'📋 ':'👤 '}${r.charAt(0).toUpperCase()+r.slice(1)}
+          </button>`).join('')}
+      </div>
+      ${isFounder && isSuperAdmin ? `
+        <div style="background:#fff5f7;border:1px solid #f0c0c0;border-radius:6px;padding:.6rem .85rem;font-size:.72rem;color:#800020;margin-bottom:1rem">
+          ⚠ You are changing the founding member's role. This will affect their admin access.
+        </div>` : ''}
+      <div style="display:flex;gap:.5rem;justify-content:flex-end">
+        <button onclick="document.getElementById('role-picker-overlay').remove()" style="padding:.5rem 1rem;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:.82rem">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  window._roleChangeMember = { m, existingProfile };
+}
 
-    // Check if existing user by phone
-    let existingId = null;
-    if (m.phone) {
-      const { data: pp } = await sb.from('profiles').select('id,org_id').eq('phone', m.phone);
-      const other = (pp||[]).find(p => p.org_id !== currentOrg.id);
-      if (other) existingId = other.id;
-    }
+async function confirmRoleChange(role) {
+  const overlay = document.getElementById('role-picker-overlay');
+  if (overlay) overlay.remove();
+  const { m, existingProfile } = window._roleChangeMember || {};
+  if (!m || !role) return;
 
-    if (existingId) {
-      const res = await linkUserToOrg(existingId, role.toLowerCase(), m.full_name, m.phone);
-      toast(res.success ? m.full_name + ' set as ' + role + ' — org linked' : 'Error: ' + res.error);
+  const confirmed = confirm(`Change ${m.full_name}'s role to "${role.toUpperCase()}"?
+
+This will take effect immediately on their next login.`);
+  if (!confirmed) return;
+
+  try {
+    if (existingProfile?.id) {
+      // Update existing profile role
+      await sb.from('profiles').update({ role }).eq('id', existingProfile.id);
+      // Also update user_orgs
+      await sb.from('user_orgs').update({ role }).eq('user_id', existingProfile.id).eq('org_id', currentOrg.id);
+      toast(`✓ ${m.full_name} is now ${role}`);
     } else {
-      const tempPw = Math.random().toString(36).slice(2,10) + 'Aa1!';
-      const { data: authData, error: authErr } = await sb.auth.signUp({
-        email, password: tempPw,
-        options: {
-          data: {
-            full_name: m.full_name,
-            invite_org_id: currentOrg.id,
-            invite_org_name: currentOrg.name,
-            invite_member_id: currentMemberId
-          },
-          emailRedirectTo: 'https://app.groupyetu.org/'
-        }
-      });
-      if (authErr) { toast('Error: ' + authErr.message); return; }
-      if (authData?.user?.id) {
-        await linkUserToOrg(authData.user.id, role.toLowerCase(), m.full_name, m.phone);
-      }
-      toast(m.full_name + ' set as ' + role + ' — invite sent');
+      // No portal account yet — need to invite them first
+      toast('⚠ This member has no portal account yet. Send them a portal invite first, then change their role.');
+      return;
     }
+    await logActivity('SET ROLE', `Changed ${m.full_name} portal role to ${role}`, 'member', currentMemberId);
+    loadMembers();
+  } catch(e) {
+    toast('❌ Role change failed: ' + e.message);
   }
-
-  await logActivity('SET ROLE', `Set ${m.full_name} portal role to ${role}`, 'member', currentMemberId);
-  loadTeamMembers();
 }
 
 async function saveAdjustment() {
@@ -715,17 +727,20 @@ async function saveAdjustment() {
 
 async function deleteMember() {
   if (!currentMemberId) return;
-  const { data: m } = await sb.from('members').select('full_name,is_founder').eq('id', currentMemberId).single();
-  if (m.is_founder && currentProfile?.role !== 'superadmin') {
-    toast('⚠ The founding member cannot be removed. Contact GroupYetu support if needed.');
+  // Only superadmin can delete members
+  if (currentProfile?.role !== 'superadmin') {
+    toast('⚠ Only the platform SuperAdmin can delete members.');
     return;
   }
-  if (m.is_founder && currentProfile?.role === 'superadmin') {
-    if (!confirm(`SUPERADMIN ACTION: You are about to remove the FOUNDING MEMBER (${m.full_name}). This is irreversible. Are you absolutely sure?`)) return;
-  } else {
-    if (!confirm('Delete ' + m.full_name + '? This will remove all their records. This cannot be undone.')) return;
-  }
+  const { data: m } = await sb.from('members').select('full_name,is_founder').eq('id', currentMemberId).single();
+  if (!m) return;
+  const confirmMsg = m.is_founder
+    ? `SUPERADMIN ACTION: You are about to remove the FOUNDING MEMBER (${m.full_name}). This is irreversible. Are you absolutely sure?`
+    : `Delete ${m.full_name}? This will permanently remove all their records. This cannot be undone.`;
+  if (!confirm(confirmMsg)) return;
   try {
+    // Clear pending_members FK reference first to avoid constraint violation
+    await sb.from('pending_members').update({ linked_member_id: null }).eq('linked_member_id', currentMemberId);
     const { error: e1 } = await sb.from('balance_adjustments').delete().eq('member_id', currentMemberId);
     if (e1) console.warn('balance_adjustments delete:', e1.message);
     const { error: e2 } = await sb.from('transactions').delete().eq('member_id', currentMemberId);
@@ -733,10 +748,7 @@ async function deleteMember() {
     const { error: e3 } = await sb.from('attendance').delete().eq('member_id', currentMemberId);
     if (e3) console.warn('attendance delete:', e3.message);
     const { error: e4 } = await sb.from('members').delete().eq('id', currentMemberId);
-    if (e4) {
-      toast('❌ Could not delete member: ' + e4.message);
-      return;
-    }
+    if (e4) { toast('❌ Could not delete member: ' + e4.message); return; }
     await logActivity('DELETE MEMBER', `Deleted member: ${m.full_name}${m.is_founder?' [FOUNDER]':''}`, 'member', currentMemberId);
     toast(m.full_name + ' removed');
     closeModal('memberDetail');
