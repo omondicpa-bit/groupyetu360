@@ -11,15 +11,15 @@ async function loadMembers() {
   // Always fetch fresh from DB — never use stale allMembers from previous org
   const [{ data }, { data: lastTxns }] = await Promise.all([
     sb.from('members').select('*').eq('org_id', currentOrg.id).order('internal_number,member_number'),
-    sb.from('transactions').select('member_id,amount,payment_date,created_at')
+    sb.from('transactions').select('member_id,amount,transaction_date,created_at')
       .eq('org_id', currentOrg.id)
-      .order('payment_date', { ascending: false })
+      .order('transaction_date', { ascending: false })
   ]);
   // Build last contribution map: member_id → { date, amount }
   const lastContribMap = {};
   (lastTxns || []).forEach(t => {
     if (!lastContribMap[t.member_id]) {
-      lastContribMap[t.member_id] = { date: t.payment_date || t.created_at?.split('T')[0], amount: t.amount };
+      lastContribMap[t.member_id] = { date: t.transaction_date || t.created_at?.split('T')[0], amount: t.amount };
     }
   });
   window._lastContribMap = lastContribMap;
