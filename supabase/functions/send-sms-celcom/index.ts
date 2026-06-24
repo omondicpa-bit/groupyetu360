@@ -51,7 +51,8 @@ serve(async (req: Request) => {
     let sent = 0, failed = 0;
     if (result?.responses?.length) {
       result.responses.forEach((r: any) => {
-        const code = r['respose-code']?.toString();
+        // Celcom uses 'response-code' (correct) not 'respose-code' (their old docs typo)
+        const code = (r['response-code'] ?? r['respose-code'])?.toString();
         if (code === '200') sent++;
         else failed++;
       });
