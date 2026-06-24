@@ -394,6 +394,13 @@ async function loadSASupport() {
   const secEl = document.getElementById('sp-leopard-secret');
   if (keyEl && !keyEl.value) keyEl.placeholder = s.sms_leopard_api_key ? '••••••••••••• (saved — leave blank to keep)' : 'Your SMS Leopard API Key';
   if (secEl && !secEl.value) secEl.placeholder = s.sms_leopard_api_secret ? '••••••••••••• (saved — leave blank to keep)' : 'Your SMS Leopard API Secret';
+  // Celcom Africa
+  setVal('sp-celcom-partner-id', s.celcom_partner_id||'');
+  setVal('sp-celcom-shortcode',  s.celcom_shortcode||'');
+  const celcomSaved = document.getElementById('sp-celcom-saved');
+  if (celcomSaved) celcomSaved.style.display = s.celcom_api_key ? 'inline' : 'none';
+  const celcomKeyEl = document.getElementById('sp-celcom-key');
+  if (celcomKeyEl) celcomKeyEl.placeholder = s.celcom_api_key ? '••••• (saved — leave blank to keep)' : 'Celcom API Key';
   // Africa's Talking (backup)
   setVal('sp-at-username', s.at_username||'');
   setVal('sp-at-key', s.at_api_key||'');
@@ -441,6 +448,10 @@ async function saveSupportSettings() {
     at_username: document.getElementById('sp-at-username')?.value?.trim()||null,
     at_api_key: atKey || null,
     at_sender_id: document.getElementById('sp-at-sender')?.value?.trim()||null,
+    // Celcom Africa
+    celcom_partner_id: document.getElementById('sp-celcom-partner-id')?.value?.trim()||null,
+    celcom_shortcode:  document.getElementById('sp-celcom-shortcode')?.value?.trim()||null,
+    ...(document.getElementById('sp-celcom-key')?.value?.trim() ? { celcom_api_key: document.getElementById('sp-celcom-key').value.trim() } : {}),
     daraja_consumer_key: darajaKey || null,
     daraja_consumer_secret: darajaSecret || null,
     daraja_shortcode: document.getElementById('sp-daraja-shortcode')?.value?.trim()||null,
@@ -573,43 +584,30 @@ async function sendSMS(to, message) {
     }
   }
 
-  // ── CELCOM AFRICA (direct browser call) ──
+  // ── CELCOM AFRICA (via Supabase Edge Function — direct browser call blocked by CORS) ──
   if (provider === 'celcom') {
     if (!celcomKey || !celcomPartnerId) {
       console.error('sendSMS [celcom]: API key or Partner ID not configured');
       return { sent: 0, failed: recipients.length };
     }
-    let sent = 0, failed = 0;
     try {
-      // Celcom sends one message to multiple recipients
-      // API: POST https://isms.celcomafrica.com/api/services/sendsms/
-      const payload = {
-        apikey: celcomKey,
-        partnerID: celcomPartnerId,
-        shortcode: celcomShortcode || 'EPH TECH',
-        message,
-        mobile: recipients.join(','),
-        messageID: Date.now().toString()
-      };
-      const res = await fetch('https://isms.celcomafrica.com/api/services/sendsms/', {
+      const res = await fetch(`${SUPABASE_URL}/send-sms-celcom`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        },
+        body: JSON.stringify({
+          apikey: celcomKey,
+          partnerID: celcomPartnerId,
+          shortcode: celcomShortcode || 'EPH TECH',
+          message,
+          recipients
+        })
       });
       const result = await res.json();
       console.log('[sendSMS celcom] response:', JSON.stringify(result));
-      // Celcom returns { responses: [{ respose-code, response-description, mobile, messageid, network-id }] }
-      if (result?.responses?.length) {
-        result.responses.forEach(r => {
-          if (r['respose-code'] === '200' || r['respose-code'] === 200) sent++;
-          else failed++;
-        });
-      } else if (res.ok) {
-        sent = recipients.length;
-      } else {
-        failed = recipients.length;
-      }
-      return { sent, failed };
+      return { sent: result.sent || 0, failed: result.failed || 0 };
     } catch(e) {
       console.error('sendSMS [celcom] error:', e.message);
       return { sent: 0, failed: recipients.length };
