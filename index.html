@@ -976,6 +976,19 @@
       </div>
 
       <!-- ── TABS ── -->
+      <!-- Withdrawal Requests Panel — shown when there are pending requests -->
+      <div id="fin-withdrawal-panel" style="display:none;margin-bottom:1rem">
+        <div class="card" style="border-left:3px solid var(--teal)">
+          <div class="card-header">
+            <div>
+              <div class="card-title" style="font-size:.9rem">⬇ Pending Withdrawal Requests</div>
+              <div class="card-sub" id="fin-withdrawal-count">Loading…</div>
+            </div>
+          </div>
+          <div id="fin-withdrawal-list"></div>
+        </div>
+      </div>
+
       <div class="fin-tabs">
         <button class="fin-tab active" onclick="switchFinTab(this,'tab-transactions')">📋 Ledger</button>
         <button class="fin-tab" onclick="switchFinTab(this,'tab-expenses')">📤 Expenses</button>
@@ -2929,6 +2942,33 @@
       <input id="mp-shares-amount" type="hidden" value="Ksh 300"/>
       <div id="mp-status" style="display:none"></div>
 
+      <!-- Withdrawal Request Card — shown only when withdraw window is open -->
+      <div id="mp-withdraw-card" style="display:none;margin-top:1rem;animation:portalFadeUp .4s ease .4s both">
+        <div class="card" style="border-top:3px solid var(--teal)">
+          <div class="card-header">
+            <div>
+              <div class="card-title">⬇ Request Withdrawal</div>
+              <div class="card-sub">Withdrawal window is currently open</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <p style="font-size:.8rem;color:var(--ink-soft);margin-bottom:.85rem;line-height:1.6">
+              Enter the amount you wish to withdraw from your savings/shares balance. Your admin will review and confirm payment.
+            </p>
+            <div class="form-group" style="margin-bottom:.75rem">
+              <label class="form-label">Amount (Ksh)</label>
+              <input class="form-input" type="number" id="mp-withdraw-amount" placeholder="e.g. 5000" min="1"/>
+            </div>
+            <div class="form-group" style="margin-bottom:.85rem">
+              <label class="form-label">Note (optional)</label>
+              <input class="form-input" type="text" id="mp-withdraw-note" placeholder="e.g. School fees, Medical emergency"/>
+            </div>
+            <button class="btn btn-primary" style="width:100%;background:var(--teal)" onclick="submitWithdrawalRequest()">⬇ Submit Withdrawal Request</button>
+            <div id="mp-withdraw-pending" style="margin-top:.75rem"></div>
+          </div>
+        </div>
+      </div>
+
       </div><!-- end .mob-hide -->
 
       <!-- MOBILE HOME -->
@@ -3034,7 +3074,7 @@
               <div class="mob-promo-title">Your group, your rules.</div>
               <div class="mob-promo-sub">Start a chama or investment club in minutes</div>
             </div>
-            <button class="mob-promo-btn" onclick="window.open('https://groupyetu.org','_blank')">Get Started</button>
+            <button class="mob-promo-btn" onclick="registerAnotherOrg()">Get Started</button>
           </div>
 
         </div><!-- end mh-body -->

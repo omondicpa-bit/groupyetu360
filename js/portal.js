@@ -162,6 +162,8 @@ async function loadMyProfile() {
     // Ensure financial profile is loaded before rendering cards
     if (!orgFinProfile.allLoaded) await loadOrgFinancialProfile();
     renderMemberBalanceCards(myRecord, totalContributed);
+    // ── Show withdrawal card if window is open ──
+    updateWithdrawCard();
     // ── Populate mobile home elements ──
     if (window.innerWidth <= 768) populateMobileProfile(myRecord, orgFinProfile);
     // ── Set hero ──
@@ -1357,3 +1359,74 @@ window.addEventListener('appinstalled', () => {
   document.getElementById('pwa-install-banner')?.remove();
   toast('GroupYetu360 installed! Find it on your home screen.');
 });
+
+/* ══════════════════════════════════════════════════
+   MEMBER WITHDRAWAL REQUESTS
+══════════════════════════════════════════════════ */
+
+// Show/hide the withdrawal card based on org's withdraw_enabled flag
+function updateWithdrawCard() {
+  const card = document.getElementById('mp-withdraw-card');
+  if (!card) return;
+  const isOpen = currentOrg?.withdraw_enabled || false;
+  const hasFunds = (orgFinProfile.hasSavings || orgFinProfile.hasShares);
+  card.style.display = (isOpen && hasFunds) ? 'block' : 'none';
+  if (isOpen && hasFunds) loadMyPendingWithdrawals();
+}
+
+// Load member's own pending withdrawal requests
+async function loadMyPendingWithdrawals() {
+  const el = document.getElementById('mp-withdraw-pending');
+  if (!el || !window._myMemberId) return;
+  try {
+    const { data } = await sb.from('withdrawal_requests')
+      .select('*').eq('member_id', window._myMemberId)
+      .eq('status', 'pending').order('created_at', { ascending: false });
+    const requests = data || [];
+    if (!requests.length) { el.innerHTML = ''; return; }
+    el.innerHTML = `
+      <div style="margin-top:.5rem;font-size:.75rem;color:var(--ink-soft);font-weight:600;margin-bottom:.4rem">Your pending requests:</div>
+      ${requests.map(r => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:.45rem .6rem;background:var(--surface-2);border-radius:.4rem;margin-bottom:.3rem;font-size:.78rem">
+          <span style="color:var(--ink)">Ksh ${Number(r.amount).toLocaleString()} ${r.note ? '· ' + r.note : ''}</span>
+          <span style="font-size:.68rem;color:var(--warning);font-weight:600">⏳ Pending</span>
+        </div>`).join('')}`;
+  } catch(e) { console.log('loadMyPendingWithdrawals:', e.message); }
+}
+
+// Submit a withdrawal request
+async function submitWithdrawalRequest() {
+  if (!canDo('viewPortal')) return;
+  const amountEl = document.getElementById('mp-withdraw-amount');
+  const noteEl   = document.getElementById('mp-withdraw-note');
+  const amount   = parseFloat(amountEl?.value);
+  if (!amount || amount <= 0) { toast('Please enter a valid amount'); return; }
+  if (!window._myMemberId) { toast('Your account is not linked to a member record. Contact your admin.'); return; }
+
+  // Check against available balance
+  const { data: member } = await sb.from('members')
+    .select('full_name, savings_balance, shares_balance')
+    .eq('id', window._myMemberId).single();
+  const available = Number(member?.savings_balance || 0) + Number(member?.shares_balance || 0);
+  if (amount > available) {
+    toast(`⚠ Amount exceeds your available balance of Ksh ${available.toLocaleString()}`);
+    return;
+  }
+
+  try {
+    await sb.from('withdrawal_requests').insert({
+      org_id:    currentOrg.id,
+      member_id: window._myMemberId,
+      amount,
+      note:      noteEl?.value?.trim() || null,
+      status:    'pending',
+      requested_by: currentUser.id
+    });
+    amountEl.value = '';
+    if (noteEl) noteEl.value = '';
+    toast('✓ Withdrawal request submitted. Your admin will confirm payment.');
+    loadMyPendingWithdrawals();
+  } catch(e) {
+    toast('Error submitting request: ' + e.message);
+  }
+}

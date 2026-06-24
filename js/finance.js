@@ -41,6 +41,8 @@ async function loadFinance() {
   if (wBtn) wBtn.textContent = isOpen ? 'Close' : 'Open';
   if (wLabel) wLabel.textContent = isOpen ? 'OPEN' : 'Closed';
   if (wDot) wDot.classList.toggle('open', isOpen);
+  // Load withdrawal requests panel
+  loadWithdrawalRequests();
   // Update income project dropdown
   const incProj = document.getElementById('inc-project');
   if (incProj) {
@@ -748,4 +750,146 @@ async function autoLinkAdminMember() {
   window._myMemberId = match.id;
   await loadMyProfile();
   await loadMyContributions();
+}
+
+/* ══════════════════════════════════════════════════
+   WITHDRAWAL REQUESTS — ADMIN SIDE
+══════════════════════════════════════════════════ */
+
+async function loadWithdrawalRequests() {
+  const panel = document.getElementById('fin-withdrawal-panel');
+  const listEl = document.getElementById('fin-withdrawal-list');
+  const countEl = document.getElementById('fin-withdrawal-count');
+  if (!panel || !listEl) return;
+
+  // Only show if withdraw window is open
+  if (!currentOrg?.withdraw_enabled) { panel.style.display = 'none'; return; }
+
+  try {
+    const { data } = await sb.from('withdrawal_requests')
+      .select('*,members(full_name,member_number,savings_balance,shares_balance)')
+      .eq('org_id', currentOrg.id).eq('status', 'pending')
+      .order('created_at', { ascending: true });
+    const requests = data || [];
+
+    if (!requests.length) {
+      panel.style.display = 'none';
+      return;
+    }
+
+    panel.style.display = 'block';
+    if (countEl) countEl.textContent = `${requests.length} pending request${requests.length > 1 ? 's' : ''}`;
+
+    listEl.innerHTML = `
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="font-size:.65rem;text-transform:uppercase;color:var(--ink-faint);border-bottom:1px solid var(--border)">
+          <th style="padding:.5rem 1.25rem;text-align:left">Member</th>
+          <th style="padding:.5rem .5rem;text-align:left">Amount</th>
+          <th style="padding:.5rem .5rem;text-align:left">Note</th>
+          <th style="padding:.5rem .5rem;text-align:left">Balance</th>
+          <th style="padding:.5rem .5rem;text-align:left">Date</th>
+          <th style="padding:.5rem .5rem;text-align:left">Action</th>
+        </tr></thead>
+        <tbody>${requests.map(r => {
+          const mem = r.members || {};
+          const bal = Number(mem.savings_balance||0) + Number(mem.shares_balance||0);
+          const canPay = r.amount <= bal;
+          return `<tr style="border-bottom:.5px solid var(--border);font-size:.78rem">
+            <td style="padding:.6rem 1.25rem;font-weight:600">${mem.full_name||'—'} <span style="color:var(--ink-faint);font-weight:400">#${mem.member_number||'?'}</span></td>
+            <td style="padding:.6rem .5rem;font-weight:700;color:var(--maroon)">Ksh ${Number(r.amount).toLocaleString()}</td>
+            <td style="padding:.6rem .5rem;color:var(--ink-soft)">${r.note||'—'}</td>
+            <td style="padding:.6rem .5rem;color:${canPay?'var(--teal)':'var(--danger)'};font-weight:600">Ksh ${bal.toLocaleString()}${!canPay?' ⚠':''}</td>
+            <td style="padding:.6rem .5rem;color:var(--ink-faint)">${new Date(r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</td>
+            <td style="padding:.6rem .5rem;display:flex;gap:.35rem">
+              ${canPay
+                ? `<button class="btn btn-primary btn-sm" style="font-size:.68rem;background:var(--teal)" onclick="approveWithdrawal('${r.id}','${r.member_id}',${r.amount})">✓ Confirm Paid</button>`
+                : `<span style="font-size:.68rem;color:var(--danger)">Insufficient balance</span>`}
+              <button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="declineWithdrawal('${r.id}')">✗ Decline</button>
+            </td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>`;
+  } catch(e) {
+    console.error('loadWithdrawalRequests:', e.message);
+  }
+}
+
+// Approve withdrawal: double entry — debit member balance + debit bank balance + log expense
+async function approveWithdrawal(requestId, memberId, amount) {
+  if (!canDo('saveExpense')) { toast('⚠ Permission denied'); return; }
+  if (!confirm(`Confirm payment of Ksh ${Number(amount).toLocaleString()} to member?`)) return;
+
+  try {
+    // 1. Load member balances
+    const { data: member } = await sb.from('members')
+      .select('full_name, savings_balance, shares_balance').eq('id', memberId).single();
+    if (!member) { toast('Member not found'); return; }
+
+    const savings = Number(member.savings_balance || 0);
+    const shares  = Number(member.shares_balance  || 0);
+    const total   = savings + shares;
+
+    if (amount > total) {
+      toast(`⚠ Member balance (Ksh ${total.toLocaleString()}) is less than withdrawal amount`);
+      return;
+    }
+
+    // 2. Deduct from member balances — savings first, then shares
+    const memberUpdates = {};
+    let remaining = amount;
+    if (savings >= remaining) {
+      memberUpdates.savings_balance = savings - remaining;
+      remaining = 0;
+    } else {
+      memberUpdates.savings_balance = 0;
+      remaining -= savings;
+      memberUpdates.shares_balance = Math.max(0, shares - remaining);
+    }
+    await sb.from('members').update(memberUpdates).eq('id', memberId);
+
+    // 3. Debit bank balance (withdrawal = money leaving the group)
+    await updateBankBalance(currentOrg.id, amount, 'debit');
+
+    // 4. Log as expense for audit trail
+    await sb.from('expenses').insert({
+      org_id:       currentOrg.id,
+      category:     'Withdrawal',
+      description:  `Member withdrawal — ${member.full_name}`,
+      amount,
+      expense_date: new Date().toISOString().split('T')[0],
+      entry_type:   'expense',
+      recorded_by:  currentUser.id
+    });
+
+    // 5. Mark request as approved
+    await sb.from('withdrawal_requests').update({
+      status:      'approved',
+      approved_by: currentUser.id,
+      approved_at: new Date().toISOString()
+    }).eq('id', requestId);
+
+    await logActivity('WITHDRAWAL APPROVED',
+      `Withdrawal of Ksh ${amount} approved for ${member.full_name} — savings: -${savings - (memberUpdates.savings_balance||0)}, shares: -${shares - (memberUpdates.shares_balance||shares)}`);
+
+    toast(`✓ Withdrawal of Ksh ${Number(amount).toLocaleString()} confirmed for ${member.full_name}`);
+    loadWithdrawalRequests();
+    loadFinance();
+  } catch(e) {
+    toast('Error approving withdrawal: ' + e.message);
+  }
+}
+
+async function declineWithdrawal(requestId) {
+  if (!confirm('Decline this withdrawal request?')) return;
+  try {
+    await sb.from('withdrawal_requests').update({
+      status: 'declined',
+      approved_by: currentUser.id,
+      approved_at: new Date().toISOString()
+    }).eq('id', requestId);
+    toast('Withdrawal request declined.');
+    loadWithdrawalRequests();
+  } catch(e) {
+    toast('Error: ' + e.message);
+  }
 }

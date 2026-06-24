@@ -435,8 +435,11 @@ async function toggleWithdrawWindow() {
   if (btn) btn.textContent = newState ? 'Close' : 'Open';
   if (label) label.textContent = newState ? 'OPEN' : 'Closed';
   if (dot) dot.classList.toggle('open', newState);
-  toast(`Withdraw window ${newState ? 'opened' : 'closed'}`);
+  toast(`Withdraw window ${newState ? 'opened — members can now request withdrawals' : 'closed'}`);
   await logActivity(newState?'WITHDRAW OPEN':'WITHDRAW CLOSE', `Withdraw window ${newState?'opened':'closed'} by admin`);
+  // Refresh withdrawal requests panel + member portal card
+  if (typeof loadWithdrawalRequests === 'function') loadWithdrawalRequests();
+  if (typeof updateWithdrawCard === 'function') updateWithdrawCard();
 }
 
 async function saveWelfareRates() {
