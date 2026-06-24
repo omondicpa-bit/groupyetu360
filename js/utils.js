@@ -394,13 +394,6 @@ async function loadSASupport() {
   const secEl = document.getElementById('sp-leopard-secret');
   if (keyEl && !keyEl.value) keyEl.placeholder = s.sms_leopard_api_key ? '••••••••••••• (saved — leave blank to keep)' : 'Your SMS Leopard API Key';
   if (secEl && !secEl.value) secEl.placeholder = s.sms_leopard_api_secret ? '••••••••••••• (saved — leave blank to keep)' : 'Your SMS Leopard API Secret';
-  // Celcom Africa
-  setVal('sp-celcom-partner-id', s.celcom_partner_id||'');
-  setVal('sp-celcom-shortcode',  s.celcom_shortcode||'');
-  const celcomSaved = document.getElementById('sp-celcom-saved');
-  if (celcomSaved) celcomSaved.style.display = s.celcom_api_key ? 'inline' : 'none';
-  const celcomKeyEl = document.getElementById('sp-celcom-key');
-  if (celcomKeyEl) celcomKeyEl.placeholder = s.celcom_api_key ? '••••• (saved — leave blank to keep)' : 'Celcom API Key';
   // Africa's Talking (backup)
   setVal('sp-at-username', s.at_username||'');
   setVal('sp-at-key', s.at_api_key||'');
@@ -413,6 +406,13 @@ async function loadSASupport() {
   if (envEl) envEl.value = s.daraja_env || 'sandbox';
   const enabledEl = document.getElementById('sp-daraja-enabled');
   if (enabledEl) enabledEl.value = s.daraja_enabled ? 'true' : 'false';
+  // Subscription controls
+  const pmEl = document.getElementById('sp-payment-mode');
+  if (pmEl) pmEl.value = s.payment_mode || 'manual';
+  const promoDaysEl = document.getElementById('sp-promo-days');
+  if (promoDaysEl) promoDaysEl.value = s.promo_days || '60';
+  const promoEl = document.getElementById('sp-promo-active');
+  if (promoEl) { promoEl.checked = s.promo_active === true; if (typeof updatePromoToggleUI === 'function') updatePromoToggleUI(); }
 }
 
 async function saveSupportSettings() {
@@ -441,17 +441,16 @@ async function saveSupportSettings() {
     at_username: document.getElementById('sp-at-username')?.value?.trim()||null,
     at_api_key: atKey || null,
     at_sender_id: document.getElementById('sp-at-sender')?.value?.trim()||null,
-    // Celcom Africa
-    celcom_partner_id: document.getElementById('sp-celcom-partner-id')?.value?.trim()||null,
-    celcom_shortcode:  document.getElementById('sp-celcom-shortcode')?.value?.trim()||null,
-    ...(document.getElementById('sp-celcom-key')?.value?.trim() ? { celcom_api_key: document.getElementById('sp-celcom-key').value.trim() } : {}),
     daraja_consumer_key: darajaKey || null,
     daraja_consumer_secret: darajaSecret || null,
     daraja_shortcode: document.getElementById('sp-daraja-shortcode')?.value?.trim()||null,
     daraja_passkey: darajaPasskey || null,
     daraja_env: document.getElementById('sp-daraja-env')?.value || 'sandbox',
     daraja_enabled: document.getElementById('sp-daraja-enabled')?.value === 'true',
-    updated_at: new Date().toISOString()
+    payment_mode:   document.getElementById('sp-payment-mode')?.value || 'manual',
+    promo_active:   document.getElementById('sp-promo-active')?.checked === true,
+    promo_days:     document.getElementById('sp-promo-days')?.value || '60',
+    updated_at:     new Date().toISOString()
   };
   const { error } = await sb.from('platform_settings').upsert(payload);
   if (error) { toast('Error: '+error.message); return; }
@@ -566,6 +565,7 @@ async function sendSMS(to, message) {
       // Leopard returns { successes: [{number,messageid}], errors: [{...}] }
       const sent = result?.successes?.length ?? (result?.sent ?? 0);
       const failed = result?.errors?.length ?? (result?.failed ?? 0);
+      if (failed > 0) console.warn('[sendSMS leopard] failures:', JSON.stringify(result?.errors));
       return { sent, failed };
     } catch(e) {
       console.error('sendSMS [leopard] error:', e.message);

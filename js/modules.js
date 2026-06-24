@@ -892,7 +892,7 @@ async function testSms() {
     if (result?.sent > 0) {
       toast(`✓ Test SMS sent to ${myPhone}. Check your phone!`);
     } else {
-      toast(`SMS attempted but 0 delivered. Check Edge Function logs. Raw: ${JSON.stringify(result)}`);
+      toast(`SMS attempted but 0 delivered. Check browser console for Leopard response. Raw: ${JSON.stringify(result)}`);
     }
   } catch(e) {
     toast('Test failed: ' + e.message);
