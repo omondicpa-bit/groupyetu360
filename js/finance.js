@@ -242,6 +242,26 @@ async function saveModalTransaction() {
   if (!payload.amount) { toast('Please enter an amount'); return; }
   const { error } = await sb.from('transactions').insert(payload);
   if (error) { toast('Error: ' + error.message); return; }
+  // Update member balance — same logic as saveTransaction
+  if (payload.member_id && payload.type_id) {
+    const contribType = allContribTypes.find(t => t.id === payload.type_id);
+    const incomeType = contribType?.income_type || (contribType?.is_member_income !== false ? 'member_savings' : 'admin_income');
+    const isMemberBalance = ['member_shares','member_savings'].includes(incomeType);
+    if (contribType && isMemberBalance) {
+      const { data: member } = await sb.from('members').select('shares_balance,savings_balance').eq('id', payload.member_id).single();
+      if (member) {
+        const updates = {};
+        if (incomeType === 'member_shares' || contribType.name.toLowerCase().includes('share')) {
+          updates.shares_balance = (member.shares_balance||0) + payload.amount;
+        } else if (incomeType === 'member_savings' || contribType.name.toLowerCase().includes('saving')) {
+          updates.savings_balance = (member.savings_balance||0) + payload.amount;
+        }
+        if (Object.keys(updates).length) {
+          await sb.from('members').update(updates).eq('id', payload.member_id);
+        }
+      }
+    }
+  }
   await updateBankBalance(currentOrg.id, payload.amount, 'credit');
   toast('Payment recorded');
   closeModal('recordPayment');
