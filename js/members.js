@@ -13,7 +13,7 @@ async function loadMembers() {
     sb.from('members').select('*').eq('org_id', currentOrg.id).order('internal_number,member_number'),
     sb.from('transactions').select('member_id,amount,transaction_date,created_at')
       .eq('org_id', currentOrg.id)
-      .order('transaction_date', { ascending: false })
+      .order('created_at', { ascending: false })
   ]);
   // Build last contribution map: member_id → { date, amount }
   const lastContribMap = {};
