@@ -645,14 +645,6 @@ async function loadSuperAdmin() {
   document.getElementById('sa-members').textContent = members.length;
   document.getElementById('sa-plans').textContent = _saOrgs.filter(o=>o.plan!=='starter').length + ' paid';
   document.getElementById('sa-revenue').textContent = 'Ksh '+revenue.toLocaleString();
-  // SMS sent this month (across all orgs)
-  try {
-    const month = new Date().toISOString().slice(0,7);
-    const { data: smsData } = await sb.from('sms_usage').select('messages_sent').eq('month', month);
-    const totalSms = (smsData||[]).reduce((s,r)=>s+(r.messages_sent||0),0);
-    const smsEl = document.getElementById('sa-sms-month');
-    if (smsEl) smsEl.textContent = totalSms.toLocaleString();
-  } catch(e) {}
 
   // Pending payments alert
   const pendingPays = pendingRes.data || [];
@@ -1118,7 +1110,13 @@ async function openOrgDetail(orgId) {
   sv('od-sub-status', org.subscription_status||'active');
   sv('od-sub-expiry', org.subscription_expires||'');
   sv('od-sms-bundle', org.sms_bundle||0);
-  sv('od-sms-used', org.sms_used||0);
+  // Load SMS used this month from sms_usage table
+  try {
+    const month = new Date().toISOString().slice(0,7);
+    const { data: usage } = await sb.from('sms_usage')
+      .select('messages_sent').eq('org_id', org.id).eq('month', month).maybeSingle();
+    sv('od-sms-used', usage?.messages_sent || 0);
+  } catch(e) { sv('od-sms-used', 0); }
 
   // Admin users
   const adminsEl = document.getElementById('od-admins-list');
@@ -1781,7 +1779,7 @@ async function loadSABilling() {
     // Stats
     const [reqRes, orgsRes] = await Promise.all([
       sb.from('payment_requests').select('*,organisations(name)').order('created_at', { ascending: false }),
-      sb.from('organisations').select('id,name,plan,subscription_status,subscription_expires,sms_balance')
+      sb.from('organisations').select('id,name,plan,subscription_status,subscription_expires,sms_bundle')
     ]);
 
     const requests = reqRes.data || [];
@@ -1800,6 +1798,13 @@ async function loadSABilling() {
     setEl('sa-bill-stat-pending', pending.length);
     setEl('sa-bill-stat-active',  active.length);
     setEl('sa-bill-stat-expiring', soon.length);
+    // SMS sent this month across all orgs
+    try {
+      const month = new Date().toISOString().slice(0,7);
+      const { data: smsData } = await sb.from('sms_usage').select('messages_sent').eq('month', month);
+      const totalSms = (smsData||[]).reduce((s,r) => s+(r.messages_sent||0), 0);
+      setEl('sa-bill-stat-sms', totalSms.toLocaleString());
+    } catch(e) {}
 
     // Pending requests table
     if (pendingEl) {

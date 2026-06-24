@@ -526,36 +526,7 @@ async function checkSubscriptionAccess() {
   return true;
 }
 
-// ── SMS USAGE TRACKING ──
-async function trackSmsUsage(orgId, messagesSent) {
-  const month = new Date().toISOString().slice(0,7);
-  const costToPlat = messagesSent * SMS_COST;
-  const chargedToOrg = messagesSent * SMS_RATE;
-  
-  const { data: existing } = await sb.from('sms_usage')
-    .select('*').eq('org_id', orgId).eq('month', month).maybeSingle();
-  
-  if (existing) {
-    await sb.from('sms_usage').update({
-      messages_sent: existing.messages_sent + messagesSent,
-      cost_to_platform: existing.cost_to_platform + costToPlat,
-      charged_to_org: existing.charged_to_org + chargedToOrg
-    }).eq('id', existing.id);
-  } else {
-    await sb.from('sms_usage').insert({
-      org_id: orgId,
-      messages_sent: messagesSent,
-      cost_to_platform: costToPlat,
-      charged_to_org: chargedToOrg,
-      month
-    });
-  }
-  
-  // Also update org's sms_used counter
-  await sb.from('organisations')
-    .update({ sms_used: (existing?.messages_sent||0) + messagesSent })
-    .eq('id', orgId);
-}
+// trackSmsUsage() is defined in utils.js — do not duplicate here.
 
 // ── MEMBER PAYMENT FUNCTIONS ──
 
