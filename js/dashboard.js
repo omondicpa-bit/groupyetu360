@@ -202,8 +202,32 @@ async function loadDashboard() {
   checkPendingApprovals();
   loadDashboardModuleCards(orgId);
   populateMobileAdminHome(orgId);
+  checkSmsBalanceWarning();
 
   await Promise.allSettled([membersPromise, recentTxnPromise, allTxnPromise, projPromise, meetPromise]);
+}
+
+// Show a dashboard warning if SMS bundle is zero (fires after login)
+function checkSmsBalanceWarning() {
+  if (!currentOrg || currentOrgRole === 'member') return;
+  const bundle = currentOrg?.sms_bundle || 0;
+  if (bundle > 0) return; // all good
+  const warnEl = document.getElementById('dash-sms-warn');
+  if (!warnEl) return;
+  const has2fa = currentOrg?.two_fa_enabled;
+  warnEl.style.display = 'block';
+  warnEl.innerHTML = `
+    <div style="display:flex;align-items:flex-start;gap:.75rem">
+      <span style="font-size:1.2rem">⚠️</span>
+      <div>
+        <div style="font-weight:700;font-size:.85rem;color:var(--danger);margin-bottom:.2rem">SMS Bundle Empty</div>
+        <div style="font-size:.78rem;color:var(--ink-soft);line-height:1.5">
+          Your group has run out of SMS credits. Bulk messaging is disabled.
+          ${has2fa ? ' <strong>2FA has been automatically turned off</strong> to prevent login failures.' : ''}
+          <a href="#" onclick="showPage('billing');return false;" style="color:var(--teal);font-weight:600;margin-left:.25rem">Top up SMS →</a>
+        </div>
+      </div>
+    </div>`;
 }
 
 async function loadDashboardModuleCards(orgId) {

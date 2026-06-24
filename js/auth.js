@@ -461,20 +461,17 @@ async function signIn() {
       // Log OTP (in production this goes via SMS/email)
       console.log('[2FA] OTP for', email, ':', otp);
 
-      // Try to send via SMS
+      // Send OTP via active SMS provider (Celcom/Leopard/AT) — deducts from org bundle
       try {
-        const { data: ps } = await sb.from('platform_settings').select('at_api_key,at_username').maybeSingle();
-        if (ps?.at_api_key && fullProfile?.phone) {
-          await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/send-sms', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_KEY}` },
-            body: JSON.stringify({
-              username: ps.at_username || 'sandbox',
-              apiKey: ps.at_api_key,
-              to: [formatPhone(fullProfile.phone)],
-              message: `Your GroupYetu360 verification code is: ${otp}. Valid for 5 minutes.`
-            })
-          });
+        if (fullProfile?.phone) {
+          const smsResult = await sendSMS(
+            [fullProfile.phone],
+            `Your GroupYetu360 verification code is: ${otp}. Valid for 5 minutes.`
+          );
+          if (smsResult?.sent > 0 && profile?.org_id) {
+            await trackSmsUsage(profile.org_id, smsResult.sent);
+          }
+          if (smsResult?.sent === 0) console.warn('[2FA] OTP SMS failed to deliver');
         }
       } catch(e) { console.log('2FA SMS failed:', e); }
 

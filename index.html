@@ -576,6 +576,9 @@
       <!-- ══ DESKTOP DASHBOARD ══ -->
       <div class="mob-hide">
 
+      <!-- SMS balance warning (shown when bundle = 0) -->
+      <div id="dash-sms-warn" style="display:none;background:rgba(220,38,38,.07);border:1px solid rgba(220,38,38,.25);border-radius:.6rem;padding:.85rem 1rem;margin-bottom:1rem"></div>
+
       <!-- ── HERO GREETING ── -->
       <div id="dash-hero" style="
         background:linear-gradient(135deg,var(--maroon-dk) 0%,var(--maroon) 55%,#9a0025 100%);
@@ -2035,6 +2038,7 @@
         <div class="stat-card green"><div class="stat-label">Total Members</div><div class="stat-value" id="sa-members">—</div></div>
         <div class="stat-card"><div class="stat-label">Paid Plans</div><div class="stat-value" id="sa-plans">—</div></div>
         <div class="stat-card" style="border-top-color:var(--maroon)"><div class="stat-label">Est. Annual Revenue</div><div class="stat-value" id="sa-revenue">—</div></div>
+        <div class="stat-card" style="border-top-color:var(--teal)"><div class="stat-label">SMS Sent (Month)</div><div class="stat-value" id="sa-sms-month">—</div></div>
       </div>
 
       <!-- Expiring soon alert -->

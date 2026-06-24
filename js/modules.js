@@ -843,6 +843,17 @@ async function sendSms() {
 
   if (!rawPhones.length) { toast('No phone numbers found for selected recipients'); return; }
 
+  // ── Balance gate ──
+  const bundle = currentOrg?.sms_bundle || 0;
+  if (bundle <= 0) {
+    toast('⚠ SMS bundle empty. Top up via Billing to send messages.');
+    return;
+  }
+  if (bundle < rawPhones.length) {
+    toast(`⚠ Only ${bundle} SMS remaining — not enough to send to ${rawPhones.length} recipients. Top up first.`);
+    return;
+  }
+
   toast('Sending SMS to ' + rawPhones.length + ' recipients…');
   try {
     const result = await sendSMS(rawPhones, body);
@@ -890,9 +901,10 @@ async function testSms() {
     const result = await sendSMS([myPhone], body);
     console.log('Test SMS result:', result);
     if (result?.sent > 0) {
+      await trackSmsUsage(currentOrg.id, result.sent);
       toast(`✓ Test SMS sent to ${myPhone}. Check your phone!`);
     } else {
-      toast(`SMS attempted but 0 delivered. Check browser console for Leopard response. Raw: ${JSON.stringify(result)}`);
+      toast(`Test SMS failed. Check browser console for provider response. Raw: ${JSON.stringify(result)}`);
     }
   } catch(e) {
     toast('Test failed: ' + e.message);

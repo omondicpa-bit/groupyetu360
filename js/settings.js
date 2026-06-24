@@ -645,6 +645,14 @@ async function loadSuperAdmin() {
   document.getElementById('sa-members').textContent = members.length;
   document.getElementById('sa-plans').textContent = _saOrgs.filter(o=>o.plan!=='starter').length + ' paid';
   document.getElementById('sa-revenue').textContent = 'Ksh '+revenue.toLocaleString();
+  // SMS sent this month (across all orgs)
+  try {
+    const month = new Date().toISOString().slice(0,7);
+    const { data: smsData } = await sb.from('sms_usage').select('messages_sent').eq('month', month);
+    const totalSms = (smsData||[]).reduce((s,r)=>s+(r.messages_sent||0),0);
+    const smsEl = document.getElementById('sa-sms-month');
+    if (smsEl) smsEl.textContent = totalSms.toLocaleString();
+  } catch(e) {}
 
   // Pending payments alert
   const pendingPays = pendingRes.data || [];
