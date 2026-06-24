@@ -505,6 +505,7 @@ async function sendSMS(to, message) {
   let provider = 'leopard';
   let leopardKey = null, leopardSecret = null, senderId = null;
   let atKey = null, atUser = 'sandbox', atSender = null;
+  let celcomKey = null, celcomPartnerId = null, celcomShortcode = null;
 
   try {
     const { data: ps } = await sb.from('platform_settings').select('*').maybeSingle();
@@ -516,6 +517,9 @@ async function sendSMS(to, message) {
       atKey = ps.at_api_key || null;
       atUser = ps.at_username || 'sandbox';
       atSender = ps.at_sender_id || null;
+      celcomKey = ps.celcom_api_key || null;
+      celcomPartnerId = ps.celcom_partner_id || null;
+      celcomShortcode = ps.celcom_shortcode || null;
     }
   } catch(e) {
     console.log('sendSMS: could not load platform settings, defaulting to leopard');
@@ -554,6 +558,49 @@ async function sendSMS(to, message) {
       return { sent, failed };
     } catch(e) {
       console.error('sendSMS [leopard] error:', e.message);
+      return { sent: 0, failed: recipients.length };
+    }
+  }
+
+  // ── CELCOM AFRICA (direct browser call) ──
+  if (provider === 'celcom') {
+    if (!celcomKey || !celcomPartnerId) {
+      console.error('sendSMS [celcom]: API key or Partner ID not configured');
+      return { sent: 0, failed: recipients.length };
+    }
+    let sent = 0, failed = 0;
+    try {
+      // Celcom sends one message to multiple recipients
+      // API: POST https://isms.celcomafrica.com/api/services/sendsms/
+      const payload = {
+        apikey: celcomKey,
+        partnerID: celcomPartnerId,
+        shortcode: celcomShortcode || 'EPH TECH',
+        message,
+        mobile: recipients.join(','),
+        messageID: Date.now().toString()
+      };
+      const res = await fetch('https://isms.celcomafrica.com/api/services/sendsms/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const result = await res.json();
+      console.log('[sendSMS celcom] response:', JSON.stringify(result));
+      // Celcom returns { responses: [{ respose-code, response-description, mobile, messageid, network-id }] }
+      if (result?.responses?.length) {
+        result.responses.forEach(r => {
+          if (r['respose-code'] === '200' || r['respose-code'] === 200) sent++;
+          else failed++;
+        });
+      } else if (res.ok) {
+        sent = recipients.length;
+      } else {
+        failed = recipients.length;
+      }
+      return { sent, failed };
+    } catch(e) {
+      console.error('sendSMS [celcom] error:', e.message);
       return { sent: 0, failed: recipients.length };
     }
   }

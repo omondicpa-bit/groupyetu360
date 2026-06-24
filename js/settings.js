@@ -1772,6 +1772,16 @@ async function loadSASupport() {
     sv('sp-at-username',      s.at_username||'');
     sv('sp-at-key',           s.at_api_key||'');
     sv('sp-at-sender',        s.at_sender_id||'');
+    sv('sp-celcom-partner-id',s.celcom_partner_id||'');
+    sv('sp-celcom-shortcode', s.celcom_shortcode||'');
+    // Celcom API key — show badge if saved, mask field
+    const celcomSaved = document.getElementById('sp-celcom-saved');
+    if (celcomSaved) celcomSaved.style.display = s.celcom_api_key ? 'inline' : 'none';
+    const celcomKeyEl = document.getElementById('sp-celcom-key');
+    if (celcomKeyEl) celcomKeyEl.placeholder = s.celcom_api_key ? '••••• (saved — leave blank to keep)' : 'Celcom API Key';
+    // SMS provider dropdown
+    const provEl = document.getElementById('sp-sms-provider');
+    if (provEl) provEl.value = s.sms_provider || 'leopard';
     sv('sp-daraja-key',       s.daraja_consumer_key||'');
     sv('sp-daraja-secret',    s.daraja_consumer_secret||'');
     sv('sp-daraja-shortcode', s.daraja_shortcode||'');
@@ -1804,6 +1814,9 @@ async function saveSupportSettings() {
     at_username:            gv('sp-at-username'),
     at_api_key:             gv('sp-at-key'),
     at_sender_id:           gv('sp-at-sender'),
+    celcom_partner_id:      gv('sp-celcom-partner-id'),
+    celcom_shortcode:       gv('sp-celcom-shortcode'),
+    ...(gv('sp-celcom-key') ? { celcom_api_key: gv('sp-celcom-key') } : {}),
     daraja_consumer_key:    gv('sp-daraja-key'),
     daraja_consumer_secret: gv('sp-daraja-secret'),
     daraja_shortcode:       gv('sp-daraja-shortcode'),
