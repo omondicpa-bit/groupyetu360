@@ -743,26 +743,36 @@ async function loadMessages() {
   const statusEl = document.getElementById('sms-status-body');
   if (statusEl) {
     if (smsActive) {
-      // Show bundle usage
-      const used = currentOrg?.sms_used || 0;
+      // Fetch SMS sent this month from sms_usage
+      let sentThisMonth = 0;
+      try {
+        const month = new Date().toISOString().slice(0,7);
+        const { data: usage } = await sb.from('sms_usage')
+          .select('messages_sent').eq('org_id', currentOrg.id).eq('month', month).maybeSingle();
+        sentThisMonth = usage?.messages_sent || 0;
+      } catch(e) {}
+
       const bundle = currentOrg?.sms_bundle || 0;
-      const remaining = Math.max(0, bundle - used);
-      const pct = bundle > 0 ? Math.round((remaining/bundle)*100) : 100;
+      const balColor = bundle === 0 ? 'var(--danger)' : bundle < 20 ? 'var(--warning)' : 'var(--teal)';
       statusEl.innerHTML = `
-        <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem">
+        <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem">
           <div class="msg-status-dot active"></div>
           <div>
             <div style="font-size:.85rem;font-weight:700;color:var(--teal)">SMS Active</div>
             <div style="font-size:.7rem;color:var(--ink-faint)">Messages delivered to members' phones</div>
           </div>
         </div>
-        <div style="display:flex;justify-content:space-between;font-size:.72rem;margin-bottom:.3rem">
-          <span style="color:var(--ink-faint)">Bundle remaining</span>
-          <span style="font-weight:700;color:${pct<20?'var(--danger)':pct<40?'var(--warning)':'var(--teal)'}">${remaining} / ${bundle} SMS</span>
+        <div style="display:flex;gap:.75rem">
+          <div style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:.5rem;padding:.6rem .75rem;text-align:center">
+            <div style="font-size:1.3rem;font-weight:700;color:${balColor};line-height:1">${bundle}</div>
+            <div style="font-size:.65rem;color:var(--ink-faint);margin-top:.2rem;text-transform:uppercase;letter-spacing:.04em">SMS Balance</div>
+          </div>
+          <div style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:.5rem;padding:.6rem .75rem;text-align:center">
+            <div style="font-size:1.3rem;font-weight:700;color:var(--ink);line-height:1">${sentThisMonth}</div>
+            <div style="font-size:.65rem;color:var(--ink-faint);margin-top:.2rem;text-transform:uppercase;letter-spacing:.04em">Sent This Month</div>
+          </div>
         </div>
-        <div class="msg-bundle-bar">
-          <div class="msg-bundle-fill ${pct<20?'low':''}" style="width:${pct}%"></div>
-        </div>`;
+        ${bundle === 0 ? `<div style="margin-top:.65rem;font-size:.72rem;color:var(--danger);font-weight:600">⚠ Bundle empty — top up via Billing to send messages</div>` : bundle < 20 ? `<div style="margin-top:.65rem;font-size:.72rem;color:var(--warning);font-weight:600">⚠ Low balance — consider topping up soon</div>` : ''}`;
     } else {
       statusEl.innerHTML = `
         <div style="display:flex;align-items:center;gap:.75rem">
@@ -893,6 +903,8 @@ async function sendSms() {
 }
 
 async function testSms() {
+  const bundle = currentOrg?.sms_bundle || 0;
+  if (bundle <= 0) { toast('⚠ SMS bundle empty. Top up via Billing to send messages.'); return; }
   const body = document.getElementById('sms-body').value.trim() || `GroupYetu360 test SMS. Platform SMS is active and working.`;
   const myPhone = currentProfile?.phone;
   if (!myPhone) { toast('Add your phone number in My Account first'); return; }

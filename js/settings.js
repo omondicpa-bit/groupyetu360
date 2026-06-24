@@ -741,7 +741,7 @@ async function saveOrg() {
     subscription_expires: isPaidPlan && promoOn ? (() => { const d = new Date(); d.setDate(d.getDate()+60); return d.toISOString().split('T')[0]; })() : null,
     trial_used: isPaidPlan,
     trial_start_date: isPaidPlan ? new Date().toISOString().split('T')[0] : null,
-    sms_balance: 0
+    sms_bundle: 0
   };
   if (!payload.name) { toast('Please enter an organisation name'); return; }
   const { error } = await sb.from('organisations').insert(payload);
@@ -1856,7 +1856,7 @@ async function loadSABilling() {
             <td style="padding:.6rem .5rem"><span class="badge badge-${o.plan==='pro'?'gold':o.plan==='standard'?'maroon':o.plan==='basic'?'green':'grey'}" style="font-size:.62rem">${(o.plan||'starter').toUpperCase()}</span></td>
             <td style="padding:.6rem .5rem"><span style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:${o.subscription_status==='active'?'#16a34a':o.subscription_status==='trial'?'#c49a30':'#dc2626'}">${o.subscription_status||'—'}</span></td>
             <td style="padding:.6rem .5rem;font-size:.72rem;color:${expColor}">${expText}</td>
-            <td style="padding:.6rem .5rem;text-align:right">${o.sms_balance||0}</td>
+            <td style="padding:.6rem .5rem;text-align:right">${o.sms_bundle||0}</td>
             <td style="padding:.6rem .5rem"><button class="btn btn-ghost btn-sm" style="font-size:.65rem" onclick="openOrgDetail('${o.id}')">Edit →</button></td>
           </tr>`;
         }).join('')}</tbody>
@@ -1888,8 +1888,8 @@ async function approvePayment(reqId, orgId, type, amount) {
       // Determine SMS count from amount
       const smsMap = { 75:50, 150:100, 300:200, 750:500, 1500:1000 };
       const smsCount = smsMap[amount] || Math.floor(amount / 1.5);
-      const { data: org } = await sb.from('organisations').select('sms_balance').eq('id', orgId).single();
-      await sb.from('organisations').update({ sms_balance: (org?.sms_balance||0) + smsCount }).eq('id', orgId);
+      const { data: org } = await sb.from('organisations').select('sms_bundle').eq('id', orgId).single();
+      await sb.from('organisations').update({ sms_bundle: (org?.sms_bundle||0) + smsCount }).eq('id', orgId);
     }
 
     await logActivity('PAYMENT APPROVED', `Payment ${reqId} approved for org ${orgId} · type: ${payType}`);
@@ -1966,7 +1966,7 @@ async function loadBilling() {
   loadPaymentHistory();
 
   const smsEl = document.getElementById('billing-sms-balance');
-  if (smsEl) smsEl.textContent = (currentOrg.sms_balance || 0) + ' SMS';
+  if (smsEl) smsEl.textContent = (currentOrg.sms_bundle || 0) + ' SMS';
 
   // Reset cart on load
   _billingCart = { plan: null, planAmount: 0, sms: 0, smsAmount: 0 };
