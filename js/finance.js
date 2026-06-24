@@ -106,7 +106,11 @@ async function loadFinance() {
   }
 
   // Admin balance card — always show, but label changes by org type
-  const bankBalance = currentOrg?.bank_balance || net;
+  // Bank balance: if SA has manually set (locked), trust that value.
+  // Otherwise fall back to net computed from transactions.
+  const bankBalance = (currentOrg?.bank_balance_locked && currentOrg?.bank_balance != null)
+    ? currentOrg.bank_balance
+    : net;
   const adminBalance = bankBalance - totalMemberBal;
   const adminEl = document.getElementById('fin-admin-balance');
   const adminCard = document.getElementById('fin-admin-card');

@@ -9,7 +9,20 @@ async function loadMembers() {
   const addBtn = document.getElementById('add-member-btn');
   if (addBtn) addBtn.style.display = canDo('addMember') ? '' : 'none';
   // Always fetch fresh from DB — never use stale allMembers from previous org
-  const { data } = await sb.from('members').select('*').eq('org_id', currentOrg.id).order('internal_number,member_number');
+  const [{ data }, { data: lastTxns }] = await Promise.all([
+    sb.from('members').select('*').eq('org_id', currentOrg.id).order('internal_number,member_number'),
+    sb.from('transactions').select('member_id,amount,payment_date,created_at')
+      .eq('org_id', currentOrg.id)
+      .order('payment_date', { ascending: false })
+  ]);
+  // Build last contribution map: member_id → { date, amount }
+  const lastContribMap = {};
+  (lastTxns || []).forEach(t => {
+    if (!lastContribMap[t.member_id]) {
+      lastContribMap[t.member_id] = { date: t.payment_date || t.created_at?.split('T')[0], amount: t.amount };
+    }
+  });
+  window._lastContribMap = lastContribMap;
   const allFetched = data || [];
   const limit = getPlanMemberLimit(currentOrg);
   const overLimit = allFetched.length > limit;
@@ -160,10 +173,13 @@ function renderMemberGrid(list) {
         <div class="mc-bal" style="grid-column:1/-1"><div class="mc-bal-label">Total Contributed</div><div class="mc-bal-value" style="color:var(--teal)">Ksh ${Number(m.total_contributed||0).toLocaleString()}</div></div>`;
     }
 
-    // Footer — only show savings/mo if org has savings or shares
-    const footerLeft = (fp.hasSavings || fp.hasShares) && m.savings_tier
-      ? `Ksh ${Number(m.savings_tier).toLocaleString()}/mo`
-      : fp.hasAdminIncome ? `${fp.adminIncomeLabel}` : '';
+    // Footer — show last contribution date if available, else savings tier
+    const lastC = (window._lastContribMap || {})[m.id];
+    const footerLeft = lastC
+      ? `Last: Ksh ${Number(lastC.amount).toLocaleString()} on ${lastC.date}`
+      : (fp.hasSavings || fp.hasShares) && m.savings_tier
+        ? `Ksh ${Number(m.savings_tier).toLocaleString()}/mo`
+        : fp.hasAdminIncome ? `${fp.adminIncomeLabel}` : '';
 
     return `<div class="member-card ${statusClass}" onclick="openMemberDetail('${m.id}')" style="animation-delay:${i*0.04}s">
       <div class="mc-header">

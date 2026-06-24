@@ -116,7 +116,7 @@ async function loadSettings() {
   setVal('settings-paybill', currentOrg.paybill);
   setVal('settings-account', currentOrg.account_format);
   const bbVal = currentOrg.bank_balance;
-  const bbLocked = currentOrg.bank_balance_locked || (bbVal !== null && bbVal !== undefined && bbVal > 0);
+  const bbLocked = currentOrg.bank_balance_locked === true;
   const bbInput = document.getElementById('settings-bank-balance');
   const bbNote = document.getElementById('bank-balance-note');
   if (bbInput) {
