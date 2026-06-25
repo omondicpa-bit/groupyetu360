@@ -184,10 +184,9 @@ async function saveAttendance() {
 async function sendMeetingReminders() {
   const btn = document.getElementById('reminder-btn');
   const statusEl = document.getElementById('meetings-reminder-status');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Sending...'; }
 
   try {
-    // Get upcoming meetings in next 7 days
+    // Get upcoming meetings in next 7 days first — show count in confirm dialog
     const today = new Date().toISOString().split('T')[0];
     const nextWeek = new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0];
     const { data: meetings } = await sb.from('meetings')
@@ -202,9 +201,22 @@ async function sendMeetingReminders() {
         statusEl.style.display = 'block';
         statusEl.innerHTML = '<div class="alert alert-info">No meetings scheduled in the next 7 days.</div>';
       }
-      if (btn) { btn.disabled = false; btn.textContent = '📱 Send Reminders'; }
       return;
     }
+
+    const activeMembers = allMembers.filter(m => m.phone && m.status === 'active');
+    const meetingSummary = meetings.map(m =>
+      `• ${new Date(m.meeting_date).toDateString()} at ${m.meeting_time||'8:30 PM'} (${m.venue||'Online'})`
+    ).join('\n');
+
+    // ── Confirmation dialog ──
+    const confirmed = await new Promise(resolve => {
+      const msg = `This will send an SMS to ${activeMembers.length} active member(s) for:\n\n${meetingSummary}\n\nThis cannot be undone.`;
+      resolve(window.confirm(msg));
+    });
+    if (!confirmed) return;
+
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Sending...'; }
 
     // Send reminder for each upcoming meeting
     let totalSent = 0;
@@ -212,7 +224,7 @@ async function sendMeetingReminders() {
       const meetDate = new Date(meeting.meeting_date).toDateString();
       const message = `Dear Member, reminder: ${currentOrg.name} meeting is on ${meetDate} at ${meeting.meeting_time||'8:30 PM'} (${meeting.venue||'Online'}). Please be available. Regards, GroupYetu360.`;
 
-      const phones = allMembers.filter(m => m.phone && m.status === 'active').map(m => m.phone);
+      const phones = activeMembers.map(m => m.phone);
       if (!phones.length) continue;
 
       const result = await sendSMS(phones, message);
@@ -227,14 +239,19 @@ async function sendMeetingReminders() {
         sent_by: currentUser.id
       });
 
+      // ── Activity log entry ──
+      await logActivity(
+        'SEND_MEETING_REMINDER',
+        `Sent meeting reminder to ${sent} members for meeting on ${meetDate}`,
+        'meeting', meeting.id
+      );
+
       if (sent > 0) await trackSmsUsage(currentOrg.id, sent);
     }
 
     if (statusEl) {
       statusEl.style.display = 'block';
-      statusEl.innerHTML = `<div class="alert alert-success">
-        ✓ Reminders sent to ${totalSent} members for ${meetings.length} upcoming meeting${meetings.length>1?'s':''}.
-      </div>`;
+      statusEl.innerHTML = `<div class="alert alert-success">✓ Reminders sent to ${totalSent} members for ${meetings.length} upcoming meeting${meetings.length>1?'s':''}.` + `</div>`;
       setTimeout(() => { statusEl.style.display = 'none'; }, 8000);
     }
 
