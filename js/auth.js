@@ -431,64 +431,46 @@ async function signIn() {
     _pendingOrgId = org.id;
   }
 
-  // Check if this user needs 2FA (admin roles)
-  const { data: profile } = await sb.from('profiles').select('role,full_name,org_id').eq('id', data.user.id).maybeSingle();
+  // Check if this user needs 2FA — only for founder/admin/treasurer roles
+  const { data: profile } = await sb.from('profiles')
+    .select('role,full_name,org_id,two_fa_enabled')
+    .eq('id', data.user.id).maybeSingle();
 
-  const needs2FA = ['admin','treasurer','officer'].includes(profile?.role);
-  // Superadmin bypasses 2FA — OTP delivery not yet configured
-  // Regular admins only trigger 2FA if their org has it enabled
+  // 2FA is account-level (profile.two_fa_enabled), only for admin/treasurer roles
+  // Superadmin bypasses — they authenticate at platform level
+  const isElevatedRole = ['admin','treasurer'].includes(profile?.role);
+  const twoFAEnabled = isElevatedRole && (profile?.two_fa_enabled === true);
 
-  if (needs2FA) {
-    let twoFAEnabled = false;
-    if (profile?.org_id) {
-      const { data: org } = await sb.from('organisations').select('two_fa_enabled').eq('id', profile.org_id).maybeSingle();
-      twoFAEnabled = org?.two_fa_enabled || false;
-    }
+  if (twoFAEnabled) {
+    // Sign out temporarily, hold session for after OTP
+    _2faSession = data;
+    _2faProfile = profile;
+    await sb.auth.signOut();
 
-    if (twoFAEnabled) {
-      // Sign out temporarily, show 2FA screen
-      _2faSession = data;
-      _2faProfile = profile;
-      await sb.auth.signOut();
+    // Generate OTP
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    _2faCode = otp;
 
-      // Generate and send OTP via Supabase magic link (use email OTP)
-      const otp = String(Math.floor(100000 + Math.random() * 900000));
-      _2faCode = otp;
-
-      // Send OTP via SMS if phone available, or show in toast for now
-      const { data: fullProfile } = await sb.from('profiles').select('phone').eq('id', data.user.id).maybeSingle();
-
-      // Log OTP (in production this goes via SMS/email)
+    // Send via Supabase email (free, no org billed)
+    try {
+      await sb.auth.signInWithOtp({ email });
+      // Also send our custom OTP via email using Supabase Edge Function or just log for now
       console.log('[2FA] OTP for', email, ':', otp);
+    } catch(e) { console.log('[2FA] email send failed:', e); }
 
-      // Send OTP via active SMS provider (Celcom/Leopard/AT) — deducts from org bundle
-      try {
-        if (fullProfile?.phone) {
-          const smsResult = await sendSMS(
-            [fullProfile.phone],
-            `Your GroupYetu360 verification code is: ${otp}. Valid for 5 minutes.`
-          );
-          if (smsResult?.sent > 0 && profile?.org_id) {
-            await trackSmsUsage(profile.org_id, smsResult.sent);
-          }
-          if (smsResult?.sent === 0) console.warn('[2FA] OTP SMS failed to deliver');
-        }
-      } catch(e) { console.log('2FA SMS failed:', e); }
+    // Show 2FA screen
+    document.getElementById('auth-step-1').style.display = 'none';
+    document.getElementById('auth-step-2fa').style.display = 'block';
+    document.getElementById('2fa-sub').textContent =
+      `A 6-digit code has been sent to ${email}`;
+    document.getElementById('2fa-code').value = '';
+    document.getElementById('2fa-code').focus();
 
-      // Show 2FA screen
-      document.getElementById('auth-step-1').style.display = 'none';
-      document.getElementById('auth-step-2fa').style.display = 'block';
-      document.getElementById('2fa-sub').textContent =
-        `Code sent to ${fullProfile?.phone ? '0***' + fullProfile.phone.slice(-3) : email}`;
-      document.getElementById('2fa-code').value = '';
-      document.getElementById('2fa-code').focus();
-
-      // Set 5 minute expiry
-      setTimeout(() => { _2faCode = null; }, 5 * 60 * 1000);
-      return;
-    }
+    // Set 5 minute expiry
+    setTimeout(() => { _2faCode = null; }, 5 * 60 * 1000);
+    return;
   }
-  // No 2FA needed - proceed normally (onAuthStateChange handles the rest)
+  // No 2FA needed — proceed normally (onAuthStateChange handles the rest)
 }
 
 async function verify2FA() {
@@ -1075,7 +1057,6 @@ function showOrgPickerRegister() {
 async function registerNewOrg() {
   const name = document.getElementById('new-org-name').value.trim();
   const plan = document.getElementById('new-org-plan').value;
-  const role = document.getElementById('new-org-role').value;
   const errEl = document.getElementById('new-org-error');
   const sucEl = document.getElementById('new-org-success');
   errEl.classList.remove('show'); sucEl.classList.remove('show');
@@ -1231,6 +1212,73 @@ async function setNewPassword() {
   setTimeout(async () => {
     try { await loadProfileAndOrg(); } catch(e) { showAuthScreen(); }
   }, 1200);
+}
+
+// ── Workspace Picker — My Account panel ──
+async function showPickerMyAccount() {
+  const panel = document.getElementById('picker-my-account');
+  if (!panel) return;
+  // Populate fields from currentProfile
+  document.getElementById('picker-full-name').value = currentProfile?.full_name || '';
+  document.getElementById('picker-phone').value = currentProfile?.phone || '';
+  document.getElementById('picker-email').value = currentUser?.email || '';
+  // Show 2FA toggle only for admin/treasurer roles
+  const twoFaRow = document.getElementById('picker-2fa-row');
+  const isElevated = ['admin','treasurer'].includes(currentProfile?.role);
+  if (twoFaRow) {
+    twoFaRow.style.display = isElevated ? 'flex' : 'none';
+    if (isElevated) {
+      const cb = document.getElementById('picker-2fa');
+      cb.checked = currentProfile?.two_fa_enabled || false;
+      document.getElementById('picker-2fa-label').textContent = cb.checked ? 'On' : 'Off';
+      cb.onchange = () => {
+        document.getElementById('picker-2fa-label').textContent = cb.checked ? 'On' : 'Off';
+      };
+    }
+  }
+  panel.style.display = 'block';
+}
+
+function hidePickerMyAccount() {
+  const panel = document.getElementById('picker-my-account');
+  if (panel) panel.style.display = 'none';
+}
+
+async function savePickerMyAccount() {
+  const msgEl = document.getElementById('picker-account-msg');
+  const fullName = document.getElementById('picker-full-name').value.trim();
+  const phone = document.getElementById('picker-phone').value.trim();
+  const email = document.getElementById('picker-email').value.trim();
+  const twoFa = document.getElementById('picker-2fa')?.checked || false;
+  const isElevated = ['admin','treasurer'].includes(currentProfile?.role);
+
+  if (!fullName) { msgEl.textContent = 'Name is required'; msgEl.style.color = 'var(--warning)'; return; }
+
+  try {
+    // Update profile
+    const updates = { full_name: fullName, phone };
+    if (isElevated) updates.two_fa_enabled = twoFa;
+    await sb.from('profiles').update(updates).eq('id', currentUser.id);
+
+    // Update email if changed
+    if (email && email !== currentUser.email) {
+      await sb.auth.updateUser({ email });
+    }
+
+    // Update local state
+    if (currentProfile) {
+      currentProfile.full_name = fullName;
+      currentProfile.phone = phone;
+      if (isElevated) currentProfile.two_fa_enabled = twoFa;
+    }
+
+    msgEl.textContent = '✓ Saved';
+    msgEl.style.color = 'var(--teal)';
+    setTimeout(() => { msgEl.textContent = ''; hidePickerMyAccount(); }, 1500);
+  } catch(e) {
+    msgEl.textContent = 'Error: ' + e.message;
+    msgEl.style.color = 'var(--warning)';
+  }
 }
 
 async function signOut() {

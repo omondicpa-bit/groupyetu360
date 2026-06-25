@@ -890,6 +890,16 @@ async function saViewUser(userId) {
   setEl('sau-phone', u.phone || '—');
   setEl('sau-role', u.role || 'member');
 
+  // 2FA toggle — only show for admin/treasurer roles
+  const twoFaRow = document.getElementById('sau-2fa-row');
+  const twoFaCb = document.getElementById('sau-2fa-enabled');
+  const isElevated = ['admin','treasurer'].includes(u.role);
+  if (twoFaRow) twoFaRow.style.display = isElevated ? 'flex' : 'none';
+  if (twoFaCb) {
+    twoFaCb.checked = u.two_fa_enabled || false;
+    twoFaCb.dataset.userId = userId;
+  }
+
   // Clear SA fields
   const saEmail = document.getElementById('sau-sa-email');
   const saPwd = document.getElementById('sau-sa-password');
@@ -956,6 +966,23 @@ async function saViewUser(userId) {
   }
 
   showModal('saUserDetail');
+}
+
+async function saToggle2FA() {
+  const cb = document.getElementById('sau-2fa-enabled');
+  if (!cb) return;
+  const userId = cb.dataset.userId;
+  const enabled = cb.checked;
+  try {
+    await sb.from('profiles').update({ two_fa_enabled: enabled }).eq('id', userId);
+    toast(`2FA ${enabled ? 'enabled' : 'disabled'} for this user`);
+    // Update local cache
+    const u = allSAUsers.find(x => x.id === userId);
+    if (u) u.two_fa_enabled = enabled;
+  } catch(e) {
+    toast('Error: ' + e.message);
+    cb.checked = !enabled; // revert
+  }
 }
 
 async function saDeleteUser() {

@@ -4401,7 +4401,40 @@
     </div>
 
     <div class="org-picker-footer">
+      <a href="#" onclick="event.preventDefault();showPickerMyAccount()" style="margin-right:1.5rem">⚙ My Account</a>
       <a href="#" onclick="event.preventDefault();signOut()">Sign out of GroupYetu360</a>
+    </div>
+
+    <!-- My Account panel (shown inline within picker) -->
+    <div id="picker-my-account" style="display:none;padding:1.2rem 1.5rem;border-top:1px solid rgba(255,255,255,0.1)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+        <strong style="font-size:.9rem">My Account</strong>
+        <button onclick="hidePickerMyAccount()" style="background:none;border:none;color:inherit;cursor:pointer;font-size:1.1rem;opacity:.7">✕</button>
+      </div>
+      <div style="display:grid;gap:.75rem">
+        <div class="form-group" style="margin:0">
+          <label class="form-label" style="font-size:.72rem">Full Name</label>
+          <input class="form-input" id="picker-full-name" style="font-size:.82rem"/>
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label" style="font-size:.72rem">Phone</label>
+          <input class="form-input" id="picker-phone" placeholder="07XXXXXXXX" style="font-size:.82rem"/>
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label" style="font-size:.72rem">Email</label>
+          <input class="form-input" id="picker-email" type="email" style="font-size:.82rem"/>
+        </div>
+        <div id="picker-2fa-row" style="display:none;align-items:center;gap:.75rem">
+          <label class="form-label" style="font-size:.72rem;margin:0">Two-factor authentication</label>
+          <input type="checkbox" id="picker-2fa" style="width:16px;height:16px;accent-color:var(--teal)"/>
+          <span id="picker-2fa-label" style="font-size:.72rem;opacity:.7">Off</span>
+        </div>
+      </div>
+      <div style="margin-top:1rem;display:flex;gap:.5rem">
+        <button class="btn btn-primary btn-sm" onclick="savePickerMyAccount()" style="background:var(--teal);font-size:.78rem">Save Changes</button>
+        <button class="btn btn-secondary btn-sm" onclick="hidePickerMyAccount()" style="font-size:.78rem">Cancel</button>
+      </div>
+      <div id="picker-account-msg" style="font-size:.75rem;margin-top:.5rem"></div>
     </div>
   </div>
 
@@ -4447,6 +4480,15 @@
         <div style="flex:1;min-width:120px">
           <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Platform Role</div>
           <div style="font-size:.85rem;font-weight:600;color:var(--maroon)" id="sau-role">—</div>
+        </div>
+      </div>
+
+      <!-- 2FA toggle — only visible for admin/treasurer -->
+      <div id="sau-2fa-row" style="display:none;align-items:center;gap:.75rem;padding:.65rem .85rem;background:var(--surface-2);border-radius:8px;margin-bottom:.75rem">
+        <input type="checkbox" id="sau-2fa-enabled" style="width:16px;height:16px;accent-color:var(--teal)" onchange="saToggle2FA()"/>
+        <div>
+          <div style="font-size:.8rem;font-weight:600">Two-factor authentication (2FA)</div>
+          <div style="font-size:.7rem;color:var(--ink-faint)">When enabled, this user must enter an email OTP after login. Only applies to admin and treasurer roles.</div>
         </div>
       </div>
 
@@ -4513,14 +4555,6 @@
             <option value="basic">Basic — Ksh 3,000/yr</option>
             <option value="standard" selected>Standard — Ksh 6,000/yr</option>
             <option value="pro">Pro — Ksh 12,000/yr</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Your Role</label>
-          <select class="form-select" id="new-org-role">
-            <option value="admin">Admin / Chairman</option>
-            <option value="treasurer">Treasurer</option>
-            <option value="officer">Secretary / Officer</option>
           </select>
         </div>
       </div>
