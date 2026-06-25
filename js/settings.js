@@ -1905,10 +1905,12 @@ async function approvePayment(reqId, orgId, type, amount) {
         subscription_expires: expires.toISOString().split('T')[0],
         trial_used: true
       }).eq('id', orgId);
-    } else if (payType === 'sms_bundle' || payType.startsWith('sms_bundle')) {
-      // Determine SMS count from amount
+    } else if (payType === 'sms_bundle' || payType.startsWith('sms_bundle') || payType.startsWith('sms_')) {
+      // Determine SMS count — first try extracting from payment_type (e.g. "sms_50" → 50),
+      // then fall back to amount-based lookup
+      const smsFromType = payType.startsWith('sms_') ? parseInt(payType.replace('sms_','')) : 0;
       const smsMap = { 75:50, 150:100, 300:200, 750:500, 1500:1000 };
-      const smsCount = smsMap[amount] || Math.floor(amount / 1.5);
+      const smsCount = (smsFromType > 0 ? smsFromType : null) || smsMap[amount] || Math.floor(amount / 1.5);
       const { data: org } = await sb.from('organisations').select('sms_bundle').eq('id', orgId).single();
       await sb.from('organisations').update({ sms_bundle: (org?.sms_bundle||0) + smsCount }).eq('id', orgId);
     }
@@ -2187,7 +2189,7 @@ async function submitCartPayment_impl() {
   try {
     const items = [];
     if (_billingCart.plan && !_billingCart.planIsFree) items.push(`subscription_${_billingCart.plan}`);
-    if (_billingCart.sms > 0) items.push(`sms_${_billingCart.sms}`);
+    if (_billingCart.sms > 0) items.push(`sms_bundle_${_billingCart.sms}`);
     const notes = items.join(' + ') + (currentOrg.subscription_status === 'trial' ? ' (mid-trial upgrade — trial cancelled)' : '');
 
     // Look up member_id for current user in this org
