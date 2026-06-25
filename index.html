@@ -1816,21 +1816,13 @@
           <div class="card">
             <div class="card-header"><div class="card-title">Security & Access</div></div>
             <div class="card-body">
-              <div style="border:1px solid var(--border);border-radius:6px;padding:.85rem 1rem;margin-bottom:1rem">
-                <div style="display:flex;align-items:center;justify-content:space-between">
-                  <div>
-                    <div style="font-size:.84rem;font-weight:600;color:var(--ink)">Two-Factor Authentication</div>
-                    <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.2rem">Require OTP for all admin logins. Code sent via SMS.</div>
-                  </div>
-                  <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
-                    <input type="checkbox" id="settings-2fa" style="width:18px;height:18px;accent-color:var(--maroon)"/>
-                    <span style="font-size:.78rem;font-weight:600" id="settings-2fa-label">Disabled</span>
-                  </label>
-                </div>
-              </div>
               <div style="border:1px solid var(--border);border-radius:6px;padding:.85rem 1rem;background:var(--surface)">
                 <div style="font-size:.78rem;font-weight:600;color:var(--ink);margin-bottom:.3rem">💬 SMS</div>
                 <div style="font-size:.75rem;color:var(--ink-faint);line-height:1.65">SMS is managed by GroupYetu360. Credit and usage are in <a onclick="showPage('billing')" style="color:var(--maroon);cursor:pointer;font-weight:600">Billing & SMS →</a></div>
+              </div>
+              <div style="border:1px solid var(--border);border-radius:6px;padding:.85rem 1rem;margin-top:.75rem;background:var(--surface)">
+                <div style="font-size:.78rem;font-weight:600;color:var(--ink);margin-bottom:.3rem">🔐 Two-Factor Authentication</div>
+                <div style="font-size:.75rem;color:var(--ink-faint);line-height:1.65">2FA is managed per user. SuperAdmin can enable it for admin and treasurer accounts via <strong>SA → All Users → View</strong>.</div>
               </div>
             </div>
           </div>
@@ -3383,14 +3375,43 @@
 </div>
 
 <div class="modal-overlay" id="modal-recordPayment">
-  <div class="modal">
-    <div class="modal-header"><div class="modal-title">Record Payment</div><button class="modal-close" onclick="closeModal('recordPayment')">✕</button></div>
-    <div class="modal-body">
-      <div class="form-row"><div class="form-group"><label class="form-label">Member</label><select class="form-select" id="modal-pay-member"><option value="">Select…</option></select></div><div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="modal-pay-date"/></div></div>
-      <div class="form-row"><div class="form-group"><label class="form-label">Type</label><select class="form-select" id="modal-pay-type"><option value="">Select…</option></select></div><div class="form-group"><label class="form-label">Amount (Ksh)</label><input class="form-input" type="number" id="modal-pay-amount"/></div></div>
-      <div class="form-row single"><div class="form-group"><label class="form-label">M-Pesa Ref</label><input class="form-input" id="modal-pay-ref" placeholder="Optional"/></div></div>
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div class="modal-title">Record Payment</div>
+      <button class="modal-close" onclick="closeModal('recordPayment')">✕</button>
     </div>
-    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('recordPayment')">Cancel</button><button class="btn btn-primary" onclick="saveModalTransaction()">Save Payment</button></div>
+    <div class="modal-body" style="padding-bottom:.5rem">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Member</label>
+          <select class="form-select" id="modal-pay-member" onchange="onPayMemberChange()"><option value="">Select member…</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input class="form-input" type="date" id="modal-pay-date"/>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:1rem">
+        <label class="form-label">M-Pesa Ref <span style="font-weight:400;color:var(--ink-faint)">(optional)</span></label>
+        <input class="form-input" id="modal-pay-ref" placeholder="e.g. QHK2BN3XY0"/>
+      </div>
+      <div style="margin-bottom:.5rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem">
+          <label class="form-label" style="margin:0">Payment breakdown</label>
+          <button type="button" onclick="addPaymentLine()" style="background:none;border:1px dashed var(--teal);color:var(--teal);border-radius:6px;padding:.2rem .7rem;font-size:.75rem;cursor:pointer;font-weight:600">+ Add line</button>
+        </div>
+        <div id="modal-pay-lines" style="display:flex;flex-direction:column;gap:.45rem"></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;align-items:center;gap:.75rem;padding:.7rem 0 .2rem;border-top:1px solid var(--border);margin-top:.5rem">
+        <span style="font-size:.78rem;color:var(--ink-faint);font-weight:600;letter-spacing:.06em">TOTAL</span>
+        <span id="modal-pay-total" style="font-size:1.05rem;font-weight:700;color:var(--maroon)">Ksh 0</span>
+      </div>
+      <div id="modal-pay-error" style="font-size:.78rem;color:var(--warning);margin-top:.4rem;min-height:1.2em"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('recordPayment')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveModalTransaction()" style="background:var(--maroon)">Save Payment</button>
+    </div>
   </div>
 </div>
 

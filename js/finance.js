@@ -227,46 +227,156 @@ async function saveTransaction() {
   loadDashboard();
 }
 
+// ── Split-payment helpers ──
+var _payLines = []; // [{type_id, name, income_type, amount}]
+
+function onPayMemberChange() {
+  // Auto-add first line when member is selected
+  if (!_payLines.length) addPaymentLine();
+}
+
+function addPaymentLine() {
+  const idx = _payLines.length;
+  _payLines.push({ type_id: '', amount: '' });
+  renderPayLines();
+}
+
+function removePayLine(idx) {
+  _payLines.splice(idx, 1);
+  renderPayLines();
+  updatePayTotal();
+}
+
+function renderPayLines() {
+  const container = document.getElementById('modal-pay-lines');
+  if (!container) return;
+  const typeOptions = (allContribTypes || [])
+    .map(t => `<option value="${t.id}" data-income="${t.income_type||''}">${t.name}${t.default_amount ? ' (Ksh '+Number(t.default_amount).toLocaleString()+')' : ''}</option>`)
+    .join('');
+  container.innerHTML = _payLines.map((line, i) => `
+    <div style="display:flex;align-items:center;gap:.5rem;background:var(--surface-2);border-radius:8px;padding:.5rem .65rem">
+      <select class="form-select" style="flex:1;font-size:.82rem" onchange="setPayLineType(${i},this)"
+        data-idx="${i}">
+        <option value="">Select type…</option>
+        ${typeOptions}
+      </select>
+      <input class="form-input" type="number" placeholder="Amount"
+        style="width:110px;font-size:.82rem;text-align:right"
+        value="${line.amount||''}"
+        oninput="setPayLineAmount(${i},this.value)"
+        min="0"/>
+      ${_payLines.length > 1
+        ? `<button type="button" onclick="removePayLine(${i})"
+            style="background:none;border:none;color:var(--ink-faint);cursor:pointer;font-size:1rem;padding:0 .2rem;line-height:1" title="Remove">✕</button>`
+        : '<span style="width:1.4rem"></span>'}
+    </div>`).join('');
+  // Restore selected type values
+  _payLines.forEach((line, i) => {
+    const sel = container.querySelectorAll('select')[i];
+    if (sel && line.type_id) sel.value = line.type_id;
+  });
+}
+
+function setPayLineType(idx, sel) {
+  _payLines[idx].type_id = sel.value;
+  const opt = sel.options[sel.selectedIndex];
+  _payLines[idx].income_type = opt?.dataset?.income || '';
+  _payLines[idx].name = opt?.text || '';
+  // Auto-fill default amount if set and current amount is empty
+  const ct = (allContribTypes||[]).find(t => t.id === sel.value);
+  if (ct?.default_amount && !_payLines[idx].amount) {
+    _payLines[idx].amount = ct.default_amount;
+    renderPayLines();
+  }
+  updatePayTotal();
+}
+
+function setPayLineAmount(idx, val) {
+  _payLines[idx].amount = val;
+  updatePayTotal();
+}
+
+function updatePayTotal() {
+  const total = _payLines.reduce((s, l) => s + (parseFloat(l.amount)||0), 0);
+  const el = document.getElementById('modal-pay-total');
+  if (el) el.textContent = 'Ksh ' + total.toLocaleString();
+}
+
+function openRecordPaymentModal(prefillMemberId) {
+  _payLines = [];
+  const container = document.getElementById('modal-pay-lines');
+  if (container) container.innerHTML = '';
+  const totalEl = document.getElementById('modal-pay-total');
+  if (totalEl) totalEl.textContent = 'Ksh 0';
+  const errEl = document.getElementById('modal-pay-error');
+  if (errEl) errEl.textContent = '';
+  const ref = document.getElementById('modal-pay-ref');
+  if (ref) ref.value = '';
+  const dateEl = document.getElementById('modal-pay-date');
+  if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+  if (prefillMemberId) {
+    const sel = document.getElementById('modal-pay-member');
+    if (sel) sel.value = prefillMemberId;
+  }
+  addPaymentLine();
+  openRecordPaymentModal();
+}
+
 async function saveModalTransaction() {
   if (!canDo('recordPayment')) { toast('⚠ You do not have permission to record payments.'); return; }
   if (!currentOrg?.id) return;
-  const payload = {
-    org_id: currentOrg.id,
-    member_id: document.getElementById('modal-pay-member').value || null,
-    type_id: document.getElementById('modal-pay-type').value || null,
-    amount: parseFloat(document.getElementById('modal-pay-amount').value),
-    mpesa_ref: document.getElementById('modal-pay-ref').value.trim() || null,
-    transaction_date: document.getElementById('modal-pay-date').value || null,
-    recorded_by: currentUser.id
-  };
-  if (!payload.amount) { toast('Please enter an amount'); return; }
-  const { error } = await sb.from('transactions').insert(payload);
-  if (error) { toast('Error: ' + error.message); return; }
-  // Update member balance — same logic as saveTransaction
-  if (payload.member_id && payload.type_id) {
-    const contribType = allContribTypes.find(t => t.id === payload.type_id);
-    const incomeType = contribType?.income_type || (contribType?.is_member_income !== false ? 'member_savings' : 'admin_income');
-    const isMemberBalance = ['member_shares','member_savings'].includes(incomeType);
-    if (contribType && isMemberBalance) {
-      const { data: member } = await sb.from('members').select('shares_balance,savings_balance').eq('id', payload.member_id).single();
-      if (member) {
-        const updates = {};
-        if (incomeType === 'member_shares' || contribType.name.toLowerCase().includes('share')) {
-          updates.shares_balance = (member.shares_balance||0) + payload.amount;
-        } else if (incomeType === 'member_savings' || contribType.name.toLowerCase().includes('saving')) {
-          updates.savings_balance = (member.savings_balance||0) + payload.amount;
-        }
-        if (Object.keys(updates).length) {
-          await sb.from('members').update(updates).eq('id', payload.member_id);
-        }
-      }
+  const errEl = document.getElementById('modal-pay-error');
+  if (errEl) errEl.textContent = '';
+
+  const memberId = document.getElementById('modal-pay-member').value || null;
+  const txDate = document.getElementById('modal-pay-date').value || null;
+  const mpesaRef = document.getElementById('modal-pay-ref').value.trim() || null;
+
+  if (!memberId) { if (errEl) errEl.textContent = 'Please select a member'; return; }
+  const validLines = _payLines.filter(l => l.type_id && parseFloat(l.amount) > 0);
+  if (!validLines.length) { if (errEl) errEl.textContent = 'Add at least one payment line with type and amount'; return; }
+
+  // Fetch current member balances once
+  const { data: member } = await sb.from('members').select('shares_balance,savings_balance').eq('id', memberId).single();
+  let sharesBalance = member?.shares_balance || 0;
+  let savingsBalance = member?.savings_balance || 0;
+  let totalAmount = 0;
+
+  for (const line of validLines) {
+    const amount = parseFloat(line.amount);
+    const payload = {
+      org_id: currentOrg.id,
+      member_id: memberId,
+      type_id: line.type_id,
+      amount,
+      mpesa_ref: mpesaRef,
+      transaction_date: txDate,
+      recorded_by: currentUser.id
+    };
+    const { error } = await sb.from('transactions').insert(payload);
+    if (error) { toast('Error saving line: ' + error.message); return; }
+    totalAmount += amount;
+
+    // Update member balance per line
+    const ct = (allContribTypes||[]).find(t => t.id === line.type_id);
+    const incomeType = ct?.income_type || '';
+    if (incomeType === 'member_shares' || ct?.name?.toLowerCase().includes('share')) {
+      sharesBalance += amount;
+    } else if (incomeType === 'member_savings' || ct?.name?.toLowerCase().includes('saving')) {
+      savingsBalance += amount;
     }
   }
-  await updateBankBalance(currentOrg.id, payload.amount, 'credit');
-  toast('Payment recorded');
+
+  // Write updated member balances in one shot
+  await sb.from('members').update({ shares_balance: sharesBalance, savings_balance: savingsBalance }).eq('id', memberId);
+  await updateBankBalance(currentOrg.id, totalAmount, 'credit');
+
+  toast(`✓ Payment of Ksh ${totalAmount.toLocaleString()} recorded (${validLines.length} line${validLines.length>1?'s':''})`);
+  _payLines = [];
   closeModal('recordPayment');
   loadFinance(); loadDashboard();
 }
+
 
 // ── INCOME ──
 async function saveIncome() {

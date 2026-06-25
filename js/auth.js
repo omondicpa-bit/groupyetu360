@@ -177,8 +177,8 @@ async function loadProfileAndOrg() {
     }
   } catch(e) { /* user_orgs table may not exist yet */ }
 
-  if (!profile.org_id || userOrgCount > 1) {
-    // Multiple orgs or no org — show picker
+  if (!profile.org_id || userOrgCount >= 1) {
+    // Always show picker — single or multiple orgs
     showOrgPicker();
     return;
   }
@@ -1347,13 +1347,13 @@ function updateTopbarActions(page) {
     switch(page) {
       case 'members':
         topbar.innerHTML = `
-          <button class="topbar-btn outline" onclick="showModal('recordPayment')">+ Record Payment</button>
+          <button class="topbar-btn outline" onclick="openRecordPaymentModal()">+ Record Payment</button>
           <button class="topbar-btn" onclick="showModal('addMember')">+ Add Member</button>`;
         break;
       case 'finance':
         topbar.innerHTML = `
           <button class="topbar-btn outline" onclick="switchFinTab(document.querySelector('[onclick*=tab-expense-record]'),'tab-expense-record')">+ Expense</button>
-          <button class="topbar-btn" onclick="showModal('recordPayment')">+ Record Payment</button>`;
+          <button class="topbar-btn" onclick="openRecordPaymentModal()">+ Record Payment</button>`;
         break;
       case 'meetings':
         topbar.innerHTML = `
@@ -1384,7 +1384,7 @@ function updateTopbarActions(page) {
       default:
         // Dashboard and other pages — no clutter
         topbar.innerHTML = `
-          <button class="topbar-btn outline" onclick="showModal('recordPayment')">+ Record Payment</button>
+          <button class="topbar-btn outline" onclick="openRecordPaymentModal()">+ Record Payment</button>
           <button class="topbar-btn" onclick="showModal('addMember')">+ Add Member</button>`;
     }
   }
@@ -1405,8 +1405,7 @@ function buildNav() {
     <a class="nav-item" onclick="showPage('sa_billing')" href="#"><span class="nav-icon">💳</span> Billing</a>
     <a class="nav-item" onclick="showPage('sa_activity')" href="#"><span class="nav-icon">📋</span> Activity Log</a>
     <a class="nav-item" onclick="showPage('sa_support')" href="#"><span class="nav-icon">⚙</span> Platform Settings</a>
-    <div class="nav-label" style="margin-top:.5rem">Account</div>
-    <a class="nav-item" onclick="showPage('my_account')" href="#"><span class="nav-icon">👤</span> My Account</a>`;
+`;
 
   } else if (role === 'member') {
     nav += `
@@ -1416,7 +1415,7 @@ function buildNav() {
     <a class="nav-item" onclick="showPage('my_meetings')" href="#"><span class="nav-icon">◷</span> Meetings</a>
     <a class="nav-item" onclick="showPage('my_notices')" href="#"><span class="nav-icon">✉</span> Notices</a>
     <a class="nav-item" onclick="showPage('faq')" href="#"><span class="nav-icon">❓</span> Help & FAQs</a>
-    <a class="nav-item" onclick="showPage('my_account')" href="#"><span class="nav-icon">⚙</span> My Account</a>`;
+`;
 
   } else {
     // Admin / officer / treasurer
@@ -1474,7 +1473,6 @@ function buildNav() {
       ${canDo('viewApprovals') ? `<a class="nav-item nav-item-sub" onclick="showPage('approvals')" href="#"><span class="nav-icon">✓</span> Approvals <span class="nav-badge" id="approvals-badge" style="display:none">0</span></a>` : ''}
       ${canDo('editSettings') ? `<a class="nav-item nav-item-sub" onclick="showPage('settings')" href="#"><span class="nav-icon">⚙</span> Settings</a>` : ''}
       ${canDo('viewBilling') ? `<a class="nav-item nav-item-sub" onclick="showPage('billing')" href="#"><span class="nav-icon">💳</span> Billing & SMS</a>` : ''}
-      <a class="nav-item nav-item-sub" onclick="showPage('my_account')" href="#"><span class="nav-icon">👤</span> My Account</a>
     </div>`;
   }
 
@@ -1487,7 +1485,7 @@ function buildNav() {
     const canAdd = canDo('addMember');
     const canPay = canDo('recordPayment');
     topbar.innerHTML =
-      (canPay ? `<button class="topbar-btn outline" onclick="showModal('recordPayment')">+ Record Payment</button>` : '') +
+      (canPay ? `<button class="topbar-btn outline" onclick="openRecordPaymentModal()">+ Record Payment</button>` : '') +
       (canAdd ? `<button class="topbar-btn" onclick="showModal('addMember')">+ Add Member</button>` : '');
   } else {
     // member portal

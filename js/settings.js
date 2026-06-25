@@ -133,13 +133,7 @@ async function loadSettings() {
   }
   setVal('settings-bank-date', currentOrg.bank_balance_updated);
   // Load 2FA setting
-  const twoFaEl = document.getElementById('settings-2fa');
-  const twoFaLabel = document.getElementById('settings-2fa-label');
-  if (twoFaEl) {
-    twoFaEl.checked = currentOrg?.two_fa_enabled || false;
-    if (twoFaLabel) twoFaLabel.textContent = twoFaEl.checked ? 'Enabled' : 'Disabled';
-    twoFaEl.onchange = () => { if(twoFaLabel) twoFaLabel.textContent = twoFaEl.checked ? 'Enabled' : 'Disabled'; };
-  }
+  // 2FA is managed at account level — not org level
 
 
   const { data } = await sb.from('contribution_types').select('*').eq('org_id', currentOrg.id).order('name');
@@ -525,7 +519,6 @@ async function saveSettings() {
     payment_methods: paymentMethods,
     bank_balance: parseFloat(document.getElementById('settings-bank-balance').value)||0,
     bank_balance_updated: document.getElementById('settings-bank-date').value||null,
-    two_fa_enabled: document.getElementById('settings-2fa')?.checked || false,
     // AT credentials managed centrally by superadmin, not per-org
   };
   // Lock bank balance after first save if it has a value
