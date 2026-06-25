@@ -825,14 +825,12 @@ function renderSAUsers(list) {
     return;
   }
   tbody.innerHTML = list.map(u => {
-    // Find all orgs this user belongs to via user_orgs
+    // Find all orgs this user belongs to via user_orgs (source of truth)
     const userOrgRows = allSAUserOrgs.filter(uo => uo.user_id === u.id);
-    // Also find org membership via members table (catches older records)
-    const memberRows = allSAMemberRows.filter(m => m.user_id === u.id);
-    const memberOrgIds = memberRows.map(m => m.org_id).filter(Boolean);
-    // Merge org IDs from both sources
-    const allOrgIds = [...new Set([...userOrgRows.map(uo => uo.org_id), ...memberOrgIds])];
+    const allOrgIds = [...new Set(userOrgRows.map(uo => uo.org_id))];
     const orgCount = allOrgIds.length;
+    // members table used only for founder badge, not org count
+    const memberRows = allSAMemberRows.filter(m => m.user_id === u.id);
     const orgNames = allOrgIds.map(orgId => {
       const org = allSAOrgsMap[orgId];
       return org ? org.name : null;

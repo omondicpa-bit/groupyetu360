@@ -611,8 +611,9 @@ async function openMemberPaymentModal() {
             style="width:15px;height:15px;accent-color:var(--maroon);flex-shrink:0"
             onchange="updateWelfareAmount(this)"/>
           <div style="flex:1">
-            <div style="font-size:.8rem;font-weight:600">${e.event_type==='member'?'Member Death':e.event_type==='spouse'?'Spouse/Parent Death':'Child Death'}</div>
-            <div style="font-size:.67rem;color:var(--ink-faint)">Suggested: Ksh ${Number(e.contribution_per_member||0).toLocaleString()} per member</div>
+            <div style="font-size:.8rem;font-weight:600">${e.event_type||'Welfare Event'}</div>
+            ${e.notes ? `<div style="font-size:.7rem;color:var(--ink-soft);margin-top:.15rem">${e.notes}</div>` : ''}
+            <div style="font-size:.67rem;color:var(--ink-faint);margin-top:.1rem">Suggested: Ksh ${Number(e.contribution_per_member||0).toLocaleString()} per member</div>
           </div>
           <input type="number" class="form-input mp-item-input" id="mp-welfare-amt-${e.id}"
             style="width:100px;padding:.3rem .5rem;font-size:.8rem;display:none"

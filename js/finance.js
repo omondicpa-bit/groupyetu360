@@ -319,7 +319,7 @@ function openRecordPaymentModal(prefillMemberId) {
     if (sel) sel.value = prefillMemberId;
   }
   addPaymentLine();
-  openRecordPaymentModal();
+  showModal('recordPayment');
 }
 
 async function saveModalTransaction() {
