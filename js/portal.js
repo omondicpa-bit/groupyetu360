@@ -134,6 +134,8 @@ async function loadMyProfile() {
     if (savingsEl) savingsEl.textContent = 'Ksh ' + (myRecord.savings_balance||0).toLocaleString();
 
     loadMemberPendingFines(myRecord.id);
+    // Load MGR obligations notification on profile dashboard
+    loadMGRNoticeCard(myRecord.id);
     // Load contribution summary
     const summaryEl = document.getElementById('mp-contrib-summary');
     let totalContributed = 0;
@@ -622,6 +624,189 @@ async function openMemberPaymentModal() {
     } else {
       welfareSection.style.display = 'none';
     }
+  }
+
+  // Load MGR obligations
+  if (memberId) await loadMemberMGRObligations(memberId, 'mp-option-mgr', 'mp-mgr-list');
+}
+
+// ── MGR OBLIGATIONS — shown on My Profile dashboard and in Make Payment modal ──
+async function loadMGRNoticeCard(memberId) {
+  const noticeEl = document.getElementById('mp-mgr-notice');
+  if (!noticeEl || !memberId || !currentOrg?.id) return;
+  noticeEl.style.display = 'none';
+  try {
+    const { data: cycles } = await sb.from('savings_rounds')
+      .select('*').eq('org_id', currentOrg.id).eq('status', 'active');
+    if (!cycles?.length) return;
+    const myCycles = cycles.filter(c => Array.isArray(c.pool_members) && c.pool_members.includes(memberId));
+    if (!myCycles.length) return;
+
+    const items = [];
+    for (const cycle of myCycles) {
+      const { data: slots } = await sb.from('round_slots')
+        .select('*,members!round_slots_member_id_fkey(full_name)')
+        .eq('round_id', cycle.id).eq('received', false).order('slot_number').limit(1);
+      const slot = slots?.[0];
+      if (!slot) continue;
+      const { data: paid } = await sb.from('round_contributions')
+        .select('id').eq('slot_id', slot.id).eq('contributor_member_id', memberId).eq('status','paid').maybeSingle();
+      const isReceiver = slot.member_id === memberId;
+      const daysUntil = slot.scheduled_date ? Math.ceil((new Date(slot.scheduled_date) - new Date()) / 86400000) : null;
+      items.push({ cycle, slot, paid: !!paid, isReceiver, daysUntil });
+    }
+    if (!items.length) return;
+
+    const unpaid = items.filter(i => !i.paid && !i.isReceiver);
+    const receiving = items.filter(i => i.isReceiver);
+    const overdue = unpaid.filter(i => i.daysUntil !== null && i.daysUntil < 0);
+
+    if (!unpaid.length && !receiving.length) return;
+
+    noticeEl.style.display = 'block';
+    const parts = [];
+    if (receiving.length) {
+      parts.push(`<div style="display:flex;align-items:center;gap:.75rem;padding:.7rem 1rem;background:linear-gradient(135deg,rgba(15,110,86,.08),var(--surface));border:1px solid var(--teal);border-radius:8px;margin-bottom:.5rem">
+        <span style="font-size:1.5rem">🎉</span>
+        <div>
+          <div style="font-size:.88rem;font-weight:700;color:var(--teal-dk)">You receive the pot this round!</div>
+          <div style="font-size:.75rem;color:var(--ink-soft)">${h(receiving[0].cycle.name)} · Round ${receiving[0].slot.slot_number} · ${receiving[0].slot.scheduled_date ? new Date(receiving[0].slot.scheduled_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : ''}</div>
+        </div>
+      </div>`);
+    }
+    if (unpaid.length) {
+      const borderCol = overdue.length ? 'var(--danger)' : 'var(--gold)';
+      const icon = overdue.length ? '⚠' : '🔄';
+      const title = overdue.length
+        ? `${overdue.length} MGR payment${overdue.length > 1 ? 's' : ''} overdue`
+        : `${unpaid.length} MGR payment${unpaid.length > 1 ? 's' : ''} pending`;
+      const totalOwed = unpaid.reduce((s,i) => s + Number(i.cycle.amount_per_member||0), 0);
+      parts.push(`<div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.7rem 1rem;background:var(--surface);border:1px solid ${borderCol};border-left:3px solid ${borderCol};border-radius:8px">
+        <div style="display:flex;align-items:center;gap:.65rem">
+          <span style="font-size:1.3rem">${icon}</span>
+          <div>
+            <div style="font-size:.85rem;font-weight:700;color:var(--ink)">${title}</div>
+            <div style="font-size:.72rem;color:var(--ink-faint)">${unpaid.map(i => h(i.cycle.name)).join(' · ')}</div>
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:.9rem;font-weight:700;color:var(--maroon)">Ksh ${totalOwed.toLocaleString()}</div>
+          <button class="btn btn-primary btn-sm" onclick="openMemberPaymentModal();showModal('memberPayment')" style="background:var(--teal);font-size:.65rem;margin-top:.3rem;padding:.25rem .6rem">Pay Now →</button>
+        </div>
+      </div>`);
+    }
+    noticeEl.innerHTML = parts.join('');
+  } catch(e) { console.log('[GY360] MGR notice skipped:', e.message); }
+}
+
+async function loadMemberMGRObligations(memberId, sectionId, listId) {
+  const section = document.getElementById(sectionId);
+  const list = document.getElementById(listId);
+  if (!section || !list || !memberId || !currentOrg?.id) return;
+
+  try {
+    // Get all active cycles for this org
+    const { data: cycles } = await sb.from('savings_rounds')
+      .select('*')
+      .eq('org_id', currentOrg.id)
+      .eq('status', 'active');
+
+    if (!cycles?.length) { section.style.display = 'none'; return; }
+
+    // Filter to cycles this member participates in
+    const myCycles = cycles.filter(c =>
+      Array.isArray(c.pool_members) && c.pool_members.includes(memberId)
+    );
+    if (!myCycles.length) { section.style.display = 'none'; return; }
+
+    const obligations = [];
+
+    for (const cycle of myCycles) {
+      // Get the current active slot (first unreceived)
+      const { data: slots } = await sb.from('round_slots')
+        .select('*,members!round_slots_member_id_fkey(full_name)')
+        .eq('round_id', cycle.id)
+        .eq('received', false)
+        .order('slot_number')
+        .limit(1);
+
+      const currentSlot = slots?.[0];
+      if (!currentSlot) continue; // cycle complete
+
+      // Check if this member has already paid for this slot
+      const { data: myContrib } = await sb.from('round_contributions')
+        .select('id,status')
+        .eq('slot_id', currentSlot.id)
+        .eq('contributor_member_id', memberId)
+        .eq('status', 'paid')
+        .maybeSingle();
+
+      const alreadyPaid = !!myContrib;
+      const isReceiver = currentSlot.member_id === memberId;
+      const receiverName = currentSlot.members?.full_name || 'a member';
+      const dueDate = currentSlot.scheduled_date
+        ? new Date(currentSlot.scheduled_date).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'})
+        : '—';
+      const daysUntil = currentSlot.scheduled_date
+        ? Math.ceil((new Date(currentSlot.scheduled_date) - new Date()) / 86400000)
+        : null;
+      const isOverdue = daysUntil !== null && daysUntil < 0;
+      const isDueSoon = daysUntil !== null && daysUntil >= 0 && daysUntil <= 7;
+
+      obligations.push({ cycle, currentSlot, alreadyPaid, isReceiver, receiverName, dueDate, daysUntil, isOverdue, isDueSoon });
+    }
+
+    if (!obligations.length) { section.style.display = 'none'; return; }
+
+    section.style.display = 'block';
+    list.innerHTML = obligations.map(o => {
+      if (o.isReceiver) {
+        // This member is the current receiver — show that they're due to receive
+        const { data: paidCount } = { data: null }; // simplified — show receiver info
+        return `<div style="display:flex;align-items:center;gap:.75rem;padding:.65rem .85rem;background:linear-gradient(135deg,rgba(15,110,86,.08),var(--surface));border:1px solid var(--teal-mid,#0f6e56);border-left:3px solid var(--teal);border-radius:6px">
+          <div style="font-size:1.4rem">🎉</div>
+          <div style="flex:1">
+            <div style="font-size:.85rem;font-weight:700;color:var(--teal-dk)">You are the current receiver!</div>
+            <div style="font-size:.75rem;color:var(--ink-soft);margin-top:.15rem">${o.cycle.name} · Round ${o.currentSlot.slot_number} · Due ${o.dueDate}</div>
+            <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.1rem">Other members will pay Ksh ${Number(o.cycle.amount_per_member||0).toLocaleString()} each directly to you${o.cycle.collection_method === 'group_account' ? ' via the group account' : o.cycle.collection_method === 'treasurer' ? ' via the treasurer' : ' to you directly'}.</div>
+          </div>
+        </div>`;
+      }
+
+      if (o.alreadyPaid) {
+        return `<div style="display:flex;align-items:center;gap:.75rem;padding:.55rem .85rem;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;opacity:.75">
+          <div style="font-size:1.2rem">✅</div>
+          <div style="flex:1">
+            <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${o.cycle.name} — Round ${o.currentSlot.slot_number}</div>
+            <div style="font-size:.72rem;color:var(--teal-dk);margin-top:.1rem">✓ You have paid for this round. Receiver: ${h(o.receiverName)}</div>
+          </div>
+          <span class="badge badge-green" style="font-size:.62rem;flex-shrink:0">Paid</span>
+        </div>`;
+      }
+
+      const urgencyColor = o.isOverdue ? 'var(--danger)' : o.isDueSoon ? 'var(--warning)' : 'var(--ink-faint)';
+      const urgencyBorder = o.isOverdue ? 'var(--danger)' : o.isDueSoon ? 'var(--gold)' : 'var(--border)';
+      const urgencyLabel = o.isOverdue ? `⚠ Overdue by ${Math.abs(o.daysUntil)} days`
+        : o.isDueSoon ? `Due in ${o.daysUntil} day${o.daysUntil !== 1 ? 's' : ''}`
+        : o.daysUntil !== null ? `Due in ${o.daysUntil} days` : '';
+
+      return `<div style="display:flex;align-items:center;gap:.75rem;padding:.65rem .85rem;background:var(--surface);border:1px solid ${urgencyBorder};border-left:3px solid ${urgencyBorder};border-radius:6px">
+        <div style="font-size:1.4rem">🔄</div>
+        <div style="flex:1">
+          <div style="font-size:.85rem;font-weight:700;color:var(--ink)">${h(o.cycle.name)} — Round ${o.currentSlot.slot_number}</div>
+          <div style="font-size:.75rem;color:var(--ink-soft);margin-top:.15rem">Pay Ksh ${Number(o.cycle.amount_per_member||0).toLocaleString()} · Receiver: ${h(o.receiverName)}</div>
+          ${urgencyLabel ? `<div style="font-size:.7rem;font-weight:600;color:${urgencyColor};margin-top:.2rem">${urgencyLabel}</div>` : ''}
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:.85rem;font-weight:700;color:var(--maroon)">Ksh ${Number(o.cycle.amount_per_member||0).toLocaleString()}</div>
+          <div style="font-size:.65rem;color:var(--ink-faint)">${o.dueDate}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+  } catch(e) {
+    console.log('[GY360] MGR obligations load skipped:', e.message);
+    if (section) section.style.display = 'none';
   }
 }
 

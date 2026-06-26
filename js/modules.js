@@ -1004,6 +1004,45 @@ function copyPaybill() {
 let allRounds = [];
 let currentRoundId = null;
 let mgrMethod = 'treasurer';
+let _dragSrcEl = null;
+
+// ── Drag-and-drop for receiving order list ──
+function dragStart(e) {
+  _dragSrcEl = e.currentTarget;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', '');
+  setTimeout(() => { if (_dragSrcEl) _dragSrcEl.style.opacity = '0.4'; }, 0);
+}
+
+function dragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  return false;
+}
+
+function dropItem(e, containerId) {
+  e.stopPropagation();
+  const container = document.getElementById(containerId);
+  if (!container || !_dragSrcEl || _dragSrcEl === e.currentTarget) return false;
+  // Find drop target — walk up to drag-item
+  let target = e.target;
+  while (target && target !== container && !target.classList.contains('drag-item')) {
+    target = target.parentElement;
+  }
+  if (target && target !== _dragSrcEl && target.classList?.contains('drag-item')) {
+    const allItems = Array.from(container.querySelectorAll('.drag-item'));
+    const srcIdx = allItems.indexOf(_dragSrcEl);
+    const tgtIdx = allItems.indexOf(target);
+    if (srcIdx < tgtIdx) {
+      container.insertBefore(_dragSrcEl, target.nextSibling);
+    } else {
+      container.insertBefore(_dragSrcEl, target);
+    }
+  }
+  if (_dragSrcEl) _dragSrcEl.style.opacity = '';
+  _dragSrcEl = null;
+  return false;
+}
 
 function switchMgrTab(btn, tabId) {
   document.querySelectorAll('.mgr-tab').forEach(t => t.classList.remove('active'));

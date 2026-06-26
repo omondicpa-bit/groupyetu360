@@ -2695,6 +2695,10 @@
           </div>
         </div>
       </div>
+
+      <!-- MGR / Rotating Savings obligations -->
+      <div id="mp-mgr-notice" style="display:none;margin:0 0 1rem"></div>
+
       <div class="mp-balances" id="mp-bal-cards-container">
         <div class="mp-bal-card" style="animation-delay:.0s">
           <div class="mp-bal-label">Shares Balance</div>
@@ -3607,6 +3611,12 @@
       <div id="mp-option-welfare" style="display:none;margin-bottom:.5rem">
         <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.4rem">Active Welfare Events</div>
         <div id="mp-welfare-list" style="display:flex;flex-direction:column;gap:.35rem"></div>
+      </div>
+
+      <!-- MGR / Rotating Savings (if member is in active cycle) -->
+      <div id="mp-option-mgr" style="display:none;margin-bottom:.5rem">
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.4rem">🔄 Rotating Savings (MGR)</div>
+        <div id="mp-mgr-list" style="display:flex;flex-direction:column;gap:.35rem"></div>
       </div>
 
       <!-- Total confirmation -->
@@ -4608,14 +4618,14 @@
 
 
   <!-- GroupYetu360 Scripts — load order matters -->
-  <script src="js/auth.js?v=2026062602"></script>
-  <script src="js/utils.js?v=2026062602"></script>
-  <script src="js/dashboard.js?v=2026062602"></script>
-  <script src="js/members.js?v=2026062602"></script>
-  <script src="js/finance.js?v=2026062602"></script>
-  <script src="js/settings.js?v=2026062602"></script>
-  <script src="js/portal.js?v=2026062602"></script>
-  <script src="js/modules.js?v=2026062602"></script>
+  <script src="js/auth.js?v=2026062603"></script>
+  <script src="js/utils.js?v=2026062603"></script>
+  <script src="js/dashboard.js?v=2026062603"></script>
+  <script src="js/members.js?v=2026062603"></script>
+  <script src="js/finance.js?v=2026062603"></script>
+  <script src="js/settings.js?v=2026062603"></script>
+  <script src="js/portal.js?v=2026062603"></script>
+  <script src="js/modules.js?v=2026062603"></script>
   <script>
     // Bootstrap — runs after all JS files are loaded
     async function start() {
