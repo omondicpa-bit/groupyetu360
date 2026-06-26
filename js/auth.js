@@ -454,8 +454,6 @@ async function signIn() {
     // Send via Supabase email (free, no org billed)
     try {
       await sb.auth.signInWithOtp({ email });
-      // Also send our custom OTP via email using Supabase Edge Function or just log for now
-      console.log('[2FA] OTP for', email, ':', otp);
     } catch(e) { console.log('[2FA] email send failed:', e); }
 
     // Show 2FA screen
@@ -678,7 +676,7 @@ async function pickerCreateOrg() {
         await sb.from('payment_requests').insert({
           org_id: currentOrg.id,
           user_id: currentUser.id,
-          type: 'subscription_' + plan,
+          payment_type: 'subscription_' + plan,
           amount: price,
           mpesa_ref: payRef,
           status: 'pending',

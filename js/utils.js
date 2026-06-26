@@ -378,7 +378,7 @@ async function loadSASupport() {
   const setVal = (id, val) => { const el=document.getElementById(id); if(el) el.value=val||''; };
   setVal('sp-phone', s.support_phone||'0702903544');
   setVal('sp-email', s.support_email||'info@groupyetu.org');
-  setVal('sp-bank-name', s.bank_name||'Equity Bank');
+  setVal('sp-bank-name', s.bank_name||'KCB Bank');
   setVal('sp-bank-account', s.bank_account||'');
   setVal('sp-bank-account-name', s.bank_account_name||'EPH Technologies');
   setVal('sp-paybill', s.paybill||'');
