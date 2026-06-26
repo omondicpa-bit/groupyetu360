@@ -1323,6 +1323,7 @@ body.member-mob-active #support-fab{display:none !important}
 .mgr-method-pill{display:inline-flex;align-items:center;gap:.3rem;font-size:.62rem;font-weight:600;padding:.2rem .55rem;border-radius:99px}
 .mgr-method-treasurer{background:var(--maroon-pale);color:var(--maroon)}
 .mgr-method-direct{background:var(--teal-pale);color:var(--teal-dk)}
+.mgr-method-group{background:#e8f0fe;color:#1a56db}
 /* Empty state */
 .mgr-empty{padding:3rem;text-align:center}
 .mgr-empty-icon{font-size:2.5rem;margin-bottom:.75rem}

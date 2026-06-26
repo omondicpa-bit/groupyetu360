@@ -1269,187 +1269,6 @@
     </div>
 
     <!-- ROTATING SAVINGS / MERRY-GO-ROUND -->
-    <div class="page" id="page-mgr">
-
-      <!-- Hero -->
-      <div class="mgr-hero">
-        <div>
-          <div class="mgr-hero-title">🔄 Rotating Savings</div>
-          <div class="mgr-hero-sub" id="mgr-hero-sub">Merry-go-round cycles for your group</div>
-        </div>
-        <button class="btn fin-ctrl-btn" onclick="showModal('createRound')">+ New Cycle</button>
-      </div>
-
-      <!-- Stats -->
-      <div class="mgr-stats">
-        <div class="mgr-stat"><div class="mgr-stat-val" id="mgr-stat-active">—</div><div class="mgr-stat-label">Active Cycles</div></div>
-        <div class="mgr-stat"><div class="mgr-stat-val" id="mgr-stat-rounds">—</div><div class="mgr-stat-label">Total Rounds</div></div>
-        <div class="mgr-stat"><div class="mgr-stat-val" id="mgr-stat-disbursed">—</div><div class="mgr-stat-label">Total Disbursed</div></div>
-        <div class="mgr-stat"><div class="mgr-stat-val" id="mgr-stat-next">—</div><div class="mgr-stat-label">Next Receiver</div></div>
-      </div>
-
-      <!-- Tabs -->
-      <div class="mgr-tabs">
-        <button class="mgr-tab active" onclick="switchMgrTab(this,'mgr-tab-overview')">📋 Overview</button>
-        <button class="mgr-tab" onclick="switchMgrTab(this,'mgr-tab-record')">₭ Record Contribution</button>
-        <button class="mgr-tab" onclick="switchMgrTab(this,'mgr-tab-disburse')">💸 Disburse</button>
-        <button class="mgr-tab" onclick="switchMgrTab(this,'mgr-tab-history')">📜 History</button>
-      </div>
-
-      <!-- TAB: Overview -->
-      <div class="tab-panel active" id="mgr-tab-overview">
-        <div id="mgr-rounds-list">
-          <div class="loading"><div class="spinner"></div>Loading cycles…</div>
-        </div>
-      </div>
-
-      <!-- TAB: Record Contribution -->
-      <div class="tab-panel" id="mgr-tab-record">
-        <div class="mgr-form-card">
-          <div class="mgr-form-heading">
-            <div class="mgr-form-icon">₭</div>
-            <div>
-              <div class="mgr-form-title">Record Member Contribution</div>
-              <div class="mgr-form-sub">Mark a member as paid for the active round</div>
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Cycle</label>
-              <select class="form-select" id="mgr-rec-cycle" onchange="loadRoundSlots(this.value)">
-                <option value="">Select cycle…</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Active Round (Receiver)</label>
-              <select class="form-select" id="mgr-rec-slot">
-                <option value="">Select cycle first…</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Contributing Member</label>
-              <select class="form-select" id="mgr-rec-member">
-                <option value="">Select member…</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Amount (Ksh)</label>
-              <input class="form-input" type="number" id="mgr-rec-amount" placeholder="0"/>
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Payment Method</label>
-              <select class="form-select" id="mgr-rec-method">
-                <option value="mpesa">M-Pesa</option>
-                <option value="cash">Cash</option>
-                <option value="bank">Bank Transfer</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">M-Pesa Ref (optional)</label>
-              <input class="form-input" id="mgr-rec-ref" placeholder="e.g. QBC4X8YZ"/>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Date</label>
-            <input class="form-input" type="date" id="mgr-rec-date"/>
-          </div>
-          <div style="margin-top:1.25rem;display:flex;gap:.75rem">
-            <button class="btn btn-primary" onclick="saveRoundContribution()" style="background:var(--teal);box-shadow:0 3px 10px rgba(15,110,86,.2)">Save Contribution →</button>
-            <button class="btn btn-secondary" onclick="clearMgrRecForm()">Clear</button>
-          </div>
-        </div>
-
-        <!-- Live contribution status for selected round -->
-        <div class="round-card" id="mgr-contrib-status" style="margin-top:1rem;display:none">
-          <div class="round-card-header">
-            <div>
-              <div class="round-card-title" id="mgr-contrib-status-title">Contribution Status</div>
-              <div class="round-card-meta" id="mgr-contrib-status-meta"></div>
-            </div>
-            <div id="mgr-contrib-summary-chips" style="display:flex;gap:.4rem"></div>
-          </div>
-          <div class="mgr-contrib-grid" id="mgr-contrib-grid"></div>
-        </div>
-      </div>
-
-      <!-- TAB: Disburse -->
-      <div class="tab-panel" id="mgr-tab-disburse">
-        <div class="mgr-form-card">
-          <div class="mgr-form-heading">
-            <div class="mgr-form-icon" style="background:rgba(128,0,32,.1)">💸</div>
-            <div>
-              <div class="mgr-form-title">Record Disbursement</div>
-              <div class="mgr-form-sub">Treasurer collection method only — record when pot is sent to receiver</div>
-            </div>
-          </div>
-          <div class="alert alert-info" style="margin-bottom:1rem">Only required for cycles using the <strong>Treasurer Collects</strong> method. For Direct Pay cycles, members pay the receiver directly — no disbursement to record.</div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Cycle</label>
-              <select class="form-select" id="mgr-dis-cycle" onchange="loadDisbursementSlots(this.value)">
-                <option value="">Select cycle…</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Round (Receiver)</label>
-              <select class="form-select" id="mgr-dis-slot">
-                <option value="">Select cycle first…</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Amount Disbursed (Ksh)</label>
-              <input class="form-input" type="number" id="mgr-dis-amount" placeholder="Auto-calculated"/>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Date</label>
-              <input class="form-input" type="date" id="mgr-dis-date"/>
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Payment Method</label>
-              <select class="form-select" id="mgr-dis-method">
-                <option value="mpesa">M-Pesa</option>
-                <option value="cash">Cash</option>
-                <option value="bank">Bank Transfer</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">M-Pesa Ref</label>
-              <input class="form-input" id="mgr-dis-ref" placeholder="Transaction reference"/>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Notes</label>
-            <input class="form-input" id="mgr-dis-notes" placeholder="Any additional details…"/>
-          </div>
-          <div style="margin-top:1.25rem;display:flex;gap:.75rem">
-            <button class="btn btn-primary" onclick="saveDisbursement()" style="background:var(--maroon)">Record Disbursement →</button>
-            <button class="btn btn-secondary" onclick="clearMgrDisForm()">Clear</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- TAB: History -->
-      <div class="tab-panel" id="mgr-tab-history">
-        <div class="card" style="margin-top:.5rem">
-          <div class="card-header"><div class="card-title">Round History</div><div class="card-sub" id="mgr-history-sub"></div></div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Cycle</th><th>Round #</th><th>Receiver</th><th>Date</th><th>Pot Amount</th><th>Paid By</th><th>Method</th><th>Status</th></tr></thead>
-              <tbody id="mgr-history-table"><tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--ink-faint)">Select a cycle to view history</td></tr></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- ROTATING SAVINGS / MERRY-GO-ROUND -->
     <div class="page" id="page-mgr">
       <div class="mgr-hero">
@@ -1512,7 +1331,7 @@
             <div class="mgr-form-icon" style="background:rgba(128,0,32,.1)">💸</div>
             <div><div class="mgr-form-title">Record Disbursement</div><div class="mgr-form-sub">Treasurer method only — record when pot is sent to receiver</div></div>
           </div>
-          <div class="alert alert-info" style="margin-bottom:1rem">Only required for <strong>Treasurer Collects</strong> cycles. For Direct Pay cycles, members pay the receiver directly.</div>
+          <div class="alert alert-info" style="margin-bottom:1rem">Only required for <strong>Treasurer Collects</strong> cycles. For Direct Pay cycles, members pay the receiver directly. For <strong>Group Account</strong> cycles, disbursement is auto-recorded when all members have paid.</div>
           <div class="form-row">
             <div class="form-group"><label class="form-label">Cycle</label><select class="form-select" id="mgr-dis-cycle" onchange="loadDisbursementSlots(this.value)"><option value="">Select cycle…</option></select></div>
             <div class="form-group"><label class="form-label">Round (Receiver)</label><select class="form-select" id="mgr-dis-slot"><option value="">Select cycle first…</option></select></div>
@@ -4279,16 +4098,21 @@
       <!-- Collection method toggle -->
       <div class="form-group">
         <label class="form-label">Collection Method</label>
-        <div class="method-toggle">
+        <div class="method-toggle" style="grid-template-columns:1fr 1fr 1fr">
           <div class="method-opt selected" id="cr-method-treasurer" onclick="selectMgrMethod('treasurer')">
             <div class="method-opt-icon">🏛</div>
             <div class="method-opt-title">Treasurer Collects</div>
-            <div class="method-opt-desc">Members pay into group account. Treasurer disburses pot to receiver.</div>
+            <div class="method-opt-desc">Members pay a designated treasurer who disburses the pot to receiver.</div>
           </div>
           <div class="method-opt" id="cr-method-direct" onclick="selectMgrMethod('direct')">
             <div class="method-opt-icon">📲</div>
             <div class="method-opt-title">Members Pay Directly</div>
             <div class="method-opt-desc">Each member sends their share directly to the receiving member.</div>
+          </div>
+          <div class="method-opt" id="cr-method-group_account" onclick="selectMgrMethod('group_account')">
+            <div class="method-opt-icon">🏦</div>
+            <div class="method-opt-title">Group Account</div>
+            <div class="method-opt-desc">Members pay into the group bank account. Affects group bank balance.</div>
           </div>
         </div>
         <input type="hidden" id="cr-method" value="treasurer"/>
@@ -4784,14 +4608,14 @@
 
 
   <!-- GroupYetu360 Scripts — load order matters -->
-  <script src="js/auth.js?v=2026062601"></script>
-  <script src="js/utils.js?v=2026062601"></script>
-  <script src="js/dashboard.js?v=2026062601"></script>
-  <script src="js/members.js?v=2026062601"></script>
-  <script src="js/finance.js?v=2026062601"></script>
-  <script src="js/settings.js?v=2026062601"></script>
-  <script src="js/portal.js?v=2026062601"></script>
-  <script src="js/modules.js?v=2026062601"></script>
+  <script src="js/auth.js?v=2026062602"></script>
+  <script src="js/utils.js?v=2026062602"></script>
+  <script src="js/dashboard.js?v=2026062602"></script>
+  <script src="js/members.js?v=2026062602"></script>
+  <script src="js/finance.js?v=2026062602"></script>
+  <script src="js/settings.js?v=2026062602"></script>
+  <script src="js/portal.js?v=2026062602"></script>
+  <script src="js/modules.js?v=2026062602"></script>
   <script>
     // Bootstrap — runs after all JS files are loaded
     async function start() {

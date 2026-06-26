@@ -1065,6 +1065,7 @@ function selectMgrMethod(method) {
   document.getElementById('cr-method').value = method;
   document.getElementById('cr-method-treasurer').classList.toggle('selected', method === 'treasurer');
   document.getElementById('cr-method-direct').classList.toggle('selected', method === 'direct');
+  document.getElementById('cr-method-group_account').classList.toggle('selected', method === 'group_account');
 }
 
 // Check for overdue MGR slots and issue auto-fines if cycle has default_fine_amount set
@@ -1253,8 +1254,12 @@ async function renderMGROverview(rounds) {
     const totalMembers = slots.length;
     const received = slots.filter(s => s.received).length;
     const currentSlot = slots.find(s => !s.received);
-    const methodLabel = r.collection_method === 'treasurer' ? '🏛 Treasurer Collects' : '📲 Members Pay Directly';
-    const methodClass = r.collection_method === 'treasurer' ? 'mgr-method-treasurer' : 'mgr-method-direct';
+    const methodLabel = r.collection_method === 'treasurer' ? '🏛 Treasurer Collects'
+      : r.collection_method === 'group_account' ? '🏦 Group Account'
+      : '📲 Members Pay Directly';
+    const methodClass = r.collection_method === 'treasurer' ? 'mgr-method-treasurer'
+      : r.collection_method === 'group_account' ? 'mgr-method-group'
+      : 'mgr-method-direct';
 
     const slotCards = slots.map((s, si) => {
       const contribs = (allContribs || []).filter(c => c.slot_id === s.id);
@@ -1519,6 +1524,10 @@ async function saveRoundContribution() {
     .select('id').eq('slot_id', slotId).eq('contributor_member_id', memberId).eq('status','paid').maybeSingle();
   if (existing) { toast('This member has already paid for this round'); return; }
 
+  // Get round details for collection method
+  const round = allRounds.find(r => r.id === roundId);
+  const collectionMethod = round?.collection_method || 'treasurer';
+
   const { error } = await sb.from('round_contributions').insert({
     round_id: roundId,
     slot_id: slotId,
@@ -1532,9 +1541,102 @@ async function saveRoundContribution() {
   });
 
   if (error) { toast('Error: ' + error.message); return; }
+
+  // ── group_account: credit bank balance per contribution ──
+  if (collectionMethod === 'group_account') {
+    await updateBankBalance(currentOrg.id, amount, 'credit');
+    await logActivity('MGR CONTRIBUTION', `MGR contribution: Ksh ${amount.toLocaleString()} from member for round (group account)`, 'mgr', slotId);
+  }
+
   toast('✓ Contribution recorded');
+
+  // ── Auto-completion check ──
+  // After recording, check if ALL members in this cycle have now paid for this slot
+  await checkAndAutoCompleteSlot(slotId, roundId, round, date);
+
   await loadContribStatusForSlot(slotId);
   await loadMGR();
+}
+
+// Check if all members in a cycle have paid for a slot — if so, auto-mark as received
+async function checkAndAutoCompleteSlot(slotId, roundId, round, date) {
+  try {
+    const collectionMethod = round?.collection_method || 'treasurer';
+    // Only auto-complete for 'direct' and 'group_account' — treasurer method requires manual disbursement
+    if (collectionMethod === 'treasurer') return;
+
+    // Get the slot to find the receiver member_id
+    const { data: slot } = await sb.from('round_slots')
+      .select('member_id, received').eq('id', slotId).maybeSingle();
+    if (!slot || slot.received) return;
+
+    // Get all members in this cycle (from pool_members on the round)
+    const cycleMembers = round?.pool_members || [];
+    if (!cycleMembers.length) return;
+
+    // Expected contributors = all cycle members MINUS the receiver
+    const expectedContributors = cycleMembers.filter(id => id !== slot.member_id);
+    if (!expectedContributors.length) return;
+
+    // Get all paid contributions for this slot
+    const { data: paid } = await sb.from('round_contributions')
+      .select('contributor_member_id')
+      .eq('slot_id', slotId)
+      .eq('status', 'paid');
+
+    const paidIds = new Set((paid || []).map(c => c.contributor_member_id));
+    const allPaid = expectedContributors.every(id => paidIds.has(id));
+
+    if (!allPaid) return;
+
+    // All members have paid — auto-mark slot as received
+    const today = date || new Date().toISOString().split('T')[0];
+    const potAmount = expectedContributors.length * Number(round?.amount_per_member || 0);
+
+    await sb.from('round_slots').update({
+      received: true,
+      received_date: today,
+      amount_received: potAmount
+    }).eq('id', slotId);
+
+    // For group_account: debit bank balance when pot is disbursed to receiver
+    if (collectionMethod === 'group_account') {
+      await updateBankBalance(currentOrg.id, potAmount, 'debit');
+      // Record disbursement automatically
+      await sb.from('round_disbursements').insert({
+        round_id: roundId,
+        slot_id: slotId,
+        org_id: currentOrg.id,
+        receiving_member_id: slot.member_id,
+        amount: potAmount,
+        method: 'auto',
+        disbursement_date: today,
+        disbursed_by: currentUser.id,
+        notes: 'Auto-recorded: all members paid via group account'
+      });
+      await logActivity('MGR DISBURSEMENT', `MGR auto-disbursed Ksh ${potAmount.toLocaleString()} to receiver (group account)`, 'mgr', slotId);
+    }
+
+    // For direct: just record confirmation — receiver got it from members directly
+    if (collectionMethod === 'direct') {
+      await sb.from('round_disbursements').insert({
+        round_id: roundId,
+        slot_id: slotId,
+        org_id: currentOrg.id,
+        receiving_member_id: slot.member_id,
+        amount: potAmount,
+        method: 'direct',
+        disbursement_date: today,
+        disbursed_by: currentUser.id,
+        notes: 'Auto-confirmed: all members paid directly to receiver'
+      });
+    }
+
+    const receiverName = allMembers.find(m => m.id === slot.member_id)?.full_name || 'receiver';
+    toast(`✓ All members paid — round auto-completed. ${receiverName} has received the pot.`);
+  } catch(e) {
+    console.log('[GY360] Auto-complete check error:', e.message);
+  }
 }
 
 async function loadDisbursementSlots(roundId) {
@@ -1601,6 +1703,13 @@ async function saveDisbursement() {
     amount_received: amount
   }).eq('id', slotId);
 
+  // Debit bank balance for group_account cycles on manual disbursement
+  const round = allRounds.find(r => r.id === roundId);
+  if (round?.collection_method === 'group_account') {
+    await updateBankBalance(currentOrg.id, amount, 'debit');
+    await logActivity('MGR DISBURSEMENT', `MGR manual disbursement: Ksh ${amount.toLocaleString()} from group account to receiver`, 'mgr', slotId);
+  }
+
   toast('✓ Disbursement recorded — slot marked as received');
   clearMgrDisForm();
   await loadMGR();
@@ -1630,6 +1739,9 @@ async function loadMGRHistory() {
     const disb = (disbs || []).find(d => d.slot_id === s.id);
     const round = allRounds.find(r => r.id === s.round_id);
     const method = round?.collection_method || 'treasurer';
+    const methodLabel = method === 'group_account' ? 'Group Account'
+      : method === 'direct' ? 'Members directly'
+      : 'Treasurer';
     const dateStr = s.received_date
       ? new Date(s.received_date).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'})
       : '—';
@@ -1642,7 +1754,7 @@ async function loadMGRHistory() {
       <td><strong>${s.members?.full_name || '—'}</strong></td>
       <td>${dateStr}</td>
       <td>Ksh ${pot}</td>
-      <td>${method === 'direct' ? 'Members directly' : 'Treasurer'}</td>
+      <td>${methodLabel}</td>
       <td>${disb?.method || (method === 'direct' ? 'Direct' : '—')}</td>
       <td><span class="badge badge-green">✓ Received</span></td>
     </tr>`;
