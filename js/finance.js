@@ -2,6 +2,20 @@
 // Auto-split from index.html
 // globals: window.sb, window.currentOrg, window.currentUser, window.currentProfile etc.
 
+// ── XSS SANITISATION ──
+// h() is also defined in members.js — whichever loads first wins, both are identical
+if (typeof h !== 'function') {
+  window.h = function h(str) {
+    if (!str && str !== 0) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  };
+}
+
 // ── FINANCE ──
 async function loadFinance() {
   if (!currentOrg?.id) return;
@@ -144,11 +158,11 @@ async function loadFinance() {
   if (txnEl) txnEl.innerHTML = txns.length ? txns.map(t => `
     <tr>
       <td>${t.transaction_date||t.created_at?.split('T')[0]||'—'}</td>
-      <td>${t.members?.full_name||'—'}</td>
-      <td><span class="badge badge-green">${t.contribution_types?.name||'Payment'}</span></td>
+      <td>${h(t.members?.full_name)||'—'}</td>
+      <td><span class="badge badge-green">${h(t.contribution_types?.name)||'Payment'}</span></td>
       <td><strong>Ksh ${Number(t.amount).toLocaleString()}</strong></td>
-      <td>${t.mpesa_ref||'—'}</td>
-      <td>${t.notes||'—'}</td>
+      <td>${h(t.mpesa_ref)||'—'}</td>
+      <td>${h(t.notes)||'—'}</td>
     </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--ink-faint)">No contributions recorded yet</td></tr>';
 
   // Income table
@@ -156,11 +170,11 @@ async function loadFinance() {
   if (incEl) incEl.innerHTML = incomes.length ? incomes.map(e => `
     <tr>
       <td>${e.expense_date||e.created_at?.split('T')[0]||'—'}</td>
-      <td><span class="badge badge-green">${e.category||'—'}</span></td>
-      <td>${e.description||'—'}</td>
+      <td><span class="badge badge-green">${h(e.category)||'—'}</span></td>
+      <td>${h(e.description)||'—'}</td>
       <td><strong>Ksh ${Number(e.amount).toLocaleString()}</strong></td>
-      <td>${e.mpesa_ref||'—'}</td>
-      <td>${e.project||'—'}</td>
+      <td>${h(e.mpesa_ref)||'—'}</td>
+      <td>${h(e.project)||'—'}</td>
     </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--ink-faint)">No income recorded yet</td></tr>';
 
   // Expenses table
@@ -168,11 +182,11 @@ async function loadFinance() {
   if (expEl) expEl.innerHTML = expenses.length ? expenses.map(e => `
     <tr>
       <td>${e.expense_date||e.created_at?.split('T')[0]||'—'}</td>
-      <td><span class="badge badge-warn">${e.category||'—'}</span></td>
-      <td>${e.description||'—'}</td>
+      <td><span class="badge badge-warn">${h(e.category)||'—'}</span></td>
+      <td>${h(e.description)||'—'}</td>
       <td><strong>Ksh ${Number(e.amount).toLocaleString()}</strong></td>
-      <td>${e.mpesa_ref||'—'}</td>
-      <td>${e.project||'—'}</td>
+      <td>${h(e.mpesa_ref)||'—'}</td>
+      <td>${h(e.project)||'—'}</td>
     </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--ink-faint)">No expenses yet</td></tr>';
 
   // Populate mobile finance shell
@@ -182,8 +196,6 @@ async function loadFinance() {
 async function saveTransaction() {
   if (!canDo('recordPayment')) { toast('⚠ You do not have permission to record payments.'); return; }
   if (!currentOrg?.id) return;
-  const saveBtn = document.getElementById('save-transaction-btn') || [...document.querySelectorAll('#tab-contributions .btn-primary')].pop();
-  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
   const memberId = document.getElementById('pay-member').value || null;
   const typeId = document.getElementById('pay-type').value || null;
   const amount = parseFloat(document.getElementById('pay-amount').value);
@@ -225,10 +237,8 @@ async function saveTransaction() {
   if (totalRecorded > 0) await updateBankBalance(currentOrg.id, totalRecorded, 'credit');
   toast('Payment recorded successfully');
   clearPayForm();
-  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Record Payment'; }
   loadFinance();
   loadDashboard();
-  prefetchData();
 }
 
 // ── Split-payment helpers ──
@@ -329,8 +339,6 @@ function openRecordPaymentModal(prefillMemberId) {
 async function saveModalTransaction() {
   if (!canDo('recordPayment')) { toast('⚠ You do not have permission to record payments.'); return; }
   if (!currentOrg?.id) return;
-  const saveBtn = document.getElementById('modal-pay-submit-btn') || [...document.querySelectorAll('#modal-recordPayment .btn-primary')].pop();
-  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
   const errEl = document.getElementById('modal-pay-error');
   if (errEl) errEl.textContent = '';
 
@@ -380,9 +388,7 @@ async function saveModalTransaction() {
   toast(`✓ Payment of Ksh ${totalAmount.toLocaleString()} recorded (${validLines.length} line${validLines.length>1?'s':''})`);
   _payLines = [];
   closeModal('recordPayment');
-  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Record Payment'; }
   loadFinance(); loadDashboard();
-  prefetchData();
 }
 
 
@@ -421,8 +427,6 @@ function clearIncForm() {
 async function saveExpense() {
   if (!canDo('recordPayment')) { toast('⚠ You do not have permission to record expenses.'); return; }
   if (!currentOrg?.id) return;
-  const saveBtn = document.getElementById('save-expense-btn') || [...document.querySelectorAll('#tab-expense-record .btn-primary')].pop();
-  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
   const payload = {
     org_id: currentOrg.id,
     category: document.getElementById('exp-category').value.trim(),
@@ -454,9 +458,7 @@ async function saveExpense() {
   const totalExpense = payload.amount + charges;
   await updateBankBalance(currentOrg.id, totalExpense, 'debit');
   toast('Expense recorded' + (charges > 0 ? ` + Ksh ${charges} charges` : ''));
-  clearExpForm();
-  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Record Expense'; }
-  loadFinance(); loadDashboard();
+  clearExpForm(); loadFinance(); loadDashboard();
 }
 
 
@@ -508,7 +510,7 @@ async function loadFinesLedger(){
     const actions=f.status==='pending'
       ?`<div style="display:flex;gap:.35rem;flex-wrap:wrap"><button class="btn btn-primary btn-sm" style="font-size:.68rem;background:var(--teal)" onclick="markFinePaid('${f.id}')">✓ Mark Paid</button>${canRecover?`<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="recoverFineFromBalance('${f.id}')">↩ Recover</button>`:''}<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="waiveFine('${f.id}')">— Waive</button><button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteFine('${f.id}')">✕</button></div>`
       :`<span style="font-size:.72rem;color:var(--ink-faint)">${f.recovery_method?'via '+f.recovery_method:''}${paidInfo}</span>`;
-    return `<tr><td style="font-size:.78rem;color:var(--ink-faint);white-space:nowrap">${dateStr}</td><td><div style="display:flex;align-items:center;gap:.55rem"><div style="width:28px;height:28px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:var(--maroon);flex-shrink:0">${initials}</div><div><div style="font-size:.82rem;font-weight:600">${f.members?.full_name||'—'}</div><div style="font-size:.67rem;color:var(--ink-faint)">#${f.members?.member_number||'—'}</div></div></div></td><td style="font-size:.8rem;color:var(--ink-soft);max-width:200px">${f.reason}${f.notes?`<div style="font-size:.7rem;color:var(--ink-faint)">${f.notes}</div>`:''}</td><td><strong style="color:var(--maroon)">Ksh ${Number(f.amount).toLocaleString()}</strong></td><td>${badge}</td><td>${actions}</td></tr>`;
+    return `<tr><td style="font-size:.78rem;color:var(--ink-faint);white-space:nowrap">${dateStr}</td><td><div style="display:flex;align-items:center;gap:.55rem"><div style="width:28px;height:28px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:var(--maroon);flex-shrink:0">${h(initials)}</div><div><div style="font-size:.82rem;font-weight:600">${h(f.members?.full_name)||'—'}</div><div style="font-size:.67rem;color:var(--ink-faint)">#${h(f.members?.member_number)||'—'}</div></div></div></td><td style="font-size:.8rem;color:var(--ink-soft);max-width:200px">${h(f.reason)}${f.notes?`<div style="font-size:.7rem;color:var(--ink-faint)">${h(f.notes)}</div>`:''}</td><td><strong style="color:var(--maroon)">Ksh ${Number(f.amount).toLocaleString()}</strong></td><td>${badge}</td><td>${actions}</td></tr>`;
   }).join('')}</tbody></table></div>`;
 }
 
@@ -654,21 +656,21 @@ async function loadPendingPayments() {
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;flex-wrap:wrap">
-            <div style="font-size:.9rem;font-weight:700;color:var(--ink)">${r.members?.full_name || 'Unknown Member'}</div>
+            <div style="font-size:.9rem;font-weight:700;color:var(--ink)">${h(r.members?.full_name) || 'Unknown Member'}</div>
             <span style="font-size:.62rem;font-weight:600;padding:.15rem .45rem;background:var(--surface-2);color:var(--ink-faint);border-radius:3px">#${r.members?.member_number||'—'}</span>
             <span class="badge ${showActions?'badge-warn':r.status==='approved'?'badge-green':'badge-red'}">${r.status}</span>
           </div>
           <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:.5rem">
             <span style="font-size:.72rem;color:var(--ink-faint)">📅 ${dateStr}</span>
-            ${r.mpesa_ref ? `<span style="font-size:.72rem;color:var(--ink-faint)">📱 M-Pesa: <strong style="color:var(--ink)">${r.mpesa_ref}</strong></span>` : ''}
-            ${r.members?.phone ? `<span style="font-size:.72rem;color:var(--ink-faint)">📞 ${r.members.phone}</span>` : ''}
+            ${r.mpesa_ref ? `<span style="font-size:.72rem;color:var(--ink-faint)">📱 M-Pesa: <strong style="color:var(--ink)">${h(r.mpesa_ref)}</strong></span>` : ''}
+            ${r.members?.phone ? `<span style="font-size:.72rem;color:var(--ink-faint)">📞 ${h(r.members.phone)}</span>` : ''}
           </div>
           ${allocations.length ? `
           <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:.5rem .75rem;margin-bottom:.35rem">
             <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.35rem">Payment Breakdown</div>
             ${allocations.map(a => `
               <div style="display:flex;justify-content:space-between;font-size:.75rem;padding:.2rem 0;border-bottom:1px solid var(--border)">
-                <span style="color:var(--ink-soft)">${a.typeName || 'Payment'}</span>
+                <span style="color:var(--ink-soft)">${h(a.typeName) || 'Payment'}</span>
                 <strong>Ksh ${Number(a.amount||0).toLocaleString()}</strong>
               </div>`).join('')}
             <div style="display:flex;justify-content:space-between;font-size:.8rem;font-weight:700;padding:.35rem 0 0">
@@ -677,7 +679,7 @@ async function loadPendingPayments() {
             </div>
           </div>` : `
           <div style="font-size:.82rem;font-weight:700;color:var(--teal)">Ksh ${Number(r.amount||0).toLocaleString()}</div>`}
-          ${r.notes ? `<div style="font-size:.7rem;color:var(--ink-faint);margin-top:.2rem">${r.notes}</div>` : ''}
+          ${r.notes ? `<div style="font-size:.7rem;color:var(--ink-faint);margin-top:.2rem">${h(r.notes)}</div>` : ''}
           ${!showActions && r.status !== 'pending' ? `<div style="font-size:.7rem;color:var(--ink-faint);margin-top:.2rem">Reviewed: ${reviewDate}</div>` : ''}
         </div>
         ${showActions ? `

@@ -2,6 +2,18 @@
 // Auto-split from index.html
 // globals: window.sb, window.currentOrg, window.currentUser, window.currentProfile etc.
 
+// ── XSS SANITISATION ──
+// Use h() on ALL user-supplied strings before interpolating into innerHTML
+function h(str) {
+  if (!str && str !== 0) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // ── MEMBERS ──
 async function loadMembers() {
   if (!currentOrg?.id) return;
@@ -121,11 +133,11 @@ function renderMemberList(list) {
     const dispNum = m.display_number || (m.internal_number ? String(m.internal_number).padStart(3,'0') : m.member_number) || '—';
     return `<tr onclick="openMemberDetail('${m.id}')" style="cursor:pointer">
     <td style="font-weight:700;color:var(--maroon)">#${dispNum}${m.is_founder ? ' <span title="Founding Member" style="font-size:.8rem">🏛</span>' : ''}</td>
-    <td><strong>${m.full_name}</strong><div style="font-size:.68rem;color:var(--ink-faint)">${m.email||''}</div></td>
-    <td>${m.phone||'—'}</td>
+    <td><strong>${h(m.full_name)}</strong><div style="font-size:.68rem;color:var(--ink-faint)">${h(m.email)}</div></td>
+    <td>${h(m.phone)||'—'}</td>
     <td style="font-weight:600;color:var(--maroon)">Ksh ${Number(m.shares_balance||0).toLocaleString()}</td>
     <td style="font-weight:600;color:var(--teal)">Ksh ${Number(m.savings_balance||0).toLocaleString()}</td>
-    <td><span class="badge ${m.status==='active'?'badge-green':m.status==='arrears'?'badge-warn':'badge-grey'}">${m.status}</span></td>
+    <td><span class="badge ${m.status==='active'?'badge-green':m.status==='arrears'?'badge-warn':'badge-grey'}">${h(m.status)}</span></td>
     <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openMemberDetail('${m.id}')">View →</button></td>
   </tr>`;
   }).join('') : '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--ink-faint)">No members found</td></tr>';
@@ -186,8 +198,8 @@ function renderMemberGrid(list) {
         <div class="mc-avatar">${initials}</div>
         <div class="mc-meta">
           <div class="mc-num">Member #${m.member_number||'—'}</div>
-          <div class="mc-name">${m.full_name}</div>
-          <div class="mc-phone">${m.phone||m.email||'—'}</div>
+          <div class="mc-name">${h(m.full_name)}</div>
+          <div class="mc-phone">${h(m.phone||m.email)||'—'}</div>
         </div>
         <span class="badge ${badgeClass}" style="font-size:.6rem;flex-shrink:0">${m.status||'—'}</span>
       </div>
@@ -205,8 +217,6 @@ function renderMemberGrid(list) {
 async function saveMember() {
   if (!canDo('addMember')) { toast('⚠ You do not have permission to add members.'); return; }
   if (!currentOrg?.id) return;
-  const saveBtn = document.getElementById('save-member-btn') || [...document.querySelectorAll('#modal-addMember .btn-primary')].pop();
-  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
 
   // ── Plan member limit check ──
   const limit = getPlanMemberLimit(currentOrg);
@@ -269,9 +279,8 @@ async function saveMember() {
   if (invRow) invRow.style.display = 'none';
 
   closeModal('addMember');
-  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Add Member'; }
   await loadMembers();
-  await prefetchData();
+  populateSelects();
 }
 
 
@@ -502,7 +511,7 @@ async function loadMemberHistory(memberId) {
         <td><span class="badge ${r.type==='payment'?'badge-green':r.direction==='credit'?'badge-maroon':'badge-red'}">${r.label}</span></td>
         <td>Ksh ${Number(r.amount).toLocaleString()}</td>
         <td style="color:${r.direction==='credit'?'var(--success)':'var(--danger)'};font-weight:600">${r.direction==='credit'?'+':'−'}</td>
-        <td style="font-size:.75rem">${r.notes}</td>
+        <td style="font-size:.75rem">${h(r.notes)}</td>
       </tr>`).join('')}</tbody>
     </table>` : '<div style="padding:2rem;text-align:center;color:var(--ink-faint);font-size:.82rem">No history yet</div>';
 }
@@ -510,8 +519,6 @@ async function loadMemberHistory(memberId) {
 async function saveMemberDetail() {
   if (!canDo('editMember')) { toast('⚠ You do not have permission to edit members.'); return; }
   if (!currentMemberId) return;
-  const saveBtn = document.getElementById('save-member-detail-btn') || [...document.querySelectorAll('#modal-memberDetail .btn-primary')].pop();
-  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
   const openingShares = parseFloat(document.getElementById('md-edit-opening-shares').value)||0;
   const openingSavings = parseFloat(document.getElementById('md-edit-opening-savings').value)||0;
   // Get current member to check if opening balances changed
@@ -538,14 +545,12 @@ async function saveMemberDetail() {
   const portalEmail = document.getElementById('md-edit-email')?.value?.trim();
   if (portalEmail) updates.portal_email = portalEmail;
   const { error } = await sb.from('members').update(updates).eq('id', currentMemberId);
-  if (error) { if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Changes'; } toast('Error: '+error.message); return; }
+  if (error) { toast('Error: '+error.message); return; }
   toast('Member updated successfully');
 
   await logActivity('UPDATE MEMBER', `Updated member details for ${updates.full_name}${portalEmail?' (portal: '+portalEmail+')':''}`, 'member', currentMemberId);
   closeModal('memberDetail');
-  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Changes'; }
   loadMembers();
-  prefetchData();
 }
 
 // Helper: link a user (by their auth UUID) to this org via SECURITY DEFINER RPC
@@ -683,8 +688,8 @@ async function promoteToAdmin() {
     <div style="background:#fff;border-radius:12px;padding:1.75rem;max-width:380px;width:90%;box-shadow:0 24px 64px rgba(0,0,0,.2)">
       <div style="font-size:1rem;font-weight:700;color:#1a1a1a;margin-bottom:.3rem">Change Portal Role</div>
       <div style="font-size:.78rem;color:#666;margin-bottom:1.25rem">
-        <strong>${m.full_name}</strong>${isFounder ? ' <span style="color:#800020;font-size:.7rem;font-weight:700">FOUNDER</span>' : ''}<br>
-        Current role: <strong style="text-transform:capitalize">${currentRole}</strong>
+        <strong>${h(m.full_name)}</strong>${isFounder ? ' <span style="color:#800020;font-size:.7rem;font-weight:700">FOUNDER</span>' : ''}<br>
+        Current role: <strong style="text-transform:capitalize">${h(currentRole)}</strong>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1.25rem">
         ${roles.map(r => `
