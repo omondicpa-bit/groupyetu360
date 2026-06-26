@@ -447,25 +447,33 @@ async function signIn() {
     _2faProfile = profile;
     await sb.auth.signOut();
 
-    // Generate OTP
-    const otp = String(Math.floor(100000 + Math.random() * 900000));
-    _2faCode = otp;
-
-    // Send via Supabase email (free, no org billed)
+    // Send OTP via Edge Function — generated and stored server-side, emailed via Resend
+    const FUNCTIONS_URL = 'https://eengldzvvgplgzvbutal.supabase.co/functions/v1';
     try {
-      await sb.auth.signInWithOtp({ email });
-    } catch(e) { console.log('[2FA] email send failed:', e); }
+      const otpRes = await fetch(`${FUNCTIONS_URL}/send-2fa-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        },
+        body: JSON.stringify({ email })
+      });
+      const otpData = await otpRes.json();
+      if (!otpRes.ok || !otpData.success) throw new Error(otpData.error || 'Failed to send code');
+    } catch(e) {
+      const errEl = document.getElementById('login-error');
+      if (errEl) { errEl.textContent = 'Could not send verification code. Please try again.'; errEl.classList.add('show'); }
+      _2faSession = null; _2faProfile = null;
+      return;
+    }
 
     // Show 2FA screen
     document.getElementById('auth-step-1').style.display = 'none';
     document.getElementById('auth-step-2fa').style.display = 'block';
     document.getElementById('2fa-sub').textContent =
-      `A 6-digit code has been sent to ${email}`;
+      `A 6-digit code has been sent to ${email}. Check your inbox.`;
     document.getElementById('2fa-code').value = '';
     document.getElementById('2fa-code').focus();
-
-    // Set 5 minute expiry
-    setTimeout(() => { _2faCode = null; }, 5 * 60 * 1000);
     return;
   }
   // No 2FA needed — proceed normally (onAuthStateChange handles the rest)
@@ -482,22 +490,35 @@ async function verify2FA() {
     return;
   }
 
-  if (!_2faCode) {
-    errEl.textContent = 'Code expired. Please sign in again.';
-    errEl.classList.add('show');
-    return;
-  }
-
-  if (entered !== _2faCode) {
-    errEl.textContent = 'Incorrect code. Please try again.';
-    errEl.classList.add('show');
-    return;
-  }
-
-  // Code correct — sign back in
   const loginEmail = document.getElementById('login-email').value.trim();
-  const loginPass = document.getElementById('login-password').value;
 
+  // Verify OTP server-side via Edge Function
+  const FUNCTIONS_URL = 'https://eengldzvvgplgzvbutal.supabase.co/functions/v1';
+  let verifyData;
+  try {
+    const verifyRes = await fetch(`${FUNCTIONS_URL}/verify-2fa-otp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      },
+      body: JSON.stringify({ email: loginEmail, code: entered })
+    });
+    verifyData = await verifyRes.json();
+  } catch(e) {
+    errEl.textContent = 'Verification failed. Please try again.';
+    errEl.classList.add('show');
+    return;
+  }
+
+  if (!verifyData.valid) {
+    errEl.textContent = verifyData.error || 'Incorrect code. Please try again.';
+    errEl.classList.add('show');
+    return;
+  }
+
+  // Code correct — sign back in with original credentials
+  const loginPass = document.getElementById('login-password').value;
   const { error } = await sb.auth.signInWithPassword({ email: loginEmail, password: loginPass });
   if (error) {
     errEl.textContent = 'Could not sign in: ' + error.message;
@@ -516,12 +537,31 @@ async function verify2FA() {
 }
 
 async function resend2FACode() {
-  _2faCode = null;
-  document.getElementById('2fa-success').textContent = 'Signing in again to resend code...';
-  document.getElementById('2fa-success').classList.add('show');
-  document.getElementById('auth-step-2fa').style.display = 'none';
-  document.getElementById('auth-step-1').style.display = 'block';
-  toast('Please sign in again to get a new code');
+  const loginEmail = document.getElementById('login-email').value.trim();
+  const sucEl = document.getElementById('2fa-success');
+  const errEl = document.getElementById('2fa-error');
+  if (sucEl) { sucEl.textContent = 'Sending a new code…'; sucEl.classList.add('show'); }
+  if (errEl) errEl.classList.remove('show');
+
+  const FUNCTIONS_URL = 'https://eengldzvvgplgzvbutal.supabase.co/functions/v1';
+  try {
+    const otpRes = await fetch(`${FUNCTIONS_URL}/send-2fa-otp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      },
+      body: JSON.stringify({ email: loginEmail })
+    });
+    const otpData = await otpRes.json();
+    if (!otpRes.ok || !otpData.success) throw new Error(otpData.error || 'Failed');
+    if (sucEl) { sucEl.textContent = '✓ New code sent. Check your inbox.'; }
+    document.getElementById('2fa-code').value = '';
+    document.getElementById('2fa-code').focus();
+  } catch(e) {
+    if (sucEl) sucEl.classList.remove('show');
+    if (errEl) { errEl.textContent = 'Could not resend code. Please sign in again.'; errEl.classList.add('show'); }
+  }
 }
 
 function cancel2FA() {
