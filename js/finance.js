@@ -182,6 +182,8 @@ async function loadFinance() {
 async function saveTransaction() {
   if (!canDo('recordPayment')) { toast('⚠ You do not have permission to record payments.'); return; }
   if (!currentOrg?.id) return;
+  const saveBtn = document.getElementById('save-transaction-btn') || [...document.querySelectorAll('#tab-contributions .btn-primary')].pop();
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
   const memberId = document.getElementById('pay-member').value || null;
   const typeId = document.getElementById('pay-type').value || null;
   const amount = parseFloat(document.getElementById('pay-amount').value);
@@ -223,8 +225,10 @@ async function saveTransaction() {
   if (totalRecorded > 0) await updateBankBalance(currentOrg.id, totalRecorded, 'credit');
   toast('Payment recorded successfully');
   clearPayForm();
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Record Payment'; }
   loadFinance();
   loadDashboard();
+  prefetchData();
 }
 
 // ── Split-payment helpers ──
@@ -325,6 +329,8 @@ function openRecordPaymentModal(prefillMemberId) {
 async function saveModalTransaction() {
   if (!canDo('recordPayment')) { toast('⚠ You do not have permission to record payments.'); return; }
   if (!currentOrg?.id) return;
+  const saveBtn = document.getElementById('modal-pay-submit-btn') || [...document.querySelectorAll('#modal-recordPayment .btn-primary')].pop();
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
   const errEl = document.getElementById('modal-pay-error');
   if (errEl) errEl.textContent = '';
 
@@ -374,7 +380,9 @@ async function saveModalTransaction() {
   toast(`✓ Payment of Ksh ${totalAmount.toLocaleString()} recorded (${validLines.length} line${validLines.length>1?'s':''})`);
   _payLines = [];
   closeModal('recordPayment');
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Record Payment'; }
   loadFinance(); loadDashboard();
+  prefetchData();
 }
 
 
@@ -413,6 +421,8 @@ function clearIncForm() {
 async function saveExpense() {
   if (!canDo('recordPayment')) { toast('⚠ You do not have permission to record expenses.'); return; }
   if (!currentOrg?.id) return;
+  const saveBtn = document.getElementById('save-expense-btn') || [...document.querySelectorAll('#tab-expense-record .btn-primary')].pop();
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
   const payload = {
     org_id: currentOrg.id,
     category: document.getElementById('exp-category').value.trim(),
@@ -444,7 +454,9 @@ async function saveExpense() {
   const totalExpense = payload.amount + charges;
   await updateBankBalance(currentOrg.id, totalExpense, 'debit');
   toast('Expense recorded' + (charges > 0 ? ` + Ksh ${charges} charges` : ''));
-  clearExpForm(); loadFinance(); loadDashboard();
+  clearExpForm();
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Record Expense'; }
+  loadFinance(); loadDashboard();
 }
 
 

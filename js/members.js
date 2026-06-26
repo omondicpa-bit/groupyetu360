@@ -205,6 +205,8 @@ function renderMemberGrid(list) {
 async function saveMember() {
   if (!canDo('addMember')) { toast('⚠ You do not have permission to add members.'); return; }
   if (!currentOrg?.id) return;
+  const saveBtn = document.getElementById('save-member-btn') || [...document.querySelectorAll('#modal-addMember .btn-primary')].pop();
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
 
   // ── Plan member limit check ──
   const limit = getPlanMemberLimit(currentOrg);
@@ -267,8 +269,9 @@ async function saveMember() {
   if (invRow) invRow.style.display = 'none';
 
   closeModal('addMember');
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Add Member'; }
   await loadMembers();
-  populateSelects();
+  await prefetchData();
 }
 
 
@@ -507,6 +510,8 @@ async function loadMemberHistory(memberId) {
 async function saveMemberDetail() {
   if (!canDo('editMember')) { toast('⚠ You do not have permission to edit members.'); return; }
   if (!currentMemberId) return;
+  const saveBtn = document.getElementById('save-member-detail-btn') || [...document.querySelectorAll('#modal-memberDetail .btn-primary')].pop();
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
   const openingShares = parseFloat(document.getElementById('md-edit-opening-shares').value)||0;
   const openingSavings = parseFloat(document.getElementById('md-edit-opening-savings').value)||0;
   // Get current member to check if opening balances changed
@@ -533,12 +538,14 @@ async function saveMemberDetail() {
   const portalEmail = document.getElementById('md-edit-email')?.value?.trim();
   if (portalEmail) updates.portal_email = portalEmail;
   const { error } = await sb.from('members').update(updates).eq('id', currentMemberId);
-  if (error) { toast('Error: '+error.message); return; }
+  if (error) { if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Changes'; } toast('Error: '+error.message); return; }
   toast('Member updated successfully');
 
   await logActivity('UPDATE MEMBER', `Updated member details for ${updates.full_name}${portalEmail?' (portal: '+portalEmail+')':''}`, 'member', currentMemberId);
   closeModal('memberDetail');
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Changes'; }
   loadMembers();
+  prefetchData();
 }
 
 // Helper: link a user (by their auth UUID) to this org via SECURITY DEFINER RPC
