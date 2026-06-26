@@ -157,56 +157,7 @@ async function logActivity(action, details, targetType = null, targetId = null) 
 }
 
 // ── ACTIVITY LOG LOADER ──
-async function loadSAActivity() {
-  const listEl = document.getElementById('sa-activity-list');
-  if (!listEl) return;
-  listEl.innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
-
-  // Populate org filter
-  const orgFilter = document.getElementById('activity-filter-org');
-  if (orgFilter && orgFilter.options.length <= 1) {
-    const { data: orgs } = await sb.from('organisations').select('id,name').order('name');
-    (orgs||[]).forEach(o => {
-      const opt = document.createElement('option');
-      opt.value = o.id; opt.textContent = o.name;
-      orgFilter.appendChild(opt);
-    });
-  }
-
-  const orgId = document.getElementById('activity-filter-org')?.value;
-  const action = document.getElementById('activity-filter-action')?.value;
-
-  try {
-    let query = sb.from('activity_log').select('*').order('created_at',{ascending:false}).limit(100);
-    if (orgId) query = query.eq('org_id', orgId);
-    if (action) query = query.ilike('action', `%${action}%`);
-    const { data: logs, error } = await query;
-
-    if (error) throw error;
-
-    listEl.innerHTML = (logs||[]).length ? `
-      <table>
-        <thead><tr><th>Time</th><th>Organisation</th><th>Admin</th><th>Role</th><th>Action</th><th>Details</th></tr></thead>
-        <tbody>${(logs||[]).map(l => {
-          const isDebit = l.action?.includes('DEBIT');
-          const isDel = l.action?.includes('DELETE');
-          const isCredit = l.action?.includes('CREDIT');
-          const badgeClass = isDel ? 'badge-red' : isDebit ? 'badge-warn' : isCredit ? 'badge-green' : 'badge-grey';
-          return `<tr>
-            <td style="font-size:.72rem;color:var(--ink-faint)">${new Date(l.created_at).toLocaleString('en-KE',{dateStyle:'short',timeStyle:'short'})}</td>
-            <td><span class="badge badge-maroon" style="font-size:.65rem">${l.org_id ? 'org' : 'platform'}</span></td>
-            <td><strong style="font-size:.8rem">${l.user_name||'Unknown'}</strong></td>
-            <td><span class="badge badge-grey" style="font-size:.65rem">${l.user_role||'—'}</span></td>
-            <td><span class="badge ${badgeClass}" style="font-size:.65rem">${l.action||'—'}</span></td>
-            <td style="font-size:.75rem;color:var(--ink-soft);max-width:300px">${l.details||'—'}</td>
-          </tr>`;
-        }).join('')}</tbody>
-      </table>` :
-      '<div style="padding:2rem;text-align:center;color:var(--ink-faint);font-size:.85rem">No activity logged yet. Actions will appear here as admins use the platform.</div>';
-  } catch(e) {
-    listEl.innerHTML = '<div style="padding:1.5rem;color:var(--ink-faint);font-size:.82rem">Activity log table not yet created. Run the SQL migration first.</div>';
-  }
-}
+// loadSAActivity is defined in settings.js (canonical version with proper table/tbody structure)
 
 
 // ── SUPPORT PAGE ──
@@ -559,7 +510,7 @@ async function sendSMS(to, message) {
     console.log('sendSMS: could not load platform settings, defaulting to leopard');
   }
 
-  const SUPABASE_URL = 'https://eengldzvvgplgzvbutal.supabase.co/functions/v1';
+  const SUPABASE_FUNCTIONS_URL = 'https://eengldzvvgplgzvbutal.supabase.co/functions/v1';
 
   // ── SMS LEOPARD (direct browser call — avoids Supabase Edge Function DNS restriction) ──
   if (provider === 'leopard') {
@@ -604,7 +555,7 @@ async function sendSMS(to, message) {
       return { sent: 0, failed: recipients.length };
     }
     try {
-      const res = await fetch(`${SUPABASE_URL}/send-sms-celcom`, {
+      const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/send-sms-celcom`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -631,7 +582,7 @@ async function sendSMS(to, message) {
   if (provider === 'at') {
     if (!atKey) return { sent: 0, failed: recipients.length };
     try {
-      const res = await fetch(`${SUPABASE_URL}/send-sms`, {
+      const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/send-sms`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

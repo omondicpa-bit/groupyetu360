@@ -1,15 +1,24 @@
-// GroupYetu360 Service Worker v2.9 — groupyetu.org
-const CACHE_NAME = 'gy360-v2.9';
+// GroupYetu360 Service Worker v3.0 — groupyetu.org
+const CACHE_NAME = 'gy360-v3.0';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/style.css',
+  '/js/auth.js',
+  '/js/utils.js',
+  '/js/dashboard.js',
+  '/js/members.js',
+  '/js/finance.js',
+  '/js/settings.js',
+  '/js/portal.js',
+  '/js/modules.js',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
 ];
 
 self.addEventListener('install', event => {
-  console.log('[GY360 SW] Installing v2.9');
+  console.log('[GY360 SW] Installing v3.0');
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache =>
       cache.addAll(STATIC_ASSETS).catch(err =>

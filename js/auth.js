@@ -946,17 +946,7 @@ function showBanner(html, type='info') {
   el.innerHTML = `<span>${html}</span><button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:inherit">✕</button>`;
 }
 
-function showUpgradePrompt(page) {
-  const plan = getEffectivePlan(currentOrg);
-  const expired = currentOrg?.subscription_status === 'expired';
-  const msg = expired
-    ? `Your subscription has expired. Upgrade to access ${page.replace('_',' ')}.`
-    : `This feature requires a higher plan. You are on <strong>${plan.toUpperCase()}</strong>.`;
-  // Show upgrade modal
-  const el = document.getElementById('upgrade-prompt-msg');
-  if (el) el.innerHTML = msg;
-  showModal('upgradePrompt');
-}
+// showUpgradePrompt() is defined in portal.js (canonical full-page upgrade UX).
 
 async function selectOrg(orgId) {
   // Reset member cache — crucial for multi-org so My Profile/Contributions reload fresh

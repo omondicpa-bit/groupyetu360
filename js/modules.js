@@ -870,6 +870,12 @@ async function sendSms() {
 
   if (!rawPhones.length) { toast('No phone numbers found for selected recipients'); return; }
 
+  // ── Confirmation gate — prevents accidental double-send ──
+  const recipientLabel = recipientType === 'all' ? 'all members' : recipientType === 'active' ? 'active members' : 'members in arrears';
+  const preview = body.length > 60 ? body.slice(0, 60) + '…' : body;
+  const confirmed = confirm(`Send SMS to ${rawPhones.length} ${recipientLabel}?\n\nMessage: "${preview}"\n\nThis will use ${rawPhones.length} SMS from your bundle.`);
+  if (!confirmed) return;
+
   // ── Balance gate ──
   const bundle = currentOrg?.sms_bundle || 0;
   if (bundle <= 0) {

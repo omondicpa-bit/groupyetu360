@@ -752,19 +752,6 @@ function toggleWelfareItem(cb) {
   updateMpTotal();
 }
 
-function updateMpTotal() {
-  let total = 0;
-  document.querySelectorAll('.mp-item-input').forEach(inp => {
-    total += parseFloat(inp.value)||0;
-  });
-  const regAmt = document.getElementById('mp-reg-amount');
-  if (regAmt && document.getElementById('mp-check-reg')?.checked) {
-    total += parseFloat(regAmt.value)||0;
-  }
-  const el = document.getElementById('mp-grand-total');
-  if (el) el.textContent = 'Ksh ' + total.toLocaleString();
-}
-
 function distributePayment(v) { updateMpTotal(); }
 function updateAllocatedTotal() { updateMpTotal(); }
 
