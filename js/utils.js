@@ -675,7 +675,7 @@ async function loadOrgFinancialProfile() {
   // Check for MGR cycles
   if (!orgFinProfile.hasMGR) {
     try {
-      const { data: rounds } = await sb.from('merry_go_round_cycles').select('id').eq('org_id', currentOrg.id).limit(1);
+      const { data: rounds } = await sb.from('savings_rounds').select('id').eq('org_id', currentOrg.id).limit(1);
       if (rounds?.length) orgFinProfile.hasMGR = true;
     } catch(e) {}
   }

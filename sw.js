@@ -1,5 +1,5 @@
 // GroupYetu360 Service Worker v3.0 — groupyetu.org
-const CACHE_NAME = 'gy360-v3.3';
+const CACHE_NAME = 'gy360-v3.4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -18,7 +18,7 @@ const STATIC_ASSETS = [
 ];
 
 self.addEventListener('install', event => {
-  console.log('[GY360 SW] Installing v3.3');
+  console.log('[GY360 SW] Installing v3.4');
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache =>
       cache.addAll(STATIC_ASSETS).catch(err =>
