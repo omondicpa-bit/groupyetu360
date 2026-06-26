@@ -112,23 +112,21 @@ async function updatePassword() {
 // ── BANK BALANCE AUTO-UPDATE ──
 async function updateBankBalance(orgId, amount, direction) {
   // direction: 'credit' for income, 'debit' for expense
+  // Uses atomic Postgres RPC — no read-modify-write race condition
   try {
-    const { data: org } = await sb.from('organisations')
-      .select('bank_balance,bank_balance_locked')
-      .eq('id', orgId).single();
-    if (!org) return;
-    const current = parseFloat(org.bank_balance) || 0;
     const change = parseFloat(amount) || 0;
-    const newBalance = direction === 'credit'
-      ? current + change
-      : current - change;
-    await sb.from('organisations').update({
-      bank_balance: Math.max(0, newBalance),
-      bank_balance_updated: new Date().toISOString().split('T')[0]
-    }).eq('id', orgId);
-    // Update local org object
-    if (currentOrg?.id === orgId) {
-      currentOrg.bank_balance = Math.max(0, newBalance);
+    if (!change) return;
+    const today = new Date().toISOString().split('T')[0];
+    const { data: newBalance, error } = await sb.rpc('update_bank_balance', {
+      p_org_id: orgId,
+      p_amount: change,
+      p_direction: direction,
+      p_date: today
+    });
+    if (error) throw error;
+    // Update local org object so dashboard reflects new balance immediately
+    if (currentOrg?.id === orgId && newBalance !== null) {
+      currentOrg.bank_balance = newBalance;
     }
   } catch(e) {
     console.log('Bank balance update skipped:', e.message);
