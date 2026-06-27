@@ -235,11 +235,22 @@ async function loadDashboardModuleCards(orgId) {
   if (!container) return;
   container.innerHTML = '';
 
-  // Fetch MGR, Table Banking, Fines in parallel
+  // Use real tables with real columns — savings_rounds for MGR, table_banking_pools for TB
   const [mgrRes, tbRes, finesRes] = await Promise.all([
-    sb.from('merry_go_round_cycles').select('id,name,status,total_pool,current_round,total_rounds').eq('org_id', orgId).order('created_at', {ascending: false}).limit(5),
-    sb.from('table_banking_pools').select('id,name,status,total_pool,total_loans_outstanding,total_interest_earned').eq('org_id', orgId).order('created_at', {ascending: false}).limit(5),
-    sb.from('fines').select('id,amount,status').eq('org_id', orgId).eq('status', 'pending'),
+    sb.from('savings_rounds')
+      .select('id,name,status,amount_per_member,pool_members,collection_method')
+      .eq('org_id', orgId)
+      .order('created_at', {ascending: false})
+      .limit(5),
+    sb.from('table_banking_pools')
+      .select('id,name,status,interest_rate,pool_members')
+      .eq('org_id', orgId)
+      .order('created_at', {ascending: false})
+      .limit(5),
+    sb.from('fines')
+      .select('id,amount,status')
+      .eq('org_id', orgId)
+      .eq('status', 'pending'),
   ]);
 
   const cycles  = mgrRes.data  || [];
@@ -249,11 +260,10 @@ async function loadDashboardModuleCards(orgId) {
   // ── MGR Card ──
   if (cycles.length > 0) {
     const active = cycles.filter(c => c.status === 'active');
-    const totalPool = cycles.reduce((s,c) => s + Number(c.total_pool||0), 0);
     const activeRound = active[0];
-    const roundProgress = activeRound
-      ? `Round ${activeRound.current_round||1} of ${activeRound.total_rounds||'?'}`
-      : '';
+    const memberCount = activeRound?.pool_members?.length || 0;
+    const amtPerMember = Number(activeRound?.amount_per_member || 0);
+    const potSize = memberCount * amtPerMember;
 
     const card = document.createElement('div');
     card.className = 'card';
@@ -273,20 +283,17 @@ async function loadDashboardModuleCards(orgId) {
       </div>
       <div style="padding:.75rem 1.25rem 1rem;display:grid;grid-template-columns:1fr 1fr;gap:.65rem">
         <div style="background:var(--surface);border-radius:6px;padding:.65rem .85rem">
-          <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Total Pool</div>
-          <div style="font-size:1.15rem;font-weight:700;color:var(--maroon)">Ksh ${totalPool.toLocaleString()}</div>
+          <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Pot Per Round</div>
+          <div style="font-size:1.15rem;font-weight:700;color:var(--maroon)">Ksh ${potSize.toLocaleString()}</div>
         </div>
         <div style="background:var(--surface);border-radius:6px;padding:.65rem .85rem">
-          <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Active Cycles</div>
-          <div style="font-size:1.15rem;font-weight:700;color:var(--ink)">${active.length}</div>
+          <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Members</div>
+          <div style="font-size:1.15rem;font-weight:700;color:var(--ink)">${memberCount}</div>
         </div>
       </div>
       ${activeRound ? `
-      <div style="padding:0 1.25rem 1rem">
-        <div style="font-size:.72rem;color:var(--ink-soft);margin-bottom:.35rem">${activeRound.name} — ${roundProgress}</div>
-        <div style="height:5px;background:var(--border);border-radius:3px">
-          <div style="height:100%;width:${Math.round(((activeRound.current_round||1)/(activeRound.total_rounds||1))*100)}%;background:var(--teal);border-radius:3px;transition:width 1s ease"></div>
-        </div>
+      <div style="padding:0 1.25rem 1rem;font-size:.72rem;color:var(--ink-soft)">
+        ${activeRound.name} · Ksh ${amtPerMember.toLocaleString()} per member · <a onclick="showPage('mgr')" style="color:var(--teal);cursor:pointer">View →</a>
       </div>` : `<div style="padding:0 1.25rem 1rem;font-size:.75rem;color:var(--ink-faint)">No active cycle — <a onclick="showPage('mgr')" style="color:var(--teal);cursor:pointer">start one →</a></div>`}`;
     container.appendChild(card);
   }
@@ -294,9 +301,17 @@ async function loadDashboardModuleCards(orgId) {
   // ── Table Banking Card ──
   if (pools.length > 0) {
     const active = pools.filter(p => p.status === 'active');
-    const totalPool = pools.reduce((s,p) => s + Number(p.total_pool||0), 0);
-    const totalLoans = pools.reduce((s,p) => s + Number(p.total_loans_outstanding||0), 0);
-    const totalInterest = pools.reduce((s,p) => s + Number(p.total_interest_earned||0), 0);
+    const poolIds = pools.map(p => p.id);
+
+    // Compute live stats from related tables
+    const [contribRes, loanRes] = await Promise.all([
+      sb.from('table_banking_contributions').select('amount').in('pool_id', poolIds),
+      sb.from('table_banking_loans').select('principal,total_repaid,status').in('pool_id', poolIds)
+    ]);
+
+    const totalContribs = (contribRes.data||[]).reduce((s,r) => s + Number(r.amount||0), 0);
+    const activeLoans = (loanRes.data||[]).filter(l => l.status === 'active');
+    const totalLoansOut = activeLoans.reduce((s,l) => s + (Number(l.principal||0) - Number(l.total_repaid||0)), 0);
 
     const card = document.createElement('div');
     card.className = 'card';
@@ -316,26 +331,25 @@ async function loadDashboardModuleCards(orgId) {
       </div>
       <div style="padding:.75rem 1.25rem 1rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:.65rem">
         <div style="background:var(--surface);border-radius:6px;padding:.65rem .75rem">
-          <div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Pool</div>
-          <div style="font-size:1rem;font-weight:700;color:var(--teal)">Ksh ${(totalPool/1000).toFixed(0)}K</div>
+          <div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Contributions</div>
+          <div style="font-size:1rem;font-weight:700;color:var(--teal)">Ksh ${(totalContribs/1000).toFixed(0)}K</div>
         </div>
         <div style="background:var(--surface);border-radius:6px;padding:.65rem .75rem">
           <div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Loans Out</div>
-          <div style="font-size:1rem;font-weight:700;color:var(--maroon)">Ksh ${(totalLoans/1000).toFixed(0)}K</div>
+          <div style="font-size:1rem;font-weight:700;color:var(--maroon)">Ksh ${(totalLoansOut/1000).toFixed(0)}K</div>
         </div>
         <div style="background:var(--surface);border-radius:6px;padding:.65rem .75rem">
-          <div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Interest</div>
-          <div style="font-size:1rem;font-weight:700;color:var(--ink)">Ksh ${(totalInterest/1000).toFixed(0)}K</div>
+          <div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Active Loans</div>
+          <div style="font-size:1rem;font-weight:700;color:var(--ink)">${activeLoans.length}</div>
         </div>
       </div>
-      ${totalLoans > 0 ? `
+      ${totalLoansOut > 0 && totalContribs > 0 ? `
       <div style="padding:0 1.25rem 1rem">
         <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--ink-faint);margin-bottom:.3rem">
-          <span>Loans outstanding</span>
-          <span>${totalPool>0?Math.round((totalLoans/totalPool)*100):0}% of pool</span>
+          <span>Loans vs contributions</span><span>${Math.round((totalLoansOut/totalContribs)*100)}%</span>
         </div>
         <div style="height:5px;background:var(--border);border-radius:3px">
-          <div style="height:100%;width:${totalPool>0?Math.min(100,Math.round((totalLoans/totalPool)*100)):0}%;background:var(--maroon);border-radius:3px"></div>
+          <div style="height:100%;width:${Math.min(100,Math.round((totalLoansOut/totalContribs)*100))}%;background:var(--maroon);border-radius:3px"></div>
         </div>
       </div>` : ''}`;
     container.appendChild(card);
@@ -360,18 +374,9 @@ async function loadDashboardModuleCards(orgId) {
         </div>
         <span class="badge badge-warn" style="font-size:.65rem">ACTION NEEDED</span>
       </div>
-      <div style="padding:.75rem 1.25rem 1rem;display:grid;grid-template-columns:1fr 1fr;gap:.65rem">
-        <div style="background:var(--maroon-pale);border-radius:6px;padding:.65rem .85rem">
-          <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--maroon);margin-bottom:.2rem">Total Outstanding</div>
-          <div style="font-size:1.15rem;font-weight:700;color:var(--maroon)">Ksh ${totalOwed.toLocaleString()}</div>
-        </div>
-        <div style="background:var(--surface);border-radius:6px;padding:.65rem .85rem">
-          <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Pending Count</div>
-          <div style="font-size:1.15rem;font-weight:700;color:var(--ink)">${pending.length}</div>
-        </div>
-      </div>
-      <div style="padding:0 1.25rem 1rem;font-size:.75rem;color:var(--ink-faint)">
-        Click to view and resolve in Finance → Fines
+      <div style="padding:.75rem 1.25rem 1rem">
+        <div style="font-size:1.4rem;font-weight:700;color:var(--maroon)">Ksh ${totalOwed.toLocaleString()}</div>
+        <div style="font-size:.75rem;color:var(--ink-faint);margin-top:.2rem">outstanding across ${pending.length} fine${pending.length!==1?'s':''}</div>
       </div>`;
     container.appendChild(card);
   }
