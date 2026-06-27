@@ -2003,67 +2003,141 @@ async function loadTBOverview(poolId) {
   if (!pool) return;
 
   const [contribRes, loanRes] = await Promise.all([
-    sb.from('table_banking_contributions').select('*,members(full_name)').eq('pool_id', poolId).order('payment_date',{ascending:false}),
-    sb.from('table_banking_loans').select('*,members(full_name)').eq('pool_id', poolId).order('created_at',{ascending:false})
+    sb.from('table_banking_contributions').select('*,members(full_name,member_number)').eq('pool_id', poolId).order('payment_date',{ascending:false}),
+    sb.from('table_banking_loans').select('*,members(full_name,member_number)').eq('pool_id', poolId).order('created_at',{ascending:false})
   ]);
 
   const contribs = contribRes.data || [];
   const loans = loanRes.data || [];
-  const totalIn = contribs.reduce((s,c)=>s+Number(c.amount||0),0);
-  const activeLoans = loans.filter(l=>l.status==='active');
-  const totalLoaned = activeLoans.reduce((s,l)=>s+Number(l.principal||0),0);
-  const poolBal = totalIn - totalLoaned;
+  const activeLoans = loans.filter(l => l.status === 'active');
+  const totalIn = contribs.reduce((s,c) => s + Number(c.amount||0), 0);
+  const totalLoaned = loans.reduce((s,l) => s + Number(l.principal||0), 0);
+  const totalRepaid = loans.reduce((s,l) => s + Number(l.total_repaid||0), 0);
+  const poolBal = totalIn - totalLoaned + totalRepaid;
+
+  // Get pool members with their contribution totals
+  const poolMemberIds = pool.pool_members || [];
+  const poolMemberDetails = allMembers.filter(m => poolMemberIds.includes(m.id));
+  const contribByMember = {};
+  contribs.forEach(c => {
+    if (!contribByMember[c.member_id]) contribByMember[c.member_id] = 0;
+    contribByMember[c.member_id] += Number(c.amount||0);
+  });
+  const loansByMember = {};
+  activeLoans.forEach(l => {
+    if (!loansByMember[l.member_id]) loansByMember[l.member_id] = [];
+    loansByMember[l.member_id].push(l);
+  });
+
+  // Interest earned from repayments
+  let interestEarned = 0;
+  if (loans.length) {
+    try {
+      const { data: reps } = await sb.from('table_banking_repayments')
+        .select('interest_paid').in('loan_id', loans.map(l => l.id));
+      interestEarned = (reps||[]).reduce((s,r) => s + Number(r.interest_paid||0), 0);
+    } catch(e) {}
+  }
 
   contentEl.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;margin-bottom:1.25rem">
-      <div style="background:var(--surface);border:1px solid var(--border);padding:.85rem;text-align:center">
-        <div style="font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:var(--teal)">Ksh ${totalIn.toLocaleString()}</div>
-        <div style="font-size:.62rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem">Total Contributions</div>
-      </div>
-      <div style="background:var(--surface);border:1px solid var(--border);padding:.85rem;text-align:center">
-        <div style="font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:var(--maroon)">Ksh ${totalLoaned.toLocaleString()}</div>
-        <div style="font-size:.62rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem">Total Loaned Out</div>
-      </div>
-      <div style="background:var(--surface);border:1px solid var(--border);padding:.85rem;text-align:center">
-        <div style="font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:var(--gold)">Ksh ${poolBal.toLocaleString()}</div>
-        <div style="font-size:.62rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem">Available in Pool</div>
+    <!-- Pool header -->
+    <div class="card" style="margin-bottom:1rem;border-left:3px solid var(--teal)">
+      <div class="card-header" style="padding:.85rem 1.25rem">
+        <div>
+          <div class="card-title">${h(pool.name)}</div>
+          <div class="card-sub">${pool.interest_rate||10}% interest/month · Started ${pool.start_date||'—'} · ${poolMemberIds.length} members${pool.max_loan_per_member ? ' · Max loan: Ksh '+Number(pool.max_loan_per_member).toLocaleString() : ''}</div>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <span class="badge ${pool.status==='active'?'badge-green':'badge-grey'}" style="font-size:.62rem">${(pool.status||'active').toUpperCase()}</span>
+          ${pool.status === 'active' ? `<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="closeTBPool('${pool.id}','${h(pool.name)}')">Close Pool</button>` : ''}
+        </div>
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
-      <!-- Contributions -->
+    <!-- Stats mini row -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1.25rem">
+      <div style="background:var(--surface);border:1px solid var(--border);padding:.75rem;text-align:center;border-radius:4px">
+        <div style="font-size:1.1rem;font-weight:700;color:var(--teal)">Ksh ${totalIn.toLocaleString()}</div>
+        <div style="font-size:.6rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-top:.15rem">Total In</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);padding:.75rem;text-align:center;border-radius:4px">
+        <div style="font-size:1.1rem;font-weight:700;color:var(--maroon)">Ksh ${(totalLoaned-totalRepaid).toLocaleString()}</div>
+        <div style="font-size:.6rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-top:.15rem">Outstanding</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);padding:.75rem;text-align:center;border-radius:4px">
+        <div style="font-size:1.1rem;font-weight:700;color:var(--gold)">Ksh ${poolBal.toLocaleString()}</div>
+        <div style="font-size:.6rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-top:.15rem">Available</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);padding:.75rem;text-align:center;border-radius:4px">
+        <div style="font-size:1.1rem;font-weight:700;color:var(--ink)">Ksh ${interestEarned.toLocaleString()}</div>
+        <div style="font-size:.6rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-top:.15rem">Interest Earned</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+      <!-- Member contribution status -->
       <div class="card">
-        <div class="card-header"><div class="card-title">Recent Contributions</div></div>
-        <div class="table-wrap">
-          <table><thead><tr><th>Member</th><th>Date</th><th>Amount</th></tr></thead>
-          <tbody>${contribs.slice(0,8).map(c=>`<tr>
-            <td>${c.members?.full_name||'—'}</td>
-            <td>${c.payment_date||'—'}</td>
-            <td><strong>Ksh ${Number(c.amount).toLocaleString()}</strong></td>
-          </tr>`).join('') || '<tr><td colspan="3" style="text-align:center;padding:1.5rem;color:var(--ink-faint)">No contributions yet</td></tr>'}</tbody></table>
+        <div class="card-header"><div class="card-title">Member Contributions</div><div class="card-sub">${poolMemberDetails.length} in this pool</div></div>
+        <div style="padding:.5rem 1rem 1rem">
+          ${poolMemberDetails.length ? poolMemberDetails.map(m => {
+            const total = contribByMember[m.id] || 0;
+            const hasLoan = loansByMember[m.id]?.length > 0;
+            const loanOutstanding = (loansByMember[m.id]||[]).reduce((s,l) => s+(Number(l.principal||0)-Number(l.total_repaid||0)),0);
+            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:.45rem 0;border-bottom:.5px solid var(--border)">
+              <div>
+                <div style="font-size:.82rem;font-weight:600">${h(m.full_name)}</div>
+                ${hasLoan ? `<div style="font-size:.68rem;color:var(--maroon)">Loan: Ksh ${loanOutstanding.toLocaleString()} outstanding</div>` : ''}
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:.82rem;font-weight:700;color:var(--teal)">Ksh ${total.toLocaleString()}</div>
+                <div style="font-size:.65rem;color:var(--ink-faint)">contributed</div>
+              </div>
+            </div>`;
+          }).join('') : '<div style="padding:1rem;text-align:center;color:var(--ink-faint);font-size:.8rem">No members assigned to this pool</div>'}
         </div>
       </div>
+
       <!-- Active Loans -->
       <div>
-        <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.65rem">Active Loans</div>
+        <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.65rem">Active Loans (${activeLoans.length})</div>
         ${activeLoans.length ? activeLoans.map(l => {
           const outstanding = Number(l.principal||0) - Number(l.total_repaid||0);
           const pct = Math.round((Number(l.total_repaid||0)/Number(l.principal||1))*100);
           const overdue = l.due_date && new Date(l.due_date) < new Date();
           return `<div class="loan-card ${overdue?'overdue':''}">
             <div style="display:flex;justify-content:space-between;margin-bottom:.3rem">
-              <strong style="font-size:.85rem">${l.members?.full_name||'—'}</strong>
+              <strong style="font-size:.85rem">${h(l.members?.full_name||'—')}</strong>
               <span class="badge ${overdue?'badge-red':'badge-green'}" style="font-size:.6rem">${overdue?'Overdue':'Active'}</span>
             </div>
-            <div style="font-size:.75rem;color:var(--ink-faint)">Principal: Ksh ${Number(l.principal).toLocaleString()} · ${l.interest_rate}%/mo · Due: ${l.due_date||'—'}</div>
+            <div style="font-size:.75rem;color:var(--ink-faint)">Ksh ${Number(l.principal).toLocaleString()} · ${l.interest_rate}%/mo · Due: ${l.due_date||'—'}</div>
             <div style="font-size:.82rem;color:var(--maroon);font-weight:600;margin-top:.2rem">Outstanding: Ksh ${outstanding.toLocaleString()}</div>
             <div class="loan-progress"><div class="loan-progress-fill" style="width:${pct}%"></div></div>
-            <div style="font-size:.62rem;color:var(--ink-faint);margin-top:.2rem">${pct}% repaid</div>
+            <div style="display:flex;justify-content:space-between;font-size:.62rem;color:var(--ink-faint);margin-top:.2rem">
+              <span>${pct}% repaid</span>
+              <button class="btn btn-ghost btn-sm" style="font-size:.62rem;padding:.1rem .4rem" onclick="markLoanRepaid('${l.id}')">Mark Repaid</button>
+            </div>
           </div>`;
-        }).join('') : '<div style="color:var(--ink-faint);font-size:.82rem;padding:.5rem">No active loans</div>'}
+        }).join('') : '<div style="color:var(--ink-faint);font-size:.82rem;padding:.5rem">No active loans in this pool</div>'}
+      </div>
+    </div>
+
+    <!-- Recent Contributions Table -->
+    <div class="card">
+      <div class="card-header"><div class="card-title">Contribution History</div><div class="card-sub">${contribs.length} records</div></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Member</th><th>Amount</th><th>M-Pesa Ref</th></tr></thead>
+          <tbody>${contribs.length ? contribs.slice(0,15).map(c => `<tr>
+            <td style="font-size:.75rem;color:var(--ink-faint)">${c.payment_date||'—'}</td>
+            <td><strong>${h(c.members?.full_name||'—')}</strong></td>
+            <td><strong style="color:var(--teal)">Ksh ${Number(c.amount).toLocaleString()}</strong></td>
+            <td style="font-size:.72rem;color:var(--ink-faint)">${h(c.mpesa_ref||'—')}</td>
+          </tr>`).join('') : '<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--ink-faint)">No contributions recorded yet</td></tr>'}</tbody>
+        </table>
       </div>
     </div>`;
 }
+
 
 async function loadTBLoans() {
   const listEl = document.getElementById('tb-loans-list');
@@ -2134,19 +2208,28 @@ async function saveTBContribution() {
   const amount = Number(document.getElementById('tb-rec-amount').value);
   const date = document.getElementById('tb-rec-date').value;
   const ref = document.getElementById('tb-rec-ref').value.trim();
-  if (!poolId || !memberId) { toast('Please select pool and member'); return; }
+  if (!poolId) { toast('Please select a pool'); return; }
+  if (!memberId) { toast('Please select a member'); return; }
   if (!amount || amount <= 0) { toast('Please enter an amount'); return; }
+
+  const saveBtn = [...document.querySelectorAll('#tb-tab-record .btn-primary')].pop();
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
 
   const { error } = await sb.from('table_banking_contributions').insert({
     pool_id: poolId, org_id: currentOrg.id, member_id: memberId,
-    amount, payment_date: date, mpesa_ref: ref || null,
-    recorded_by: currentUser.id
+    amount, payment_date: date || new Date().toISOString().split('T')[0],
+    mpesa_ref: ref || null, recorded_by: currentUser.id
   });
+
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Contribution →'; }
   if (error) { toast('Error: ' + error.message); return; }
-  toast('✓ Contribution recorded');
+  toast('✓ Contribution recorded — Ksh ' + amount.toLocaleString());
   document.getElementById('tb-rec-amount').value = '';
   document.getElementById('tb-rec-ref').value = '';
   await loadTableBanking();
+  // Refresh overview if this pool is currently selected
+  const poolSel = document.getElementById('tb-pool-select');
+  if (poolSel?.value === poolId) await loadTBOverview(poolId);
 }
 
 function calcLoanRepayment() {
@@ -2247,6 +2330,30 @@ async function markLoanRepaid(loanId) {
   await sb.from('table_banking_loans').update({ status: 'repaid' }).eq('id', loanId);
   toast('✓ Loan marked as repaid');
   await loadTBLoans();
+  await loadTableBanking();
+}
+
+async function closeTBPool(poolId, poolName) {
+  if (!confirm(`Close "${poolName}"?\n\nThis will mark the pool as closed. Make sure all loans are repaid before closing. The pool data is preserved for records.`)) return;
+
+  // Check for active loans
+  const { data: activeLoans } = await sb.from('table_banking_loans')
+    .select('id,members(full_name)')
+    .eq('pool_id', poolId)
+    .eq('status', 'active');
+
+  if (activeLoans?.length) {
+    const names = activeLoans.map(l => l.members?.full_name || 'Unknown').join(', ');
+    if (!confirm(`⚠ There are ${activeLoans.length} active loan(s) outstanding:\n${names}\n\nClose anyway?`)) return;
+  }
+
+  const { error } = await sb.from('table_banking_pools')
+    .update({ status: 'closed' })
+    .eq('id', poolId);
+
+  if (error) { toast('Error: ' + error.message); return; }
+  await logActivity('TB POOL CLOSED', `Table banking pool "${poolName}" closed`);
+  toast(`✓ Pool "${poolName}" closed`);
   await loadTableBanking();
 }
 
