@@ -1729,6 +1729,13 @@ function showPage(id) {
     document.body.classList.remove('member-mob-active');
     document.body.classList.remove('admin-mob-active');
   }
+  // Remove content top padding for pages that start with a full-bleed hero
+  const heroPages = ['table_banking','mgr','finance','welfare'];
+  if (heroPages.includes(id)) {
+    document.body.classList.add('hero-page-active');
+  } else {
+    document.body.classList.remove('hero-page-active');
+  }
   const gatedPages={welfare:'welfare',projects:'projects',table_banking:'table_banking'};
   if(gatedPages[id]&&typeof planHas==='function'&&!planHas(gatedPages[id])){showUpgradePrompt(id);return;}
   currentPage = id;
