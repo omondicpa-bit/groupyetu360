@@ -76,6 +76,21 @@ async function init() {
 }
 
 async function loadProfileAndOrg() {
+  // Guard: prevent concurrent execution — onAuthStateChange can fire INITIAL_SESSION
+  // and SIGNED_IN almost simultaneously before currentProfile is set
+  if (window._loadProfileInProgress) {
+    console.log('[GY360] loadProfileAndOrg already in progress — skipping duplicate call');
+    return;
+  }
+  window._loadProfileInProgress = true;
+  try {
+    await _loadProfileAndOrgInner();
+  } finally {
+    window._loadProfileInProgress = false;
+  }
+}
+
+async function _loadProfileAndOrgInner() {
   // If pending org from org code login, use that profile
   let profile;
   try {
@@ -995,6 +1010,7 @@ async function selectOrg(orgId) {
   buildOrgSwitcherDropdown();
   // Reload financial profile for new org
   try { await loadOrgFinancialProfile(); } catch(e) {}
+  window._finProfileLoadedForOrg = currentOrg?.id; // signal showApp not to reload it
 
   // Check subscription expiry and enforce plan
   await loadPlatformSettings();
@@ -1336,7 +1352,12 @@ function showApp() {
   const today = new Date().toISOString().split('T')[0];
   document.querySelectorAll('input[type="date"]').forEach(el => { if(!el.value) el.value = today; });
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    try { loadOrgFinancialProfile(); } catch(e) { console.error('[GY360] FinProfile error:', e); }
+    // loadOrgFinancialProfile is called by selectOrg before showApp on multi-org path.
+    // On single-org / invite paths (no selectOrg), call it here instead.
+    if (!window._finProfileLoadedForOrg || window._finProfileLoadedForOrg !== currentOrg?.id) {
+      try { loadOrgFinancialProfile(); } catch(e) { console.error('[GY360] FinProfile error:', e); }
+    }
+    window._finProfileLoadedForOrg = null; // reset for next org switch
     const _isMember = (currentOrgRole || currentProfile?.role || 'member') === 'member';
     if (_isMember) {
       showPage('my_profile');
