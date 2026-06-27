@@ -136,6 +136,8 @@ async function loadMyProfile() {
     loadMemberPendingFines(myRecord.id);
     // Load MGR obligations notification on profile dashboard
     loadMGRNoticeCard(myRecord.id);
+    // Load TB obligations notification on profile dashboard
+    loadTBNoticeCard(myRecord.id);
     // Load contribution summary
     const summaryEl = document.getElementById('mp-contrib-summary');
     let totalContributed = 0;
@@ -628,6 +630,9 @@ async function openMemberPaymentModal() {
 
   // Load MGR obligations
   if (memberId) await loadMemberMGRObligations(memberId, 'mp-option-mgr', 'mp-mgr-list');
+
+  // Load Table Banking obligations
+  if (memberId) await loadMemberTBObligations(memberId);
 }
 
 // ── MGR OBLIGATIONS — shown on My Profile dashboard and in Make Payment modal ──
@@ -807,6 +812,133 @@ async function loadMemberMGRObligations(memberId, sectionId, listId) {
   } catch(e) {
     console.log('[GY360] MGR obligations load skipped:', e.message);
     if (section) section.style.display = 'none';
+  }
+}
+
+// ── TABLE BANKING OBLIGATIONS — shown on My Profile and in Make Payment modal ──
+async function loadTBNoticeCard(memberId) {
+  const noticeEl = document.getElementById('mp-tb-notice');
+  if (!noticeEl || !memberId || !currentOrg?.id) return;
+  noticeEl.style.display = 'none';
+  try {
+    // Get active TB pools this member belongs to
+    const { data: pools } = await sb.from('table_banking_pools')
+      .select('id,name,status,pool_members,interest_rate')
+      .eq('org_id', currentOrg.id)
+      .eq('status', 'active');
+    if (!pools?.length) return;
+
+    const myPools = pools.filter(p => Array.isArray(p.pool_members) && p.pool_members.includes(memberId));
+    if (!myPools.length) return;
+
+    // Check for active loans belonging to this member
+    const poolIds = myPools.map(p => p.id);
+    const { data: myLoans } = await sb.from('table_banking_loans')
+      .select('id,principal,total_repaid,due_date,pool_id,status,table_banking_pools(name)')
+      .in('pool_id', poolIds)
+      .eq('member_id', memberId)
+      .eq('status', 'active');
+
+    if (!myLoans?.length && myPools.length === 0) return;
+
+    noticeEl.style.display = 'block';
+    const parts = [];
+
+    // Active loans notice
+    if (myLoans?.length) {
+      const overdue = myLoans.filter(l => l.due_date && new Date(l.due_date) < new Date());
+      const totalOutstanding = myLoans.reduce((s,l) => s + (Number(l.principal||0) - Number(l.total_repaid||0)), 0);
+      const borderCol = overdue.length ? 'var(--danger)' : 'var(--gold)';
+      const icon = overdue.length ? '⚠' : '💰';
+      const title = overdue.length
+        ? `${overdue.length} overdue loan${overdue.length>1?'s':''}`
+        : `${myLoans.length} active loan${myLoans.length>1?'s':''}`;
+      parts.push(`<div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.7rem 1rem;background:var(--surface);border:1px solid ${borderCol};border-left:3px solid ${borderCol};border-radius:8px">
+        <div style="display:flex;align-items:center;gap:.65rem">
+          <span style="font-size:1.3rem">${icon}</span>
+          <div>
+            <div style="font-size:.85rem;font-weight:700;color:var(--ink)">Table Banking — ${title}</div>
+            <div style="font-size:.72rem;color:var(--ink-faint)">${myLoans.map(l=>h(l.table_banking_pools?.name||'Pool')).join(' · ')}</div>
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:.9rem;font-weight:700;color:var(--maroon)">Ksh ${totalOutstanding.toLocaleString()}</div>
+          <div style="font-size:.65rem;color:var(--ink-faint)">outstanding</div>
+        </div>
+      </div>`);
+    }
+
+    // Pool membership notice (no loan)
+    const poolsWithoutLoan = myPools.filter(p => !myLoans?.find(l => l.pool_id === p.id));
+    if (poolsWithoutLoan.length) {
+      parts.push(`<div style="display:flex;align-items:center;gap:.75rem;padding:.6rem 1rem;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;margin-top:.4rem">
+        <span style="font-size:1.1rem">🏦</span>
+        <div style="font-size:.78rem;color:var(--ink-soft)">Member of ${poolsWithoutLoan.map(p=>h(p.name)).join(', ')} · ${poolsWithoutLoan[0]?.interest_rate||10}% interest on loans</div>
+      </div>`);
+    }
+
+    noticeEl.innerHTML = parts.join('');
+  } catch(e) { console.log('[GY360] TB notice skipped:', e.message); }
+}
+
+async function loadMemberTBObligations(memberId) {
+  const section = document.getElementById('mp-option-tb');
+  const list = document.getElementById('mp-tb-list');
+  if (!section || !list || !memberId || !currentOrg?.id) return;
+  section.style.display = 'none';
+  try {
+    const { data: pools } = await sb.from('table_banking_pools')
+      .select('id,name,status,pool_members,interest_rate,max_loan_per_member')
+      .eq('org_id', currentOrg.id)
+      .eq('status', 'active');
+    if (!pools?.length) return;
+
+    const myPools = pools.filter(p => Array.isArray(p.pool_members) && p.pool_members.includes(memberId));
+    if (!myPools.length) return;
+
+    const poolIds = myPools.map(p => p.id);
+    const { data: myLoans } = await sb.from('table_banking_loans')
+      .select('id,principal,total_repaid,due_date,interest_rate,table_banking_pools(name)')
+      .in('pool_id', poolIds)
+      .eq('member_id', memberId)
+      .eq('status', 'active');
+
+    section.style.display = 'block';
+    list.innerHTML = myPools.map(pool => {
+      const loan = myLoans?.find(l => l.table_banking_pools?.name === pool.name || poolIds.includes(pool.id));
+      const outstanding = loan ? Number(loan.principal||0) - Number(loan.total_repaid||0) : 0;
+      const overdue = loan?.due_date && new Date(loan.due_date) < new Date();
+      const maxLoan = pool.max_loan_per_member ? `Max loan: Ksh ${Number(pool.max_loan_per_member).toLocaleString()}` : 'No loan limit';
+
+      if (loan) {
+        const borderCol = overdue ? 'var(--danger)' : 'var(--gold)';
+        return `<div style="display:flex;align-items:center;gap:.75rem;padding:.65rem .85rem;background:var(--surface);border:1px solid ${borderCol};border-left:3px solid ${borderCol};border-radius:6px">
+          <div style="font-size:1.3rem">${overdue ? '⚠' : '💰'}</div>
+          <div style="flex:1">
+            <div style="font-size:.85rem;font-weight:700;color:var(--ink)">${h(pool.name)}</div>
+            <div style="font-size:.75rem;color:var(--ink-soft)">Active loan · ${loan.interest_rate||10}% interest/month · Due: ${loan.due_date||'—'}</div>
+            ${overdue ? `<div style="font-size:.7rem;font-weight:600;color:var(--danger)">⚠ Overdue</div>` : ''}
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:.85rem;font-weight:700;color:var(--maroon)">Ksh ${outstanding.toLocaleString()}</div>
+            <div style="font-size:.65rem;color:var(--ink-faint)">outstanding</div>
+          </div>
+        </div>`;
+      }
+
+      // Member with no loan — show pool info
+      return `<div style="display:flex;align-items:center;gap:.75rem;padding:.6rem .85rem;background:var(--surface-2);border:1px solid var(--border);border-radius:6px">
+        <div style="font-size:1.2rem">🏦</div>
+        <div style="flex:1">
+          <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${h(pool.name)}</div>
+          <div style="font-size:.72rem;color:var(--ink-faint)">${maxLoan} · ${pool.interest_rate||10}% interest/month</div>
+        </div>
+        <span class="badge badge-green" style="font-size:.62rem;flex-shrink:0">No active loan</span>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    if (section) section.style.display = 'none';
+    console.log('[GY360] TB obligations skipped:', e.message);
   }
 }
 

@@ -1274,7 +1274,7 @@ body.member-mob-active #support-fab{display:none !important}
 
 /* ══ ROTATING SAVINGS (MERRY-GO-ROUND) ══ */
 @keyframes mgrIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.mgr-hero{background:linear-gradient(135deg,#1a1a1a 0%,#2d2d2d 40%,#0d3d2e 100%);padding:1.25rem 1.5rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+.mgr-hero{background:linear-gradient(135deg,#1a1a1a 0%,#2d2d2d 40%,#0d3d2e 100%);padding:1.25rem 1.5rem;margin:-1.75rem -2rem 1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
 .mgr-hero-title{font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:#fff}
 .mgr-hero-sub{font-size:.72rem;color:rgba(255,255,255,.5);margin-top:.15rem}
 .mgr-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1.25rem}
@@ -1520,7 +1520,7 @@ body.member-mob-active #support-fab{display:none !important}
 /* ════════════════════════════════════════════════════
    TABLE BANKING
 ════════════════════════════════════════════════════ */
-.tb-hero{background:linear-gradient(135deg,#1a0a00 0%,#3d2000 50%,#0d3d2e 100%);padding:1.25rem 1.5rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+.tb-hero{background:linear-gradient(135deg,#1a0a00 0%,#3d2000 50%,#0d3d2e 100%);padding:1.25rem 1.5rem;margin:-1.75rem -2rem 1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
 .tb-hero-title{font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:#fff}
 .tb-hero-sub{font-size:.72rem;color:rgba(255,255,255,.5);margin-top:.15rem}
 .tb-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1.25rem}
