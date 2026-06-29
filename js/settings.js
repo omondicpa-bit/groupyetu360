@@ -24,9 +24,6 @@ window.activateFreeTrialFromCart = function() {
 window.submitCartPayment = function() {
   submitCartPayment_impl();
 };
-window.submitCartPaystack = function() {
-  submitCartPaystack();
-};
 window.clearBillingCart = function() {
   if (typeof _billingCart !== 'undefined') {
     _billingCart = { plan: null, planAmount: 0, sms: 0, smsAmount: 0 };
@@ -1786,6 +1783,32 @@ function updatePromoToggleUI() {
   const on = checkbox.checked;
   ui.style.background  = on ? '#2a9d8f' : '#ccc';
   knob.style.transform = on ? 'translateX(20px)' : 'translateX(0)';
+  // Update accordion badge
+  const badge = document.getElementById('sp-promo-badge');
+  if (badge) {
+    badge.textContent = on ? 'Promo ON' : 'Promo OFF';
+    badge.style.background = on ? '#e6f4ef' : '#f5f5f5';
+    badge.style.color = on ? 'var(--teal)' : '#999';
+  }
+}
+
+// ── ACCORDION TOGGLE ──
+function toggleAccordion(header) {
+  const body = header.nextElementSibling;
+  const chevron = header.querySelector('.ps-acc-chevron');
+  const isOpen = body.classList.contains('open');
+  // Close all others in same container
+  const allBodies = header.closest('.page').querySelectorAll('.ps-accordion-body');
+  const allHeaders = header.closest('.page').querySelectorAll('.ps-accordion-header');
+  const allChevrons = header.closest('.page').querySelectorAll('.ps-acc-chevron');
+  allBodies.forEach(b => b.classList.remove('open'));
+  allHeaders.forEach(h => h.classList.remove('open'));
+  allChevrons.forEach(c => c.classList.remove('open'));
+  if (!isOpen) {
+    body.classList.add('open');
+    header.classList.add('open');
+    if (chevron) chevron.classList.add('open');
+  }
 }
 
 // loadSASupport() and saveSupportSettings() are defined in utils.js (load order: utils first).
@@ -2011,8 +2034,6 @@ function refreshCartUI() {
     paySection.style.display = (!_billingCart.planIsFree || hasSMS) ? '' : 'none';
     if (amtEl) amtEl.value = total;
   }
-  // Sync Paystack section amounts and visibility
-  if (typeof syncPaystackCartUI === 'function') syncPaystackCartUI();
 }
 
 async function activateFreeTrialFromCart_impl() {
@@ -2041,128 +2062,6 @@ async function activateFreeTrialFromCart_impl() {
     clearBillingCart();
     await loadBilling();
   } catch(e) {
-    if (statusEl) { statusEl.textContent = '✗ ' + e.message; statusEl.style.color = 'var(--danger)'; }
-  }
-}
-
-// ── REFRESH CART UI — shows/hides Paystack vs manual sections ──
-// Called after original refreshCartUI (which manages the cart card visibility)
-var _origRefreshCartUI = typeof refreshCartUI === 'function' ? refreshCartUI : null;
-
-function syncPaystackCartUI() {
-  const total = (_billingCart.planAmount || 0) + (_billingCart.smsAmount || 0);
-  const paystackEnabled = typeof getPaystackEnabled === 'function' && getPaystackEnabled();
-
-  const psSection  = document.getElementById('cart-paystack-section');
-  const divider    = document.getElementById('cart-payment-divider');
-  const amtEl      = document.getElementById('cart-paystack-amount');
-  const btnAmt     = document.getElementById('cart-paystack-btn-amount');
-  const psPhoneEl  = document.getElementById('cart-paystack-phone');
-
-  if (psSection) psSection.style.display = paystackEnabled && total > 0 ? '' : 'none';
-  if (divider)   divider.style.display   = paystackEnabled && total > 0 ? '' : 'none';
-  if (amtEl)     amtEl.value = total.toLocaleString();
-  if (btnAmt)    btnAmt.textContent = total.toLocaleString();
-
-  // Pre-fill phone from org paybill account or profile if available
-  if (psPhoneEl && !psPhoneEl.value && currentProfile?.phone) {
-    psPhoneEl.value = currentProfile.phone;
-  }
-
-  // Sync amount to manual section too
-  const manualAmt = document.getElementById('cart-pay-amount');
-  if (manualAmt) manualAmt.value = total.toLocaleString();
-}
-
-async function submitCartPaystack() {
-  const phone = document.getElementById('cart-paystack-phone')?.value?.trim();
-  const amount = (_billingCart.planAmount || 0) + (_billingCart.smsAmount || 0);
-  const statusEl = document.getElementById('cart-paystack-status');
-  const pendingEl = document.getElementById('cart-paystack-pending');
-  const btn = document.getElementById('cart-paystack-btn');
-
-  if (!phone) {
-    if (statusEl) { statusEl.textContent = '⚠ Enter your M-Pesa number'; statusEl.style.color = 'var(--warning)'; }
-    return;
-  }
-  if (amount <= 0) {
-    if (statusEl) { statusEl.textContent = '⚠ No items in cart'; statusEl.style.color = 'var(--warning)'; }
-    return;
-  }
-
-  // Build payment_type and notes
-  const items = [];
-  if (_billingCart.plan && !_billingCart.planIsFree) items.push(`subscription_${_billingCart.plan}`);
-  if (_billingCart.sms > 0) items.push(`sms_bundle_${_billingCart.sms}`);
-  const paymentType = items[0] || 'subscription';
-  const notes = items.join(' + ');
-
-  // Get member_id
-  let memberId = null;
-  try {
-    const { data: mem } = await sb.from('members').select('id').eq('org_id', currentOrg.id).eq('user_id', currentUser.id).maybeSingle();
-    memberId = mem?.id || null;
-  } catch(e) {}
-
-  if (btn) { btn.disabled = true; btn.textContent = 'Sending prompt…'; }
-  if (statusEl) { statusEl.textContent = 'Sending M-Pesa prompt…'; statusEl.style.color = 'var(--ink-faint)'; }
-  if (pendingEl) pendingEl.style.display = 'none';
-
-  try {
-    const { data: { session } } = await sb.auth.getSession();
-    const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/paystack-charge', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({
-        org_id: currentOrg.id,
-        amount,
-        phone,
-        email: currentUser.email,
-        payment_type: paymentType,
-        notes,
-        member_id: memberId
-      })
-    });
-    const result = await res.json();
-
-    if (!res.ok || result.error) throw new Error(result.error || 'Charge failed');
-
-    // Success — show pending state
-    if (statusEl) { statusEl.textContent = '✓ Prompt sent!'; statusEl.style.color = 'var(--success)'; }
-    if (pendingEl) pendingEl.style.display = '';
-    if (btn) { btn.disabled = false; btn.textContent = '⚡ Resend Prompt'; }
-
-    await logActivity('PAYSTACK CHARGE INITIATED', `Ksh ${amount.toLocaleString()} · phone ${phone} · ref ${result.reference} · ${notes}`);
-
-    // Poll for confirmation every 5s for up to 3 min
-    let polls = 0;
-    const maxPolls = 36;
-    const pollInterval = setInterval(async () => {
-      polls++;
-      if (polls > maxPolls) {
-        clearInterval(pollInterval);
-        if (statusEl) { statusEl.textContent = 'Timed out — check payment history or try again.'; statusEl.style.color = 'var(--warning)'; }
-        if (pendingEl) pendingEl.style.display = 'none';
-        return;
-      }
-      try {
-        const { data: pr } = await sb.from('payment_requests')
-          .select('status,paystack_status').eq('id', result.payment_request_id).maybeSingle();
-        if (pr?.status === 'approved') {
-          clearInterval(pollInterval);
-          if (pendingEl) pendingEl.style.display = 'none';
-          if (statusEl) { statusEl.textContent = '🎉 Payment confirmed! Your plan is now active.'; statusEl.style.color = 'var(--success)'; }
-          clearBillingCart();
-          setTimeout(() => { loadBilling(); }, 1500);
-        }
-      } catch(e) {}
-    }, 5000);
-
-  } catch(e) {
-    if (btn) { btn.disabled = false; btn.textContent = `⚡ Send M-Pesa Prompt → Pay Ksh ${amount.toLocaleString()}`; }
     if (statusEl) { statusEl.textContent = '✗ ' + e.message; statusEl.style.color = 'var(--danger)'; }
   }
 }

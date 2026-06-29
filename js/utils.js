@@ -384,6 +384,22 @@ async function loadSASupport() {
     const webhookUrl = document.getElementById('sp-paystack-webhook-url');
     if (webhookUrl) webhookUrl.textContent = 'https://eengldzvvgplgzvbutal.supabase.co/functions/v1/paystack-webhook';
   }
+  if (s.paystack_secret_key) {
+    const savedEl = document.getElementById('sp-paystack-secret-saved');
+    if (savedEl) savedEl.style.display = '';
+  }
+  // Accordion badges
+  const payBadge = document.getElementById('sp-paystack-badge');
+  if (payBadge) {
+    payBadge.textContent = s.paystack_enabled ? 'Live' : 'Disabled';
+    payBadge.style.background = s.paystack_enabled ? '#e8f4fd' : '#f5f5f5';
+    payBadge.style.color = s.paystack_enabled ? '#0d5c8a' : '#999';
+  }
+  const smsBadge = document.getElementById('sp-sms-active-badge');
+  if (smsBadge) {
+    const pNames = { leopard:'SMS Leopard', celcom:'Celcom Africa', at:"Africa's Talking" };
+    smsBadge.textContent = (pNames[s.sms_provider] || 'Celcom Africa') + ' Active';
+  }
 }
 
 async function saveSupportSettings() {
