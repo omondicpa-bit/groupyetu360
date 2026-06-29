@@ -639,7 +639,13 @@ async function loadPendingPayments() {
       .select('*,members(full_name,member_number,phone)')
       .eq('org_id', currentOrg.id)
       .order('requested_at', {ascending: false});
-    requests = data || [];
+    // SECURITY: subscription and SMS bundle payments are SA-only.
+    // Org admins must never see or approve their own subscription payments.
+    const SA_ONLY_TYPES = ['subscription', 'sms_bundle'];
+    requests = (data || []).filter(r => {
+      const t = (r.payment_type || '');
+      return !SA_ONLY_TYPES.some(prefix => t === prefix || t.startsWith(prefix + '_'));
+    });
   } catch(e) {
     listEl.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--ink-faint)">Payment requests table not found. Run the SQL migration first.</div>';
     return;
@@ -739,6 +745,14 @@ async function approvePaymentRequest(requestId) {
     .select('*,members(full_name,shares_balance,savings_balance,registration_paid)')
     .eq('id', requestId).maybeSingle();
   if (fetchErr || !req) { toast('Error fetching request'); return; }
+
+  // SECURITY: Subscription and SMS bundle payments must only be approved by SA via webhook.
+  // Org admins cannot approve their own subscription payments — hard block.
+  const _safeType = req.payment_type || '';
+  if (_safeType === 'subscription' || _safeType.startsWith('subscription_') || _safeType.startsWith('sms_bundle')) {
+    toast('⚠ Subscription and SMS bundle payments are processed automatically. Contact platform support if there is an issue.');
+    return;
+  }
 
   let allocations = [];
   try { allocations = JSON.parse(req.allocations || '[]'); } catch(e) {}

@@ -23,9 +23,13 @@ async function loadDashboard() {
       try {
         const [{ data: pendingMems }, { data: pendingPays }] = await Promise.all([
           sb.from('pending_members').select('id').eq('org_id', currentOrg.id).eq('status','pending'),
-          sb.from('payment_requests').select('id').eq('org_id', currentOrg.id).eq('status','pending')
+          sb.from('payment_requests').select('id,payment_type').eq('org_id', currentOrg.id).eq('status','pending')
         ]);
-        const total = (pendingMems?.length||0) + (pendingPays?.length||0);
+        const filteredPays = (pendingPays||[]).filter(r => {
+          const t = r.payment_type || '';
+          return t !== 'subscription' && !t.startsWith('subscription_') && !t.startsWith('sms_bundle');
+        });
+        const total = (pendingMems?.length||0) + filteredPays.length;
         const badge = document.getElementById('approvals-badge');
         if (badge) { badge.textContent = total; badge.style.display = total > 0 ? 'inline' : 'none'; }
       } catch(e) {}

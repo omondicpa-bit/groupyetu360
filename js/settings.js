@@ -1547,12 +1547,15 @@ async function loadApprovals() {
   const approved = (all||[]).filter(r => r.status === 'approved');
   const declined = (all||[]).filter(r => r.status === 'declined');
 
-  // Also count pending payments
+  // Count pending member payments only — subscription/SMS bundle payments are SA-only
   let pendingPayCount = 0;
   try {
     const { data: pendingPays } = await sb.from('payment_requests')
-      .select('id').eq('org_id', currentOrg.id).eq('status','pending');
-    pendingPayCount = pendingPays?.length || 0;
+      .select('id,payment_type').eq('org_id', currentOrg.id).eq('status','pending');
+    pendingPayCount = (pendingPays || []).filter(r => {
+      const t = r.payment_type || '';
+      return t !== 'subscription' && !t.startsWith('subscription_') && !t.startsWith('sms_bundle');
+    }).length;
   } catch(e) {}
 
   const totalPending = pending.length + pendingPayCount;
