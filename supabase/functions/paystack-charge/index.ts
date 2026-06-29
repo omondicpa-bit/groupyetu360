@@ -30,20 +30,18 @@ serve(async (req) => {
       .single();
 
     if (!ps?.paystack_enabled || !ps?.paystack_secret_key) {
-      return new Response(JSON.stringify({ error: 'Paystack not enabled. Check SA Platform Settings.' }), {
+      return new Response(JSON.stringify({ error: 'Paystack not enabled. Configure in SA Platform Settings.' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Normalise phone — Paystack Kenya M-Pesa wants 07XXXXXXXXX (10 digits local)
-    let phoneLocal = phone.toString().replace(/\D/g, '');
-    if (phoneLocal.startsWith('254')) phoneLocal = '0' + phoneLocal.slice(3);
-    if (phoneLocal.startsWith('0254')) phoneLocal = '0' + phoneLocal.slice(4);
-    if (!/^(07|01)\d{8}$/.test(phoneLocal)) {
-      return new Response(JSON.stringify({ error: `Phone must be 07XXXXXXXX or 01XXXXXXXX format. Got: ${phoneLocal}` }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
+    // Paystack Kenya M-Pesa: phone must be in format +2547XXXXXXXX (E.164 with +)
+    let phoneE164 = phone.toString().replace(/\D/g, '');
+    if (phoneE164.startsWith('0')) phoneE164 = '254' + phoneE164.slice(1);
+    if (!phoneE164.startsWith('254')) phoneE164 = '254' + phoneE164;
+    phoneE164 = '+' + phoneE164; // Paystack requires the + prefix
+
+    console.log('[GY360] Phone normalised to:', phoneE164);
 
     // Create pending payment_request
     const ref = 'GY-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7).toUpperCase();
@@ -62,13 +60,13 @@ serve(async (req) => {
 
     if (prErr) throw new Error('DB error: ' + prErr.message);
 
-    // Call Paystack Charge API
+    // Paystack Charge — mobile_money for KES
     const chargeBody = {
       email,
-      amount: Math.round(parseFloat(amount) * 100), // kobo
+      amount: Math.round(parseFloat(amount) * 100), // kobo/cents
       currency: 'KES',
       mobile_money: {
-        phone: phoneLocal,
+        phone: phoneE164,
         provider: 'mpesa',
       },
       reference: ref,
@@ -76,13 +74,13 @@ serve(async (req) => {
         payment_request_id: pr.id,
         org_id,
         custom_fields: [
-          { display_name: 'Org', variable_name: 'org_id', value: org_id },
-          { display_name: 'Type', variable_name: 'payment_type', value: payment_type || 'subscription' },
+          { display_name: 'Organisation', variable_name: 'org_id', value: org_id },
+          { display_name: 'Payment Type', variable_name: 'payment_type', value: payment_type || 'subscription' },
         ]
       }
     };
 
-    console.log('[GY360] Paystack charge body:', JSON.stringify(chargeBody));
+    console.log('[GY360] Paystack charge request:', JSON.stringify(chargeBody));
 
     const paystackRes = await fetch('https://api.paystack.co/charge', {
       method: 'POST',
@@ -94,22 +92,19 @@ serve(async (req) => {
     });
 
     const paystackData = await paystackRes.json();
-    console.log('[GY360] Paystack response:', JSON.stringify(paystackData));
+    console.log('[GY360] Paystack response status:', paystackRes.status);
+    console.log('[GY360] Paystack response body:', JSON.stringify(paystackData));
 
     if (!paystackData.status) {
-      // Clean up payment_request
       await supabase.from('payment_requests').delete().eq('id', pr.id);
-      // Return Paystack's exact error so we can debug
       return new Response(JSON.stringify({
-        error: paystackData.message || 'Paystack rejected the charge',
-        paystack_code: paystackData.code,
-        paystack_raw: paystackData
+        error: `Paystack: ${paystackData.message || 'Unknown error'}`,
+        debug: { code: paystackData.code, data: paystackData.data, phone_sent: phoneE164 }
       }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Update ref if Paystack assigned a different one
     const finalRef = paystackData.data?.reference || ref;
     if (finalRef !== ref) {
       await supabase.from('payment_requests').update({ paystack_ref: finalRef }).eq('id', pr.id);
@@ -126,7 +121,7 @@ serve(async (req) => {
     });
 
   } catch (err) {
-    console.error('[GY360] paystack-charge error:', err.message);
+    console.error('[GY360] paystack-charge fatal:', err.message);
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
