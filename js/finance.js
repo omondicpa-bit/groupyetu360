@@ -57,6 +57,16 @@ async function loadFinance() {
   if (wDot) wDot.classList.toggle('open', isOpen);
   // Load withdrawal requests panel
   loadWithdrawalRequests();
+  // Always re-fetch bank_balance from DB — never rely on stale in-memory value
+  try {
+    const { data: freshOrg } = await sb.from('organisations')
+      .select('bank_balance,bank_balance_updated,bank_balance_locked').eq('id', currentOrg.id).single();
+    if (freshOrg) {
+      currentOrg.bank_balance = freshOrg.bank_balance;
+      currentOrg.bank_balance_updated = freshOrg.bank_balance_updated;
+      currentOrg.bank_balance_locked = freshOrg.bank_balance_locked;
+    }
+  } catch(e) {}
   // Update income project dropdown
   const incProj = document.getElementById('inc-project');
   if (incProj) {
@@ -740,33 +750,35 @@ async function approvePaymentRequest(requestId) {
   const memberData = req.members;
   const memberUpdates = {};
 
-  for (const alloc of allocations) {
-    // Insert transaction
-    // Build transaction — only include type_id if it's a valid non-empty value
-    const txnData = {
-      org_id: currentOrg.id,
-      member_id: req.member_id,
-      amount: alloc.amount,
-      mpesa_ref: req.mpesa_ref || null,
-      transaction_date: req.payment_date || new Date().toISOString().split('T')[0],
-      notes: `Approved. Ref: ${req.mpesa_ref||'—'}. Type: ${alloc.typeName||'Payment'}`,
-      recorded_by: currentUser.id
-    };
-    // Only add type_id if it's a real UUID (not empty/null/undefined)
-    if (alloc.typeId && alloc.typeId.length > 10) txnData.type_id = alloc.typeId;
+  // Insert ONE summary transaction for the whole payment (so member card shows one entry)
+  // Then accumulate per-allocation balance updates
+  const totalAmount = allocations.reduce((s,a)=>s+Number(a.amount||0),0);
+  const allocationSummary = allocations.map(a=>a.typeName+': Ksh '+Number(a.amount).toLocaleString()).join(' | ');
+  const summaryTxn = {
+    org_id: currentOrg.id,
+    member_id: req.member_id,
+    amount: totalAmount,
+    mpesa_ref: req.mpesa_ref || null,
+    transaction_date: req.payment_date || new Date().toISOString().split('T')[0],
+    notes: `Approved. Ref: ${req.mpesa_ref||'—'}. ${allocationSummary}`,
+    recorded_by: currentUser.id
+  };
+  // Use type_id of first named allocation if available
+  const firstTypedAlloc = allocations.find(a => a.typeId && a.typeId.length > 10);
+  if (firstTypedAlloc) summaryTxn.type_id = firstTypedAlloc.typeId;
 
-    const { error: txErr } = await sb.from('transactions').insert(txnData);
-    if (!txErr) {
-      successCount++;
-      // Accumulate balance updates
-      const name = (alloc.typeName || '').toLowerCase();
-      if (name.includes('share')) {
-        memberUpdates.shares_balance = ((memberUpdates.shares_balance ?? (memberData?.shares_balance||0)) + alloc.amount);
-      } else if (name.includes('saving')) {
-        memberUpdates.savings_balance = ((memberUpdates.savings_balance ?? (memberData?.savings_balance||0)) + alloc.amount);
-      }
-      if (alloc.isReg) memberUpdates.registration_paid = true;
+  const { error: txErr } = await sb.from('transactions').insert(summaryTxn);
+  if (!txErr) successCount++;
+
+  // Accumulate per-allocation member balance updates
+  for (const alloc of allocations) {
+    const name = (alloc.typeName || '').toLowerCase();
+    if (name.includes('share')) {
+      memberUpdates.shares_balance = ((memberUpdates.shares_balance ?? (memberData?.shares_balance||0)) + Number(alloc.amount));
+    } else if (name.includes('saving')) {
+      memberUpdates.savings_balance = ((memberUpdates.savings_balance ?? (memberData?.savings_balance||0)) + Number(alloc.amount));
     }
+    if (alloc.isReg) memberUpdates.registration_paid = true;
   }
 
   // Update member balances

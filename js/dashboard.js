@@ -17,6 +17,21 @@ async function loadDashboard() {
   // Gate Quick Actions immediately after page shows
   gateQuickActions();
 
+  // Update approvals badge immediately so admin sees pending count without visiting Approvals page
+  if (canDo('viewApprovals')) {
+    (async () => {
+      try {
+        const [{ data: pendingMems }, { data: pendingPays }] = await Promise.all([
+          sb.from('pending_members').select('id').eq('org_id', currentOrg.id).eq('status','pending'),
+          sb.from('payment_requests').select('id').eq('org_id', currentOrg.id).eq('status','pending')
+        ]);
+        const total = (pendingMems?.length||0) + (pendingPays?.length||0);
+        const badge = document.getElementById('approvals-badge');
+        if (badge) { badge.textContent = total; badge.style.display = total > 0 ? 'inline' : 'none'; }
+      } catch(e) {}
+    })();
+  }
+
   const orgId = currentOrg.id;
   document.getElementById('page-sub').textContent = currentOrg.name;
 

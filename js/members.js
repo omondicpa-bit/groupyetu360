@@ -28,10 +28,23 @@ async function loadMembers() {
       .order('created_at', { ascending: false })
   ]);
   // Build last contribution map: member_id → { date, amount }
+  // Group by mpesa_ref+date so split payments (shares+savings same ref) count as one payment
   const lastContribMap = {};
-  (lastTxns || []).forEach(t => {
-    if (!lastContribMap[t.member_id]) {
-      lastContribMap[t.member_id] = { date: t.transaction_date || t.created_at?.split('T')[0], amount: t.amount };
+  const seenKeys = {}; // member_id:ref:date → accumulated amount
+  const sortedTxns = (lastTxns || []).slice().sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0));
+  sortedTxns.forEach(t => {
+    const date = t.transaction_date || t.created_at?.split('T')[0];
+    const ref = t.mpesa_ref || ('__no_ref_' + t.member_id + '_' + date);
+    const key = t.member_id + ':' + ref + ':' + date;
+    if (!seenKeys[key]) {
+      seenKeys[key] = { memberId: t.member_id, date, amount: 0, ref };
+    }
+    seenKeys[key].amount += Number(t.amount || 0);
+  });
+  // Pick the most recent grouped payment per member
+  Object.values(seenKeys).forEach(entry => {
+    if (!lastContribMap[entry.memberId]) {
+      lastContribMap[entry.memberId] = { date: entry.date, amount: entry.amount };
     }
   });
   window._lastContribMap = lastContribMap;
@@ -660,14 +673,24 @@ async function promoteToAdmin() {
   const { data: m } = await sb.from('members').select('full_name,portal_email,phone,is_founder,user_id').eq('id', currentMemberId).single();
   if (!m) return;
 
-  // Get current role from profiles via user_id
+  // Get current role from profiles — try user_id first, then fall back to email match
   let existingProfile = null;
   if (m.user_id) {
-    const { data: prof } = await sb.from('profiles').select('id,role').eq('id', m.user_id).maybeSingle();
+    const { data: prof } = await sb.from('profiles').select('id,role,full_name').eq('id', m.user_id).maybeSingle();
     existingProfile = prof;
-  } else if (m.portal_email) {
-    const { data: profs } = await sb.from('profiles').select('id,role').eq('org_id', currentOrg.id);
-    existingProfile = profs?.find(p => p.id === m.user_id) || null;
+  }
+  if (!existingProfile && m.portal_email) {
+    // Match by email: find profile whose auth user has this email
+    // profiles.id = auth.users.id, and portal_email is stored on members.
+    // Fetch all org profiles and match by full_name + phone as best proxy,
+    // OR look up by portal_email stored on OTHER members with same user_id
+    const { data: profs } = await sb.from('profiles').select('id,role,full_name,phone').eq('org_id', currentOrg.id);
+    if (profs) {
+      // Try phone match first (most reliable), then name match
+      existingProfile = profs.find(p => m.phone && p.phone && p.phone === m.phone)
+        || profs.find(p => p.full_name?.toLowerCase().trim() === m.full_name?.toLowerCase().trim())
+        || null;
+    }
   }
 
   const currentRole = existingProfile?.role || 'no portal account';
