@@ -223,13 +223,13 @@ async function loadSABilling() {
   const expiringSoon = orgs.filter(o=>o.subscription_expires&&o.subscription_expires<=thirtyDaysLater&&o.subscription_expires>=today).length;
 
   const setEl = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
-  setEl('sa-pending-payments', pending.length);
-  setEl('sa-active-subs', activeSubs);
-  setEl('sa-expiring', expiringSoon);
-  setEl('sa-sms-month', totalSmsMonth.toLocaleString());
+  setEl('sa-bill-stat-pending', pending.length);
+  setEl('sa-bill-stat-active', activeSubs);
+  setEl('sa-bill-stat-expiring', expiringSoon);
+  setEl('sa-bill-stat-sms', totalSmsMonth.toLocaleString());
 
   // Pending payments
-  const pendEl = document.getElementById('sa-pending-payments-list');
+  const pendEl = document.getElementById('sa-billing-pending');
   if (pendEl) {
     pendEl.innerHTML = pending.length ? `
       <table>
@@ -250,7 +250,7 @@ async function loadSABilling() {
   }
 
   // All subscriptions
-  const subsEl = document.getElementById('sa-subscriptions-list');
+  const subsEl = document.getElementById('sa-billing-subs');
   if (subsEl) {
     subsEl.innerHTML = `
       <table>

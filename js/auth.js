@@ -1358,10 +1358,16 @@ function showApp() {
       try { loadOrgFinancialProfile(); } catch(e) { console.error('[GY360] FinProfile error:', e); }
     }
     window._finProfileLoadedForOrg = null; // reset for next org switch
-    const _isMember = (currentOrgRole || currentProfile?.role || 'member') === 'member';
-    if (_isMember) {
+    const _role = currentOrgRole || currentProfile?.role || 'member';
+    if (_role === 'superadmin') {
+      showPage('superadmin');
+    } else if (_role === 'member') {
+      // Log member login
+      try { logActivity('MEMBER LOGIN', `${currentProfile?.full_name || 'Member'} signed in`, 'member', window._myMemberId || null); } catch(e) {}
       showPage('my_profile');
     } else {
+      // Log admin login
+      try { logActivity('ADMIN LOGIN', `${currentProfile?.full_name || 'User'} (${_role}) signed in`, 'profile', currentUser?.id || null); } catch(e) {}
       try { loadDashboard(); } catch(e) { console.error('[GY360] Dashboard error:', e); }
     }
     try { prefetchData(); } catch(e) { console.error('[GY360] Prefetch error:', e); }
