@@ -48,11 +48,32 @@ async function loadDashboard() {
   setEl('dash-hero-org-name', currentOrg.name);
   setEl('dash-hero-date', dateStr);
 
-  // ── Bank balance from currentOrg (already loaded — instant) ──
-  const bankBal = currentOrg?.bank_balance || 0;
-  setHTML('dash-balance', 'Ksh ' + bankBal.toLocaleString());
-  setEl('dash-balance-meta', currentOrg?.bank_balance_updated ? 'Updated ' + currentOrg.bank_balance_updated : 'Set balance in Settings');
-  setEl('dash-hero-balance', 'Ksh ' + (bankBal/1000 >= 1 ? (bankBal/1000).toFixed(0)+'K' : bankBal.toLocaleString()));
+  // ── Bank balance — always fetch fresh from DB, not stale in-memory ──
+  sb.from('organisations').select('bank_balance,bank_balance_updated,show_balance_to_members')
+    .eq('id', orgId).single().then(({ data: freshOrg }) => {
+      if (freshOrg) {
+        currentOrg.bank_balance = freshOrg.bank_balance;
+        currentOrg.bank_balance_updated = freshOrg.bank_balance_updated;
+        currentOrg.show_balance_to_members = freshOrg.show_balance_to_members;
+      }
+      const bankBal = currentOrg?.bank_balance || 0;
+      setHTML('dash-balance', 'Ksh ' + bankBal.toLocaleString());
+      setEl('dash-balance-meta', currentOrg?.bank_balance_updated ? 'Updated ' + currentOrg.bank_balance_updated : 'Set balance in Settings');
+      setEl('dash-hero-balance', 'Ksh ' + (bankBal/1000 >= 1 ? (bankBal/1000).toFixed(0)+'K' : bankBal.toLocaleString()));
+      // Also update mobile swipe card if visible
+      const bankBalFmt = bankBal >= 1000000
+        ? 'Ksh ' + (bankBal/1000000).toFixed(1)+'M'
+        : bankBal >= 1000 ? 'Ksh ' + (bankBal/1000).toFixed(0)+'K'
+        : 'Ksh ' + bankBal.toLocaleString();
+      const admScBank = document.getElementById('adm-sc-bank');
+      if (admScBank) admScBank.textContent = bankBalFmt;
+      const admScUpdated = document.getElementById('adm-sc-bank-updated');
+      if (admScUpdated) admScUpdated.textContent = currentOrg?.bank_balance_updated ? 'Updated ' + currentOrg.bank_balance_updated : 'Set balance in Settings';
+    }).catch(() => {
+      const bankBal = currentOrg?.bank_balance || 0;
+      setHTML('dash-balance', 'Ksh ' + bankBal.toLocaleString());
+      setEl('dash-hero-balance', 'Ksh ' + (bankBal/1000 >= 1 ? (bankBal/1000).toFixed(0)+'K' : bankBal.toLocaleString()));
+    });
   const showBalToggle = document.getElementById('show-balance-toggle');
   if (showBalToggle) showBalToggle.checked = currentOrg?.show_balance_to_members || false;
 
