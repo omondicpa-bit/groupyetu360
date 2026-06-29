@@ -162,7 +162,7 @@ function updatePaymentToggleUI() {
     const ui   = document.getElementById(uiId);
     const knob = document.getElementById(knobId);
     if (ui)   ui.style.background  = on ? 'var(--maroon)' : '#ccc';
-    if (knob) knob.style.transform = on ? 'translateX(20px)' : 'translateX(0)';
+    if (knob) knob.style.transform = on ? 'translateX(20px)' : 'translateX(2px)';
   };
   setToggle('sp-manual-toggle-ui',   'sp-manual-knob',        manualOn);
   setToggle('sp-paystack-mode-ui',   'sp-paystack-mode-knob', paystackOn);

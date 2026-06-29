@@ -2529,6 +2529,8 @@
         .ps-acc-badge{font-size:.65rem;padding:.15rem .5rem;border-radius:20px;font-weight:700;margin-left:.5rem}
         .ps-acc-chevron{font-size:.7rem;color:var(--ink-faint);transition:transform .2s;flex-shrink:0}
         .ps-acc-chevron.open{transform:rotate(180deg)}
+        .ps-toggle-track{width:44px;height:24px;border-radius:24px;background:#ccc;position:relative;cursor:pointer;transition:background .3s;user-select:none;-webkit-user-select:none;flex-shrink:0}
+        .ps-toggle-knob{width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:transform .3s;box-shadow:0 1px 3px rgba(0,0,0,.3);pointer-events:none}
         .ps-accordion-body{display:none;padding:1.25rem}
         .ps-accordion-body.open{display:block}
         .ps-divider{height:1px;background:var(--border);margin:1rem 0}
@@ -2562,8 +2564,8 @@
             <div><div class="ps-row-label">Free Trial Promo</div><div class="ps-row-sub">New orgs upgrading for the first time get free days. Existing trials unaffected when toggled off.</div></div>
             <div style="flex-shrink:0;margin-left:1rem">
               <input type="checkbox" id="sp-promo-active" style="display:none" onchange="updatePromoToggleUI()">
-              <div onclick="document.getElementById('sp-promo-active').click()" id="sp-promo-toggle-ui" style="width:44px;height:24px;border-radius:24px;background:#ccc;position:relative;cursor:pointer;transition:.3s">
-                <div id="sp-promo-knob" style="width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.3)"></div>
+              <div onclick="document.getElementById('sp-promo-active').click()" id="sp-promo-toggle-ui" class="ps-toggle-track">
+                <div id="sp-promo-knob" class="ps-toggle-knob"></div>
               </div>
             </div>
           </div>
@@ -2726,8 +2728,8 @@
             <div><div class="ps-row-label">Enable Paystack STK Push</div><div class="ps-row-sub">Shows "Pay via M-Pesa (Instant)" button on org Billing pages. Payments auto-activate the plan.</div></div>
             <div style="flex-shrink:0;margin-left:1rem">
               <input type="checkbox" id="sp-paystack-enabled-toggle" style="display:none" onchange="updatePaymentToggleUI()">
-              <div onclick="document.getElementById('sp-paystack-enabled-toggle').click()" id="sp-paystack-toggle-ui" style="width:44px;height:24px;border-radius:24px;background:#ccc;position:relative;cursor:pointer;transition:.3s">
-                <div id="sp-paystack-knob" style="width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.3)"></div>
+              <div onclick="document.getElementById('sp-paystack-enabled-toggle').click()" id="sp-paystack-toggle-ui" class="ps-toggle-track">
+                <div id="sp-paystack-knob" class="ps-toggle-knob"></div>
               </div>
             </div>
           </div>
