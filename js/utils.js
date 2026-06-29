@@ -134,6 +134,57 @@ async function updateBankBalance(orgId, amount, direction) {
 }
 
 // ── ACTIVITY LOG (Audit Trail) ──
+// ── ACCORDION TOGGLE (SA Platform Settings) ──────────────────────────────────
+function toggleAccordion(header) {
+  const body    = header.nextElementSibling;
+  const chevron = header.querySelector('.ps-acc-chevron');
+  const isOpen  = body.classList.contains('open');
+  // Close all in same page
+  const page = header.closest('.page') || document;
+  page.querySelectorAll('.ps-accordion-body').forEach(b => b.classList.remove('open'));
+  page.querySelectorAll('.ps-accordion-header').forEach(h => h.classList.remove('open'));
+  page.querySelectorAll('.ps-acc-chevron').forEach(c => c.classList.remove('open'));
+  if (!isOpen) {
+    body.classList.add('open');
+    header.classList.add('open');
+    if (chevron) chevron.classList.add('open');
+  }
+}
+
+// ── PAYMENT TOGGLE UI (used by SA settings page) ──────────────────────────────
+function updatePaymentToggleUI() {
+  const manualOn   = document.getElementById('sp-manual-enabled')?.checked !== false;
+  const psToggle   = document.getElementById('sp-paystack-enabled-toggle');
+  const psModeToggle = document.getElementById('sp-paystack-mode-toggle');
+  const paystackOn = psToggle?.checked === true || psModeToggle?.checked === true;
+
+  const setToggle = (uiId, knobId, on) => {
+    const ui   = document.getElementById(uiId);
+    const knob = document.getElementById(knobId);
+    if (ui)   ui.style.background  = on ? 'var(--maroon)' : '#ccc';
+    if (knob) knob.style.transform = on ? 'translateX(20px)' : 'translateX(0)';
+  };
+  setToggle('sp-manual-toggle-ui',   'sp-manual-knob',        manualOn);
+  setToggle('sp-paystack-mode-ui',   'sp-paystack-mode-knob', paystackOn);
+  setToggle('sp-paystack-toggle-ui', 'sp-paystack-knob',      paystackOn);
+
+  // Keep both Paystack toggle checkboxes in sync
+  if (psToggle)     psToggle.checked     = paystackOn;
+  if (psModeToggle) psModeToggle.checked = paystackOn;
+
+  // Webhook hint
+  const hint = document.getElementById('sp-paystack-webhook-hint');
+  if (hint) hint.style.display = paystackOn ? '' : 'none';
+
+  // Paystack badge
+  const badge = document.getElementById('sp-paystack-badge');
+  if (badge) {
+    badge.textContent       = paystackOn ? 'Live' : 'Disabled';
+    badge.style.background  = paystackOn ? '#e8f4fd' : '#f5f5f5';
+    badge.style.color       = paystackOn ? '#0d5c8a' : '#999';
+  }
+}
+
 async function logActivity(action, details, targetType = null, targetId = null) {
   try {
     if (!currentUser?.id) return;

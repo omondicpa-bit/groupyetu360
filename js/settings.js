@@ -2153,45 +2153,7 @@ async function submitCartPaystack_impl() {
   }
 }
 
-// ── PAYMENT TOGGLE UI (SA Settings) ──────────────────────────────────────────
-function updatePaymentToggleUI() {
-  const manualOn   = document.getElementById('sp-manual-enabled')?.checked !== false;
-  const paystackOn = document.getElementById('sp-paystack-enabled-toggle')?.checked === true
-                  || document.getElementById('sp-paystack-mode-toggle')?.checked === true;
 
-  const setToggle = (uiId, knobId, on) => {
-    const ui   = document.getElementById(uiId);
-    const knob = document.getElementById(knobId);
-    if (ui)   ui.style.background  = on ? 'var(--maroon)' : '#ccc';
-    if (knob) knob.style.transform = on ? 'translateX(20px)' : 'translateX(0)';
-  };
-  setToggle('sp-manual-toggle-ui', 'sp-manual-knob', manualOn);
-  setToggle('sp-paystack-mode-ui', 'sp-paystack-mode-knob', paystackOn);
-  setToggle('sp-paystack-toggle-ui', 'sp-paystack-knob', paystackOn);
-
-  // Sync the two paystack toggles
-  const psEnabled = document.getElementById('sp-paystack-enabled-toggle');
-  const psMode    = document.getElementById('sp-paystack-mode-toggle');
-  if (paystackOn) {
-    if (psEnabled) psEnabled.checked = true;
-    if (psMode)    psMode.checked    = true;
-  } else {
-    if (psEnabled) psEnabled.checked = false;
-    if (psMode)    psMode.checked    = false;
-  }
-
-  // Show/hide webhook hint
-  const webhookHint = document.getElementById('sp-paystack-webhook-hint');
-  if (webhookHint) webhookHint.style.display = paystackOn ? '' : 'none';
-
-  // Update Paystack badge
-  const payBadge = document.getElementById('sp-paystack-badge');
-  if (payBadge) {
-    payBadge.textContent = paystackOn ? 'Live' : 'Disabled';
-    payBadge.style.background = paystackOn ? '#e8f4fd' : '#f5f5f5';
-    payBadge.style.color = paystackOn ? '#0d5c8a' : '#999';
-  }
-}
 
 async function activateFreeTrialFromCart_impl() {
   const plan = _billingCart.plan;
