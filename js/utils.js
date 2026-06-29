@@ -369,6 +369,21 @@ async function loadSASupport() {
   if (promoDaysEl) promoDaysEl.value = s.promo_days || '60';
   const promoEl = document.getElementById('sp-promo-active');
   if (promoEl) { promoEl.checked = s.promo_active === true; if (typeof updatePromoToggleUI === 'function') updatePromoToggleUI(); }
+  // Paystack
+  const psPublicEl = document.getElementById('sp-paystack-public-key');
+  if (psPublicEl) psPublicEl.value = s.paystack_public_key || '';
+  if (s.paystack_secret_key) {
+    const skEl = document.getElementById('sp-paystack-secret-key');
+    if (skEl) skEl.placeholder = '(saved — enter new key to change)';
+  }
+  const psEnabledEl = document.getElementById('sp-paystack-enabled');
+  if (psEnabledEl) psEnabledEl.value = s.paystack_enabled ? 'true' : 'false';
+  const webhookHint = document.getElementById('sp-paystack-webhook-hint');
+  if (webhookHint) {
+    webhookHint.style.display = s.paystack_enabled ? '' : 'none';
+    const webhookUrl = document.getElementById('sp-paystack-webhook-url');
+    if (webhookUrl) webhookUrl.textContent = 'https://eengldzvvgplgzvbutal.supabase.co/functions/v1/paystack-webhook';
+  }
 }
 
 async function saveSupportSettings() {
@@ -410,8 +425,14 @@ async function saveSupportSettings() {
     payment_mode:   document.getElementById('sp-payment-mode')?.value || 'manual',
     promo_active:   document.getElementById('sp-promo-active')?.checked === true,
     promo_days:     document.getElementById('sp-promo-days')?.value || '60',
+    // Paystack
+    paystack_public_key: document.getElementById('sp-paystack-public-key')?.value?.trim() || null,
+    paystack_enabled: document.getElementById('sp-paystack-enabled')?.value === 'true',
     updated_at:     new Date().toISOString()
   };
+  // Only save secret key if a new one was typed (don't overwrite with empty)
+  const newPsSecret = document.getElementById('sp-paystack-secret-key')?.value?.trim();
+  if (newPsSecret) payload.paystack_secret_key = newPsSecret;
   const { error } = await sb.from('platform_settings').upsert(payload);
   if (error) { toast('Error: '+error.message); return; }
   toast('Support settings saved successfully');

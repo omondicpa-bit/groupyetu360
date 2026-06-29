@@ -945,6 +945,14 @@ function getPaymentMode() {
   return _platformSettings['payment_mode'] || 'manual';
 }
 
+function getPaystackEnabled() {
+  return _platformSettings['paystack_enabled'] === true || _platformSettings['paystack_enabled'] === 'true';
+}
+
+function getPaystackPublicKey() {
+  return _platformSettings['paystack_public_key'] || '';
+}
+
 function showBanner(html, type='info') {
   let el = document.getElementById('app-banner');
   if (!el) {
