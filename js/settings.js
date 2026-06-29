@@ -24,6 +24,12 @@ window.activateFreeTrialFromCart = function() {
 window.submitCartPayment = function() {
   submitCartPayment_impl();
 };
+window.submitCartPaystack = function() {
+  submitCartPaystack_impl();
+};
+window.switchPayTab = function(tab) {
+  switchPayTab_impl(tab);
+};
 window.clearBillingCart = function() {
   if (typeof _billingCart !== 'undefined') {
     _billingCart = { plan: null, planAmount: 0, sms: 0, smsAmount: 0 };
@@ -1783,32 +1789,6 @@ function updatePromoToggleUI() {
   const on = checkbox.checked;
   ui.style.background  = on ? '#2a9d8f' : '#ccc';
   knob.style.transform = on ? 'translateX(20px)' : 'translateX(0)';
-  // Update accordion badge
-  const badge = document.getElementById('sp-promo-badge');
-  if (badge) {
-    badge.textContent = on ? 'Promo ON' : 'Promo OFF';
-    badge.style.background = on ? '#e6f4ef' : '#f5f5f5';
-    badge.style.color = on ? 'var(--teal)' : '#999';
-  }
-}
-
-// ── ACCORDION TOGGLE ──
-function toggleAccordion(header) {
-  const body = header.nextElementSibling;
-  const chevron = header.querySelector('.ps-acc-chevron');
-  const isOpen = body.classList.contains('open');
-  // Close all others in same container
-  const allBodies = header.closest('.page').querySelectorAll('.ps-accordion-body');
-  const allHeaders = header.closest('.page').querySelectorAll('.ps-accordion-header');
-  const allChevrons = header.closest('.page').querySelectorAll('.ps-acc-chevron');
-  allBodies.forEach(b => b.classList.remove('open'));
-  allHeaders.forEach(h => h.classList.remove('open'));
-  allChevrons.forEach(c => c.classList.remove('open'));
-  if (!isOpen) {
-    body.classList.add('open');
-    header.classList.add('open');
-    if (chevron) chevron.classList.add('open');
-  }
 }
 
 // loadSASupport() and saveSupportSettings() are defined in utils.js (load order: utils first).
@@ -1978,13 +1958,12 @@ function clearBillingCart() {
 }
 
 function refreshCartUI() {
-  const cartCard  = document.getElementById('billing-cart-card');
-  const itemsEl   = document.getElementById('billing-cart-items');
-  const totalEl   = document.getElementById('billing-cart-total');
+  const cartCard    = document.getElementById('billing-cart-card');
+  const itemsEl     = document.getElementById('billing-cart-items');
+  const totalEl     = document.getElementById('billing-cart-total');
   const freeSection = document.getElementById('cart-free-trial-section');
   const paySection  = document.getElementById('cart-payment-section');
-  const amtEl     = document.getElementById('cart-pay-amount');
-  const expiryEl  = document.getElementById('cart-trial-expiry-date');
+  const expiryEl    = document.getElementById('cart-trial-expiry-date');
 
   const hasPlan = !!_billingCart.plan;
   const hasSMS  = _billingCart.sms > 0;
@@ -1993,7 +1972,6 @@ function refreshCartUI() {
     if (cartCard) cartCard.style.display = 'none';
     return;
   }
-
   if (cartCard) cartCard.style.display = '';
 
   // Build items list
@@ -2016,23 +1994,202 @@ function refreshCartUI() {
   }
   if (itemsEl) itemsEl.innerHTML = itemsHTML;
 
-  // Total
   const total = (_billingCart.planIsFree ? 0 : _billingCart.planAmount) + _billingCart.smsAmount;
   if (totalEl) totalEl.textContent = total === 0 ? 'Ksh 0 — Free!' : `Ksh ${total.toLocaleString()}`;
 
-  // Trial expiry date
   const promoDays = parseInt(_platformSettings['promo_days'] || '60');
   const expDate = new Date(); expDate.setDate(expDate.getDate() + promoDays);
   if (expiryEl) expiryEl.textContent = expDate.toLocaleDateString('en-KE', { day:'numeric', month:'long', year:'numeric' });
 
-  // Show correct checkout section
   const isFullyFree = _billingCart.planIsFree && _billingCart.smsAmount === 0;
-  const planFreeButHasSMS = _billingCart.planIsFree && _billingCart.smsAmount > 0;
-
   if (freeSection) freeSection.style.display = (isFullyFree && hasPlan) ? '' : 'none';
   if (paySection) {
     paySection.style.display = (!_billingCart.planIsFree || hasSMS) ? '' : 'none';
-    if (amtEl) amtEl.value = total;
+  }
+
+  // Sync amounts and payment tabs
+  const amtEl = document.getElementById('cart-pay-amount');
+  if (amtEl) amtEl.value = total;
+  const stkAmt = document.getElementById('stk-display-amount');
+  if (stkAmt) stkAmt.textContent = total.toLocaleString();
+  const stkBtn = document.getElementById('stk-btn-label');
+  if (stkBtn) stkBtn.textContent = `Send Ksh ${total.toLocaleString()} Prompt`;
+
+  // Pre-fill phone from profile
+  const phoneEl = document.getElementById('cart-paystack-phone');
+  if (phoneEl && !phoneEl.value && currentProfile?.phone) phoneEl.value = currentProfile.phone;
+
+  // Show correct tabs based on enabled methods
+  setupPaymentTabs();
+}
+
+function setupPaymentTabs() {
+  const manualEnabled  = typeof getManualEnabled === 'function' ? getManualEnabled() : true;
+  const paystackEnabled = typeof getPaystackEnabled === 'function' ? getPaystackEnabled() : false;
+
+  const tabsEl  = document.getElementById('cart-method-tabs');
+  const tabPs   = document.getElementById('tab-paystack');
+  const tabMan  = document.getElementById('tab-manual');
+
+  if (!tabsEl) return;
+
+  if (paystackEnabled && manualEnabled) {
+    // Both enabled — show tabs
+    tabsEl.style.display = 'flex';
+    if (tabPs)  { tabPs.style.display  = ''; }
+    if (tabMan) { tabMan.style.display = ''; }
+    switchPayTab_impl('paystack'); // default to instant
+  } else if (paystackEnabled) {
+    // Only Paystack
+    tabsEl.style.display = 'none';
+    switchPayTab_impl('paystack');
+  } else {
+    // Only manual (or nothing — fallback to manual)
+    tabsEl.style.display = 'none';
+    switchPayTab_impl('manual');
+  }
+}
+
+function switchPayTab_impl(tab) {
+  document.querySelectorAll('.pay-method-tab').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.pay-tab-btn').forEach(el => el.classList.remove('active'));
+  const pane = document.getElementById('paytab-' + tab);
+  const btn  = document.getElementById('tab-' + tab);
+  if (pane) pane.classList.add('active');
+  if (btn)  btn.classList.add('active');
+}
+
+// ── PAYSTACK STK PUSH ─────────────────────────────────────────────────────────
+var _stkPollInterval = null;
+
+async function submitCartPaystack_impl() {
+  const phone    = document.getElementById('cart-paystack-phone')?.value?.trim();
+  const total    = (_billingCart.planIsFree ? 0 : _billingCart.planAmount) + _billingCart.smsAmount;
+  const statusEl = document.getElementById('cart-paystack-status');
+  const pendEl   = document.getElementById('cart-paystack-pending');
+  const succEl   = document.getElementById('cart-paystack-success');
+  const btn      = document.getElementById('cart-paystack-btn');
+  const dotsEl   = document.getElementById('stk-dots');
+
+  if (!phone || phone.length < 9) {
+    if (statusEl) { statusEl.textContent = '⚠ Enter a valid M-Pesa number'; statusEl.style.color = 'var(--warning)'; }
+    return;
+  }
+  if (total <= 0) {
+    if (statusEl) { statusEl.textContent = '⚠ No items in cart'; statusEl.style.color = 'var(--warning)'; }
+    return;
+  }
+
+  const items = [];
+  if (_billingCart.plan && !_billingCart.planIsFree) items.push(`subscription_${_billingCart.plan}`);
+  if (_billingCart.sms > 0) items.push(`sms_bundle_${_billingCart.sms}`);
+  const paymentType = items[0] || 'subscription';
+  const notes = items.join(' + ');
+
+  let memberId = null;
+  try {
+    const { data: mem } = await sb.from('members').select('id').eq('org_id', currentOrg.id).eq('user_id', currentUser.id).maybeSingle();
+    memberId = mem?.id || null;
+  } catch(e) {}
+
+  if (btn) { btn.disabled = true; btn.style.opacity = '.6'; }
+  if (statusEl) { statusEl.textContent = 'Sending prompt…'; statusEl.style.color = 'var(--ink-faint)'; }
+  if (pendEl) pendEl.style.display = 'none';
+  if (succEl) succEl.style.display = 'none';
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/paystack-charge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ org_id: currentOrg.id, amount: total, phone, email: currentUser.email, payment_type: paymentType, notes, member_id: memberId })
+    });
+    const result = await res.json();
+    if (!res.ok || result.error) throw new Error(result.error || 'Charge failed');
+
+    if (statusEl) { statusEl.textContent = ''; }
+    if (pendEl) pendEl.style.display = '';
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+    const lbl = document.getElementById('stk-btn-label');
+    if (lbl) lbl.textContent = 'Resend Prompt';
+    await logActivity('PAYSTACK CHARGE INITIATED', `Ksh ${total} · phone ${phone} · ${notes}`);
+
+    // Animate dots
+    let dotCount = 0;
+    if (_stkPollInterval) clearInterval(_stkPollInterval);
+    const dotAnim = setInterval(() => {
+      dotCount = (dotCount + 1) % 4;
+      if (dotsEl) dotsEl.textContent = '.'.repeat(dotCount + 1);
+    }, 500);
+
+    // Poll for confirmation
+    let polls = 0;
+    _stkPollInterval = setInterval(async () => {
+      polls++;
+      if (polls > 36) { // 3 min timeout
+        clearInterval(_stkPollInterval);
+        clearInterval(dotAnim);
+        if (pendEl) pendEl.style.display = 'none';
+        if (statusEl) { statusEl.textContent = '⏱ Timed out — check Payment History or try again'; statusEl.style.color = 'var(--warning)'; }
+        return;
+      }
+      try {
+        const { data: pr } = await sb.from('payment_requests')
+          .select('status').eq('id', result.payment_request_id).maybeSingle();
+        if (pr?.status === 'approved') {
+          clearInterval(_stkPollInterval);
+          clearInterval(dotAnim);
+          if (pendEl) pendEl.style.display = 'none';
+          if (succEl) succEl.style.display = '';
+          clearBillingCart();
+          setTimeout(() => loadBilling(), 2000);
+        }
+      } catch(e) {}
+    }, 5000);
+
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+    if (statusEl) { statusEl.textContent = '✗ ' + e.message; statusEl.style.color = 'var(--danger)'; }
+  }
+}
+
+// ── PAYMENT TOGGLE UI (SA Settings) ──────────────────────────────────────────
+function updatePaymentToggleUI() {
+  const manualOn   = document.getElementById('sp-manual-enabled')?.checked !== false;
+  const paystackOn = document.getElementById('sp-paystack-enabled-toggle')?.checked === true
+                  || document.getElementById('sp-paystack-mode-toggle')?.checked === true;
+
+  const setToggle = (uiId, knobId, on) => {
+    const ui   = document.getElementById(uiId);
+    const knob = document.getElementById(knobId);
+    if (ui)   ui.style.background  = on ? 'var(--maroon)' : '#ccc';
+    if (knob) knob.style.transform = on ? 'translateX(20px)' : 'translateX(0)';
+  };
+  setToggle('sp-manual-toggle-ui', 'sp-manual-knob', manualOn);
+  setToggle('sp-paystack-mode-ui', 'sp-paystack-mode-knob', paystackOn);
+  setToggle('sp-paystack-toggle-ui', 'sp-paystack-knob', paystackOn);
+
+  // Sync the two paystack toggles
+  const psEnabled = document.getElementById('sp-paystack-enabled-toggle');
+  const psMode    = document.getElementById('sp-paystack-mode-toggle');
+  if (paystackOn) {
+    if (psEnabled) psEnabled.checked = true;
+    if (psMode)    psMode.checked    = true;
+  } else {
+    if (psEnabled) psEnabled.checked = false;
+    if (psMode)    psMode.checked    = false;
+  }
+
+  // Show/hide webhook hint
+  const webhookHint = document.getElementById('sp-paystack-webhook-hint');
+  if (webhookHint) webhookHint.style.display = paystackOn ? '' : 'none';
+
+  // Update Paystack badge
+  const payBadge = document.getElementById('sp-paystack-badge');
+  if (payBadge) {
+    payBadge.textContent = paystackOn ? 'Live' : 'Disabled';
+    payBadge.style.background = paystackOn ? '#e8f4fd' : '#f5f5f5';
+    payBadge.style.color = paystackOn ? '#0d5c8a' : '#999';
   }
 }
 

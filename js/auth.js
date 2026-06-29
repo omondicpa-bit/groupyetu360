@@ -944,11 +944,15 @@ function isPromoActive() {
 function getPaymentMode() {
   return _platformSettings['payment_mode'] || 'manual';
 }
-
-function getPaystackEnabled() {
-  return _platformSettings['paystack_enabled'] === true || _platformSettings['paystack_enabled'] === 'true';
+function getManualEnabled() {
+  // manual_enabled defaults true unless explicitly disabled
+  const v = _platformSettings['manual_enabled'];
+  return v === undefined || v === null || v === true || v === 'true';
 }
-
+function getPaystackEnabled() {
+  const v = _platformSettings['paystack_enabled'];
+  return v === true || v === 'true';
+}
 function getPaystackPublicKey() {
   return _platformSettings['paystack_public_key'] || '';
 }

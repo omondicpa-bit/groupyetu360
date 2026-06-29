@@ -369,22 +369,20 @@ async function loadSASupport() {
   if (promoDaysEl) promoDaysEl.value = s.promo_days || '60';
   const promoEl = document.getElementById('sp-promo-active');
   if (promoEl) { promoEl.checked = s.promo_active === true; if (typeof updatePromoToggleUI === 'function') updatePromoToggleUI(); }
-  // Paystack
+
+  // Payment method toggles
+  const manualToggle = document.getElementById('sp-manual-enabled');
+  if (manualToggle) manualToggle.checked = (s.manual_enabled !== false);
+  const psToggle = document.getElementById('sp-paystack-enabled-toggle');
+  if (psToggle) psToggle.checked = (s.paystack_enabled === true);
+  if (typeof updatePaymentToggleUI === 'function') updatePaymentToggleUI();
+
+  // Paystack keys
   const psPublicEl = document.getElementById('sp-paystack-public-key');
   if (psPublicEl) psPublicEl.value = s.paystack_public_key || '';
   if (s.paystack_secret_key) {
     const skEl = document.getElementById('sp-paystack-secret-key');
-    if (skEl) skEl.placeholder = '(saved — enter new key to change)';
-  }
-  const psEnabledEl = document.getElementById('sp-paystack-enabled');
-  if (psEnabledEl) psEnabledEl.value = s.paystack_enabled ? 'true' : 'false';
-  const webhookHint = document.getElementById('sp-paystack-webhook-hint');
-  if (webhookHint) {
-    webhookHint.style.display = s.paystack_enabled ? '' : 'none';
-    const webhookUrl = document.getElementById('sp-paystack-webhook-url');
-    if (webhookUrl) webhookUrl.textContent = 'https://eengldzvvgplgzvbutal.supabase.co/functions/v1/paystack-webhook';
-  }
-  if (s.paystack_secret_key) {
+    if (skEl) skEl.placeholder = '(saved — enter new key to update)';
     const savedEl = document.getElementById('sp-paystack-secret-saved');
     if (savedEl) savedEl.style.display = '';
   }
@@ -399,6 +397,11 @@ async function loadSASupport() {
   if (smsBadge) {
     const pNames = { leopard:'SMS Leopard', celcom:'Celcom Africa', at:"Africa's Talking" };
     smsBadge.textContent = (pNames[s.sms_provider] || 'Celcom Africa') + ' Active';
+  }
+  // Webhook hint
+  const webhookHint = document.getElementById('sp-paystack-webhook-hint');
+  if (webhookHint) {
+    webhookHint.style.display = s.paystack_enabled ? '' : 'none';
   }
 }
 
@@ -441,17 +444,22 @@ async function saveSupportSettings() {
     payment_mode:   document.getElementById('sp-payment-mode')?.value || 'manual',
     promo_active:   document.getElementById('sp-promo-active')?.checked === true,
     promo_days:     document.getElementById('sp-promo-days')?.value || '60',
-    // Paystack
+    // Payment method toggles
+    manual_enabled:   document.getElementById('sp-manual-enabled')?.checked !== false,
+    paystack_enabled: document.getElementById('sp-paystack-enabled-toggle')?.checked === true,
+    // Paystack keys
     paystack_public_key: document.getElementById('sp-paystack-public-key')?.value?.trim() || null,
-    paystack_enabled: document.getElementById('sp-paystack-enabled')?.value === 'true',
     updated_at:     new Date().toISOString()
   };
-  // Only save secret key if a new one was typed (don't overwrite with empty)
+  // Only save secret key if a new one was typed
   const newPsSecret = document.getElementById('sp-paystack-secret-key')?.value?.trim();
   if (newPsSecret) payload.paystack_secret_key = newPsSecret;
+
   const { error } = await sb.from('platform_settings').upsert(payload);
   if (error) { toast('Error: '+error.message); return; }
-  toast('Support settings saved successfully');
+  // Refresh _platformSettings so billing cart updates immediately
+  if (typeof loadPlatformSettings === 'function') await loadPlatformSettings();
+  toast('Settings saved ✓');
 }
 
 
