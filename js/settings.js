@@ -2015,9 +2015,13 @@ function refreshCartUI() {
   const stkBtn = document.getElementById('stk-btn-label');
   if (stkBtn) stkBtn.textContent = `Send Ksh ${total.toLocaleString()} Prompt`;
 
-  // Pre-fill phone from profile
+  // Pre-fill phone from profile — keep local 07XXXXXXXXX format
   const phoneEl = document.getElementById('cart-paystack-phone');
-  if (phoneEl && !phoneEl.value && currentProfile?.phone) phoneEl.value = currentProfile.phone;
+  if (phoneEl && !phoneEl.value && currentProfile?.phone) {
+    let ph = currentProfile.phone.toString().replace(/\s+/g,'');
+    if (ph.startsWith('254')) ph = '0' + ph.slice(3);
+    phoneEl.value = ph;
+  }
 
   // Show correct tabs based on enabled methods
   setupPaymentTabs();

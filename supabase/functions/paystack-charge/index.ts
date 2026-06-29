@@ -1,6 +1,6 @@
 // supabase/functions/paystack-charge/index.ts
-// Initiates a Paystack M-Pesa mobile money charge (STK Push equivalent)
-// Called from the browser billing cart — secret key never exposed to client
+// Initiates a Paystack M-Pesa mobile money charge (STK Push)
+// Called from the browser — secret key stays server-side
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -22,7 +22,6 @@ serve(async (req) => {
       });
     }
 
-    // Load Paystack secret key from platform_settings
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -34,17 +33,24 @@ serve(async (req) => {
       .single();
 
     if (!ps?.paystack_enabled || !ps?.paystack_secret_key) {
-      return new Response(JSON.stringify({ error: 'Paystack not enabled' }), {
+      return new Response(JSON.stringify({ error: 'Paystack not enabled on this platform' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Format phone to international (254XXXXXXXXX)
-    let phone254 = phone.toString().replace(/\s+/g, '').replace(/[^0-9]/g, '');
-    if (phone254.startsWith('0')) phone254 = '254' + phone254.slice(1);
-    if (!phone254.startsWith('254')) phone254 = '254' + phone254;
+    // Paystack Kenya M-Pesa requires 07XXXXXXXXX or 01XXXXXXXXX (10 digits, local format)
+    let phoneLocal = phone.toString().replace(/\s+/g, '').replace(/[^0-9]/g, '');
+    // Strip leading + or country code 254
+    if (phoneLocal.startsWith('254')) phoneLocal = '0' + phoneLocal.slice(3);
+    if (phoneLocal.startsWith('+254')) phoneLocal = '0' + phoneLocal.slice(4);
+    // Must start with 07 or 01 and be 10 digits
+    if (!/^(07|01)\d{8}$/.test(phoneLocal)) {
+      return new Response(JSON.stringify({ error: `Invalid M-Pesa number: ${phoneLocal}. Use format 07XXXXXXXX.` }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
-    // Create a pending payment_request so webhook can match it
+    // Create pending payment_request first so webhook can match it
     const ref = 'GY-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7).toUpperCase();
     const { data: pr, error: prErr } = await supabase.from('payment_requests').insert({
       org_id,
@@ -59,9 +65,9 @@ serve(async (req) => {
       payment_date: new Date().toISOString().split('T')[0],
     }).select('id').single();
 
-    if (prErr) throw new Error(prErr.message);
+    if (prErr) throw new Error('Failed to create payment record: ' + prErr.message);
 
-    // Initiate Paystack mobile money charge
+    // Call Paystack Charge API
     const paystackRes = await fetch('https://api.paystack.co/charge', {
       method: 'POST',
       headers: {
@@ -70,10 +76,10 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         email,
-        amount: Math.round(parseFloat(amount) * 100), // Paystack uses kobo/cents (KES * 100)
+        amount: Math.round(parseFloat(amount) * 100), // Paystack uses kobo (KES × 100)
         currency: 'KES',
         mobile_money: {
-          phone: phone254,
+          phone: phoneLocal,    // Local format: 07XXXXXXXX
           provider: 'mpesa',
         },
         reference: ref,
@@ -89,31 +95,36 @@ serve(async (req) => {
     });
 
     const paystackData = await paystackRes.json();
+    console.log('[GY360 paystack-charge] Paystack response:', JSON.stringify(paystackData));
 
     if (!paystackData.status) {
-      // Clean up the payment_request if Paystack rejected it
+      // Clean up failed payment_request
       await supabase.from('payment_requests').delete().eq('id', pr.id);
-      return new Response(JSON.stringify({ error: paystackData.message || 'Paystack charge failed' }), {
+      return new Response(JSON.stringify({
+        error: paystackData.message || 'Paystack rejected the charge request'
+      }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Update payment_request with Paystack reference
-    await supabase.from('payment_requests')
-      .update({ paystack_ref: paystackData.data?.reference || ref })
-      .eq('id', pr.id);
+    // Update with actual Paystack reference if different
+    const finalRef = paystackData.data?.reference || ref;
+    if (finalRef !== ref) {
+      await supabase.from('payment_requests').update({ paystack_ref: finalRef }).eq('id', pr.id);
+    }
 
     return new Response(JSON.stringify({
       success: true,
-      reference: paystackData.data?.reference || ref,
+      reference: finalRef,
       payment_request_id: pr.id,
-      display_text: paystackData.data?.display_text || 'Check your phone for an M-Pesa prompt',
+      display_text: paystackData.data?.display_text || 'Check your phone for an M-Pesa STK prompt',
       status: paystackData.data?.status,
     }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (err) {
+    console.error('[GY360 paystack-charge] Error:', err.message);
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
