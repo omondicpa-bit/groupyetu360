@@ -130,9 +130,11 @@ async function loadFinance() {
   }
 
   // Admin balance card — always show, but label changes by org type
-  // Bank balance: if SA has manually set (locked), trust that value.
-  // Otherwise fall back to net computed from transactions.
-  const bankBalance = (currentOrg?.bank_balance_locked && currentOrg?.bank_balance != null)
+  // Bank balance: always use DB value (freshly fetched above via re-fetch at top of loadFinance).
+  // The bank_balance column is updated atomically by the update_bank_balance RPC on every
+  // payment approval, expense, and income entry. The locked flag only controls whether
+  // SA can manually override — it does NOT gate the auto-increment anymore.
+  const bankBalance = (currentOrg?.bank_balance != null)
     ? currentOrg.bank_balance
     : net;
   const adminBalance = bankBalance - totalMemberBal;
