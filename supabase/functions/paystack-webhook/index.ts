@@ -1,62 +1,80 @@
 // supabase/functions/paystack-webhook/index.ts
-// Receives Paystack payment confirmation, verifies HMAC signature,
-// then auto-activates subscription or credits SMS bundle — no SA approval needed.
+// Receives Paystack charge.success event and auto-activates subscription/SMS bundle
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { createHmac } from 'https://deno.land/std@0.168.0/node/crypto.ts';
 
 serve(async (req) => {
-  // Paystack sends POST only
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 });
   }
 
   const body = await req.text();
-  const sig = req.headers.get('x-paystack-signature');
+  const sig = req.headers.get('x-paystack-signature') || '';
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   );
 
-  // Load secret key to verify HMAC
+  // Load secret key
   const { data: ps } = await supabase
     .from('platform_settings')
     .select('paystack_secret_key')
     .single();
 
   if (!ps?.paystack_secret_key) {
-    return new Response('Not configured', { status: 500 });
+    console.error('[GY360 Webhook] No paystack_secret_key in platform_settings');
+    return new Response('OK', { status: 200 }); // return 200 so Paystack doesn't retry
   }
 
-  // Verify Paystack HMAC signature
-  const expectedSig = createHmac('sha512', ps.paystack_secret_key)
-    .update(body)
-    .digest('hex');
+  // Verify HMAC-SHA512 using Web Crypto API (Deno native — no import needed)
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(ps.paystack_secret_key);
+  const msgData = encoder.encode(body);
+
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw', keyData,
+    { name: 'HMAC', hash: 'SHA-512' },
+    false, ['sign']
+  );
+  const signatureBuffer = await crypto.subtle.sign('HMAC', cryptoKey, msgData);
+  const expectedSig = Array.from(new Uint8Array(signatureBuffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  console.log('[GY360 Webhook] sig received:', sig.slice(0, 20) + '...');
+  console.log('[GY360 Webhook] sig expected:', expectedSig.slice(0, 20) + '...');
 
   if (sig !== expectedSig) {
-    console.error('[GY360 Paystack Webhook] Invalid signature');
+    console.error('[GY360 Webhook] HMAC mismatch — rejecting');
     return new Response('Invalid signature', { status: 401 });
   }
 
-  let event;
+  let event: any;
   try { event = JSON.parse(body); } catch(e) {
-    return new Response('Invalid JSON', { status: 400 });
+    return new Response('OK', { status: 200 });
   }
 
-  // We only care about successful charges
+  console.log('[GY360 Webhook] Event received:', event.event);
+
+  // Only process successful charges
   if (event.event !== 'charge.success') {
     return new Response('OK', { status: 200 });
   }
 
   const data = event.data;
   const reference = data?.reference;
-  const amountKes = (data?.amount || 0) / 100; // Convert from kobo back to KES
+  const amountKes = (data?.amount || 0) / 100;
 
-  if (!reference) return new Response('No reference', { status: 400 });
+  console.log('[GY360 Webhook] charge.success ref:', reference, 'amount KES:', amountKes);
 
-  // Find the matching payment_request
+  if (!reference) {
+    console.error('[GY360 Webhook] No reference in event data');
+    return new Response('OK', { status: 200 });
+  }
+
+  // Find matching payment_request by paystack_ref
   const { data: pr, error: prErr } = await supabase
     .from('payment_requests')
     .select('*')
@@ -64,79 +82,93 @@ serve(async (req) => {
     .eq('status', 'pending')
     .maybeSingle();
 
-  if (prErr || !pr) {
-    console.error('[GY360 Paystack Webhook] No matching payment_request for ref:', reference);
-    return new Response('Payment request not found', { status: 404 });
+  if (prErr) {
+    console.error('[GY360 Webhook] DB error looking up payment_request:', prErr.message);
+    return new Response('OK', { status: 200 });
   }
 
+  if (!pr) {
+    // Try matching by mpesa_ref as fallback
+    const { data: pr2 } = await supabase
+      .from('payment_requests')
+      .select('*')
+      .eq('mpesa_ref', reference)
+      .eq('status', 'pending')
+      .maybeSingle();
+
+    if (!pr2) {
+      console.error('[GY360 Webhook] No pending payment_request found for ref:', reference);
+      return new Response('OK', { status: 200 });
+    }
+    // Use pr2
+    return await processPayment(supabase, pr2, reference, amountKes, data);
+  }
+
+  return await processPayment(supabase, pr, reference, amountKes, data);
+});
+
+async function processPayment(supabase: any, pr: any, reference: string, amountKes: number, paystackData: any) {
   const orgId = pr.org_id;
   const paymentType = pr.payment_type || '';
   const today = new Date().toISOString().split('T')[0];
 
-  // ── AUTO-ACTIVATE based on payment_type ──
+  console.log('[GY360 Webhook] Processing payment_request id:', pr.id, 'type:', paymentType);
+
   try {
     if (paymentType.startsWith('subscription_') || paymentType === 'subscription') {
-      // Extract plan from payment_type e.g. 'subscription_basic' → 'basic'
-      const plan = paymentType.includes('_') ? paymentType.split('_')[1] : 'basic';
-
-      // Calculate expiry: 1 year from today
+      const plan = paymentType.includes('_') ? paymentType.split('_').slice(1).join('_') : 'basic';
       const expiry = new Date();
       expiry.setFullYear(expiry.getFullYear() + 1);
       const expiryStr = expiry.toISOString().split('T')[0];
 
-      await supabase.from('organisations').update({
+      const { error: orgErr } = await supabase.from('organisations').update({
         plan,
         subscription_status: 'active',
         subscription_expires: expiryStr,
         trial_used: true,
       }).eq('id', orgId);
 
-      console.log(`[GY360 Paystack Webhook] Activated ${plan} plan for org ${orgId} until ${expiryStr}`);
+      if (orgErr) throw new Error('Org update failed: ' + orgErr.message);
+      console.log(`[GY360 Webhook] ✓ Activated ${plan} plan for org ${orgId} until ${expiryStr}`);
 
     } else if (paymentType.startsWith('sms_bundle_')) {
-      // e.g. 'sms_bundle_500' → add 500 SMS credits
       const smsCount = parseInt(paymentType.split('_')[2]) || 0;
       if (smsCount > 0) {
-        // Atomic increment of sms_bundle
         const { data: orgData } = await supabase
-          .from('organisations')
-          .select('sms_bundle')
-          .eq('id', orgId)
-          .single();
-
-        await supabase.from('organisations').update({
-          sms_bundle: (orgData?.sms_bundle || 0) + smsCount
-        }).eq('id', orgId);
-
-        console.log(`[GY360 Paystack Webhook] Credited ${smsCount} SMS to org ${orgId}`);
+          .from('organisations').select('sms_bundle').eq('id', orgId).single();
+        const newCount = (orgData?.sms_bundle || 0) + smsCount;
+        const { error: smsErr } = await supabase.from('organisations')
+          .update({ sms_bundle: newCount }).eq('id', orgId);
+        if (smsErr) throw new Error('SMS bundle update failed: ' + smsErr.message);
+        console.log(`[GY360 Webhook] ✓ Credited ${smsCount} SMS to org ${orgId} (new total: ${newCount})`);
       }
     }
 
-    // Handle combo orders (plan + sms_bundle in notes)
-    // e.g. notes: 'subscription_basic + sms_bundle_200'
-    if (pr.notes && pr.notes.includes('+')) {
-      const parts = pr.notes.split('+').map(p => p.trim());
+    // Handle combo orders — parse notes for additional items
+    if (pr.notes && pr.notes.includes('sms_bundle_') && !paymentType.startsWith('sms_bundle_')) {
+      const parts = pr.notes.split('+').map((p: string) => p.trim());
       for (const part of parts) {
-        if (part.startsWith('sms_bundle_') && !paymentType.startsWith('sms_bundle_')) {
+        if (part.startsWith('sms_bundle_')) {
           const smsCount = parseInt(part.split('_')[2]) || 0;
           if (smsCount > 0) {
             const { data: orgData } = await supabase.from('organisations').select('sms_bundle').eq('id', orgId).single();
             await supabase.from('organisations').update({ sms_bundle: (orgData?.sms_bundle || 0) + smsCount }).eq('id', orgId);
+            console.log(`[GY360 Webhook] ✓ Combo: credited additional ${smsCount} SMS`);
           }
         }
       }
     }
 
-    // Mark payment_request as approved
+    // Mark payment_request approved
     await supabase.from('payment_requests').update({
       status: 'approved',
       paystack_status: 'success',
-      mpesa_ref: data?.authorization?.receiver_bank_account_number || reference,
+      mpesa_ref: reference,
       approved_at: new Date().toISOString(),
-      notes: (pr.notes || '') + ` | Auto-approved via Paystack. Paystack ref: ${reference}`,
+      notes: (pr.notes || '') + ` | Auto-approved via Paystack webhook. ref: ${reference}`,
     }).eq('id', pr.id);
 
-    // Update bank balance (credit)
+    // Atomic bank balance credit
     await supabase.rpc('update_bank_balance', {
       p_org_id: orgId,
       p_amount: amountKes,
@@ -144,32 +176,32 @@ serve(async (req) => {
       p_date: today,
     });
 
-    // Log activity
+    // Activity log
     await supabase.from('activity_log').insert({
       org_id: orgId,
       user_id: null,
       user_name: 'Paystack Auto',
       user_role: 'system',
       action: 'PAYMENT AUTO-APPROVED',
-      details: `Paystack payment confirmed. Ksh ${amountKes.toLocaleString()} · ref ${reference} · type: ${paymentType}`,
+      details: `Ksh ${amountKes.toLocaleString()} · ${paymentType} · ref: ${reference}`,
       target_type: 'payment',
       target_id: pr.id,
       created_at: new Date().toISOString(),
     });
 
-  } catch(err) {
-    console.error('[GY360 Paystack Webhook] Activation error:', err.message);
-    // Don't return error — Paystack will retry if we return non-200
-    // Log the failure and return 200 to stop retries
+    console.log('[GY360 Webhook] ✓ Complete for ref:', reference);
+
+  } catch(err: any) {
+    console.error('[GY360 Webhook] Processing error:', err.message);
     await supabase.from('activity_log').insert({
       org_id: orgId,
       user_name: 'Paystack Webhook',
       user_role: 'system',
       action: 'WEBHOOK ERROR',
-      details: `Paystack webhook activation failed for ref ${reference}: ${err.message}`,
+      details: `Failed for ref ${reference}: ${err.message}`,
       created_at: new Date().toISOString(),
-    });
+    }).catch(() => {});
   }
 
   return new Response('OK', { status: 200 });
-});
+}
