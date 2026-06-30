@@ -734,9 +734,9 @@ async function loadSuperAdmin() {
       const pct = Math.round((smsValues[i] / maxSms) * 80);
       const label = new Date(m + '-01').toLocaleDateString('en-KE', { month: 'short' });
       return `<div class="sa-bar-wrap">
-        <div class="sa-bar-val">\${smsValues[i] > 0 ? smsValues[i] : ''}</div>
-        <div class="sa-bar" style="height:\${Math.max(pct,2)}px;background:\${i === 5 ? 'var(--teal)' : 'var(--teal-pale,#b2dfdb)'}"></div>
-        <div class="sa-bar-label">\${label}</div>
+        <div class="sa-bar-val">${smsValues[i] > 0 ? smsValues[i] : ''}</div>
+        <div class="sa-bar" style="height:${Math.max(pct,2)}px;background:${i === 5 ? 'var(--teal)' : 'var(--teal-pale,#b2dfdb)'}"></div>
+        <div class="sa-bar-label">${label}</div>
       </div>`;
     }).join('');
   }
@@ -755,9 +755,9 @@ async function loadSuperAdmin() {
       const rev = p.count * p.value;
       const pct = Math.round((rev / maxRevBar) * 80);
       return `<div class="sa-bar-wrap">
-        <div class="sa-bar-val">\${p.count > 0 ? p.count + ' org' + (p.count > 1 ? 's' : '') : ''}</div>
-        <div class="sa-bar" style="height:\${Math.max(pct, 2)}px;background:\${p.color}"></div>
-        <div class="sa-bar-label">\${p.label}</div>
+        <div class="sa-bar-val">${p.count > 0 ? p.count + ' org' + (p.count > 1 ? 's' : '') : ''}</div>
+        <div class="sa-bar" style="height:${Math.max(pct, 2)}px;background:${p.color}"></div>
+        <div class="sa-bar-label">${p.label}</div>
       </div>`;
     }).join('');
   }
@@ -777,14 +777,14 @@ async function loadSuperAdmin() {
       const pct = p.count / total;
       const dash = pct * circumference;
       const gap = circumference - dash;
-      paths += `<circle cx="\${cx}" cy="\${cy}" r="\${r}" fill="none" stroke="\${donutColors[p.label.toLowerCase()]||'#ccc'}" stroke-width="\${stroke}" stroke-dasharray="\${dash} \${gap}" stroke-dashoffset="\${-offset}" transform="rotate(-90 \${cx} \${cy})"/>`;
+      paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${donutColors[p.label.toLowerCase()]||'#ccc'}" stroke-width="${stroke}" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})"/>`;
       offset += dash;
     });
-    svgEl.innerHTML = paths + `<text x="\${cx}" y="\${cy + 5}" text-anchor="middle" font-size="13" font-weight="800" fill="#222">\${total}</text>`;
+    svgEl.innerHTML = paths + `<text x="${cx}" y="${cy + 5}" text-anchor="middle" font-size="13" font-weight="800" fill="#222">${total}</text>`;
   }
   if (legendEl) {
     legendEl.innerHTML = planData.map(p =>
-      `<div class="sa-donut-leg-item"><div class="sa-donut-dot" style="background:\${donutColors[p.label.toLowerCase()]}"></div><span style="flex:1">\${p.label}</span><strong>\${p.count}</strong></div>`
+      `<div class="sa-donut-leg-item"><div class="sa-donut-dot" style="background:${donutColors[p.label.toLowerCase()]}"></div><span style="flex:1">${p.label}</span><strong>${p.count}</strong></div>`
     ).join('');
   }
 
@@ -800,8 +800,8 @@ async function loadSuperAdmin() {
         return `<div class="sa-feed-item">
           <div class="sa-feed-dot"></div>
           <div>
-            <div class="sa-feed-text"><strong>\${h(a.action || '')}</strong> · \${h((a.details || '').slice(0, 60))\${(a.details||'').length > 60 ? '…' : ''}}</div>
-            <div class="sa-feed-time">\${h(a.user_name || 'System')} · \${timeStr}</div>
+            <div class="sa-feed-text"><strong>${h(a.action || '')}</strong> · ${h((a.details || '').slice(0, 60)) + ((a.details||'').length > 60 ? '…' : '')}</div>
+            <div class="sa-feed-time">${h(a.user_name || 'System')} · ${timeStr}</div>
           </div>
         </div>`;
       }).join('');
@@ -854,16 +854,16 @@ function filterSAOrgs(q) {
       ? '<span style="color:var(--danger);font-size:.65rem"> ⚠ Low</span>'
       : '';
 
-    return `<tr onclick="openSAOrgDetail('\${o.id}')">
+    return `<tr onclick="openSAOrgDetail('${o.id}')">
       <td>
-        <div style="font-weight:600;font-size:.82rem">\${h(o.name)}</div>
-        <div style="font-size:.65rem;color:var(--ink-faint);font-family:monospace">\${h(o.org_code||'—')}</div>
+        <div style="font-weight:600;font-size:.82rem">${h(o.name)}</div>
+        <div style="font-size:.65rem;color:var(--ink-faint);font-family:monospace">${h(o.org_code||'—')}</div>
       </td>
-      <td><span class="sa-plan \${o.plan||'starter'}">\${(o.plan||'starter').toUpperCase()}</span></td>
-      <td><span class="sa-status \${statusKey}">\${statusKey}</span></td>
-      <td style="font-weight:600">\${memberCount}</td>
-      <td>\${smsBundle.toLocaleString()} SMS\${smsBadge}</td>
-      <td style="font-size:.75rem">\${expDisplay}</td>
+      <td><span class="sa-plan ${o.plan||'starter'}">${(o.plan||'starter').toUpperCase()}</span></td>
+      <td><span class="sa-status ${statusKey}">${statusKey}</span></td>
+      <td style="font-weight:600">${memberCount}</td>
+      <td>${smsBundle.toLocaleString()} SMS${smsBadge}</td>
+      <td style="font-size:.75rem">${expDisplay}</td>
     </tr>`;
   }).join('');
 }
