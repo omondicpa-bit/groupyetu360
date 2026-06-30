@@ -943,18 +943,14 @@ async function checkSubscriptionStatus() {
 }
 
 // Fetch platform settings (promo toggle, payment mode, payment details)
-// SECURITY: explicitly exclude secret/API key columns — they must never reach
-// the browser. Only non-sensitive display/config fields are selected here.
-// SA's loadSASupport() uses its own separate query when it needs to check
-// "is a key saved" (it only checks truthiness via a server round-trip flag).
+// SECURITY: this runs on every login for every role. platform_settings itself is now
+// locked to superadmin-only SELECT at the RLS level, so regular users query the
+// platform_settings_public VIEW instead — it only exposes non-sensitive columns
+// (no API keys, no Paystack secret, no Daraja credentials).
 let _platformSettings = {};
 async function loadPlatformSettings() {
   try {
-    const { data } = await sb.from('platform_settings').select(
-      'id,support_phone,support_email,bank_name,bank_account,bank_account_name,paybill,whatsapp,' +
-      'sms_provider,payment_mode,manual_enabled,paystack_enabled,paystack_public_key,' +
-      'promo_active,promo_days,daraja_env,daraja_enabled,total_orgs,total_members,updated_at'
-    ).limit(1).maybeSingle();
+    const { data } = await sb.from('platform_settings_public').select('*').limit(1).maybeSingle();
     _platformSettings = data || {};
   } catch(e) {}
 }

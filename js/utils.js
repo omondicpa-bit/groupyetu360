@@ -232,10 +232,10 @@ async function loadSupport() {
   let email = 'info@groupyetu.org';
   let whatsapp = 'https://wa.me/254702903544?text=Hello%20GroupYetu360%20Support';
   try {
-    // SECURITY: every user (member, officer, admin) calls this page — never select '*'
-    // here, since platform_settings holds SMS/Paystack/Daraja secrets. Only fetch
-    // the three public-facing fields this page actually renders.
-    const { data: settings } = await sb.from('platform_settings')
+    // SECURITY: every user (member, officer, admin) calls this page, and the real
+    // platform_settings table is now superadmin-only at the RLS level. Query the
+    // public view instead — it only ever exposes non-sensitive columns by design.
+    const { data: settings } = await sb.from('platform_settings_public')
       .select('support_phone,support_email,whatsapp').maybeSingle();
     if (settings) {
       phone = settings.support_phone || phone;
