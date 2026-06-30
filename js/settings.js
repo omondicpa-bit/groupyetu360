@@ -629,136 +629,246 @@ async function saveContribType() {
 var _saOrgs = [], _saMemberCount = {};
 
 async function loadSuperAdmin() {
-  document.getElementById('sa-org-list').innerHTML = '<div class="loading"><div class="spinner"></div>Loading…</div>';
-  let pendingRes = { data: [] };
-  try { pendingRes = await sb.from('payment_requests').select('id,organisations(name)').eq('status','pending'); } catch(e) {}
-  const [orgsRes, membersRes] = await Promise.all([
-    sb.from('organisations').select('*').order('created_at',{ascending:false}),
+  // ── Fetch all platform data in parallel ──
+  const today = new Date().toISOString().split('T')[0];
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  const thisYear = new Date().getFullYear();
+
+  // Build last 6 months labels
+  const months6 = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(); d.setMonth(d.getMonth() - i);
+    months6.push(d.toISOString().slice(0, 7));
+  }
+
+  const [orgsRes, membersRes, smsRes, pendingRes, activityRes] = await Promise.all([
+    sb.from('organisations').select('*').order('created_at', { ascending: false }),
     sb.from('members').select('id,org_id'),
+    sb.from('sms_usage').select('org_id,month,messages_sent').in('month', months6),
+    sb.from('payment_requests').select('id,organisations(name)').eq('status', 'pending'),
+    sb.from('activity_log').select('action,details,created_at,user_name').order('created_at', { ascending: false }).limit(12),
   ]);
+
   _saOrgs = orgsRes.data || [];
   const members = membersRes.data || [];
-  _saMemberCount = {};
-  members.forEach(m => { _saMemberCount[m.org_id] = (_saMemberCount[m.org_id]||0)+1; });
-
-  const planRevenue = { starter:0, basic:3000, standard:6000, pro:12000 };
-  const revenue = _saOrgs.reduce((s,o) => s+(planRevenue[o.plan]||0), 0);
-  document.getElementById('sa-orgs').textContent = _saOrgs.length;
-  document.getElementById('sa-members').textContent = members.length;
-  document.getElementById('sa-plans').textContent = _saOrgs.filter(o=>o.plan!=='starter').length + ' paid';
-  document.getElementById('sa-revenue').textContent = 'Ksh '+revenue.toLocaleString();
-
-  // Pending payments alert
+  const smsData = smsRes.data || [];
   const pendingPays = pendingRes.data || [];
-  const alertEl = document.getElementById('sa-payment-alert');
-  const alertText = document.getElementById('sa-payment-alert-text');
-  if (alertEl) {
-    alertEl.style.display = pendingPays.length ? 'flex' : 'none';
-    if (pendingPays.length && alertText) {
-      const names = [...new Set(pendingPays.map(p=>p.organisations?.name).filter(Boolean))];
-      alertText.textContent = `${pendingPays.length} request${pendingPays.length>1?'s':''} from: ${names.join(', ')}`;
+  const activityItems = activityRes.data || [];
+
+  // Member count per org
+  _saMemberCount = {};
+  members.forEach(m => { _saMemberCount[m.org_id] = (_saMemberCount[m.org_id] || 0) + 1; });
+
+  // ── Derived stats ──
+  const planRevenue = { starter: 0, basic: 3000, standard: 6000, pro: 12000 };
+  const revenue = _saOrgs.reduce((s, o) => s + (planRevenue[o.plan] || 0), 0);
+  const paidOrgs = _saOrgs.filter(o => o.plan !== 'starter');
+  const trialOrgs = _saOrgs.filter(o => o.subscription_status === 'trial' || (!o.subscription_status && o.plan === 'starter'));
+  const activeOrgs = _saOrgs.filter(o => o.subscription_status === 'active');
+  const suspendedOrgs = _saOrgs.filter(o => o.status === 'suspended');
+  const newThisMonth = _saOrgs.filter(o => o.created_at?.slice(0, 7) === thisMonth);
+  const thirtyDaysLater = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const expiringSoon = _saOrgs.filter(o => o.subscription_expires && o.subscription_expires <= thirtyDaysLater && o.subscription_expires >= today);
+  const totalSmsBalance = _saOrgs.reduce((s, o) => s + (o.sms_bundle || 0), 0);
+  const smsSentThisMonth = smsData.filter(r => r.month === thisMonth).reduce((s, r) => s + (r.messages_sent || 0), 0);
+
+  // ── KPI Strip ──
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('sa-orgs', _saOrgs.length);
+  set('sa-members', members.length.toLocaleString());
+  set('sa-plans', paidOrgs.length + ' paid');
+  set('sa-revenue', 'Ksh ' + revenue.toLocaleString());
+  set('sa-sms-month', smsSentThisMonth.toLocaleString());
+  set('sa-trials', trialOrgs.length);
+  set('sa-sms-balance-total', 'Ksh balance: ' + totalSmsBalance.toLocaleString() + ' SMS');
+  set('sa-last-updated', 'EPH Technologies — GroupYetu360 · Updated ' + new Date().toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' }));
+
+  // New orgs this month badge
+  const newBadge = document.getElementById('sa-orgs-new');
+  if (newBadge) { newBadge.textContent = '+' + newThisMonth.length; newBadge.style.display = newThisMonth.length ? '' : 'none'; }
+
+  // Expiring badge
+  const expCount = document.getElementById('sa-expiring-count');
+  const expLabel = document.getElementById('sa-expiring-label');
+  if (expCount) { expCount.textContent = expiringSoon.length + ' expiring'; expCount.style.display = expiringSoon.length ? '' : 'none'; }
+  if (expLabel) expLabel.textContent = expiringSoon.length ? 'within 30 days' : 'none expiring soon';
+
+  // ── Health panel ──
+  set('ph-active', activeOrgs.length);
+  set('ph-trial', trialOrgs.length);
+  set('ph-suspended', suspendedOrgs.length);
+  set('ph-expiring', expiringSoon.length || '✓ None');
+  set('ph-sms-total', totalSmsBalance.toLocaleString() + ' SMS');
+  set('ph-pending', pendingPays.length || '✓ None');
+
+  // ── Alert banners ──
+  const payAlert = document.getElementById('sa-payment-alert');
+  const payAlertText = document.getElementById('sa-payment-alert-text');
+  if (payAlert) {
+    payAlert.style.display = pendingPays.length ? 'flex' : 'none';
+    if (pendingPays.length && payAlertText) {
+      const names = [...new Set(pendingPays.map(p => p.organisations?.name).filter(Boolean))];
+      payAlertText.textContent = pendingPays.length + ' request' + (pendingPays.length > 1 ? 's' : '') + ' from: ' + names.join(', ');
+    }
+  }
+  const expAlert = document.getElementById('sa-expiring-alert');
+  const expTitle = document.getElementById('sa-expiring-title');
+  const expNames = document.getElementById('sa-expiring-names');
+  if (expAlert) {
+    expAlert.style.display = expiringSoon.length ? 'flex' : 'none';
+    if (expiringSoon.length) {
+      if (expTitle) expTitle.textContent = expiringSoon.length + ' subscription' + (expiringSoon.length > 1 ? 's' : '') + ' expiring within 30 days';
+      if (expNames) expNames.textContent = expiringSoon.map(o => o.name + ' (' + Math.ceil((new Date(o.subscription_expires) - new Date()) / 86400000) + 'd)').join(' · ');
     }
   }
 
-  // Expiring soon alert (within 30 days)
-  const soon = _saOrgs.filter(o => {
-    if (!o.subscription_expires || o.plan==='starter') return false;
-    const days = Math.ceil((new Date(o.subscription_expires)-new Date())/86400000);
-    return days >= 0 && days <= 30;
-  });
-  const expEl = document.getElementById('sa-expiring-alert');
-  if (expEl && soon.length) {
-    expEl.style.display = 'block';
-    expEl.innerHTML = `<div style="background:var(--warning-pale);border:1.5px solid var(--warning);border-radius:6px;padding:.85rem 1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
-      <div><span style="font-weight:700;color:var(--warning)">⏱ ${soon.length} subscription${soon.length>1?'s':''} expiring within 30 days</span>
-      <div style="font-size:.75rem;color:var(--ink-soft);margin-top:.2rem">${soon.map(o=>`${o.name} (${Math.ceil((new Date(o.subscription_expires)-new Date())/86400000)}d)`).join(' · ')}</div></div>
-      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('sa-plan-filter').value='';document.getElementById('sa-status-filter').value='active';filterSAOrgs('')" style="font-size:.72rem">View All Active</button>
-    </div>`;
-  } else if (expEl) expEl.style.display = 'none';
+  // ── SMS Bar Chart (last 6 months) ──
+  const smsByMonth = {};
+  months6.forEach(m => { smsByMonth[m] = 0; });
+  smsData.forEach(r => { if (smsByMonth[r.month] !== undefined) smsByMonth[r.month] += r.messages_sent || 0; });
+  const smsValues = months6.map(m => smsByMonth[m]);
+  const maxSms = Math.max(...smsValues, 1);
+  const smsChartEl = document.getElementById('sa-sms-chart');
+  if (smsChartEl) {
+    smsChartEl.innerHTML = months6.map((m, i) => {
+      const pct = Math.round((smsValues[i] / maxSms) * 80);
+      const label = new Date(m + '-01').toLocaleDateString('en-KE', { month: 'short' });
+      return `<div class="sa-bar-wrap">
+        <div class="sa-bar-val">\${smsValues[i] > 0 ? smsValues[i] : ''}</div>
+        <div class="sa-bar" style="height:\${Math.max(pct,2)}px;background:\${i === 5 ? 'var(--teal)' : 'var(--teal-pale,#b2dfdb)'}"></div>
+        <div class="sa-bar-label">\${label}</div>
+      </div>`;
+    }).join('');
+  }
 
+  // ── Revenue Bar Chart (plan breakdown) ──
+  const planData = [
+    { label: 'Starter', count: _saOrgs.filter(o => o.plan === 'starter').length, value: 0, color: '#e0e0e0' },
+    { label: 'Basic', count: _saOrgs.filter(o => o.plan === 'basic').length, value: 3000, color: 'var(--teal)' },
+    { label: 'Standard', count: _saOrgs.filter(o => o.plan === 'standard').length, value: 6000, color: '#7c4dff' },
+    { label: 'Pro', count: _saOrgs.filter(o => o.plan === 'pro').length, value: 12000, color: 'var(--maroon)' },
+  ];
+  const maxRevBar = Math.max(...planData.map(p => p.count * p.value), 1);
+  const revChartEl = document.getElementById('sa-revenue-chart');
+  if (revChartEl) {
+    revChartEl.innerHTML = planData.map(p => {
+      const rev = p.count * p.value;
+      const pct = Math.round((rev / maxRevBar) * 80);
+      return `<div class="sa-bar-wrap">
+        <div class="sa-bar-val">\${p.count > 0 ? p.count + ' org' + (p.count > 1 ? 's' : '') : ''}</div>
+        <div class="sa-bar" style="height:\${Math.max(pct, 2)}px;background:\${p.color}"></div>
+        <div class="sa-bar-label">\${p.label}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Plan Distribution Donut ──
+  const donutColors = { starter: '#e0e0e0', basic: '#2a9d8f', standard: '#7c4dff', pro: '#7a1212' };
+  const donutData = planData.filter(p => p.count > 0);
+  const total = donutData.reduce((s, p) => s + p.count, 0) || 1;
+  const svgEl = document.getElementById('sa-donut-svg');
+  const legendEl = document.getElementById('sa-donut-legend');
+  if (svgEl && total > 0) {
+    const cx = 45, cy = 45, r = 32, stroke = 14;
+    const circumference = 2 * Math.PI * r;
+    let offset = 0;
+    let paths = '';
+    donutData.forEach(p => {
+      const pct = p.count / total;
+      const dash = pct * circumference;
+      const gap = circumference - dash;
+      paths += `<circle cx="\${cx}" cy="\${cy}" r="\${r}" fill="none" stroke="\${donutColors[p.label.toLowerCase()]||'#ccc'}" stroke-width="\${stroke}" stroke-dasharray="\${dash} \${gap}" stroke-dashoffset="\${-offset}" transform="rotate(-90 \${cx} \${cy})"/>`;
+      offset += dash;
+    });
+    svgEl.innerHTML = paths + `<text x="\${cx}" y="\${cy + 5}" text-anchor="middle" font-size="13" font-weight="800" fill="#222">\${total}</text>`;
+  }
+  if (legendEl) {
+    legendEl.innerHTML = planData.map(p =>
+      `<div class="sa-donut-leg-item"><div class="sa-donut-dot" style="background:\${donutColors[p.label.toLowerCase()]}"></div><span style="flex:1">\${p.label}</span><strong>\${p.count}</strong></div>`
+    ).join('');
+  }
+
+  // ── Activity Feed ──
+  const feedEl = document.getElementById('sa-activity-feed');
+  if (feedEl) {
+    if (!activityItems.length) {
+      feedEl.innerHTML = '<div style="color:var(--ink-faint);font-size:.72rem">No activity yet</div>';
+    } else {
+      feedEl.innerHTML = activityItems.map(a => {
+        const when = new Date(a.created_at);
+        const timeStr = when.toLocaleDateString('en-KE', { day: 'numeric', month: 'short' }) + ' ' + when.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' });
+        return `<div class="sa-feed-item">
+          <div class="sa-feed-dot"></div>
+          <div>
+            <div class="sa-feed-text"><strong>\${h(a.action || '')}</strong> · \${h((a.details || '').slice(0, 60))\${(a.details||'').length > 60 ? '…' : ''}}</div>
+            <div class="sa-feed-time">\${h(a.user_name || 'System')} · \${timeStr}</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // ── Render org table ──
   filterSAOrgs('');
 }
 
 function filterSAOrgs(q) {
   const planFilter = document.getElementById('sa-plan-filter')?.value || '';
   const statusFilter = document.getElementById('sa-status-filter')?.value || '';
-  const query = (q||'').toLowerCase();
+  const query = (q || '').toLowerCase();
+
   const filtered = _saOrgs.filter(o => {
     const matchQ = !query || o.name?.toLowerCase().includes(query) || o.org_code?.toLowerCase().includes(query) || o.reg_number?.toLowerCase().includes(query);
     const matchPlan = !planFilter || o.plan === planFilter;
-    const matchStatus = !statusFilter || o.status === statusFilter;
+    const matchStatus = !statusFilter || o.status === statusFilter || o.subscription_status === statusFilter;
     return matchQ && matchPlan && matchStatus;
   });
 
   const countEl = document.getElementById('sa-org-count');
-  if (countEl) countEl.textContent = `${filtered.length} of ${_saOrgs.length} organisations`;
+  if (countEl) countEl.textContent = filtered.length + ' of ' + _saOrgs.length + ' orgs';
 
-  const listEl = document.getElementById('sa-org-list');
-  if (!listEl) return;
-  if (!filtered.length) { listEl.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--ink-faint)">No organisations match filters</div>'; return; }
+  const tbody = document.getElementById('sa-org-list');
+  if (!tbody) return;
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--ink-faint)">No organisations match</td></tr>';
+    return;
+  }
 
-  const today = new Date();
-  listEl.innerHTML = filtered.map(o => {
-    const memberCount = _saMemberCount[o.id]||0;
-    const expires = o.subscription_expires ? new Date(o.subscription_expires) : null;
-    const daysLeft = expires ? Math.ceil((expires-today)/86400000) : null;
-    const expiryBadge = !expires ? '' :
-      daysLeft < 0 ? '<span class="badge badge-red" style="font-size:.6rem">EXPIRED</span>' :
-      daysLeft <= 30 ? `<span class="badge badge-warn" style="font-size:.6rem">${daysLeft}d left</span>` : '';
-    const planBadge = `<span class="badge ${o.plan==='pro'?'badge-gold':o.plan==='standard'?'badge-maroon':o.plan==='basic'?'badge-green':'badge-grey'}">${o.plan}</span>`;
-    const statusBadge = `<span class="badge ${o.status==='active'?'badge-green':o.status==='suspended'?'badge-red':'badge-grey'}">${o.status}</span>`;
-    return `<div class="org-row" style="cursor:pointer" onclick="openOrgDetail('${o.id}')">
-      <div>
-        <div class="org-name">${h(o.name.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()))}</div>
-        <div class="org-meta">${h(o.reg_number)||'No reg'} · ${memberCount} members · <strong style="color:var(--maroon)">${h(o.org_code)||'—'}</strong> · ${h(o.email)||'no email'}</div>
-      </div>
-      <div class="org-actions" onclick="event.stopPropagation()">
-        ${planBadge} ${statusBadge} ${expiryBadge}
-        <button class="btn btn-primary btn-sm" onclick="openOrgDetail('${o.id}')" style="font-size:.7rem">Open →</button>
-      </div>
-    </div>`;
+  const today = new Date().toISOString().split('T')[0];
+  const thirtyDays = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+  tbody.innerHTML = filtered.map(o => {
+    const memberCount = _saMemberCount[o.id] || 0;
+    const statusKey = o.subscription_status === 'active' ? 'active'
+      : o.subscription_status === 'trial' ? 'trial'
+      : o.status === 'suspended' ? 'suspended'
+      : 'trial';
+    const expires = o.subscription_expires;
+    const expDisplay = expires
+      ? (expires <= today ? '<span style="color:var(--danger)">Expired</span>'
+        : expires <= thirtyDays ? '<span style="color:var(--warning)">' + expires + '</span>'
+        : expires)
+      : '—';
+    const smsBundle = (o.sms_bundle || 0);
+    const smsBadge = smsBundle < 50 && smsBundle > 0
+      ? '<span style="color:var(--danger);font-size:.65rem"> ⚠ Low</span>'
+      : '';
+
+    return `<tr onclick="openSAOrgDetail('\${o.id}')">
+      <td>
+        <div style="font-weight:600;font-size:.82rem">\${h(o.name)}</div>
+        <div style="font-size:.65rem;color:var(--ink-faint);font-family:monospace">\${h(o.org_code||'—')}</div>
+      </td>
+      <td><span class="sa-plan \${o.plan||'starter'}">\${(o.plan||'starter').toUpperCase()}</span></td>
+      <td><span class="sa-status \${statusKey}">\${statusKey}</span></td>
+      <td style="font-weight:600">\${memberCount}</td>
+      <td>\${smsBundle.toLocaleString()} SMS\${smsBadge}</td>
+      <td style="font-size:.75rem">\${expDisplay}</td>
+    </tr>`;
   }).join('');
 }
 
-async function toggleOrgStatus(orgId, currentStatus) {
-  const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
-  const { error } = await sb.from('organisations').update({ status: newStatus }).eq('id', orgId);
-  if (error) { toast('Error: '+error.message); return; }
-  toast('Organisation '+newStatus);
-  loadSuperAdmin();
-}
 
-async function saveOrg() {
-  const plan = document.getElementById('ao-plan').value;
-  // Trial only applies to paid plans and only if promo is active
-  const isPaidPlan = plan !== 'starter';
-  const promoOn = isPromoActive();
-  const payload = {
-    name: document.getElementById('ao-name').value.trim(),
-    reg_number: document.getElementById('ao-reg').value.trim(),
-    paybill: document.getElementById('ao-paybill').value.trim(),
-    plan,
-    status: document.getElementById('ao-status').value,
-    subscription_status: isPaidPlan ? 'trial' : 'active',
-    subscription_expires: isPaidPlan && promoOn ? (() => { const d = new Date(); d.setDate(d.getDate()+60); return d.toISOString().split('T')[0]; })() : null,
-    trial_used: isPaidPlan,
-    trial_start_date: isPaidPlan ? new Date().toISOString().split('T')[0] : null,
-    sms_bundle: 0
-  };
-  if (!payload.name) { toast('Please enter an organisation name'); return; }
-  const { error } = await sb.from('organisations').insert(payload);
-  if (error) { toast('Error: '+error.message); return; }
-  const msg = isPaidPlan && promoOn
-    ? `✓ Organisation onboarded on ${plan.toUpperCase()} — 60-day trial until ${payload.subscription_expires}`
-    : isPaidPlan
-    ? `✓ Organisation onboarded on ${plan.toUpperCase()} — payment required`
-    : `✓ Organisation onboarded on Starter (free)`;
-  toast(msg);
-  closeModal('addOrg');
-  loadSuperAdmin();
-}
-
-// ── TABS ──
 function switchTab(el, panelId) {
   const container = el.closest('.page') || el.closest('.modal') || el.closest('.modal-body') || el.parentElement.parentElement;
   if (container) {

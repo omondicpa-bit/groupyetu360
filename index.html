@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026063002">
+  <link rel="stylesheet" href="style.css?v=2026063003">
 </head>
 <body>
 
@@ -1839,59 +1839,250 @@
     <!-- SUPERADMIN -->
     <!-- ══ SUPERADMIN: PLATFORM OVERVIEW ══ -->
     <div class="page" id="page-superadmin">
-      <div class="section-header">
-        <div><div class="section-title">Platform Overview</div><div class="section-sub">EPH Technologies — GroupYetu360</div></div>
-        <button class="btn btn-primary btn-sm" onclick="showModal('addOrg')" style="background:var(--teal)">+ Onboard Org</button>
+      <style>
+        /* ── SA DASHBOARD ── */
+        .sa-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:.75rem}
+        .sa-topbar-title{font-size:1.25rem;font-weight:800;color:var(--ink);letter-spacing:-.02em}
+        .sa-topbar-sub{font-size:.72rem;color:var(--ink-faint);margin-top:.1rem}
+        .sa-topbar-actions{display:flex;gap:.5rem;align-items:center}
+        /* Alert banners */
+        .sa-alert{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.85rem 1.1rem;border-radius:8px;margin-bottom:.85rem;border:1.5px solid}
+        .sa-alert-warn{background:#fffbe6;border-color:#f0c040;color:#7a5c00}
+        .sa-alert-danger{background:#fdf0f0;border-color:#e88;color:#7a1212}
+        .sa-alert-icon{font-size:1.3rem;flex-shrink:0}
+        .sa-alert-text{flex:1}
+        .sa-alert-title{font-size:.82rem;font-weight:700}
+        .sa-alert-sub{font-size:.72rem;opacity:.8;margin-top:.1rem}
+        /* KPI grid */
+        .sa-kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:.75rem;margin-bottom:1.1rem}
+        @media(max-width:900px){.sa-kpi-grid{grid-template-columns:repeat(3,1fr)}}
+        @media(max-width:600px){.sa-kpi-grid{grid-template-columns:repeat(2,1fr)}}
+        .sa-kpi{background:#fff;border:1px solid var(--border);border-radius:10px;padding:.85rem 1rem;position:relative;overflow:hidden}
+        .sa-kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+        .sa-kpi.kpi-orgs::before{background:var(--maroon)}
+        .sa-kpi.kpi-members::before{background:var(--teal)}
+        .sa-kpi.kpi-paid::before{background:#4caf50}
+        .sa-kpi.kpi-revenue::before{background:#f5a623}
+        .sa-kpi.kpi-sms::before{background:#7c4dff}
+        .sa-kpi.kpi-new::before{background:#0288d1}
+        .sa-kpi-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.3rem}
+        .sa-kpi-value{font-size:1.55rem;font-weight:800;color:var(--ink);line-height:1}
+        .sa-kpi-sub{font-size:.68rem;color:var(--ink-faint);margin-top:.3rem}
+        .sa-kpi-delta{display:inline-block;font-size:.65rem;font-weight:700;padding:.1rem .35rem;border-radius:4px;margin-left:.35rem}
+        .sa-kpi-delta.up{background:#e6f4ef;color:#1e7a50}
+        .sa-kpi-delta.warn{background:#fff3cd;color:#7a5c00}
+        /* Charts row */
+        .sa-charts-row{display:grid;grid-template-columns:1fr 1fr 320px;gap:.85rem;margin-bottom:1rem}
+        @media(max-width:1100px){.sa-charts-row{grid-template-columns:1fr 1fr}}
+        @media(max-width:700px){.sa-charts-row{grid-template-columns:1fr}}
+        .sa-chart-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:1rem 1.1rem}
+        .sa-chart-title{font-size:.78rem;font-weight:700;color:var(--ink);margin-bottom:.1rem}
+        .sa-chart-sub{font-size:.65rem;color:var(--ink-faint);margin-bottom:.85rem}
+        /* Bar chart */
+        .sa-bar-chart{display:flex;align-items:flex-end;gap:6px;height:80px}
+        .sa-bar-wrap{display:flex;flex-direction:column;align-items:center;flex:1;gap:4px}
+        .sa-bar{border-radius:3px 3px 0 0;width:100%;transition:height .4s;min-height:2px}
+        .sa-bar-label{font-size:.6rem;color:var(--ink-faint);white-space:nowrap}
+        .sa-bar-val{font-size:.62rem;font-weight:700;color:var(--ink-soft)}
+        /* Donut chart */
+        .sa-donut-wrap{display:flex;align-items:center;gap:1rem}
+        .sa-donut-legend{display:flex;flex-direction:column;gap:.4rem;flex:1}
+        .sa-donut-leg-item{display:flex;align-items:center;gap:.4rem;font-size:.7rem;color:var(--ink-soft)}
+        .sa-donut-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+        /* Org table */
+        .sa-org-table-wrap{background:#fff;border:1px solid var(--border);border-radius:10px;margin-bottom:1rem}
+        .sa-org-table-head{display:flex;align-items:center;justify-content:space-between;padding:.85rem 1.1rem;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:.5rem}
+        .sa-org-table-title{font-size:.82rem;font-weight:700;color:var(--ink)}
+        .sa-org-table-controls{display:flex;gap:.4rem;flex-wrap:wrap}
+        .sa-org-table{width:100%;border-collapse:collapse;font-size:.78rem}
+        .sa-org-table th{padding:.6rem 1rem;text-align:left;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-faint);border-bottom:1px solid var(--border);background:#fafafa}
+        .sa-org-table td{padding:.7rem 1rem;border-bottom:1px solid var(--border);color:var(--ink);vertical-align:middle}
+        .sa-org-table tr:last-child td{border-bottom:none}
+        .sa-org-table tr:hover td{background:#fafafa;cursor:pointer}
+        /* Status pill */
+        .sa-status{display:inline-block;padding:.15rem .55rem;border-radius:12px;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+        .sa-status.active{background:#e6f4ef;color:#1e7a50}
+        .sa-status.trial{background:#fff3cd;color:#7a5c00}
+        .sa-status.suspended{background:#fde8e8;color:#7a1212}
+        .sa-status.expired{background:#f5f5f5;color:#888}
+        /* Plan badge */
+        .sa-plan{display:inline-block;padding:.12rem .45rem;border-radius:4px;font-size:.62rem;font-weight:700}
+        .sa-plan.pro{background:var(--maroon);color:#fff}
+        .sa-plan.standard{background:#4a148c;color:#fff}
+        .sa-plan.basic{background:var(--teal);color:#fff}
+        .sa-plan.starter{background:#eee;color:#666}
+        /* Activity feed */
+        .sa-feed-item{display:flex;align-items:flex-start;gap:.65rem;padding:.6rem 0;border-bottom:1px solid var(--border)}
+        .sa-feed-item:last-child{border-bottom:none}
+        .sa-feed-dot{width:8px;height:8px;border-radius:50%;background:var(--teal);flex-shrink:0;margin-top:.35rem}
+        .sa-feed-text{font-size:.75rem;color:var(--ink-soft);line-height:1.4}
+        .sa-feed-time{font-size:.65rem;color:var(--ink-faint);margin-top:.15rem}
+        /* Bottom grid */
+        .sa-bottom-grid{display:grid;grid-template-columns:1fr 340px;gap:.85rem}
+        @media(max-width:800px){.sa-bottom-grid{grid-template-columns:1fr}}
+        /* Responsive table scroll */
+        .sa-table-scroll{overflow-x:auto}
+        .sa-sms-row{display:flex;align-items:center;justify-content:space-between;padding:.55rem 0;border-bottom:1px solid var(--border);font-size:.78rem}
+        .sa-sms-row:last-child{border-bottom:none}
+        .sa-sms-bar-bg{flex:1;height:6px;background:#f0f0f0;border-radius:3px;margin:0 .75rem;overflow:hidden}
+        .sa-sms-bar-fill{height:100%;border-radius:3px;background:var(--teal);transition:width .4s}
+      </style>
+
+      <!-- ── TOP BAR ── -->
+      <div class="sa-topbar">
+        <div>
+          <div class="sa-topbar-title">Platform Control</div>
+          <div class="sa-topbar-sub" id="sa-last-updated">EPH Technologies — GroupYetu360</div>
+        </div>
+        <div class="sa-topbar-actions">
+          <button class="btn btn-secondary btn-sm" onclick="loadSuperAdmin()" style="font-size:.75rem">↻ Refresh</button>
+          <button class="btn btn-primary btn-sm" onclick="showModal('addOrg')" style="background:var(--teal)">+ Onboard Org</button>
+        </div>
       </div>
 
-      <!-- Pending payment alert -->
-      <div id="sa-payment-alert" style="display:none;background:var(--warning-pale);border:1.5px solid var(--warning);border-radius:6px;padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between">
-        <div style="display:flex;align-items:center;gap:.75rem">
-          <span style="font-size:1.4rem">💳</span>
-          <div>
-            <div style="font-size:.88rem;font-weight:700;color:var(--warning)">Pending Payment Requests</div>
-            <div style="font-size:.78rem;color:var(--ink-soft)" id="sa-payment-alert-text">Loading...</div>
+      <!-- ── ALERT BANNERS ── -->
+      <div id="sa-payment-alert" style="display:none" class="sa-alert sa-alert-warn">
+        <span class="sa-alert-icon">💳</span>
+        <div class="sa-alert-text">
+          <div class="sa-alert-title">Pending Payment Requests</div>
+          <div class="sa-alert-sub" id="sa-payment-alert-text">Loading...</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="showPage('sa_billing')" style="background:#c49a00;border:none;white-space:nowrap">Review Now →</button>
+      </div>
+      <div id="sa-expiring-alert" style="display:none" class="sa-alert sa-alert-danger">
+        <span class="sa-alert-icon">⏱</span>
+        <div class="sa-alert-text">
+          <div class="sa-alert-title" id="sa-expiring-title">Subscriptions expiring soon</div>
+          <div class="sa-alert-sub" id="sa-expiring-names"></div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="showPage('sa_billing')">View Billing →</button>
+      </div>
+
+      <!-- ── KPI STRIP ── -->
+      <div class="sa-kpi-grid">
+        <div class="sa-kpi kpi-orgs">
+          <div class="sa-kpi-label">Organisations</div>
+          <div class="sa-kpi-value" id="sa-orgs">—</div>
+          <div class="sa-kpi-sub"><span id="sa-orgs-new" class="sa-kpi-delta up"></span> this month</div>
+        </div>
+        <div class="sa-kpi kpi-members">
+          <div class="sa-kpi-label">Total Members</div>
+          <div class="sa-kpi-value" id="sa-members">—</div>
+          <div class="sa-kpi-sub" id="sa-members-active">across all orgs</div>
+        </div>
+        <div class="sa-kpi kpi-paid">
+          <div class="sa-kpi-label">Paid Plans</div>
+          <div class="sa-kpi-value" id="sa-plans">—</div>
+          <div class="sa-kpi-sub"><span id="sa-expiring-count" class="sa-kpi-delta warn" style="display:none"></span> <span id="sa-expiring-label"></span></div>
+        </div>
+        <div class="sa-kpi kpi-revenue">
+          <div class="sa-kpi-label">Est. Annual Revenue</div>
+          <div class="sa-kpi-value" id="sa-revenue" style="font-size:1.2rem">—</div>
+          <div class="sa-kpi-sub">subscription plans</div>
+        </div>
+        <div class="sa-kpi kpi-sms">
+          <div class="sa-kpi-label">SMS This Month</div>
+          <div class="sa-kpi-value" id="sa-sms-month">—</div>
+          <div class="sa-kpi-sub" id="sa-sms-balance-total">total balance across orgs</div>
+        </div>
+        <div class="sa-kpi kpi-new">
+          <div class="sa-kpi-label">Trial Orgs</div>
+          <div class="sa-kpi-value" id="sa-trials">—</div>
+          <div class="sa-kpi-sub">potential conversions</div>
+        </div>
+      </div>
+
+      <!-- ── CHARTS ROW ── -->
+      <div class="sa-charts-row">
+        <!-- SMS usage bar chart -->
+        <div class="sa-chart-card">
+          <div class="sa-chart-title">SMS Usage — Last 6 Months</div>
+          <div class="sa-chart-sub">Messages sent across all organisations</div>
+          <div class="sa-bar-chart" id="sa-sms-chart">
+            <div style="color:var(--ink-faint);font-size:.72rem;align-self:center">Loading…</div>
           </div>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="showPage('sa_billing')" style="background:var(--warning);border:none">Review Now →</button>
-      </div>
-
-      <!-- Platform stats -->
-      <div class="stats-row" style="margin-bottom:1.25rem">
-        <div class="stat-card gold"><div class="stat-label">Organisations</div><div class="stat-value" id="sa-orgs">—</div></div>
-        <div class="stat-card green"><div class="stat-label">Total Members</div><div class="stat-value" id="sa-members">—</div></div>
-        <div class="stat-card"><div class="stat-label">Paid Plans</div><div class="stat-value" id="sa-plans">—</div></div>
-        <div class="stat-card" style="border-top-color:var(--maroon)"><div class="stat-label">Est. Annual Revenue</div><div class="stat-value" id="sa-revenue">—</div></div>
-        <div class="stat-card" style="border-top-color:var(--teal)"><div class="stat-label">SMS Sent (Month)</div><div class="stat-value" id="sa-sms-month">—</div></div>
-      </div>
-
-      <!-- Expiring soon alert -->
-      <div id="sa-expiring-alert" style="display:none;margin-bottom:1rem"></div>
-
-      <!-- Org list with search + filters -->
-      <div class="card">
-        <div class="card-header">
-          <div><div class="card-title">All Organisations</div><div class="card-sub" id="sa-org-count">Loading…</div></div>
-          <div style="display:flex;gap:.5rem">
-            <select class="form-select" id="sa-plan-filter" onchange="filterSAOrgs(document.getElementById('sa-org-search').value)" style="font-size:.75rem;padding:.3rem .6rem;width:auto">
-              <option value="">All Plans</option>
-              <option value="starter">Starter</option>
-              <option value="basic">Basic</option>
-              <option value="standard">Standard</option>
-              <option value="pro">Pro</option>
-            </select>
-            <select class="form-select" id="sa-status-filter" onchange="filterSAOrgs(document.getElementById('sa-org-search').value)" style="font-size:.75rem;padding:.3rem .6rem;width:auto">
-              <option value="">All Status</option>
-              <option value="active">Active</option>
-              <option value="suspended">Suspended</option>
-              <option value="trial">Trial</option>
-            </select>
+        <!-- Revenue bar chart -->
+        <div class="sa-chart-card">
+          <div class="sa-chart-title">Revenue — Plan Breakdown</div>
+          <div class="sa-chart-sub">Annual subscription value per plan tier</div>
+          <div class="sa-bar-chart" id="sa-revenue-chart">
+            <div style="color:var(--ink-faint);font-size:.72rem;align-self:center">Loading…</div>
           </div>
         </div>
-        <div style="padding:.75rem 1.25rem .25rem">
-          <input class="search-input form-input" id="sa-org-search" placeholder="🔍 Search by name, code or reg number…" oninput="filterSAOrgs(this.value)" style="width:100%"/>
+        <!-- Plan donut -->
+        <div class="sa-chart-card">
+          <div class="sa-chart-title">Plan Distribution</div>
+          <div class="sa-chart-sub">Current orgs by plan</div>
+          <div class="sa-donut-wrap" style="margin-top:.5rem">
+            <svg id="sa-donut-svg" width="90" height="90" viewBox="0 0 90 90" style="flex-shrink:0"></svg>
+            <div class="sa-donut-legend" id="sa-donut-legend">
+              <div style="color:var(--ink-faint);font-size:.72rem">Loading…</div>
+            </div>
+          </div>
         </div>
-        <div id="sa-org-list"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+      </div>
+
+      <!-- ── BOTTOM GRID: Org table + Activity feed ── -->
+      <div class="sa-bottom-grid">
+        <!-- Org table -->
+        <div class="sa-org-table-wrap">
+          <div class="sa-org-table-head">
+            <div class="sa-org-table-title">All Organisations <span id="sa-org-count" style="font-size:.7rem;font-weight:400;color:var(--ink-faint);margin-left:.4rem"></span></div>
+            <div class="sa-org-table-controls">
+              <input class="form-input" id="sa-org-search" placeholder="Search…" oninput="filterSAOrgs(this.value)" style="font-size:.75rem;padding:.3rem .65rem;width:140px"/>
+              <select class="form-select" id="sa-plan-filter" onchange="filterSAOrgs(document.getElementById('sa-org-search').value)" style="font-size:.75rem;padding:.3rem .6rem;width:auto">
+                <option value="">All Plans</option>
+                <option value="starter">Starter</option>
+                <option value="basic">Basic</option>
+                <option value="standard">Standard</option>
+                <option value="pro">Pro</option>
+              </select>
+              <select class="form-select" id="sa-status-filter" onchange="filterSAOrgs(document.getElementById('sa-org-search').value)" style="font-size:.75rem;padding:.3rem .6rem;width:auto">
+                <option value="">All Status</option>
+                <option value="active">Active</option>
+                <option value="trial">Trial</option>
+                <option value="suspended">Suspended</option>
+              </select>
+            </div>
+          </div>
+          <div class="sa-table-scroll">
+            <table class="sa-org-table" id="sa-org-table-el">
+              <thead><tr>
+                <th>Organisation</th>
+                <th>Plan</th>
+                <th>Status</th>
+                <th>Members</th>
+                <th>SMS Balance</th>
+                <th>Expires</th>
+              </tr></thead>
+              <tbody id="sa-org-list"><tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--ink-faint)">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Right panel: Activity feed + SMS per org -->
+        <div style="display:flex;flex-direction:column;gap:.85rem">
+          <!-- Platform health summary -->
+          <div class="sa-chart-card" style="padding:.85rem 1rem">
+            <div class="sa-chart-title" style="margin-bottom:.65rem">Platform Health</div>
+            <div id="sa-health-items">
+              <div class="sa-sms-row"><span>Active orgs</span><strong id="ph-active">—</strong></div>
+              <div class="sa-sms-row"><span>Trial orgs</span><strong id="ph-trial">—</strong></div>
+              <div class="sa-sms-row"><span>Suspended</span><strong id="ph-suspended">—</strong></div>
+              <div class="sa-sms-row"><span>Expiring ≤30d</span><strong id="ph-expiring" style="color:var(--warning)">—</strong></div>
+              <div class="sa-sms-row"><span>Total SMS credit</span><strong id="ph-sms-total">—</strong></div>
+              <div class="sa-sms-row" style="border-bottom:none"><span>Pending payments</span><strong id="ph-pending" style="color:var(--maroon)">—</strong></div>
+            </div>
+          </div>
+          <!-- Recent activity feed -->
+          <div class="sa-chart-card" style="padding:.85rem 1rem;flex:1">
+            <div class="sa-chart-title" style="margin-bottom:.65rem">Recent Activity</div>
+            <div id="sa-activity-feed">
+              <div style="color:var(--ink-faint);font-size:.72rem">Loading…</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -4831,14 +5022,14 @@
 
 
   <!-- GroupYetu360 Scripts — load order matters -->
-  <script src="js/auth.js?v=2026063002"></script>
-  <script src="js/utils.js?v=2026063002"></script>
-  <script src="js/dashboard.js?v=2026063002"></script>
-  <script src="js/members.js?v=2026063002"></script>
-  <script src="js/finance.js?v=2026063002"></script>
-  <script src="js/settings.js?v=2026063002"></script>
-  <script src="js/portal.js?v=2026063002"></script>
-  <script src="js/modules.js?v=2026063002"></script>
+  <script src="js/auth.js?v=2026063003"></script>
+  <script src="js/utils.js?v=2026063003"></script>
+  <script src="js/dashboard.js?v=2026063003"></script>
+  <script src="js/members.js?v=2026063003"></script>
+  <script src="js/finance.js?v=2026063003"></script>
+  <script src="js/settings.js?v=2026063003"></script>
+  <script src="js/portal.js?v=2026063003"></script>
+  <script src="js/modules.js?v=2026063003"></script>
   <script>
     // Bootstrap — runs after all JS files are loaded
     async function start() {
