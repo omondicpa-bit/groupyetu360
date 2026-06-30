@@ -150,7 +150,7 @@ async function loadSettings() {
       <div class="table-wrap">
       <table><thead><tr><th>Type</th><th>Default Amt</th><th>Frequency</th><th>Income Type</th><th></th></tr></thead>
       <tbody>${allContribTypes.map(t=>`<tr>
-        <td><strong>${t.name}</strong>${t.notes?`<div style='font-size:.68rem;color:var(--ink-faint)'>${t.notes}</div>`:''}</td>
+        <td><strong>${h(t.name)}</strong>${t.notes?`<div style='font-size:.68rem;color:var(--ink-faint)'>${h(t.notes)}</div>`:''}</td>
         <td>Ksh ${t.is_variable?'Variable':Number(t.amount||0).toLocaleString()}</td>
         <td><span class="badge badge-grey">${t.frequency}</span></td>
         <td>${t.is_member_income===false?'<span class="badge badge-maroon" title="Goes to group funds only">Admin</span>':'<span class="badge badge-green" title="Adds to member balances">Member</span>'}</td>
@@ -709,8 +709,8 @@ function filterSAOrgs(q) {
     const statusBadge = `<span class="badge ${o.status==='active'?'badge-green':o.status==='suspended'?'badge-red':'badge-grey'}">${o.status}</span>`;
     return `<div class="org-row" style="cursor:pointer" onclick="openOrgDetail('${o.id}')">
       <div>
-        <div class="org-name">${o.name.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase())}</div>
-        <div class="org-meta">${o.reg_number||'No reg'} · ${memberCount} members · <strong style="color:var(--maroon)">${o.org_code||'—'}</strong> · ${o.email||'no email'}</div>
+        <div class="org-name">${h(o.name.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()))}</div>
+        <div class="org-meta">${h(o.reg_number)||'No reg'} · ${memberCount} members · <strong style="color:var(--maroon)">${h(o.org_code)||'—'}</strong> · ${h(o.email)||'no email'}</div>
       </div>
       <div class="org-actions" onclick="event.stopPropagation()">
         ${planBadge} ${statusBadge} ${expiryBadge}
@@ -1073,7 +1073,7 @@ async function loadSAFinance() {
     <table>
       <thead><tr><th>Organisation</th><th>Plan</th><th>Status</th><th>Annual Revenue</th><th>Renewal Due</th></tr></thead>
       <tbody>${(orgs||[]).map(o=>`<tr>
-        <td><strong>${o.name}</strong><div style="font-size:.68rem;color:var(--ink-faint)">${o.reg_number||'—'}</div></td>
+        <td><strong>${h(o.name)}</strong><div style="font-size:.68rem;color:var(--ink-faint)">${h(o.reg_number)||'—'}</div></td>
         <td><span class="badge ${o.plan==='pro'?'badge-gold':o.plan==='standard'?'badge-maroon':o.plan==='basic'?'badge-green':'badge-grey'}">${o.plan}</span></td>
         <td><span class="badge ${o.status==='active'?'badge-green':'badge-red'}">${o.status}</span></td>
         <td><strong>Ksh ${(planRevenue[o.plan]||0).toLocaleString()}</strong></td>
@@ -1244,7 +1244,7 @@ async function loadODFinance() {
     <div class="stat-card green"><div class="stat-label">Total Recorded</div><div class="stat-value" style="font-size:1.1rem">Ksh ${totalTxn.toLocaleString()}</div></div>
     <div class="stat-card"><div class="stat-label">Contribution Types</div><div class="stat-value">${cts.length}</div></div>`;
   if (txnEl) txnEl.innerHTML = txns.length ? `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Member</th><th>Type</th><th>Amount</th></tr></thead><tbody>
-    ${txns.map(t=>`<tr><td style="font-size:.72rem;color:var(--ink-faint)">${t.transaction_date||t.created_at?.split('T')[0]||'—'}</td><td style="font-size:.8rem">${t.members?.full_name||'—'}</td><td style="font-size:.75rem">${t.contribution_types?.name||'Payment'}</td><td style="font-weight:600">Ksh ${Number(t.amount).toLocaleString()}</td></tr>`).join('')}
+    ${txns.map(t=>`<tr><td style="font-size:.72rem;color:var(--ink-faint)">${t.transaction_date||t.created_at?.split('T')[0]||'—'}</td><td style="font-size:.8rem">${h(t.members?.full_name)||'—'}</td><td style="font-size:.75rem">${h(t.contribution_types?.name)||'Payment'}</td><td style="font-weight:600">Ksh ${Number(t.amount).toLocaleString()}</td></tr>`).join('')}
     </tbody></table></div>` : '<div style="padding:1.5rem;text-align:center;color:var(--ink-faint);font-size:.82rem">No transactions</div>';
   if (ctEl) ctEl.innerHTML = cts.length ? cts.map(ct=>`
     <div style="display:flex;justify-content:space-between;padding:.5rem 1.25rem;border-bottom:1px solid var(--border);font-size:.8rem">
@@ -1625,7 +1625,7 @@ async function openApproveModal(pendingId, userId, name, phone, email) {
     `👤 <strong>${name}</strong> · ${phone||'No phone'} · ${email||'No email'}`;
   // Populate existing members dropdown
   const memberOpts = '<option value="">— Create as new member —</option>' +
-    allMembers.map(m => `<option value="${m.id}">${m.full_name} (#${m.member_number||'—'})</option>`).join('');
+    allMembers.map(m => `<option value="${m.id}">${h(m.full_name)} (#${m.member_number||'—'})</option>`).join('');
   document.getElementById('approve-link-member').innerHTML = memberOpts;
   // Pre-fill member number
   document.getElementById('approve-member-num').value = String(allMembers.length + 1).padStart(3,'0');
@@ -1846,6 +1846,10 @@ var _billingCart = { plan: null, planAmount: 0, sms: 0, smsAmount: 0 };
 
 async function loadBilling() {
   if (!currentOrg?.id) return;
+  // Clear any orphaned Paystack poll interval from a previous visit to this page —
+  // prevents duplicate polling intervals stacking up if the user navigated away
+  // mid-payment and came back.
+  if (_stkPollInterval) { clearInterval(_stkPollInterval); _stkPollInterval = null; }
   // Refresh org from DB
   try {
     const { data: freshOrg } = await sb.from('organisations').select('*').eq('id', currentOrg.id).single();

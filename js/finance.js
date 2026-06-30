@@ -802,17 +802,15 @@ async function approvePaymentRequest(requestId) {
     await sb.from('members').update(memberUpdates).eq('id', req.member_id);
   }
 
-  // Update bank balance if function exists
+  // Update bank balance — always via atomic RPC, never read-modify-write.
+  // No fallback: if updateBankBalance is somehow unavailable, surface the error
+  // rather than silently risking a lost-update race condition on real money.
   try {
-    if (typeof updateBankBalance === 'function') {
-      await updateBankBalance(currentOrg.id, req.amount, 'credit');
-    } else {
-      // Direct update
-      const newBal = (currentOrg.bank_balance||0) + Number(req.amount);
-      await sb.from('organisations').update({ bank_balance: newBal }).eq('id', currentOrg.id);
-      currentOrg.bank_balance = newBal;
-    }
-  } catch(e) { console.warn('Bank balance update:', e.message); }
+    await updateBankBalance(currentOrg.id, req.amount, 'credit');
+  } catch(e) {
+    console.error('Bank balance update FAILED:', e.message);
+    toast('⚠ Payment approved but bank balance update failed — check Finance page and refresh.');
+  }
 
   // Auto-resolve fines
   const fineAllocs=allocations.filter(a=>a.isFine&&a.fineId);

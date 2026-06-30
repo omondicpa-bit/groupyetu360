@@ -5,6 +5,7 @@
 // ── SUPABASE ──
 const SUPABASE_URL = 'https://eengldzvvgplgzvbutal.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_YMCrMAvAeQEhVV3dC-8jjw_pVzFDyPH';
+const FUNCTIONS_URL = 'https://eengldzvvgplgzvbutal.supabase.co/functions/v1';
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -110,6 +111,22 @@ async function _loadProfileAndOrgInner() {
     return;
   }
   currentProfile = profile;
+  if (profile) {
+    // Self-healing backfill: some members (especially those who joined before the
+    // invite-linkage flow existed) have a profile but their members.user_id was
+    // never set. This silently breaks "Set Role" later (members.js promoteToAdmin
+    // falls back to a fragile phone/name match). Fix it here, once, cheaply —
+    // by matching on portal_email if a member row exists with no user_id yet.
+    (async () => {
+      try {
+        const { data: unlinked } = await sb.from('members')
+          .select('id').eq('portal_email', profile.email).is('user_id', null).limit(1).maybeSingle();
+        if (unlinked?.id) {
+          await sb.from('members').update({ user_id: currentUser.id }).eq('id', unlinked.id);
+        }
+      } catch(e) { /* non-critical, never block login on this */ }
+    })();
+  }
   if (!profile) {
     // No profile yet — try to auto-link via invite metadata or portal_email
     try {
@@ -463,7 +480,6 @@ async function signIn() {
     await sb.auth.signOut();
 
     // Send OTP via Edge Function — generated and stored server-side, emailed via Resend
-    const FUNCTIONS_URL = 'https://eengldzvvgplgzvbutal.supabase.co/functions/v1';
     try {
       const otpRes = await fetch(`${FUNCTIONS_URL}/send-2fa-otp`, {
         method: 'POST',
@@ -508,7 +524,6 @@ async function verify2FA() {
   const loginEmail = document.getElementById('login-email').value.trim();
 
   // Verify OTP server-side via Edge Function
-  const FUNCTIONS_URL = 'https://eengldzvvgplgzvbutal.supabase.co/functions/v1';
   let verifyData;
   try {
     const verifyRes = await fetch(`${FUNCTIONS_URL}/verify-2fa-otp`, {
@@ -558,7 +573,6 @@ async function resend2FACode() {
   if (sucEl) { sucEl.textContent = 'Sending a new code…'; sucEl.classList.add('show'); }
   if (errEl) errEl.classList.remove('show');
 
-  const FUNCTIONS_URL = 'https://eengldzvvgplgzvbutal.supabase.co/functions/v1';
   try {
     const otpRes = await fetch(`${FUNCTIONS_URL}/send-2fa-otp`, {
       method: 'POST',
@@ -847,9 +861,9 @@ async function showOrgPicker() {
   try {
     const statOrgs = document.getElementById('picker-stat-orgs');
     const statMembers = document.getElementById('picker-stat-members');
-    if (statOrgs && window._platformSettings) {
-      statOrgs.textContent = window._platformSettings.total_orgs || '—';
-      statMembers.textContent = window._platformSettings.total_members || '—';
+    if (statOrgs && _platformSettings) {
+      statOrgs.textContent = _platformSettings.total_orgs || '—';
+      statMembers.textContent = _platformSettings.total_members || '—';
     }
   } catch(e) {}
 
@@ -929,10 +943,18 @@ async function checkSubscriptionStatus() {
 }
 
 // Fetch platform settings (promo toggle, payment mode, payment details)
+// SECURITY: explicitly exclude secret/API key columns — they must never reach
+// the browser. Only non-sensitive display/config fields are selected here.
+// SA's loadSASupport() uses its own separate query when it needs to check
+// "is a key saved" (it only checks truthiness via a server round-trip flag).
 let _platformSettings = {};
 async function loadPlatformSettings() {
   try {
-    const { data } = await sb.from('platform_settings').select('*').limit(1).maybeSingle();
+    const { data } = await sb.from('platform_settings').select(
+      'id,support_phone,support_email,bank_name,bank_account,bank_account_name,paybill,whatsapp,' +
+      'sms_provider,payment_mode,manual_enabled,paystack_enabled,paystack_public_key,' +
+      'promo_active,promo_days,daraja_env,daraja_enabled,total_orgs,total_members,updated_at'
+    ).limit(1).maybeSingle();
     _platformSettings = data || {};
   } catch(e) {}
 }

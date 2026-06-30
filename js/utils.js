@@ -1,5 +1,19 @@
 
 
+// ── XSS SANITISATION (canonical — utils.js loads before all other page-specific
+//    files, so this single definition is safely available to settings.js, auth.js,
+//    dashboard.js, finance.js, members.js, portal.js, modules.js) ──
+// Use h() on ALL user-supplied strings before interpolating into innerHTML.
+function h(str) {
+  if (!str && str !== 0) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 /* ── PLAN CARD SELECTOR ── */
 function selectRegPlan(el) {
   document.querySelectorAll('.reg-plan-card').forEach(c => c.classList.remove('selected'));
@@ -218,7 +232,11 @@ async function loadSupport() {
   let email = 'info@groupyetu.org';
   let whatsapp = 'https://wa.me/254702903544?text=Hello%20GroupYetu360%20Support';
   try {
-    const { data: settings } = await sb.from('platform_settings').select('*').maybeSingle();
+    // SECURITY: every user (member, officer, admin) calls this page — never select '*'
+    // here, since platform_settings holds SMS/Paystack/Daraja secrets. Only fetch
+    // the three public-facing fields this page actually renders.
+    const { data: settings } = await sb.from('platform_settings')
+      .select('support_phone,support_email,whatsapp').maybeSingle();
     if (settings) {
       phone = settings.support_phone || phone;
       email = settings.support_email || email;

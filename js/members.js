@@ -1,18 +1,7 @@
 // GroupYetu360 — js/members.js
 // Auto-split from index.html
 // globals: window.sb, window.currentOrg, window.currentUser, window.currentProfile etc.
-
-// ── XSS SANITISATION ──
-// Use h() on ALL user-supplied strings before interpolating into innerHTML
-function h(str) {
-  if (!str && str !== 0) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+// h() (XSS sanitiser) is defined in utils.js — loads before this file, available globally.
 
 // ── MEMBERS ──
 async function loadMembers() {
