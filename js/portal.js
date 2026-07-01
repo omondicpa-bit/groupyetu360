@@ -11,6 +11,14 @@ async function loadMyAccount() {
   const msgEl = el('acct-msg');
   if (msgEl) msgEl.style.display = 'none';
 
+  // Email-change hint text — "contact your group admin" is meaningless for a superadmin,
+  // there is no admin above them. Point them at the actual process instead.
+  const emailHint = currentProfile?.role === 'superadmin'
+    ? 'Platform login email changes require a direct database update — contact your developer/EPH Technologies.'
+    : 'Email cannot be changed here. Contact your group admin.';
+  if (el('acct-email-hint')) el('acct-email-hint').textContent = emailHint;
+  if (el('acct-email-hint-mob')) el('acct-email-hint-mob').textContent = emailHint;
+
   // 2FA section — admin, treasurer, superadmin only. Re-fetch fresh from DB rather than
   // trusting currentProfile, since a stale in-memory profile could hide a toggle that
   // should be showing (e.g. right after a role change).
