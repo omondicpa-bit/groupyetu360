@@ -593,16 +593,19 @@ async function sendMemberPortalInvite() {
 
     if (m?.phone) {
       const { data: phoneMatches } = await sb.from('profiles')
-        .select('id, org_id').eq('phone', m.phone);
+        .select('id').eq('phone', m.phone);
 
       if (phoneMatches && phoneMatches.length > 0) {
-        const alreadyHere = phoneMatches.find(p => p.org_id === currentOrg.id);
-        if (alreadyHere) {
-          setStatus('✓ Already has portal access to this organisation', true);
-          toast((m.full_name || 'Member') + ' already has portal access here');
+        existingUserId = phoneMatches[0].id;
+
+        const { data: existingGrant } = await sb.from('user_orgs')
+          .select('user_id').eq('user_id', existingUserId).eq('org_id', currentOrg.id).maybeSingle();
+
+        if (existingGrant) {
+          setStatus('✓ Already linked — this member can already access this org', true);
+          toast((m.full_name || 'Member') + ' is already linked to this org');
           return;
         }
-        existingUserId = phoneMatches[0].id;
       }
     }
 
