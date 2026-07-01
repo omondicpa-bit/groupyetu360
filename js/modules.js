@@ -740,14 +740,18 @@ async function loadMessages() {
   renderPaymentMethods(currentOrg, 'msg-payment-methods-display', true);
 
   // ── SMS Status ──
-  let smsActive = false;
+  // Default true — celcom is the platform's working default provider (confirmed via the
+  // Edge Function). platform_settings itself is superadmin-only via RLS, so for a regular
+  // org admin this read returns null and we can't inspect actual leopard/AT credentials —
+  // but that's fine, since celcom doesn't need browser-side credential visibility anymore.
+  let smsActive = true;
   try {
-    const { data: ps } = await sb.from('platform_settings').select('sms_provider,sms_leopard_access_token,at_api_key').maybeSingle();
+    const { data: ps } = await sb.from('platform_settings').select('sms_provider,sms_leopard_api_key,sms_leopard_api_secret,at_api_key').maybeSingle();
     if (ps) {
-      const provider = ps.sms_provider || 'leopard';
+      const provider = ps.sms_provider || 'celcom';
       if (provider === 'leopard') smsActive = !!(ps.sms_leopard_api_key && ps.sms_leopard_api_secret);
       else if (provider === 'at') smsActive = !!ps.at_api_key;
-      else smsActive = true; // celcom — assume active if selected
+      else smsActive = true; // celcom
     }
   } catch(e) {}
 
@@ -1849,7 +1853,7 @@ function toggleSupportFab() {
 (async () => {
   try {
     if (typeof sb !== 'undefined') {
-      const { data: ps } = await sb.from('platform_settings').select('support_phone,support_email').maybeSingle();
+      const { data: ps } = await sb.from('platform_settings_public').select('support_phone,support_email').maybeSingle();
       if (ps?.support_phone) {
         const phone = ps.support_phone.replace(/\D/g,'');
         const wLink = document.getElementById('fab-whatsapp');
