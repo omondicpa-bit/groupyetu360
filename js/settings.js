@@ -1619,8 +1619,6 @@ function renderODMembers(members) {
 
 async function saViewMember(memberId, orgId) {
   // Temporarily patch currentOrg so openMemberDetail queries the right org
-  const _prevOrg = currentOrg;
-  const _prevFinProfile = window.orgFinProfile;
   if (orgId && orgId !== currentOrg?.id) {
     const { data: org } = await sb.from('organisations').select('*').eq('id', orgId).single();
     if (org) {
@@ -1629,11 +1627,12 @@ async function saViewMember(memberId, orgId) {
       try { await loadOrgFinancialProfile(); } catch(e) {}
     }
   }
-  // Open the standard member detail modal — it now includes the superadmin account panel
+  // Open the standard member detail modal — it now includes the superadmin account panel.
+  // currentOrg is intentionally NOT restored here — the modal stays open after this function
+  // returns, and actions inside it (Send Invite, Save Changes, etc.) still need currentOrg
+  // to point at the org being viewed. Restoring it early caused those actions to silently
+  // send an empty org_id. It gets naturally replaced next time SA opens a different org.
   await openMemberDetail(memberId);
-  // Restore original org context after modal is open
-  currentOrg = _prevOrg;
-  if (_prevFinProfile) window.orgFinProfile = _prevFinProfile;
 }
 
 function filterODMembers(q) {
