@@ -740,18 +740,23 @@ async function loadMessages() {
   renderPaymentMethods(currentOrg, 'msg-payment-methods-display', true);
 
   // ── SMS Status ──
-  // Default true — celcom is the platform's working default provider (confirmed via the
-  // Edge Function). platform_settings itself is superadmin-only via RLS, so for a regular
-  // org admin this read returns null and we can't inspect actual leopard/AT credentials —
-  // but that's fine, since celcom doesn't need browser-side credential visibility anymore.
+  // Real provider comes from the safe public view (non-sensitive) — works for every
+  // role. Actual credential presence (for leopard/AT) still requires the SA-only table,
+  // so those two branches degrade gracefully to "assume active" for non-SA callers.
   let smsActive = true;
   try {
-    const { data: ps } = await sb.from('platform_settings').select('sms_provider,sms_leopard_api_key,sms_leopard_api_secret,at_api_key').maybeSingle();
-    if (ps) {
-      const provider = ps.sms_provider || 'celcom';
-      if (provider === 'leopard') smsActive = !!(ps.sms_leopard_api_key && ps.sms_leopard_api_secret);
-      else if (provider === 'at') smsActive = !!ps.at_api_key;
-      else smsActive = true; // celcom
+    const { data: psPublic } = await sb.from('platform_settings_public').select('sms_provider').maybeSingle();
+    const provider = psPublic?.sms_provider || 'celcom';
+    if (provider === 'celcom') {
+      smsActive = true;
+    } else {
+      const { data: ps } = await sb.from('platform_settings').select('sms_leopard_api_key,sms_leopard_api_secret,at_api_key').maybeSingle();
+      if (ps) {
+        if (provider === 'leopard') smsActive = !!(ps.sms_leopard_api_key && ps.sms_leopard_api_secret);
+        else if (provider === 'at') smsActive = !!ps.at_api_key;
+      }
+      // else: non-SA caller, can't verify leopard/AT credentials — assume active rather
+      // than falsely showing Inactive to every non-SA admin.
     }
   } catch(e) {}
 

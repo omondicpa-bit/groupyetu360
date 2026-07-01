@@ -599,30 +599,33 @@ async function sendSMS(to, message) {
   if (!recipients.length) return { sent: 0, failed: 0 };
 
   // Load platform settings
-  // NOTE: platform_settings is superadmin-only via RLS (by design, it holds API secrets).
-  // For non-SA callers this read returns null, so the fallback below matters — it must be
-  // whichever provider actually has working credentials, not just any default.
+  // sms_provider itself isn't sensitive — read it from the safe public view so this works
+  // for every role. The raw table read below (SA-only) fills in leopard/AT secrets when
+  // available; celcom needs no secrets here at all since the Edge Function reads them
+  // server-side now.
   let provider = 'celcom';
   let leopardKey = null, leopardSecret = null, senderId = null;
   let atKey = null, atUser = 'sandbox', atSender = null;
-  let celcomKey = null, celcomPartnerId = null, celcomShortcode = null;
 
   try {
-    const { data: ps } = await sb.from('platform_settings').select('*').maybeSingle();
-    if (ps) {
-      provider = ps.sms_provider || 'celcom';
-      leopardKey = ps.sms_leopard_api_key || null;
-      leopardSecret = ps.sms_leopard_api_secret || null;
-      senderId = ps.sms_leopard_sender_id || null;
-      atKey = ps.at_api_key || null;
-      atUser = ps.at_username || 'sandbox';
-      atSender = ps.at_sender_id || null;
-      celcomKey = ps.celcom_api_key || null;
-      celcomPartnerId = ps.celcom_partner_id || null;
-      celcomShortcode = ps.celcom_shortcode || null;
+    const { data: psPublic } = await sb.from('platform_settings_public').select('sms_provider').maybeSingle();
+    provider = psPublic?.sms_provider || 'celcom';
+  } catch(e) {}
+
+  if (provider !== 'celcom') {
+    try {
+      const { data: ps } = await sb.from('platform_settings').select('*').maybeSingle();
+      if (ps) {
+        leopardKey = ps.sms_leopard_api_key || null;
+        leopardSecret = ps.sms_leopard_api_secret || null;
+        senderId = ps.sms_leopard_sender_id || null;
+        atKey = ps.at_api_key || null;
+        atUser = ps.at_username || 'sandbox';
+        atSender = ps.at_sender_id || null;
+      }
+    } catch(e) {
+      console.log('sendSMS: could not load platform settings for leopard/AT');
     }
-  } catch(e) {
-    console.log('sendSMS: could not load platform settings, defaulting to celcom');
   }
 
   const SUPABASE_FUNCTIONS_URL = 'https://eengldzvvgplgzvbutal.supabase.co/functions/v1';
