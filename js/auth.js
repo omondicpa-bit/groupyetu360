@@ -1752,6 +1752,14 @@ function updateMobileNavActive(page) {
 }
 
 function showPage(id) {
+  // Superadmin: currentOrg gets temporarily set to whatever org they're viewing
+  // (via saViewMember / openOrgDetail) so Save/Invite/etc. work correctly while
+  // that view is open. Reset it back to the platform placeholder the moment SA
+  // navigates to any other SA page, so sidebar branding and other SA pages don't
+  // stay stuck showing the last-viewed org.
+  if (currentProfile?.role === 'superadmin' && id !== 'sa_org_detail' && currentOrg?.plan !== 'superadmin') {
+    currentOrg = { name: 'EPH Technologies', reg_number: 'Platform Admin', plan: 'superadmin' };
+  }
   updateMobileNavActive(id);
   // Close mobile menu when navigating
   closeMobileMenu();
