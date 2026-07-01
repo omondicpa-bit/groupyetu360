@@ -1,8 +1,12 @@
 // Supabase Edge Function: send-sms-celcom
 // Proxies SMS requests to Celcom Africa API (browser calls blocked by CORS)
+// Credentials are read server-side from platform_settings using the service role key,
+// bypassing RLS — this is what lets ANY org admin trigger SMS without needing read
+// access to platform_settings themselves (that table is correctly superadmin-only now).
 // Deploy: supabase functions deploy send-sms-celcom
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,29 +14,44 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const { apikey, partnerID, shortcode, message, recipients } = await req.json();
+    const { message, recipients } = await req.json();
 
-    if (!apikey || !partnerID || !message || !recipients?.length) {
+    if (!message || !recipients?.length) {
       return new Response(
-        JSON.stringify({ sent: 0, failed: 0, error: 'Missing required fields' }),
+        JSON.stringify({ sent: 0, failed: 0, error: 'Missing message or recipients' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Celcom accepts comma-separated mobiles or repeated calls
-    // Their API sends to multiple recipients in one request
+    // Service-role client — bypasses RLS, reads platform_settings regardless of caller's role
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    const { data: ps, error: psError } = await supabase
+      .from('platform_settings')
+      .select('celcom_api_key, celcom_partner_id, celcom_shortcode')
+      .maybeSingle();
+
+    if (psError || !ps?.celcom_api_key || !ps?.celcom_partner_id) {
+      return new Response(
+        JSON.stringify({ sent: 0, failed: recipients.length, error: 'Celcom credentials not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const mobile = recipients.join(',');
 
     const payload = {
-      apikey,
-      partnerID,
-      shortcode: shortcode || 'EPH TECH',
+      apikey: ps.celcom_api_key,
+      partnerID: ps.celcom_partner_id,
+      shortcode: ps.celcom_shortcode || 'EPH TECH',
       message,
       mobile,
       messageID: Date.now().toString()
@@ -47,11 +66,9 @@ serve(async (req: Request) => {
     const result = await res.json();
     console.log('[celcom] raw response:', JSON.stringify(result));
 
-    // Celcom returns { responses: [{ respose-code, response-description, mobile, messageid, network-id }] }
     let sent = 0, failed = 0;
     if (result?.responses?.length) {
       result.responses.forEach((r: any) => {
-        // Celcom uses 'response-code' (correct) not 'respose-code' (their old docs typo)
         const code = (r['response-code'] ?? r['respose-code'])?.toString();
         if (code === '200') sent++;
         else failed++;

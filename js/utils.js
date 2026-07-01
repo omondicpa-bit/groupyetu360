@@ -599,7 +599,10 @@ async function sendSMS(to, message) {
   if (!recipients.length) return { sent: 0, failed: 0 };
 
   // Load platform settings
-  let provider = 'leopard';
+  // NOTE: platform_settings is superadmin-only via RLS (by design, it holds API secrets).
+  // For non-SA callers this read returns null, so the fallback below matters — it must be
+  // whichever provider actually has working credentials, not just any default.
+  let provider = 'celcom';
   let leopardKey = null, leopardSecret = null, senderId = null;
   let atKey = null, atUser = 'sandbox', atSender = null;
   let celcomKey = null, celcomPartnerId = null, celcomShortcode = null;
@@ -607,7 +610,7 @@ async function sendSMS(to, message) {
   try {
     const { data: ps } = await sb.from('platform_settings').select('*').maybeSingle();
     if (ps) {
-      provider = ps.sms_provider || 'leopard';
+      provider = ps.sms_provider || 'celcom';
       leopardKey = ps.sms_leopard_api_key || null;
       leopardSecret = ps.sms_leopard_api_secret || null;
       senderId = ps.sms_leopard_sender_id || null;
@@ -619,7 +622,7 @@ async function sendSMS(to, message) {
       celcomShortcode = ps.celcom_shortcode || null;
     }
   } catch(e) {
-    console.log('sendSMS: could not load platform settings, defaulting to leopard');
+    console.log('sendSMS: could not load platform settings, defaulting to celcom');
   }
 
   const SUPABASE_FUNCTIONS_URL = 'https://eengldzvvgplgzvbutal.supabase.co/functions/v1';
@@ -660,12 +663,8 @@ async function sendSMS(to, message) {
     }
   }
 
-  // ── CELCOM AFRICA (via Supabase Edge Function — direct browser call blocked by CORS) ──
+  // ── CELCOM AFRICA (via Supabase Edge Function — credentials read server-side) ──
   if (provider === 'celcom') {
-    if (!celcomKey || !celcomPartnerId) {
-      console.error('sendSMS [celcom]: API key or Partner ID not configured');
-      return { sent: 0, failed: recipients.length };
-    }
     try {
       const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/send-sms-celcom`, {
         method: 'POST',
@@ -673,13 +672,7 @@ async function sendSMS(to, message) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${SUPABASE_KEY}`
         },
-        body: JSON.stringify({
-          apikey: celcomKey,
-          partnerID: celcomPartnerId,
-          shortcode: celcomShortcode || 'EPH TECH',
-          message,
-          recipients
-        })
+        body: JSON.stringify({ message, recipients })
       });
       const result = await res.json();
       console.log('[sendSMS celcom] response:', JSON.stringify(result));
