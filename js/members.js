@@ -665,10 +665,11 @@ async function promoteToAdmin() {
   const { data: m } = await sb.from('members').select('full_name,portal_email,phone,is_founder,user_id').eq('id', currentMemberId).single();
   if (!m) return;
 
-  // Get current role from profiles — try user_id first, then fall back to email match
+  // profiles lookup here only confirms a portal account exists (existingProfile.id) —
+  // the actual role shown/changed is org-scoped, fetched from user_orgs below.
   let existingProfile = null;
   if (m.user_id) {
-    const { data: prof } = await sb.from('profiles').select('id,role,full_name').eq('id', m.user_id).maybeSingle();
+    const { data: prof } = await sb.from('profiles').select('id,full_name').eq('id', m.user_id).maybeSingle();
     existingProfile = prof;
   }
   if (!existingProfile && m.portal_email) {
@@ -676,7 +677,7 @@ async function promoteToAdmin() {
     // profiles.id = auth.users.id, and portal_email is stored on members.
     // Fetch all org profiles and match by full_name + phone as best proxy,
     // OR look up by portal_email stored on OTHER members with same user_id
-    const { data: profs } = await sb.from('profiles').select('id,role,full_name,phone').eq('org_id', currentOrg.id);
+    const { data: profs } = await sb.from('profiles').select('id,full_name,phone').eq('org_id', currentOrg.id);
     if (profs) {
       // Try phone match first (most reliable), then name match
       existingProfile = profs.find(p => m.phone && p.phone && p.phone === m.phone)
@@ -685,7 +686,11 @@ async function promoteToAdmin() {
     }
   }
 
-  const currentRole = existingProfile?.role || 'no portal account';
+  let currentRole = 'no portal account';
+  if (existingProfile?.id) {
+    const { data: grant } = await sb.from('user_orgs').select('role').eq('user_id', existingProfile.id).eq('org_id', currentOrg.id).maybeSingle();
+    currentRole = grant?.role || 'no workspace access';
+  }
 
   // Build role buttons — founder change restricted to superadmin
   const roles = ['admin','treasurer','officer','member'];
@@ -743,17 +748,31 @@ This will take effect immediately on their next login.`);
 
   try {
     if (existingProfile?.id) {
-      // Update existing profile role
-      await sb.from('profiles').update({ role }).eq('id', existingProfile.id);
-      // Also update user_orgs
-      await sb.from('user_orgs').update({ role }).eq('user_id', existingProfile.id).eq('org_id', currentOrg.id);
+      // Org-scoped role only — profiles.role is the platform-wide account status
+      // (member/admin/superadmin/pending) and must NEVER be set from a per-org
+      // role picker. A user can be admin in one org and a plain member in another;
+      // writing here into profiles.role previously corrupted that per-org distinction.
+      const { error, count } = await sb.from('user_orgs')
+        .update({ role })
+        .eq('user_id', existingProfile.id)
+        .eq('org_id', currentOrg.id)
+        .select('*', { count: 'exact' });
+
+      if (error) {
+        toast('❌ Role change failed: ' + error.message);
+        return;
+      }
+      if (!count) {
+        toast('⚠ No matching workspace grant found — this member may not be linked to this org yet.');
+        return;
+      }
       toast(`✓ ${m.full_name} is now ${role}`);
     } else {
       // No portal account yet — need to invite them first
       toast('⚠ This member has no portal account yet. Send them a portal invite first, then change their role.');
       return;
     }
-    await logActivity('SET ROLE', `Changed ${m.full_name} portal role to ${role}`, 'member', currentMemberId);
+    await logActivity('SET ROLE', `Changed ${m.full_name} role in this org to ${role}`, 'member', currentMemberId);
     loadMembers();
   } catch(e) {
     toast('❌ Role change failed: ' + e.message);
