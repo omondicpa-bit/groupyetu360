@@ -10,6 +10,60 @@ async function loadMyAccount() {
   if (el('acct-email')) el('acct-email').value = currentUser?.email || '';
   const msgEl = el('acct-msg');
   if (msgEl) msgEl.style.display = 'none';
+
+  // 2FA section — admin, treasurer, superadmin only. Re-fetch fresh from DB rather than
+  // trusting currentProfile, since a stale in-memory profile could hide a toggle that
+  // should be showing (e.g. right after a role change).
+  const isElevated = ['admin','treasurer','superadmin'].includes(currentProfile?.role);
+  const cardEl = el('acct-2fa-card'), cardMobEl = el('acct-2fa-card-mob');
+  if (cardEl) cardEl.style.display = isElevated ? '' : 'none';
+  if (cardMobEl) cardMobEl.style.display = isElevated ? '' : 'none';
+  if (!isElevated) return;
+
+  let enabled = currentProfile?.two_fa_enabled === true;
+  try {
+    const { data } = await sb.from('profiles').select('two_fa_enabled').eq('id', currentUser.id).maybeSingle();
+    if (data) enabled = data.two_fa_enabled === true;
+  } catch(e) {}
+
+  ['', '-mob'].forEach(suffix => {
+    const cb = el('acct-2fa' + suffix);
+    if (cb) cb.checked = enabled;
+  });
+  updateAcctTwoFAToggleUI();
+}
+
+function updateAcctTwoFAToggleUI() {
+  ['', '-mob'].forEach(suffix => {
+    const cb = document.getElementById('acct-2fa' + suffix);
+    const ui = document.getElementById('acct-2fa-toggle-ui' + suffix);
+    const knob = document.getElementById('acct-2fa-knob' + suffix);
+    const label = document.getElementById('acct-2fa-label' + suffix);
+    if (!cb || !ui || !knob) return;
+    const on = cb.checked;
+    ui.style.background  = on ? '#2a9d8f' : '#ccc';
+    knob.style.transform = on ? 'translateX(20px)' : 'translateX(0)';
+    if (label) label.textContent = on ? 'On' : 'Off';
+    cb.onchange = updateAcctTwoFAToggleUI;
+  });
+}
+
+async function saveTwoFA(isMobile) {
+  const isElevated = ['admin','treasurer','superadmin'].includes(currentProfile?.role);
+  if (!isElevated) return;
+  const cb = document.getElementById(isMobile ? 'acct-2fa-mob' : 'acct-2fa');
+  const msgEl = document.getElementById(isMobile ? 'acct-2fa-msg-mob' : 'acct-2fa-msg');
+  const enabled = cb?.checked || false;
+  try {
+    const { error } = await sb.from('profiles').update({ two_fa_enabled: enabled }).eq('id', currentUser.id);
+    if (error) throw error;
+    if (currentProfile) currentProfile.two_fa_enabled = enabled;
+    if (msgEl) { msgEl.textContent = '✓ 2FA ' + (enabled ? 'enabled' : 'disabled') + ' — takes effect on your next sign-in'; msgEl.style.color = 'var(--teal,#2a9d8f)'; msgEl.style.display = 'block'; }
+    toast('2FA ' + (enabled ? 'enabled' : 'disabled'));
+    try { await logActivity('2FA ' + (enabled ? 'ENABLED' : 'DISABLED'), `${currentProfile?.full_name || 'User'} (${currentProfile?.role}) ${enabled?'enabled':'disabled'} two-factor authentication`); } catch(e) {}
+  } catch(e) {
+    if (msgEl) { msgEl.textContent = 'Error: ' + e.message; msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block'; }
+  }
 }
 
 async function saveAccountInfo() {

@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026063003">
+  <link rel="stylesheet" href="style.css?v=2026070102">
 </head>
 <body>
 
@@ -2025,26 +2025,11 @@
 
       <!-- ── BOTTOM GRID: Org table + Activity feed ── -->
       <div class="sa-bottom-grid">
-        <!-- Org table -->
+        <!-- Org table (compact preview — full table moved to its own page) -->
         <div class="sa-org-table-wrap">
           <div class="sa-org-table-head">
-            <div class="sa-org-table-title">All Organisations <span id="sa-org-count" style="font-size:.7rem;font-weight:400;color:var(--ink-faint);margin-left:.4rem"></span></div>
-            <div class="sa-org-table-controls">
-              <input class="form-input" id="sa-org-search" placeholder="Search…" oninput="filterSAOrgs(this.value)" style="font-size:.75rem;padding:.3rem .65rem;width:140px"/>
-              <select class="form-select" id="sa-plan-filter" onchange="filterSAOrgs(document.getElementById('sa-org-search').value)" style="font-size:.75rem;padding:.3rem .6rem;width:auto">
-                <option value="">All Plans</option>
-                <option value="starter">Starter</option>
-                <option value="basic">Basic</option>
-                <option value="standard">Standard</option>
-                <option value="pro">Pro</option>
-              </select>
-              <select class="form-select" id="sa-status-filter" onchange="filterSAOrgs(document.getElementById('sa-org-search').value)" style="font-size:.75rem;padding:.3rem .6rem;width:auto">
-                <option value="">All Status</option>
-                <option value="active">Active</option>
-                <option value="trial">Trial</option>
-                <option value="suspended">Suspended</option>
-              </select>
-            </div>
+            <div class="sa-org-table-title">Organisations <span id="sa-org-count" style="font-size:.7rem;font-weight:400;color:var(--ink-faint);margin-left:.4rem"></span></div>
+            <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="showPage('sa_organisations')">View All →</button>
           </div>
           <div class="sa-table-scroll">
             <table class="sa-org-table" id="sa-org-table-el">
@@ -2055,8 +2040,9 @@
                 <th>Members</th>
                 <th>SMS Balance</th>
                 <th>Expires</th>
+                <th></th>
               </tr></thead>
-              <tbody id="sa-org-list"><tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--ink-faint)">Loading…</td></tr></tbody>
+              <tbody id="sa-org-list"><tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--ink-faint)">Loading…</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -3006,6 +2992,23 @@
               <div class="form-actions"><button class="btn btn-primary" onclick="saveNewPassword()">Update Password</button></div>
             </div>
           </div>
+          <div class="card" id="acct-2fa-card" style="display:none">
+            <div class="card-header"><div class="card-title">🔐 Two-Factor Authentication</div></div>
+            <div class="card-body">
+              <div style="font-size:.78rem;color:var(--ink-faint);line-height:1.6;margin-bottom:.85rem">
+                When enabled, a 6-digit code is emailed to you at every sign-in. Strongly recommended for admin, treasurer and superadmin accounts.
+              </div>
+              <div style="display:flex;align-items:center;gap:.75rem">
+                <div onclick="document.getElementById('acct-2fa').click()" id="acct-2fa-toggle-ui" class="ps-toggle-track">
+                  <div id="acct-2fa-knob" class="ps-toggle-knob"></div>
+                </div>
+                <input type="checkbox" id="acct-2fa" style="display:none"/>
+                <span id="acct-2fa-label" style="font-size:.82rem;font-weight:600">Off</span>
+              </div>
+              <div class="form-actions" style="margin-top:.85rem"><button class="btn btn-primary" onclick="saveTwoFA()">Save 2FA Setting</button></div>
+              <div id="acct-2fa-msg" style="font-size:.75rem;margin-top:.5rem;display:none"></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -3052,6 +3055,25 @@
                 <input class="mh-form-input" type="password" id="acct-confirm-pass" placeholder="Repeat new password"/>
               </div>
               <button class="mh-btn-teal" onclick="saveNewPassword()">Update Password</button>
+            </div>
+          </div>
+          <div id="acct-2fa-card-mob" style="display:none">
+            <div class="mh-section-label" style="margin-top:.25rem">Two-Factor Authentication</div>
+            <div class="mh-card">
+              <div class="mh-card-body" style="display:flex;flex-direction:column;gap:.65rem">
+                <div style="font-size:.75rem;color:var(--ink-faint);line-height:1.55">
+                  A 6-digit code is emailed to you at every sign-in when enabled.
+                </div>
+                <div style="display:flex;align-items:center;gap:.75rem">
+                  <div onclick="document.getElementById('acct-2fa-mob').click()" id="acct-2fa-toggle-ui-mob" class="ps-toggle-track">
+                    <div id="acct-2fa-knob-mob" class="ps-toggle-knob"></div>
+                  </div>
+                  <input type="checkbox" id="acct-2fa-mob" style="display:none"/>
+                  <span id="acct-2fa-label-mob" style="font-size:.82rem;font-weight:600">Off</span>
+                </div>
+                <button class="mh-btn-teal" onclick="saveTwoFA(true)">Save 2FA Setting</button>
+                <div id="acct-2fa-msg-mob" style="font-size:.72rem;display:none"></div>
+              </div>
             </div>
           </div>
           <button onclick="signOut()" style="background:transparent;border:1px solid var(--border);border-radius:20px;padding:.55rem 1rem;font-size:.82rem;color:var(--ink-faint);cursor:pointer;width:100%;font-family:'Inter',sans-serif;margin-top:.25rem">⎋ Sign Out</button>
@@ -3498,16 +3520,89 @@
 
     <!-- SUPERADMIN: REVENUE -->
     <div class="page" id="page-sa_finance">
-      <div class="section-header"><div><div class="section-title">Platform Revenue</div><div class="section-sub">Subscription overview — GroupYetu360</div></div></div>
+      <div class="section-header"><div><div class="section-title">Revenue</div><div class="section-sub">Subscription &amp; SMS revenue — GroupYetu360</div></div></div>
+
       <div class="stats-row">
-        <div class="stat-card gold"><div class="stat-label">Starter (Free)</div><div class="stat-value" id="rev-starter">—</div><div class="stat-meta">Ksh 0/year</div></div>
-        <div class="stat-card green"><div class="stat-label">Basic Plans</div><div class="stat-value" id="rev-basic">—</div><div class="stat-meta">Ksh 3,000/year each</div></div>
-        <div class="stat-card"><div class="stat-label">Standard Plans</div><div class="stat-value" id="rev-standard">—</div><div class="stat-meta">Ksh 6,000/year each</div></div>
-        <div class="stat-card warn"><div class="stat-label">Pro Plans</div><div class="stat-value" id="rev-pro">—</div><div class="stat-meta">Ksh 12,000/year each</div></div>
+        <div class="stat-card green"><div class="stat-label">Subscription Revenue</div><div class="stat-value" id="rev-sub-total">—</div><div class="stat-meta">All-time, approved payments</div></div>
+        <div class="stat-card"><div class="stat-label">SMS Revenue</div><div class="stat-value" id="rev-sms-total">—</div><div class="stat-meta">All-time, approved SMS bundle sales</div></div>
+        <div class="stat-card warn"><div class="stat-label">SMS Sold vs Consumed</div><div class="stat-value" id="rev-sms-sold-consumed">—</div><div class="stat-meta">This month</div></div>
+        <div class="stat-card gold"><div class="stat-label">Manually Credited</div><div class="stat-value" id="rev-manual-count">—</div><div class="stat-meta">This month · Ksh 0 revenue</div></div>
       </div>
+
+      <div class="sa-chart-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem">
+        <div class="sa-chart-card">
+          <div class="sa-chart-title">Subscription Revenue — Plan Breakdown</div>
+          <div class="sa-chart-sub">Approved subscription payments received</div>
+          <div class="sa-bar-chart" id="rev-plan-chart">
+            <div style="color:var(--ink-faint);font-size:.72rem;align-self:center">Loading…</div>
+          </div>
+        </div>
+        <div class="sa-chart-card">
+          <div class="sa-chart-title">SMS — Sold vs Consumed</div>
+          <div class="sa-chart-sub">Last 6 months, all organisations</div>
+          <div class="sa-bar-chart" id="rev-sms-chart">
+            <div style="color:var(--ink-faint);font-size:.72rem;align-self:center">Loading…</div>
+          </div>
+          <div style="display:flex;gap:1rem;margin-top:.5rem;font-size:.68rem;color:var(--ink-faint)">
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--teal);margin-right:.3rem"></span>Sold (paid)</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#e0e0e0;margin-right:.3rem"></span>Consumed</span>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
-        <div class="card-header"><div class="card-title">Subscription Breakdown</div></div>
+        <div class="card-header">
+          <div class="card-title">Transactions</div>
+          <select class="form-select" id="rev-txn-filter" onchange="renderRevenueTransactions()" style="font-size:.75rem;padding:.3rem .6rem;width:auto">
+            <option value="">All Types</option>
+            <option value="subscription">Subscription</option>
+            <option value="sms">SMS</option>
+            <option value="manual">Manual credits (Ksh 0)</option>
+            <option value="pending">Pending</option>
+          </select>
+        </div>
         <div id="sa-revenue-list"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+      </div>
+    </div>
+
+
+    <!-- SUPERADMIN: ALL ORGANISATIONS -->
+    <div class="page" id="page-sa_organisations">
+      <div class="section-header"><div><div class="section-title">Organisations</div><div class="section-sub">Every organisation on the platform</div></div></div>
+      <div class="sa-org-table-wrap">
+        <div class="sa-org-table-head">
+          <div class="sa-org-table-title">All Organisations <span id="sa-org-count-full" style="font-size:.7rem;font-weight:400;color:var(--ink-faint);margin-left:.4rem"></span></div>
+          <div class="sa-org-table-controls">
+            <input class="form-input" id="sa-org-search-full" placeholder="Search…" oninput="filterSAOrgsFull(this.value)" style="font-size:.75rem;padding:.3rem .65rem;width:180px"/>
+            <select class="form-select" id="sa-plan-filter-full" onchange="filterSAOrgsFull(document.getElementById('sa-org-search-full').value)" style="font-size:.75rem;padding:.3rem .6rem;width:auto">
+              <option value="">All Plans</option>
+              <option value="starter">Starter</option>
+              <option value="basic">Basic</option>
+              <option value="standard">Standard</option>
+              <option value="pro">Pro</option>
+            </select>
+            <select class="form-select" id="sa-status-filter-full" onchange="filterSAOrgsFull(document.getElementById('sa-org-search-full').value)" style="font-size:.75rem;padding:.3rem .6rem;width:auto">
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="trial">Trial</option>
+              <option value="suspended">Suspended</option>
+            </select>
+          </div>
+        </div>
+        <div class="sa-table-scroll">
+          <table class="sa-org-table" id="sa-org-table-el-full">
+            <thead><tr>
+              <th>Organisation</th>
+              <th>Plan</th>
+              <th>Status</th>
+              <th>Members</th>
+              <th>SMS Balance</th>
+              <th>Expires</th>
+              <th></th>
+            </tr></thead>
+            <tbody id="sa-org-list-full"><tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--ink-faint)">Loading…</td></tr></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -5022,14 +5117,14 @@
 
 
   <!-- GroupYetu360 Scripts — load order matters -->
-  <script src="js/auth.js?v=2026063003"></script>
-  <script src="js/utils.js?v=2026063003"></script>
-  <script src="js/dashboard.js?v=2026063003"></script>
-  <script src="js/members.js?v=2026063003"></script>
-  <script src="js/finance.js?v=2026063003"></script>
-  <script src="js/settings.js?v=2026063003"></script>
-  <script src="js/portal.js?v=2026063003"></script>
-  <script src="js/modules.js?v=2026063003"></script>
+  <script src="js/auth.js?v=2026070102"></script>
+  <script src="js/utils.js?v=2026070102"></script>
+  <script src="js/dashboard.js?v=2026070102"></script>
+  <script src="js/members.js?v=2026070102"></script>
+  <script src="js/finance.js?v=2026070102"></script>
+  <script src="js/settings.js?v=2026070102"></script>
+  <script src="js/portal.js?v=2026070102"></script>
+  <script src="js/modules.js?v=2026070102"></script>
   <script>
     // Bootstrap — runs after all JS files are loaded
     async function start() {

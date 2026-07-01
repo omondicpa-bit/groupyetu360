@@ -812,9 +812,72 @@ async function loadSuperAdmin() {
   filterSAOrgs('');
 }
 
+function _renderSAOrgRow(o) {
+  const today = new Date().toISOString().split('T')[0];
+  const thirtyDays = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const memberCount = _saMemberCount[o.id] || 0;
+  const statusKey = o.subscription_status === 'active' ? 'active'
+    : o.subscription_status === 'trial' ? 'trial'
+    : o.status === 'suspended' ? 'suspended'
+    : 'trial';
+  const expires = o.subscription_expires;
+  const expDisplay = expires
+    ? (expires <= today ? '<span style="color:var(--danger)">Expired</span>'
+      : expires <= thirtyDays ? '<span style="color:var(--warning)">' + expires + '</span>'
+      : expires)
+    : '—';
+  const smsBundle = (o.sms_bundle || 0);
+  const smsBadge = smsBundle < 50 && smsBundle > 0
+    ? '<span style="color:var(--danger);font-size:.65rem"> ⚠ Low</span>'
+    : '';
+
+  return `<tr onclick="openOrgDetail('${o.id}')">
+    <td>
+      <div style="font-weight:600;font-size:.82rem">${h(o.name)}</div>
+      <div style="font-size:.65rem;color:var(--ink-faint);font-family:monospace">${h(o.org_code||'—')}</div>
+    </td>
+    <td><span class="sa-plan ${o.plan||'starter'}">${(o.plan||'starter').toUpperCase()}</span></td>
+    <td><span class="sa-status ${statusKey}">${statusKey}</span></td>
+    <td style="font-weight:600">${memberCount}</td>
+    <td>${smsBundle.toLocaleString()} SMS${smsBadge}</td>
+    <td style="font-size:.75rem">${expDisplay}</td>
+    <td onclick="event.stopPropagation()"><button class="btn btn-secondary btn-sm" style="font-size:.68rem;white-space:nowrap" onclick="openOrgDetail('${o.id}')">View →</button></td>
+  </tr>`;
+}
+
+// Dashboard preview — most recently created orgs, capped at 8, no filters (search/filter live on the full page)
 function filterSAOrgs(q) {
-  const planFilter = document.getElementById('sa-plan-filter')?.value || '';
-  const statusFilter = document.getElementById('sa-status-filter')?.value || '';
+  const countEl = document.getElementById('sa-org-count');
+  if (countEl) countEl.textContent = _saOrgs.length + ' total';
+
+  const tbody = document.getElementById('sa-org-list');
+  if (!tbody) return;
+  if (!_saOrgs.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--ink-faint)">No organisations yet</td></tr>';
+    return;
+  }
+  const preview = _saOrgs.slice(0, 8);
+  tbody.innerHTML = preview.map(_renderSAOrgRow).join('');
+}
+
+// Full Organisations page — search + plan/status filters, full list
+async function loadSAOrganisations() {
+  if (!_saOrgs.length) {
+    // Standalone entry — populate cache if the dashboard hasn't loaded it yet
+    const [orgsRes, membersRes] = await Promise.all([
+      sb.from('organisations').select('*').order('created_at', { ascending: false }),
+      sb.from('members').select('id,org_id'),
+    ]);
+    _saOrgs = orgsRes.data || [];
+    _saMemberCount = {};
+    (membersRes.data || []).forEach(m => { _saMemberCount[m.org_id] = (_saMemberCount[m.org_id] || 0) + 1; });
+  }
+  filterSAOrgsFull('');
+}
+
+function filterSAOrgsFull(q) {
+  const planFilter = document.getElementById('sa-plan-filter-full')?.value || '';
+  const statusFilter = document.getElementById('sa-status-filter-full')?.value || '';
   const query = (q || '').toLowerCase();
 
   const filtered = _saOrgs.filter(o => {
@@ -824,48 +887,16 @@ function filterSAOrgs(q) {
     return matchQ && matchPlan && matchStatus;
   });
 
-  const countEl = document.getElementById('sa-org-count');
+  const countEl = document.getElementById('sa-org-count-full');
   if (countEl) countEl.textContent = filtered.length + ' of ' + _saOrgs.length + ' orgs';
 
-  const tbody = document.getElementById('sa-org-list');
+  const tbody = document.getElementById('sa-org-list-full');
   if (!tbody) return;
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--ink-faint)">No organisations match</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--ink-faint)">No organisations match</td></tr>';
     return;
   }
-
-  const today = new Date().toISOString().split('T')[0];
-  const thirtyDays = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-  tbody.innerHTML = filtered.map(o => {
-    const memberCount = _saMemberCount[o.id] || 0;
-    const statusKey = o.subscription_status === 'active' ? 'active'
-      : o.subscription_status === 'trial' ? 'trial'
-      : o.status === 'suspended' ? 'suspended'
-      : 'trial';
-    const expires = o.subscription_expires;
-    const expDisplay = expires
-      ? (expires <= today ? '<span style="color:var(--danger)">Expired</span>'
-        : expires <= thirtyDays ? '<span style="color:var(--warning)">' + expires + '</span>'
-        : expires)
-      : '—';
-    const smsBundle = (o.sms_bundle || 0);
-    const smsBadge = smsBundle < 50 && smsBundle > 0
-      ? '<span style="color:var(--danger);font-size:.65rem"> ⚠ Low</span>'
-      : '';
-
-    return `<tr onclick="openSAOrgDetail('${o.id}')">
-      <td>
-        <div style="font-weight:600;font-size:.82rem">${h(o.name)}</div>
-        <div style="font-size:.65rem;color:var(--ink-faint);font-family:monospace">${h(o.org_code||'—')}</div>
-      </td>
-      <td><span class="sa-plan ${o.plan||'starter'}">${(o.plan||'starter').toUpperCase()}</span></td>
-      <td><span class="sa-status ${statusKey}">${statusKey}</span></td>
-      <td style="font-weight:600">${memberCount}</td>
-      <td>${smsBundle.toLocaleString()} SMS${smsBadge}</td>
-      <td style="font-size:.75rem">${expDisplay}</td>
-    </tr>`;
-  }).join('');
+  tbody.innerHTML = filtered.map(_renderSAOrgRow).join('');
 }
 
 
@@ -1168,32 +1199,160 @@ async function saUpdateUserAccount() {
 }
 
 // ── SUPERADMIN: REVENUE PAGE ──
+var _revTxns = []; // cached merged transaction list (payments + manual credits) for filter re-render
+
 async function loadSAFinance() {
   document.getElementById('sa-revenue-list').innerHTML = '<div class="loading"><div class="spinner"></div>Loading revenue data…</div>';
-  const { data: orgs } = await sb.from('organisations').select('*');
-  const planRevenue = { starter:0, basic:3000, standard:6000, pro:12000 };
-  const counts = { starter:0, basic:0, standard:0, pro:0 };
-  (orgs||[]).forEach(o => { if(counts[o.plan]!==undefined) counts[o.plan]++; });
-  document.getElementById('rev-starter').textContent = counts.starter;
-  document.getElementById('rev-basic').textContent = counts.basic + ' · Ksh ' + (counts.basic*3000).toLocaleString();
-  document.getElementById('rev-standard').textContent = counts.standard + ' · Ksh ' + (counts.standard*6000).toLocaleString();
-  document.getElementById('rev-pro').textContent = counts.pro + ' · Ksh ' + (counts.pro*12000).toLocaleString();
-  const total = (orgs||[]).reduce((s,o)=>s+(planRevenue[o.plan]||0),0);
-  document.getElementById('sa-revenue-list').innerHTML = `
-    <table>
-      <thead><tr><th>Organisation</th><th>Plan</th><th>Status</th><th>Annual Revenue</th><th>Renewal Due</th></tr></thead>
-      <tbody>${(orgs||[]).map(o=>`<tr>
-        <td><strong>${h(o.name)}</strong><div style="font-size:.68rem;color:var(--ink-faint)">${h(o.reg_number)||'—'}</div></td>
-        <td><span class="badge ${o.plan==='pro'?'badge-gold':o.plan==='standard'?'badge-maroon':o.plan==='basic'?'badge-green':'badge-grey'}">${o.plan}</span></td>
-        <td><span class="badge ${o.status==='active'?'badge-green':'badge-red'}">${o.status}</span></td>
-        <td><strong>Ksh ${(planRevenue[o.plan]||0).toLocaleString()}</strong></td>
-        <td style="color:var(--ink-faint)">Set renewal date</td>
-      </tr>`).join('')}
-      <tr style="background:var(--surface-2)">
-        <td colspan="3"><strong>Total Annual Revenue</strong></td>
-        <td colspan="2"><strong style="color:var(--maroon)">Ksh ${total.toLocaleString()}</strong></td>
-      </tr></tbody>
-    </table>`;
+
+  const months6 = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(); d.setMonth(d.getMonth() - i);
+    months6.push(d.toISOString().slice(0, 7));
+  }
+  const thisMonth = new Date().toISOString().slice(0, 7);
+
+  const [payRes, actRes, smsRes, orgsRes] = await Promise.all([
+    sb.from('payment_requests').select('*,organisations(name)').order('requested_at', { ascending: false }),
+    sb.from('activity_log').select('*').in('action', ['SMS CREDIT ADDED', 'PLAN UPGRADE']).order('created_at', { ascending: false }),
+    sb.from('sms_usage').select('org_id,month,messages_sent').in('month', months6),
+    sb.from('organisations').select('id,plan'),
+  ]);
+
+  const payments   = payRes.data || [];
+  const manualLogs = actRes.data || [];
+  const smsUsage   = smsRes.data || [];
+  const orgs       = orgsRes.data || [];
+
+  const isSub = p => (p.payment_type || '').startsWith('subscription');
+  const isSms = p => (p.payment_type || '').startsWith('sms_bundle');
+  const smsUnits = p => { const m = (p.payment_type || '').match(/sms_bundle_(\d+)/); return m ? parseInt(m[1]) : 0; };
+  const approved = payments.filter(p => p.status === 'approved');
+
+  const subRevenue = approved.filter(isSub).reduce((s, p) => s + Number(p.amount || 0), 0);
+  const smsRevenue = approved.filter(isSms).reduce((s, p) => s + Number(p.amount || 0), 0);
+
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('rev-sub-total', 'Ksh ' + subRevenue.toLocaleString());
+  set('rev-sms-total', 'Ksh ' + smsRevenue.toLocaleString());
+
+  const smsConsumedThisMonth = smsUsage.filter(r => r.month === thisMonth).reduce((s, r) => s + (r.messages_sent || 0), 0);
+  const smsSoldThisMonth = approved.filter(p => isSms(p) && (p.requested_at || '').slice(0, 7) === thisMonth)
+    .reduce((s, p) => s + smsUnits(p), 0);
+  set('rev-sms-sold-consumed', smsSoldThisMonth.toLocaleString() + ' sold / ' + smsConsumedThisMonth.toLocaleString() + ' used');
+
+  const manualThisMonth = manualLogs.filter(l => (l.created_at || '').slice(0, 7) === thisMonth).length;
+  set('rev-manual-count', manualThisMonth);
+
+  // ── Subscription plan breakdown chart ──
+  const planPrices = { starter: 0, basic: 3000, standard: 6000, pro: 12000 };
+  const planCounts = { starter: 0, basic: 0, standard: 0, pro: 0 };
+  orgs.forEach(o => { if (planCounts[o.plan] !== undefined) planCounts[o.plan]++; });
+  const planData = [
+    { label: 'Starter', count: planCounts.starter, value: 0, color: '#e0e0e0' },
+    { label: 'Basic', count: planCounts.basic, value: planPrices.basic, color: 'var(--teal)' },
+    { label: 'Standard', count: planCounts.standard, value: planPrices.standard, color: '#7c4dff' },
+    { label: 'Pro', count: planCounts.pro, value: planPrices.pro, color: 'var(--maroon)' },
+  ];
+  const maxPlanBar = Math.max(...planData.map(p => p.count * p.value), 1);
+  const planChartEl = document.getElementById('rev-plan-chart');
+  if (planChartEl) {
+    planChartEl.innerHTML = planData.map(p => {
+      const rev = p.count * p.value;
+      const pct = Math.round((rev / maxPlanBar) * 80);
+      return `<div class="sa-bar-wrap">
+        <div class="sa-bar-val">${p.count > 0 ? p.count + ' org' + (p.count > 1 ? 's' : '') : ''}</div>
+        <div class="sa-bar" style="height:${Math.max(pct, 2)}px;background:${p.color}"></div>
+        <div class="sa-bar-label">${p.label}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── SMS sold vs consumed chart (last 6 months) ──
+  const soldByMonth = {}; months6.forEach(m => soldByMonth[m] = 0);
+  approved.filter(isSms).forEach(p => {
+    const mo = (p.requested_at || '').slice(0, 7);
+    if (soldByMonth[mo] !== undefined) soldByMonth[mo] += smsUnits(p);
+  });
+  const consumedByMonth = {}; months6.forEach(m => consumedByMonth[m] = 0);
+  smsUsage.forEach(r => { if (consumedByMonth[r.month] !== undefined) consumedByMonth[r.month] += r.messages_sent || 0; });
+  const maxSmsBar = Math.max(...months6.map(m => Math.max(soldByMonth[m], consumedByMonth[m])), 1);
+  const smsChartEl = document.getElementById('rev-sms-chart');
+  if (smsChartEl) {
+    smsChartEl.innerHTML = months6.map(m => {
+      const label = new Date(m + '-01').toLocaleDateString('en-KE', { month: 'short' });
+      const soldPct = Math.round((soldByMonth[m] / maxSmsBar) * 80);
+      const usedPct = Math.round((consumedByMonth[m] / maxSmsBar) * 80);
+      return `<div class="sa-bar-wrap" style="min-width:34px">
+        <div style="display:flex;align-items:flex-end;gap:3px;height:82px">
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%">
+            <div class="sa-bar-val" style="font-size:.58rem">${soldByMonth[m] || ''}</div>
+            <div style="height:${Math.max(soldPct, 2)}px;width:9px;background:var(--teal);border-radius:2px 2px 0 0"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%">
+            <div class="sa-bar-val" style="font-size:.58rem">${consumedByMonth[m] || ''}</div>
+            <div style="height:${Math.max(usedPct, 2)}px;width:9px;background:#e0e0e0;border-radius:2px 2px 0 0"></div>
+          </div>
+        </div>
+        <div class="sa-bar-label">${label}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Merged transaction list ──
+  _revTxns = [];
+  payments.forEach(p => {
+    _revTxns.push({
+      date: p.requested_at,
+      org: p.organisations?.name || '—',
+      type: isSub(p) ? 'subscription' : isSms(p) ? 'sms' : 'other',
+      typeLabel: isSub(p) ? 'Subscription' : isSms(p) ? 'SMS Bundle' : (p.payment_type || 'Payment'),
+      amount: Number(p.amount || 0),
+      status: p.status,
+      manual: false,
+      ref: p.mpesa_ref || p.notes || '—',
+    });
+  });
+  manualLogs.forEach(l => {
+    _revTxns.push({
+      date: l.created_at,
+      org: '—',
+      type: 'manual',
+      typeLabel: l.action === 'SMS CREDIT ADDED' ? 'SMS Bundle' : 'Subscription',
+      amount: 0,
+      status: 'manual',
+      manual: true,
+      ref: (l.details || '').slice(0, 70),
+    });
+  });
+  _revTxns.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+  renderRevenueTransactions();
+}
+
+function renderRevenueTransactions() {
+  const listEl = document.getElementById('sa-revenue-list');
+  if (!listEl) return;
+  const filter = document.getElementById('rev-txn-filter')?.value || '';
+  let rows = _revTxns;
+  if (filter === 'pending') rows = rows.filter(r => r.status === 'pending');
+  else if (filter) rows = rows.filter(r => r.type === filter);
+
+  if (!rows.length) {
+    listEl.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--ink-faint)">No transactions match</div>';
+    return;
+  }
+
+  listEl.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>Date</th><th>Organisation</th><th>Type</th><th>Amount</th><th>Status</th><th>Ref / Notes</th></tr></thead>
+    <tbody>${rows.slice(0, 300).map(r => `<tr>
+      <td style="font-size:.72rem;color:var(--ink-faint);white-space:nowrap">${r.date ? new Date(r.date).toLocaleDateString() : '—'}</td>
+      <td style="font-size:.78rem">${h(r.org)}</td>
+      <td style="font-size:.75rem">${h(r.typeLabel)}${r.manual ? ' <span class="badge badge-grey" style="font-size:.6rem">MANUAL</span>' : ''}</td>
+      <td style="font-weight:600">${r.manual ? '<span style="color:var(--ink-faint)">Ksh 0</span>' : 'Ksh ' + r.amount.toLocaleString()}</td>
+      <td><span class="badge ${r.status === 'approved' ? 'badge-green' : r.status === 'pending' ? 'badge-warn' : r.status === 'manual' ? 'badge-grey' : 'badge-red'}" style="font-size:.62rem">${r.status}</span></td>
+      <td style="font-size:.7rem;color:var(--ink-faint)">${h(r.ref)}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
 }
 
 // ── ORG DETAIL ──

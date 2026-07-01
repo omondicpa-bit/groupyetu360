@@ -468,9 +468,10 @@ async function signIn() {
     .select('role,full_name,org_id,two_fa_enabled')
     .eq('id', data.user.id).maybeSingle();
 
-  // 2FA is account-level (profile.two_fa_enabled), only for admin/treasurer roles
-  // Superadmin bypasses — they authenticate at platform level
-  const isElevatedRole = ['admin','treasurer'].includes(profile?.role);
+  // 2FA is account-level (profile.two_fa_enabled), for admin/treasurer/superadmin roles.
+  // Superadmin is included deliberately (Jul 2026 security decision) — platform admin
+  // access is the highest-value target on the system and must be 2FA-capable.
+  const isElevatedRole = ['admin','treasurer','superadmin'].includes(profile?.role);
   const twoFAEnabled = isElevatedRole && (profile?.two_fa_enabled === true);
 
   if (twoFAEnabled) {
@@ -1298,7 +1299,7 @@ async function showPickerMyAccount() {
   document.getElementById('picker-email').value = currentUser?.email || '';
   // Show 2FA toggle only for admin/treasurer roles
   const twoFaRow = document.getElementById('picker-2fa-row');
-  const isElevated = ['admin','treasurer'].includes(currentProfile?.role);
+  const isElevated = ['admin','treasurer','superadmin'].includes(currentProfile?.role);
   if (twoFaRow) {
     twoFaRow.style.display = isElevated ? 'flex' : 'none';
     if (isElevated) {
@@ -1324,7 +1325,7 @@ async function savePickerMyAccount() {
   const phone = document.getElementById('picker-phone').value.trim();
   const email = document.getElementById('picker-email').value.trim();
   const twoFa = document.getElementById('picker-2fa')?.checked || false;
-  const isElevated = ['admin','treasurer'].includes(currentProfile?.role);
+  const isElevated = ['admin','treasurer','superadmin'].includes(currentProfile?.role);
 
   if (!fullName) { msgEl.textContent = 'Name is required'; msgEl.style.color = 'var(--warning)'; return; }
 
@@ -1485,11 +1486,14 @@ function buildNav() {
   if (isSuperAdmin) {
     nav += `<div class="nav-label">Super Admin</div>
     <a class="nav-item active" onclick="showPage('superadmin')" href="#"><span class="nav-icon">⊞</span> Platform Overview</a>
+    <a class="nav-item" onclick="showPage('sa_organisations')" href="#"><span class="nav-icon">🏢</span> Organisations</a>
     <a class="nav-item" onclick="showPage('sa_members')" href="#"><span class="nav-icon">◉</span> All Members</a>
     <a class="nav-item" onclick="showPage('sa_finance')" href="#"><span class="nav-icon">₭</span> Revenue</a>
     <a class="nav-item" onclick="showPage('sa_billing')" href="#"><span class="nav-icon">💳</span> Billing</a>
     <a class="nav-item" onclick="showPage('sa_activity')" href="#"><span class="nav-icon">📋</span> Activity Log</a>
     <a class="nav-item" onclick="showPage('sa_support')" href="#"><span class="nav-icon">⚙</span> Platform Settings</a>
+    <div class="nav-label" style="margin-top:.5rem">Account</div>
+    <a class="nav-item" onclick="showPage('my_account')" href="#"><span class="nav-icon">🔐</span> Account Settings</a>
 `;
 
   } else if (role === 'member') {
@@ -1629,6 +1633,7 @@ const pageTitles = {
   dashboard: ['Dashboard', ''],
   sa_members: ['All Members', 'Platform-wide member directory'],
   sa_finance: ['Revenue', 'Subscription & billing overview'],
+  sa_organisations: ['Organisations', 'Every organisation on the platform'],
   my_profile: ['My Profile', 'Your member details'],
   my_account: ['My Account', 'Personal information & password'],
   billing: ['Billing & SMS', 'Subscription and usage'],
@@ -1783,7 +1788,7 @@ function showPage(id) {
   const info = pageTitles[id] || [id, ''];
   document.getElementById('page-title').textContent = info[0];
   document.getElementById('page-sub').textContent = info[1] || currentOrg?.name || '';
-  const loaders = { members: loadMembers, finance: loadFinance, meetings: loadMeetings, welfare: loadWelfare, projects: loadProjects, mgr: loadMGR, table_banking: loadTableBanking, messages: loadMessages, settings: ()=>typeof loadSettings==='function'&&loadSettings(), superadmin: ()=>typeof loadSuperAdmin==='function'&&loadSuperAdmin(), sa_org_detail: ()=>{}, sa_members: ()=>typeof loadSAMembers==='function'&&loadSAMembers(), sa_finance: ()=>typeof loadSAFinance==='function'&&loadSAFinance(), my_profile: ()=>typeof loadMyProfile==='function'&&loadMyProfile(), my_contributions: ()=>typeof loadMyContributions==='function'&&loadMyContributions(), approvals: ()=>typeof loadApprovals==='function'&&loadApprovals(), my_account: ()=>typeof loadMyAccount==='function'&&loadMyAccount(), billing: ()=>typeof loadBilling==='function'&&loadBilling(), support: ()=>typeof loadSupport==='function'&&loadSupport(), sa_billing: ()=>typeof loadSABilling==='function'&&loadSABilling(), sa_support: ()=>typeof loadSASupport==='function'&&loadSASupport(), sa_activity: ()=>typeof loadSAActivity==='function'&&loadSAActivity(), my_meetings: ()=>typeof loadMyMeetings==='function'&&loadMyMeetings(), my_notices: ()=>typeof loadMyNotices==='function'&&loadMyNotices() };
+  const loaders = { members: loadMembers, finance: loadFinance, meetings: loadMeetings, welfare: loadWelfare, projects: loadProjects, mgr: loadMGR, table_banking: loadTableBanking, messages: loadMessages, settings: ()=>typeof loadSettings==='function'&&loadSettings(), superadmin: ()=>typeof loadSuperAdmin==='function'&&loadSuperAdmin(), sa_org_detail: ()=>{}, sa_members: ()=>typeof loadSAMembers==='function'&&loadSAMembers(), sa_finance: ()=>typeof loadSAFinance==='function'&&loadSAFinance(), sa_organisations: ()=>typeof loadSAOrganisations==='function'&&loadSAOrganisations(), my_profile: ()=>typeof loadMyProfile==='function'&&loadMyProfile(), my_contributions: ()=>typeof loadMyContributions==='function'&&loadMyContributions(), approvals: ()=>typeof loadApprovals==='function'&&loadApprovals(), my_account: ()=>typeof loadMyAccount==='function'&&loadMyAccount(), billing: ()=>typeof loadBilling==='function'&&loadBilling(), support: ()=>typeof loadSupport==='function'&&loadSupport(), sa_billing: ()=>typeof loadSABilling==='function'&&loadSABilling(), sa_support: ()=>typeof loadSASupport==='function'&&loadSASupport(), sa_activity: ()=>typeof loadSAActivity==='function'&&loadSAActivity(), my_meetings: ()=>typeof loadMyMeetings==='function'&&loadMyMeetings(), my_notices: ()=>typeof loadMyNotices==='function'&&loadMyNotices() };
   if (loaders[id]) loaders[id]();
   updateTopbarActions(id);
 }
