@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026070110">
+  <link rel="stylesheet" href="style.css?v=2026070111">
 </head>
 <body>
 
@@ -5117,14 +5117,14 @@
 
 
   <!-- GroupYetu360 Scripts — load order matters -->
-  <script src="js/auth.js?v=2026070110"></script>
-  <script src="js/utils.js?v=2026070110"></script>
-  <script src="js/dashboard.js?v=2026070110"></script>
-  <script src="js/members.js?v=2026070110"></script>
-  <script src="js/finance.js?v=2026070110"></script>
-  <script src="js/settings.js?v=2026070110"></script>
-  <script src="js/portal.js?v=2026070110"></script>
-  <script src="js/modules.js?v=2026070110"></script>
+  <script src="js/auth.js?v=2026070111"></script>
+  <script src="js/utils.js?v=2026070111"></script>
+  <script src="js/dashboard.js?v=2026070111"></script>
+  <script src="js/members.js?v=2026070111"></script>
+  <script src="js/finance.js?v=2026070111"></script>
+  <script src="js/settings.js?v=2026070111"></script>
+  <script src="js/portal.js?v=2026070111"></script>
+  <script src="js/modules.js?v=2026070111"></script>
   <script>
     // Bootstrap — runs after all JS files are loaded
     async function start() {
@@ -5154,7 +5154,11 @@
     origRight = parseFloat(fab.style.right) || 24;
     origBottom = parseFloat(fab.style.bottom) || 24;
     fab.style.transition = 'none';
-    e.preventDefault();
+    // No preventDefault here — calling it on touchstart suppresses the browser's
+    // synthesized click for the ENTIRE gesture, even a plain tap that never moves.
+    // That was silently killing every tap on the WhatsApp link on mobile. Only
+    // onMove (once actual dragging is detected) needs to prevent default, to stop
+    // the page from scrolling while repositioning the button.
   }
   function onMove(e) {
     if (!dragging) return;

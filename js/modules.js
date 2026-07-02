@@ -1833,42 +1833,20 @@ function clearMgrDisForm() {
 
 
 
-function toggleSupportFab() {
-  const menu = document.getElementById('support-fab-menu');
-  const iconChat = document.getElementById('fab-icon-chat');
-  const iconClose = document.getElementById('fab-icon-close');
-  const pulse = document.getElementById('fab-pulse');
-  const btn = document.getElementById('support-fab-btn');
-  const open = menu.style.display === 'flex';
-  if (open) {
-    menu.style.display = 'none';
-    if (iconChat) iconChat.style.display = '';
-    if (iconClose) iconClose.style.display = 'none';
-    if (pulse) pulse.style.display = '';
-    btn.style.background = '#25D366';
-  } else {
-    menu.style.display = 'flex';
-    if (iconChat) iconChat.style.display = 'none';
-    if (iconClose) iconClose.style.display = '';
-    if (pulse) pulse.style.display = 'none';
-    btn.style.background = '#555';
-  }
-}
-// Update FAB contacts from platform settings
+// (toggleSupportFab removed — was for a multi-option sub-menu that no longer
+// exists in the current single-button FAB markup; nothing referenced it.)
+// Update the FAB WhatsApp link from platform settings, so it stays correct if the
+// support number ever changes in SA settings instead of being hardcoded in index.html.
+// (Earlier version of this targeted a multi-option sub-menu — fab-whatsapp/fab-call/
+// fab-email — that no longer exists in the current single-button FAB markup.)
 (async () => {
   try {
     if (typeof sb !== 'undefined') {
-      const { data: ps } = await sb.from('platform_settings_public').select('support_phone,support_email').maybeSingle();
+      const { data: ps } = await sb.from('platform_settings_public').select('support_phone').maybeSingle();
       if (ps?.support_phone) {
-        const phone = ps.support_phone.replace(/\D/g,'');
-        const wLink = document.getElementById('fab-whatsapp');
-        const cLink = document.getElementById('fab-call');
-        if (wLink) wLink.href = 'https://wa.me/254' + phone.replace(/^0/,'');
-        if (cLink) cLink.href = 'tel:+254' + phone.replace(/^0/,'');
-      }
-      if (ps?.support_email) {
-        const eLink = document.getElementById('fab-email');
-        if (eLink) eLink.href = 'mailto:' + ps.support_email;
+        const phone = ps.support_phone.replace(/\D/g,'').replace(/^0/,'');
+        const btn = document.getElementById('support-fab-btn');
+        if (btn) btn.href = `https://wa.me/254${phone}?text=Hi%2C%20I%20need%20help%20with%20GroupYetu360`;
       }
     }
   } catch(e) {}
