@@ -21,16 +21,40 @@ let attState = {};
 
 // ── INIT ──
 async function init() {
+  // Detect a signup-confirmation redirect BEFORE anything consumes the URL hash.
+  // Supabase appends #access_token=...&type=signup to the confirmation link's redirect.
+  // Without this check, getSession()/onAuthStateChange below just silently establish
+  // a session and load the app straight in — no acknowledgment the email was even
+  // confirmed. This is what makes registration feel unfinished/unprofessional.
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const isSignupConfirmation = hashParams.get('type') === 'signup';
+
   const { data: { session } } = await sb.auth.getSession();
-  if (session) {
+
+  if (isSignupConfirmation && session) {
+    // Clear the hash so a refresh doesn't re-trigger this
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+    currentUser = session.user;
+    window._suppressAuthScreenOnce = true; // see SIGNED_OUT handler below — signOut() inside
+                                            // showEmailConfirmedScreen() would otherwise fire
+                                            // SIGNED_OUT and overwrite our custom confirmed UI
+    showEmailConfirmedScreen();
+  }
+
+  if (session && !isSignupConfirmation) {
     currentUser = session.user;
     await loadProfileAndOrg();
-  } else {
+  } else if (!session) {
     showAuthScreen();
   }
   sb.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
       if (!session) return;
+      // While signIn() is still checking whether this account needs 2FA, don't let
+      // this listener race ahead and load the real app — that race was the cause of
+      // the "flashes into the app before showing OTP" bug. signIn()/verify2FA() drive
+      // the load explicitly once they know which path they're on.
+      if (window._suppressAuthAutoLoad) return;
       // Avoid double-loading if we already have a matching session
       if (event === 'INITIAL_SESSION' && currentProfile) return;
       // Guard: if SIGNED_IN fires but the session user differs from currentUser,
@@ -71,6 +95,10 @@ async function init() {
         }
       }
     } else if (event === 'SIGNED_OUT') {
+      if (window._suppressAuthScreenOnce) {
+        window._suppressAuthScreenOnce = false;
+        return;
+      }
       showAuthScreen();
     }
   });
@@ -400,6 +428,80 @@ let _pendingOrgId = null;
 let _2faCode = null;
 let _2faProfile = null;
 let _2faSession = null;
+let _resendCooldownTimer = null;
+
+// ── OTP box UI (Paystack-style auto-advancing input) ──
+function otpBoxInput(el, idx) {
+  el.value = el.value.replace(/[^0-9]/g, '').slice(0, 1);
+  el.classList.toggle('filled', !!el.value);
+  el.classList.remove('otp-error');
+  if (el.value && idx < 5) {
+    const next = document.querySelector(`.otp-box[data-idx="${idx+1}"]`);
+    if (next) next.focus();
+  }
+  syncOtpHiddenField();
+  // Auto-submit once all 6 are filled
+  const allFilled = Array.from(document.querySelectorAll('.otp-box')).every(b => b.value);
+  if (allFilled) verify2FA();
+}
+
+function otpBoxKeydown(e, idx) {
+  if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+    const prev = document.querySelector(`.otp-box[data-idx="${idx-1}"]`);
+    if (prev) { prev.focus(); prev.value = ''; prev.classList.remove('filled'); syncOtpHiddenField(); }
+  }
+}
+
+function otpBoxPaste(e) {
+  e.preventDefault();
+  const digits = (e.clipboardData.getData('text') || '').replace(/[^0-9]/g, '').slice(0, 6);
+  const boxes = document.querySelectorAll('.otp-box');
+  digits.split('').forEach((d, i) => {
+    if (boxes[i]) { boxes[i].value = d; boxes[i].classList.add('filled'); }
+  });
+  syncOtpHiddenField();
+  if (digits.length === 6) { verify2FA(); }
+  else if (boxes[digits.length]) boxes[digits.length].focus();
+}
+
+function syncOtpHiddenField() {
+  const code = Array.from(document.querySelectorAll('.otp-box')).map(b => b.value).join('');
+  const hidden = document.getElementById('2fa-code');
+  if (hidden) hidden.value = code;
+}
+
+function clearOtpBoxes() {
+  document.querySelectorAll('.otp-box').forEach(b => { b.value = ''; b.classList.remove('filled','otp-error'); });
+  syncOtpHiddenField();
+  const first = document.querySelector('.otp-box[data-idx="0"]');
+  if (first) first.focus();
+}
+
+function shakeOtpBoxes() {
+  document.querySelectorAll('.otp-box').forEach(b => {
+    b.classList.add('otp-error');
+    setTimeout(() => b.classList.remove('otp-error'), 350);
+  });
+}
+
+function startResendCooldown(seconds) {
+  const link = document.getElementById('resend-2fa-link');
+  if (!link) return;
+  let remaining = seconds;
+  clearInterval(_resendCooldownTimer);
+  link.classList.add('disabled');
+  link.textContent = `Resend code (${remaining}s)`;
+  _resendCooldownTimer = setInterval(() => {
+    remaining--;
+    if (remaining <= 0) {
+      clearInterval(_resendCooldownTimer);
+      link.classList.remove('disabled');
+      link.textContent = 'Resend code';
+    } else {
+      link.textContent = `Resend code (${remaining}s)`;
+    }
+  }, 1000);
+}
 
 async function signInWithGoogle() {
   try {
@@ -430,14 +532,26 @@ async function signIn() {
   errEl.classList.remove('show');
   if (!email || !password) { errEl.textContent='Please enter email and password'; errEl.classList.add('show'); return; }
 
+  // Suppress the onAuthStateChange listener's auto-load while we check whether this
+  // account needs 2FA. Without this, signInWithPassword() immediately fires SIGNED_IN,
+  // which was racing ahead and loading the real app UI for a moment before this function
+  // got to the 2FA check below and yanked it back to show the OTP screen — that flash
+  // was the "looks like it's logging in" bug. Cleared further down once we know which
+  // path we're actually on.
+  window._suppressAuthAutoLoad = true;
+
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) { errEl.textContent = error.message; errEl.classList.add('show'); return; }
+  if (error) {
+    window._suppressAuthAutoLoad = false;
+    errEl.textContent = error.message; errEl.classList.add('show'); return;
+  }
 
   // If org code provided, verify and switch to that org
   if (orgCode) {
     const { data: org } = await sb.from('organisations')
       .select('id,name').eq('org_code', orgCode).maybeSingle();
     if (!org) {
+      window._suppressAuthAutoLoad = false;
       await sb.auth.signOut();
       errEl.textContent = `Organisation code "${orgCode}" not found. Check the code from your admin.`;
       errEl.classList.add('show');
@@ -448,12 +562,14 @@ async function signIn() {
       .select('*').eq('id', data.user.id).eq('org_id', org.id).maybeSingle();
     if (!orgProfile) {
       // Check if they have a profile in ANY org (admin of another org trying member access)
+      window._suppressAuthAutoLoad = false;
       await sb.auth.signOut();
       errEl.textContent = `You don't have access to ${org.name}. Contact the group admin to be added.`;
       errEl.classList.add('show');
       return;
     }
     if (orgProfile.role === 'pending') {
+      window._suppressAuthAutoLoad = false;
       await sb.auth.signOut();
       errEl.textContent = `Your access to ${org.name} is pending admin approval.`;
       errEl.classList.add('show');
@@ -496,6 +612,7 @@ async function signIn() {
       const errEl = document.getElementById('login-error');
       if (errEl) { errEl.textContent = 'Could not send verification code. Please try again.'; errEl.classList.add('show'); }
       _2faSession = null; _2faProfile = null;
+      window._suppressAuthAutoLoad = false;
       return;
     }
 
@@ -504,14 +621,19 @@ async function signIn() {
     document.getElementById('auth-step-2fa').style.display = 'block';
     document.getElementById('2fa-sub').textContent =
       `A 6-digit code has been sent to ${email}. Check your inbox.`;
-    document.getElementById('2fa-code').value = '';
-    document.getElementById('2fa-code').focus();
+    clearOtpBoxes();
+    startResendCooldown(30);
     return;
   }
-  // No 2FA needed — proceed normally (onAuthStateChange handles the rest)
+  // No 2FA needed — the auth listener was suppressed above, so we drive the load
+  // ourselves here instead of relying on the SIGNED_IN event.
+  window._suppressAuthAutoLoad = false;
+  currentUser = data.user;
+  await loadProfileAndOrg();
 }
 
 async function verify2FA() {
+  if (window._verifying2FA) return;
   const entered = document.getElementById('2fa-code').value.trim();
   const errEl = document.getElementById('2fa-error');
   errEl.classList.remove('show');
@@ -522,6 +644,7 @@ async function verify2FA() {
     return;
   }
 
+  window._verifying2FA = true;
   const loginEmail = document.getElementById('login-email').value.trim();
 
   // Verify OTP server-side via Edge Function
@@ -539,19 +662,27 @@ async function verify2FA() {
   } catch(e) {
     errEl.textContent = 'Verification failed. Please try again.';
     errEl.classList.add('show');
+    shakeOtpBoxes();
+    window._verifying2FA = false;
     return;
   }
 
   if (!verifyData.valid) {
     errEl.textContent = verifyData.error || 'Incorrect code. Please try again.';
     errEl.classList.add('show');
+    shakeOtpBoxes();
+    setTimeout(clearOtpBoxes, 400);
+    window._verifying2FA = false;
     return;
   }
 
   // Code correct — sign back in with original credentials
+  window._suppressAuthAutoLoad = true;
   const loginPass = document.getElementById('login-password').value;
-  const { error } = await sb.auth.signInWithPassword({ email: loginEmail, password: loginPass });
+  const { data: signInData, error } = await sb.auth.signInWithPassword({ email: loginEmail, password: loginPass });
   if (error) {
+    window._suppressAuthAutoLoad = false;
+    window._verifying2FA = false;
     errEl.textContent = 'Could not sign in: ' + error.message;
     errEl.classList.add('show');
     return;
@@ -561,10 +692,14 @@ async function verify2FA() {
   _2faCode = null;
   _2faProfile = null;
   _2faSession = null;
+  window._verifying2FA = false;
 
-  // Hide 2FA screen
+  // Hide 2FA screen, then drive the load ourselves (listener was suppressed above)
   document.getElementById('auth-step-2fa').style.display = 'none';
   document.getElementById('auth-step-1').style.display = 'block';
+  window._suppressAuthAutoLoad = false;
+  currentUser = signInData.user;
+  await loadProfileAndOrg();
 }
 
 async function resend2FACode() {
@@ -586,8 +721,8 @@ async function resend2FACode() {
     const otpData = await otpRes.json();
     if (!otpRes.ok || !otpData.success) throw new Error(otpData.error || 'Failed');
     if (sucEl) { sucEl.textContent = '✓ New code sent. Check your inbox.'; }
-    document.getElementById('2fa-code').value = '';
-    document.getElementById('2fa-code').focus();
+    clearOtpBoxes();
+    startResendCooldown(30);
   } catch(e) {
     if (sucEl) sucEl.classList.remove('show');
     if (errEl) { errEl.textContent = 'Could not resend code. Please sign in again.'; errEl.classList.add('show'); }
@@ -605,6 +740,42 @@ function cancel2FA() {
 // signIn defined above
 
 // ── Account-only registration (Step 1) ──
+// ── Password strength (min 6 chars, upper, lower, number) — shared by registration
+// and any future password-set flows so the rule is consistent everywhere.
+function validatePasswordStrength(pw) {
+  const checks = {
+    len: pw.length >= 6,
+    upper: /[A-Z]/.test(pw),
+    lower: /[a-z]/.test(pw),
+    num: /[0-9]/.test(pw),
+  };
+  const valid = checks.len && checks.upper && checks.lower && checks.num;
+  let message = '';
+  if (!valid) {
+    const missing = [];
+    if (!checks.len) missing.push('at least 6 characters');
+    if (!checks.upper) missing.push('an uppercase letter');
+    if (!checks.lower) missing.push('a lowercase letter');
+    if (!checks.num) missing.push('a number');
+    message = 'Password needs ' + missing.join(', ');
+  }
+  return { valid, checks, message };
+}
+
+function updatePasswordChecklist(pw) {
+  const { checks } = validatePasswordStrength(pw || '');
+  const set = (id, met) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle('met', met);
+    el.textContent = (met ? '✓ ' : '○ ') + el.textContent.replace(/^[✓○]\s*/, '');
+  };
+  set('pw-check-len', checks.len);
+  set('pw-check-upper', checks.upper);
+  set('pw-check-lower', checks.lower);
+  set('pw-check-num', checks.num);
+}
+
 async function registerAccount() {
   const name = document.getElementById('reg-name').value.trim();
   const phone = document.getElementById('reg-phone').value.trim();
@@ -616,13 +787,18 @@ async function registerAccount() {
   errEl.classList.remove('show'); sucEl.classList.remove('show');
 
   if (!name || !email || !password) { errEl.textContent = 'Please fill in all required fields'; errEl.classList.add('show'); return; }
-  if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters'; errEl.classList.add('show'); return; }
+  const strength = validatePasswordStrength(password);
+  if (!strength.valid) { errEl.textContent = strength.message; errEl.classList.add('show'); return; }
   if (confirm !== undefined && confirm !== '' && confirm !== password) { errEl.textContent = 'Passwords do not match'; errEl.classList.add('show'); return; }
 
   sucEl.textContent = 'Creating your account…'; sucEl.classList.add('show');
 
   const { data: authData, error: authErr } = await sb.auth.signUp({
-    email, password, options: { data: { full_name: name } }
+    email, password,
+    options: {
+      data: { full_name: name },
+      emailRedirectTo: 'https://app.groupyetu.org/'
+    }
   });
   if (authErr) { sucEl.classList.remove('show'); errEl.textContent = authErr.message; errEl.classList.add('show'); return; }
 
@@ -1243,9 +1419,14 @@ function showPasswordResetScreen() {
   if (sEl) sEl.textContent = 'You were invited to GroupYetu360. Set a password to get started.';
 }
 
-function showEmailConfirmedScreen() {
-  // Self-registered user clicked confirmation link — email confirmed, prompt login
-  sb.auth.signOut();
+async function showEmailConfirmedScreen() {
+  // Self-registered user clicked confirmation link — email confirmed, prompt login.
+  // _suppressAuthAutoLoad stays true across this signOut() so a still-pending
+  // INITIAL_SESSION event (fired from the same session that got us here) can't
+  // race in and call loadProfileAndOrg() before we're done showing this screen.
+  window._suppressAuthAutoLoad = true;
+  await sb.auth.signOut();
+  window._suppressAuthAutoLoad = false;
   document.getElementById('auth-screen').style.display = 'flex';
   document.getElementById('app-screen').classList.remove('visible');
   const picker = document.getElementById('org-picker-screen');

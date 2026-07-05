@@ -710,6 +710,18 @@ function setRecipient(type, btn) {
   _msgRecipientType = type;
   document.querySelectorAll('.msg-recipient-pill').forEach(p => p.classList.remove('active'));
   if (btn) btn.classList.add('active');
+
+  const pickerEl = document.getElementById('msg-custom-picker');
+  if (type === 'custom') {
+    if (pickerEl) pickerEl.style.display = 'block';
+    renderCustomMemberList();
+    updateCustomSelectionCount();
+    const sel = document.getElementById('sms-recipients');
+    if (sel) sel.value = 'custom';
+    return;
+  }
+  if (pickerEl) pickerEl.style.display = 'none';
+
   // Update count label
   let count = 0;
   if (type === 'all') count = allMembers.filter(m => m.phone).length;
@@ -722,6 +734,56 @@ function setRecipient(type, btn) {
   // Sync hidden select (used by sendSms)
   const sel = document.getElementById('sms-recipients');
   if (sel) sel.value = type;
+}
+
+// ── Custom member picker (checkbox-based ad-hoc audience, e.g. executive/women's
+// wing/youth — no formal sub-group feature exists, this is manual per-send selection) ──
+let _customSelectedMemberIds = new Set();
+
+function renderCustomMemberList() {
+  const listEl = document.getElementById('msg-custom-list');
+  if (!listEl) return;
+  const withPhone = allMembers.filter(m => m.phone);
+  if (!withPhone.length) {
+    listEl.innerHTML = '<div class="msg-cm-empty">No members with phone numbers</div>';
+    return;
+  }
+  listEl.innerHTML = withPhone.map(m => `
+    <label class="msg-cm-row" data-name="${(m.full_name||'').toLowerCase()}">
+      <input type="checkbox" data-member-id="${m.id}" ${_customSelectedMemberIds.has(m.id)?'checked':''} onchange="toggleCustomMember('${m.id}',this.checked)"/>
+      <span class="cm-name">${h(m.full_name||'Unnamed')}</span>
+      <span class="cm-phone">${h(m.phone||'')}</span>
+    </label>`).join('');
+}
+
+function filterCustomMemberList(query) {
+  const q = (query||'').toLowerCase().trim();
+  document.querySelectorAll('#msg-custom-list .msg-cm-row').forEach(row => {
+    row.style.display = !q || row.dataset.name.includes(q) ? 'flex' : 'none';
+  });
+}
+
+function toggleCustomMember(memberId, checked) {
+  if (checked) _customSelectedMemberIds.add(memberId);
+  else _customSelectedMemberIds.delete(memberId);
+  updateCustomSelectionCount();
+}
+
+function toggleAllCustomMembers(selectAll) {
+  const visibleIds = Array.from(document.querySelectorAll('#msg-custom-list .msg-cm-row'))
+    .filter(row => row.style.display !== 'none')
+    .map(row => row.querySelector('input').dataset.memberId);
+  visibleIds.forEach(id => selectAll ? _customSelectedMemberIds.add(id) : _customSelectedMemberIds.delete(id));
+  renderCustomMemberList();
+  updateCustomSelectionCount();
+}
+
+function updateCustomSelectionCount() {
+  const count = _customSelectedMemberIds.size;
+  const countEl = document.getElementById('msg-recipient-count');
+  if (countEl) countEl.textContent = count + ' member' + (count!==1?'s':'') + ' selected';
+  const sendCount = document.getElementById('msg-send-count');
+  if (sendCount) sendCount.textContent = count + ' member' + (count!==1?'s':'');
 }
 
 async function loadMessages() {
@@ -875,12 +937,18 @@ async function sendSms() {
     rawPhones = allMembers.filter(m => m.phone && m.status === 'active').map(m => m.phone);
   } else if (recipientType === 'arrears') {
     rawPhones = allMembers.filter(m => m.phone && m.status === 'arrears').map(m => m.phone);
+  } else if (recipientType === 'custom') {
+    if (!_customSelectedMemberIds.size) { toast('Select at least one member first'); return; }
+    rawPhones = allMembers.filter(m => m.phone && _customSelectedMemberIds.has(m.id)).map(m => m.phone);
   }
 
   if (!rawPhones.length) { toast('No phone numbers found for selected recipients'); return; }
 
   // ── Confirmation gate — prevents accidental double-send ──
-  const recipientLabel = recipientType === 'all' ? 'all members' : recipientType === 'active' ? 'active members' : 'members in arrears';
+  const recipientLabel = recipientType === 'all' ? 'all members'
+    : recipientType === 'active' ? 'active members'
+    : recipientType === 'arrears' ? 'members in arrears'
+    : `${rawPhones.length} selected member${rawPhones.length!==1?'s':''}`;
   const preview = body.length > 60 ? body.slice(0, 60) + '…' : body;
   const confirmed = confirm(`Send SMS to ${rawPhones.length} ${recipientLabel}?\n\nMessage: "${preview}"\n\nThis will use ${rawPhones.length} SMS from your bundle.`);
   if (!confirmed) return;
