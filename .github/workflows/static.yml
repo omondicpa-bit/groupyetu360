@@ -1,4 +1,4 @@
-# Simple workflow for deploying static content to GitHub Pages
+# Workflow for deploying static content to GitHub Pages
 name: Deploy static content to Pages
 on:
   push:
@@ -15,10 +15,14 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  # Split into two jobs deliberately: if build+deploy are combined into one job,
+  # re-running just that job (e.g. after a transient "Deployment failed, try
+  # again later" from GitHub's side) re-runs the artifact upload step too within
+  # the SAME run — which creates a second "github-pages" artifact and fails with
+  # "Multiple artifacts named github-pages were unexpectedly found." Splitting
+  # them means a failed deploy can be safely retried on its own, without ever
+  # re-triggering the build/upload step.
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -49,6 +53,14 @@ jobs:
         with:
           path: './_site'
 
+  deploy:
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
+
