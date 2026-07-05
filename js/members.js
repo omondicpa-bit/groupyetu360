@@ -258,17 +258,37 @@ async function saveMember() {
     savings_balance: openingSavings
   };
 
-  const { error } = await sb.from('members').insert(payload);
+  const { data: newMember, error } = await sb.from('members').insert(payload).select().single();
   if (error) { toast('Error: ' + error.message); return; }
 
-  // Send portal invite if email provided and checkbox checked
+  // Send portal invite if email provided and checkbox checked.
+  // NOTE: this used to call resetPasswordForEmail(), but that only sends anything if
+  // the email already has an auth account — for a genuinely new member (the normal
+  // case here) it silently did nothing at all, no account and no email, while the UI
+  // still reported success. signUp() + invite metadata is the correct mechanism —
+  // same one used when linking portal access to an existing member later — and the
+  // profiles/user_orgs rows get created server-side by the handle_new_user() trigger.
   const sendInvite = document.getElementById('nm-send-invite')?.checked;
   if (email && sendInvite) {
     try {
-      await sb.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://app.groupyetu.org/#'
+      const tempPw = Math.random().toString(36).slice(2, 10) + 'Aa1!';
+      const { error: signUpErr } = await sb.auth.signUp({
+        email, password: tempPw,
+        options: {
+          data: {
+            full_name: fullName,
+            invite_org_id: currentOrg.id,
+            invite_org_name: currentOrg.name,
+            invite_member_id: newMember?.id || null
+          },
+          emailRedirectTo: 'https://app.groupyetu.org/?intent=invite'
+        }
       });
-      toast('✓ Member added — portal invite sent to ' + email);
+      if (signUpErr) {
+        toast('Member added. Invite failed: ' + signUpErr.message + ' — if they already have an account, use "Link Existing User" instead.');
+      } else {
+        toast('✓ Member added — portal invite sent to ' + email);
+      }
     } catch(e) {
       toast('Member added. Invite failed: ' + e.message);
     }
@@ -633,7 +653,7 @@ async function sendMemberPortalInvite() {
             invite_org_name: currentOrg.name,
             invite_member_id: currentMemberId
           },
-          emailRedirectTo: appUrl
+          emailRedirectTo: appUrl + '?intent=invite'
         }
       });
 

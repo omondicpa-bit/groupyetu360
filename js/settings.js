@@ -209,17 +209,20 @@ async function saveInviteAdmin() {
   const role = document.getElementById('invite-role').value;
   if (!name||!email||!password) { toast('Please fill all fields'); return; }
   if (password.length < 6) { toast('Password must be at least 6 characters'); return; }
+  // profiles/user_orgs are created server-side by the handle_new_user() trigger via
+  // the admin_invite_org_id/admin_invite_role metadata below — NOT via a client-side
+  // upsert here. There is no active session for this new account until they confirm
+  // their email, so a client-side write at this point would be silently blocked by
+  // RLS (same root cause documented for registerAccount()/joinOrg()).
   const { data: authData, error: authErr } = await sb.auth.signUp({
-    email, password, options: { data: { full_name: name } }
+    email, password,
+    options: {
+      data: { full_name: name, admin_invite_org_id: currentOrg.id, admin_invite_role: role },
+      emailRedirectTo: 'https://app.groupyetu.org/?intent=invite'
+    }
   });
   if (authErr) { toast('Error: '+authErr.message); return; }
-  await sb.from('profiles').upsert({
-    id: authData.user.id,
-    org_id: currentOrg.id,
-    role,
-    full_name: name
-  });
-  toast(name + ' added as ' + role);
+  toast(name + ' added as ' + role + ' — confirmation email sent');
   closeModal('inviteAdmin');
   loadTeamMembers();
 }
@@ -1154,7 +1157,7 @@ async function saDeleteUser() {
 async function saResendPortalInvite(email, name) {
   if (!email) { toast('No email on this account'); return; }
   try {
-    await sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://app.groupyetu.org/#' });
+    await sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://app.groupyetu.org/?intent=reset' });
     toast(`✓ Password reset link sent to ${email}`);
     await logActivity('SA PORTAL INVITE', `Superadmin resent portal invite to ${email} (${name})`);
   } catch(e) { toast('Error: ' + e.message); }
@@ -1567,7 +1570,7 @@ async function saSetBankBalance() {
 async function saResetPassword() {
   const email = document.getElementById('od-reset-email')?.value?.trim();
   if (!email) { toast('Enter admin email address'); return; }
-  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://app.groupyetu.org/' });
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://app.groupyetu.org/?intent=reset' });
   if (error) { toast('Error: '+error.message); return; }
   toast(`✓ Password reset link sent to ${email}`);
 }

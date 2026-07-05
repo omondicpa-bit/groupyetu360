@@ -20,85 +20,78 @@ let selectedMeetingId = null;
 let attState = {};
 
 // ── INIT ──
+// Registration/reset/invite routing is driven ENTIRELY by an explicit ?intent= query
+// param that WE set on every redirectTo/emailRedirectTo URL (see registerAccount(),
+// joinOrg(), sendPasswordReset(), saveInviteAdmin(), members.js invite functions).
+// Earlier versions tried to infer intent from Supabase's own hash `type` param and/or
+// whether a `profiles` row existed yet — both were unreliable (hash format varies by
+// auth flow type; profile existence depended on a client-side insert that silently
+// failed under RLS before email confirmation — see CHANGELOG.md, "Registration flow —
+// complete overhaul"). Declaring intent ourselves removes that ambiguity entirely.
+let _urlIntent = null; // 'confirm' | 'reset' | 'invite' | null — captured once at load
+
 async function init() {
-  // Detect a signup-confirmation redirect BEFORE anything consumes the URL hash.
-  // Supabase appends #access_token=...&type=signup to the confirmation link's redirect.
-  // Without this check, getSession()/onAuthStateChange below just silently establish
-  // a session and load the app straight in — no acknowledgment the email was even
-  // confirmed. This is what makes registration feel unfinished/unprofessional.
-  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-  const isSignupConfirmation = hashParams.get('type') === 'signup';
+  const urlParams = new URLSearchParams(window.location.search);
+  _urlIntent = urlParams.get('intent');
+  if (_urlIntent) {
+    // Clear the query param so a refresh doesn't re-trigger this screen
+    history.replaceState(null, '', window.location.pathname + (window.location.hash || ''));
+  }
 
   const { data: { session } } = await sb.auth.getSession();
 
-  if (isSignupConfirmation && session) {
-    // Clear the hash so a refresh doesn't re-trigger this
-    history.replaceState(null, '', window.location.pathname + window.location.search);
+  if (session) {
     currentUser = session.user;
-    window._suppressAuthScreenOnce = true; // see SIGNED_OUT handler below — signOut() inside
-                                            // showEmailConfirmedScreen() would otherwise fire
-                                            // SIGNED_OUT and overwrite our custom confirmed UI
-    showEmailConfirmedScreen();
-  }
-
-  if (session && !isSignupConfirmation) {
-    currentUser = session.user;
-    await loadProfileAndOrg();
-  } else if (!session) {
+    if (_urlIntent === 'confirm') {
+      showEmailConfirmedScreen();
+    } else if (_urlIntent === 'reset' || _urlIntent === 'invite') {
+      showPasswordResetScreen(_urlIntent);
+    } else {
+      await loadProfileAndOrg();
+    }
+  } else {
     showAuthScreen();
   }
+
   sb.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+    // Some auth flows (PKCE code exchange in particular) don't resolve the session
+    // synchronously — getSession() above can return null even though a confirm/reset/
+    // invite link was just clicked, with the real session arriving here moments later.
+    // So intent-based routing has to be handled in BOTH places, not just at load.
+    if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'PASSWORD_RECOVERY') {
       if (!session) return;
-      // While signIn() is still checking whether this account needs 2FA, don't let
-      // this listener race ahead and load the real app — that race was the cause of
-      // the "flashes into the app before showing OTP" bug. signIn()/verify2FA() drive
-      // the load explicitly once they know which path they're on.
       if (window._suppressAuthAutoLoad) return;
-      // Avoid double-loading if we already have a matching session
       if (event === 'INITIAL_SESSION' && currentProfile) return;
-      // Guard: if SIGNED_IN fires but the session user differs from currentUser,
-      // it means a signUp() call (e.g. admin inviting a member) triggered this.
-      // Do NOT switch the current admin's session.
-      if (event === 'SIGNED_IN' && currentUser && session.user.id !== currentUser.id) {
-        console.log('[GY360] Ignoring SIGNED_IN for different user (invite signUp side-effect)');
+      // Guard: if this fires for a different user than the one currently signed in,
+      // it means a signUp() call (e.g. admin inviting a member) triggered this as a
+      // side effect. Do NOT switch the current admin's session.
+      if (event !== 'PASSWORD_RECOVERY' && currentUser && session.user.id !== currentUser.id) {
+        console.log('[GY360] Ignoring ' + event + ' for different user (invite signUp side-effect)');
         return;
       }
       currentUser = session.user;
+
+      if (_urlIntent === 'confirm') {
+        showEmailConfirmedScreen();
+        return;
+      }
+      if (_urlIntent === 'reset' || _urlIntent === 'invite') {
+        showPasswordResetScreen(_urlIntent);
+        return;
+      }
+
       try {
         await loadProfileAndOrg();
       } catch(e) {
         console.error('[GY360] loadProfileAndOrg error:', e);
         showAuthScreen();
       }
-    } else if (event === 'PASSWORD_RECOVERY') {
-      // Triggered when user clicks a reset/invite/confirmation link
-      if (!session) return;
-      currentUser = session.user;
-      const meta = session.user.user_metadata || {};
-      if (meta.invite_org_id) {
-        // Invited member — show set password screen (they have no password yet)
-        showPasswordResetScreen();
-      } else {
-        // Self-registered user confirming email OR forgot password reset
-        // If profile exists → they registered with a password → show confirmed screen
-        // If no profile → treat as reset/invite → show set password screen
-        try {
-          const { data: profile } = await sb.from('profiles').select('id').eq('id', session.user.id).maybeSingle();
-          if (profile) {
-            showEmailConfirmedScreen();
-          } else {
-            showPasswordResetScreen();
-          }
-        } catch(e) {
-          showPasswordResetScreen();
-        }
-      }
     } else if (event === 'SIGNED_OUT') {
       if (window._suppressAuthScreenOnce) {
         window._suppressAuthScreenOnce = false;
         return;
       }
+      currentUser = null; currentProfile = null; currentOrg = null;
       showAuthScreen();
     }
   });
@@ -354,40 +347,25 @@ async function joinOrg() {
   if (!name||!email||!password) { errEl.textContent='Please fill all fields'; errEl.classList.add('show'); return; }
   if (password.length < 6) { errEl.textContent='Password must be at least 6 characters'; errEl.classList.add('show'); return; }
 
-  // Create auth account
+  // Create auth account. profiles/user_orgs/pending_members are created server-side by
+  // the handle_new_user() trigger (see v3f_registration_overhaul.sql) — NOT here. This
+  // used to run these as client-side upserts immediately after signUp(), but with email
+  // confirmation ON there is no active session yet at this point, so every one of those
+  // writes was silently blocked by RLS (profiles_insert requires auth.uid() = id, and
+  // user_orgs' insert policy is the same shape). The join request looked like it worked
+  // ("Request submitted!") but nothing was actually written. The trigger reads
+  // join_org_id out of this metadata and does all three inserts with elevated privileges,
+  // independent of session state.
   const { data: authData, error: authErr } = await sb.auth.signUp({
     email, password,
-    options: { data: { full_name: name } }
+    options: {
+      data: { full_name: name, phone, join_org_id: joinSelectedOrgId },
+      emailRedirectTo: 'https://app.groupyetu.org/?intent=confirm'
+    }
   });
   if (authErr) { errEl.textContent = authErr.message; errEl.classList.add('show'); return; }
 
-  // Create profile with pending role
-  await sb.from('profiles').upsert({
-    id: authData.user.id,
-    org_id: joinSelectedOrgId,
-    role: 'pending',
-    full_name: name,
-    phone
-  });
-
-  // Add to user_orgs as pending
-  try {
-    await sb.from('user_orgs').upsert({
-      user_id: authData.user.id, org_id: joinSelectedOrgId, role: 'pending'
-    });
-  } catch(e) {}
-
-  // Create pending member request
-  await sb.from('pending_members').insert({
-    org_id: joinSelectedOrgId,
-    user_id: authData.user.id,
-    full_name: name,
-    phone,
-    email,
-    status: 'pending'
-  });
-
-  sucEl.textContent = 'Request submitted! Your group admin will review and approve your access. You will be notified once approved.';
+  sucEl.textContent = 'Request submitted! Check your email to confirm your address, then your group admin will review and approve your access.';
   sucEl.classList.add('show');
 
   // Clear form
@@ -410,7 +388,7 @@ async function sendPasswordReset() {
     return;
   }
   const { error } = await sb.auth.resetPasswordForEmail(email, {
-    redirectTo: 'https://groupyetu.org/'
+    redirectTo: 'https://app.groupyetu.org/?intent=reset'
   });
   if (error) {
     if (errEl) { errEl.textContent = error.message; errEl.classList.add('show'); }
@@ -793,19 +771,21 @@ async function registerAccount() {
 
   sucEl.textContent = 'Creating your account…'; sucEl.classList.add('show');
 
+  // profiles row is created server-side by the handle_new_user() trigger — NOT here.
+  // This used to upsert to profiles immediately after signUp(), but with email
+  // confirmation ON there is no active session yet at this point (authData.session
+  // is null until the user actually confirms), so profiles_insert's RLS check
+  // (auth.uid() = id) silently blocked every one of these inserts. Registration
+  // *looked* successful but the profile never existed — which is also why the old
+  // confirm-link routing (which checked "does a profile exist?") always misfired.
   const { data: authData, error: authErr } = await sb.auth.signUp({
     email, password,
     options: {
-      data: { full_name: name },
-      emailRedirectTo: 'https://app.groupyetu.org/'
+      data: { full_name: name, phone: phone || null },
+      emailRedirectTo: 'https://app.groupyetu.org/?intent=confirm'
     }
   });
   if (authErr) { sucEl.classList.remove('show'); errEl.textContent = authErr.message; errEl.classList.add('show'); return; }
-
-  // Create profile immediately — no org linked yet
-  await sb.from('profiles').upsert({
-    id: authData.user.id, full_name: name, phone: phone || null, role: 'member'
-  });
 
   sucEl.textContent = '✓ Account created! Check your email to confirm and get started.';
   sucEl.classList.add('show');
@@ -1384,22 +1364,24 @@ function toggleSidebar() {
   }
 }
 
-function showPasswordResetScreen() {
-  // Show auth screen configured for setting a new password after invite/reset link
+function showPasswordResetScreen(intent) {
+  // intent: 'reset' (forgot-password) or 'invite' (brand-new member/admin setting
+  // their first password). Both need a live session just long enough to call
+  // updateUser({password}) — setNewPassword() below signs out immediately after.
+  const isInvite = intent === 'invite';
+  window._pwScreenIntent = intent;
   document.getElementById('auth-screen').style.display = 'flex';
   document.getElementById('app-screen').classList.remove('visible');
   const picker = document.getElementById('org-picker-screen');
   if (picker) picker.style.display = 'none';
-  // Show forgot panel reused for new password entry
   document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.auth-panel').forEach(p => p.classList.remove('active'));
   const forgotPanel = document.getElementById('auth-forgot');
   if (forgotPanel) {
     forgotPanel.classList.add('active');
-    // Replace with set-new-password form
     forgotPanel.innerHTML = `
       <div style="margin-bottom:1rem;font-size:.82rem;color:rgba(255,255,255,.7);line-height:1.6">
-        Welcome to GroupYetu360! Set a password to complete your account setup.
+        ${isInvite ? 'Welcome to GroupYetu360! Set a password to complete your account setup.' : 'Set a new password for your GroupYetu360 account.'}
       </div>
       <div class="form-group">
         <input class="form-input" type="password" id="new-password-input" placeholder="Choose a password (min 6 characters)" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:#fff"/>
@@ -1410,21 +1392,23 @@ function showPasswordResetScreen() {
       <div id="new-password-error" class="auth-error" style="display:none"></div>
       <div id="new-password-success" class="auth-error" style="display:none;color:#4ade80"></div>
       <button class="btn btn-primary" onclick="setNewPassword()" style="width:100%;margin-top:.5rem">
-        Set Password & Enter App →
+        ${isInvite ? 'Set Password' : 'Set New Password'} →
       </button>`;
   }
   const hEl = document.getElementById('auth-form-heading');
   const sEl = document.getElementById('auth-form-sub');
-  if (hEl) hEl.textContent = 'Set your password';
-  if (sEl) sEl.textContent = 'You were invited to GroupYetu360. Set a password to get started.';
+  if (hEl) hEl.textContent = isInvite ? 'Set your password' : 'Reset your password';
+  if (sEl) sEl.textContent = isInvite ? 'You were invited to GroupYetu360. Set a password to get started.' : 'Enter a new password to continue.';
 }
 
 async function showEmailConfirmedScreen() {
   // Self-registered user clicked confirmation link — email confirmed, prompt login.
-  // _suppressAuthAutoLoad stays true across this signOut() so a still-pending
-  // INITIAL_SESSION event (fired from the same session that got us here) can't
-  // race in and call loadProfileAndOrg() before we're done showing this screen.
+  // Always sign out here: this screen must never leave a live session sitting around,
+  // since whoever opens the confirmation link (often a different device than the one
+  // used to register) should be required to log in deliberately, not get carried
+  // straight into the app on a stray refresh.
   window._suppressAuthAutoLoad = true;
+  window._suppressAuthScreenOnce = true;
   await sb.auth.signOut();
   window._suppressAuthAutoLoad = false;
   document.getElementById('auth-screen').style.display = 'flex';
@@ -1454,6 +1438,30 @@ async function showEmailConfirmedScreen() {
   if (sEl) sEl.textContent = "You're all set — sign in to get started.";
 }
 
+function showPasswordSetConfirmedScreen() {
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.auth-panel').forEach(p => p.classList.remove('active'));
+  const forgotPanel = document.getElementById('auth-forgot');
+  if (forgotPanel) {
+    forgotPanel.classList.add('active');
+    forgotPanel.innerHTML = `
+      <div style="text-align:center;margin-bottom:1.25rem">
+        <div style="font-size:2.5rem;margin-bottom:.5rem">✅</div>
+        <div style="font-size:.9rem;font-weight:700;color:#fff;margin-bottom:.5rem">Password set!</div>
+        <div style="font-size:.8rem;color:rgba(255,255,255,.6);line-height:1.6">
+          Sign in with your new password to get started.
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="switchAuthTab('login')" style="width:100%;margin-top:.75rem">
+        Sign In →
+      </button>`;
+  }
+  const hEl = document.getElementById('auth-form-heading');
+  const sEl = document.getElementById('auth-form-sub');
+  if (hEl) hEl.textContent = 'All set';
+  if (sEl) sEl.textContent = 'Sign in to continue.';
+}
+
 async function setNewPassword() {
   const pw = document.getElementById('new-password-input')?.value?.trim();
   const conf = document.getElementById('new-password-confirm')?.value?.trim();
@@ -1464,10 +1472,15 @@ async function setNewPassword() {
   if(errEl) errEl.style.display='none';
   const { error } = await sb.auth.updateUser({ password: pw });
   if (error) { if(errEl){errEl.textContent=error.message;errEl.style.display='block';} return; }
-  if(sucEl){sucEl.textContent='✓ Password set! Loading your workspace…';sucEl.style.display='block';}
-  setTimeout(async () => {
-    try { await loadProfileAndOrg(); } catch(e) { showAuthScreen(); }
-  }, 1200);
+  if(sucEl){sucEl.textContent='✓ Password set! Signing you out so you can log in fresh…';sucEl.style.display='block';}
+  // Deliberate, predictable behaviour: never leave a live session sitting on this
+  // screen — sign out and require a normal login rather than silently continuing
+  // into the app. This is what closes the "refresh logs me straight in" bug.
+  window._suppressAuthAutoLoad = true;
+  window._suppressAuthScreenOnce = true;
+  await sb.auth.signOut();
+  window._suppressAuthAutoLoad = false;
+  setTimeout(() => showPasswordSetConfirmedScreen(), 900);
 }
 
 // ── Workspace Picker — My Account panel ──

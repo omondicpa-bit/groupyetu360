@@ -3,6 +3,74 @@ _Maintained for Play Store closed-testing report and cross-session handover. New
 
 ---
 
+## Session: 5 Jul 2026 (continued further — registration/reset/invite complete overhaul)
+
+**This closes out a bug that survived two earlier "fixes" this same day — both previous attempts patched symptoms without finding the actual root cause. This entry documents the full email/auth architecture so it doesn't need re-diagnosing next session.**
+
+### The real root cause (confirmed, not inferred)
+
+`registerAccount()`, `joinOrg()`, and `saveInviteAdmin()` all called `sb.auth.signUp()` and then **immediately** tried to write to `profiles` (and, for `joinOrg()`, also `user_orgs` and `pending_members`) from the client. With email confirmation ON, `signUp()` does **not** establish an active session until the user actually clicks the confirmation link — `authData.session` is `null` at that point. So these writes were running with **no authenticated session at all**.
+
+Confirmed via `SELECT policyname, cmd, with_check FROM pg_policies WHERE tablename='profiles'`:
+```
+profiles_insert | INSERT | (id = auth.uid())
+```
+With no session, `auth.uid()` is null, so `null = id` is false — **every one of these inserts was silently blocked by RLS.** None of the three call sites checked for an error (some unchecked entirely, one wrapped in a swallowing `try/catch`), so registration always *looked* successful (green success message shown) while the profile/org-link data silently never existed.
+
+This also explains why the confirmation-link routing added earlier today ("if a profile exists → show confirmed screen, else → show reset screen") always misfired — the profile it was checking for was never actually there, for ANY self-registration, not intermittently. That's why a brand-new, never-used-before email reproduced the bug 100% of the time.
+
+**Follow-on bug this caused:** `showPasswordResetScreen()` doesn't sign the user out (by design — it needs a live session to let them set a password). Since the routing bug sent self-registrations there instead of the confirmed-screen, users were left on that screen with a live session; refreshing the page silently completed a normal login. This looked like "confirming email logs me into my account on a random device" but was really just a consequence of being on the wrong screen.
+
+**Two more real bugs found while tracing this:**
+- `sendPasswordReset()` (forgot-password, auth.js) redirected to `https://groupyetu.org/` — the **marketing site**, not the app.
+- The "add new member + send portal invite" flow (members.js, member-creation modal) used `resetPasswordForEmail()` to invite brand-new members. That function only sends anything if the email **already has an account** — for a genuinely new member it silently sent nothing at all, no account created, no email sent, while the UI reported "invite sent."
+
+### The permanent fix — stop inferring intent, declare it explicitly
+
+Both earlier "fixes" tried to **infer** what a confirmation link was for for (signup vs. reset vs. invite) from ambient signals — Supabase's URL hash `type` param, or "does a profile exist in the DB." Both are fragile and both broke. The fix: we already control every redirect URL generated (`emailRedirectTo`/`redirectTo` on every `signUp()`/`resetPasswordForEmail()` call) — so every one of them now carries an explicit `?intent=confirm|reset|invite` query param, and `init()` in `auth.js` routes strictly off that, ignoring Supabase's own event classification entirely. This is immune to hash-format differences (implicit vs. PKCE flow), timing races, and DB state.
+
+**Redirect URLs, now all consistent:**
+| Flow | File | Intent |
+|---|---|---|
+| Self-registration | `auth.js` → `registerAccount()` | `?intent=confirm` |
+| Request to join an org | `auth.js` → `joinOrg()` | `?intent=confirm` |
+| Forgot password | `auth.js` → `sendPasswordReset()` | `?intent=reset` (also fixed wrong domain) |
+| Admin resend invite | `members.js` → invite-existing-member path | `?intent=invite` |
+| New member + send invite | `members.js` → add-member modal | `?intent=invite` (also fixed the silent-failure bug above) |
+| SA/admin inviting a team member | `settings.js` → `saveInviteAdmin()` | `?intent=invite` |
+| Admin-triggered resets (2 places) | `settings.js` | `?intent=reset` |
+
+### Profile/org creation no longer depends on session timing at all
+
+Rather than leave the client-side upserts in place and just add error checking (they'd still fail — the problem isn't unhandled errors, it's that an anonymous request genuinely can't pass this RLS check), all of that logic moved into a **`SECURITY DEFINER` trigger on `auth.users`**, which runs with elevated privileges regardless of session state — see `v3f_registration_overhaul.sql`. It reads metadata now passed through every `signUp()` call (`join_org_id`, `invite_org_id`/`invite_role`/`invite_member_id`, `admin_invite_org_id`/`admin_invite_role`) and creates the right rows in `profiles`, `user_orgs`, and `pending_members` deterministically, every time, independent of whether the user has confirmed their email yet.
+
+The old client-side upserts in `registerAccount()`, `joinOrg()`, and `saveInviteAdmin()` were **removed** (not just left as dead code) — they can never succeed given the RLS policy above, and leaving them in would be misleading for future debugging.
+
+- ⚠️ **Not yet re-verified:** the self-healing invite-metadata block inside `_loadProfileAndOrgInner()` (auth.js ~line 158) still exists and runs fine on its own (it executes post-login, with a real session) — this is now a secondary safety net rather than the primary mechanism, since the trigger handles it up front. Left in place deliberately, should not conflict (uses `.upsert()`/idempotent update).
+
+### Consistent, predictable session behaviour on every auth screen
+
+Per explicit direction: no auth-related screen should leave a live session sitting around for a stray refresh to exploit.
+- `showEmailConfirmedScreen()` — unchanged behaviour (already signed out correctly), now reached reliably via `intent=confirm`.
+- `showPasswordResetScreen(intent)` — now takes `intent` (`'reset'` or `'invite'`) to show correctly worded copy for each case.
+- `setNewPassword()` — **changed:** after successfully setting a password, now explicitly signs out and shows a new `showPasswordSetConfirmedScreen()` ("Password set! Sign in to get started") instead of silently continuing into the app. This applies to both forgot-password resets and first-time invite password setup, for consistent behaviour everywhere. **Decision made without explicit confirmation** — if immediate auto-login after an invited member sets their first password is preferred instead (less friction, arguably fine since it's their very first login ever), this is a one-line change back.
+
+### Email templates
+- **Reset Password** template in Supabase Dashboard was found to contain the **Invite** template's content verbatim (same "You've been invited..." copy) — this is what made the reset-password wording feel wrong. Corrected version provided: `email_template_reset_password.html`. Paste into Supabase Dashboard → Authentication → Email Templates → Reset Password.
+- **Confirm signup** template (`email_template_confirm_signup.html`, unchanged) is correctly configured and was not the source of the bug.
+- ⚠️ **Known limitation, flagged not fixed:** admin-invited members (via `saveInviteAdmin()`, and the members.js invite paths) still go through `signUp()`, which always sends Supabase's **"Confirm signup"** template — NOT the dashboard's "Invite user" template slot — regardless of what's pasted into that slot. So invited members currently see "Thanks for joining GroupYetu360" wording, which doesn't quite fit their situation (they didn't self-register). Getting genuinely correct "You've been invited" wording requires moving invites to Supabase's native `admin.inviteUserByEmail()` API, which needs a service-role key and must run server-side (an Edge Function, same pattern already used for Celcom SMS) — a real but bigger follow-up, not done in this session.
+
+### Test checklist for next session
+- Register with a brand-new email → confirm link → should land on "Email confirmed!" screen, NOT reset-password. Refreshing that screen should NOT log you in (session should already be cleared).
+- Forgot password → link should go to `app.groupyetu.org` (not the marketing site) → set new password → should sign out and show "Password set! Sign in" screen, not auto-enter the app.
+- Add a new member with "send portal invite" checked → confirm an actual account + email now goes out (previously silently did nothing).
+- Join an existing org via the picker → after confirming email, check that `profiles`, `user_orgs` (role='pending'), and `pending_members` all actually have rows for that user (previously none were created).
+- SA inviting a new admin/team member → confirm their profile/org role are correctly set after they confirm.
+
+**Files changed:** `auth.js`, `members.js`, `settings.js`. New: `v3f_registration_overhaul.sql` (run in Supabase SQL editor), `email_template_reset_password.html` (paste into Supabase Dashboard). SW bumped to v5.20, cache-bust to `v=2026070504`.
+
+---
+
 ## Session: 5 Jul 2026 (continued — real root cause found)
 
 **The actual reason Atinda's ADA access kept coming back after every SQL fix**
@@ -97,5 +165,3 @@ What happened: to fix Atinda's orphaned `user_orgs` row (see entry above), a dia
 - Each entry: date, what was asked, what was actually changed (files + functions), why, and what to manually test afterward.
 - If you're picking this up in a new session: read the last 3-5 entries before doing anything, especially any marked ⚠️ (known follow-ups / things deliberately left alone).
 - This file should be pushed to the repo alongside every code change from now on — it's part of the deliverable, not an afterthought.
-
-
