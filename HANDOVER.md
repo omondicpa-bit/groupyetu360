@@ -1,13 +1,24 @@
 # GroupYetu360 — Handover Summary
 _Read this first if picking up a new session. Full technical detail for everything below is in CHANGELOG.md — this is the "what do I need to know before touching anything" version._
 
-**As of:** 5 Jul 2026, end of session · **Live version:** app SW v5.18, marketing site cache-bust v=2026070502
+**As of:** 5 Jul 2026, end of session · **Code state:** app SW v5.19, marketing site cache-bust v=2026070503 · **⚠️ Live-deployed state may lag behind this — see blocker below, first thing to check.**
+
+---
+
+## 🚨 FIRST THING TO CHECK — GitHub Pages deploy stuck/blocked
+
+The `groupyetu360` repo's Pages deploy has been failing all evening with "Deployment failed, try again later," and a manual re-run job stayed **queued for hours** rather than failing quickly. That pattern (long queue, not a fast fail) doesn't match typical transient GitHub flakiness — most likely cause is GitHub Pages' **~10 builds/hour soft rate limit**, since an unusually high number of deploys went out today. No confirmed GitHub-wide incident was showing at time of writing.
+
+**Before doing anything else:**
+1. Check whether app.groupyetu.org's console now shows `v=2026070503` / SW v5.19 (or later, if pushed since) — if yes, it cleared on its own overnight, no action needed.
+2. If it's still stuck: **do not immediately push again or re-run jobs.** Check the Actions tab for whether the queued run finally completed or failed. Only push a fresh trigger if it's been genuinely clear for a while (no runs stuck queued).
+3. Every code fix listed below as "shipped" was committed and pushed, but **may not actually be live** depending on how this resolved — verify against the live console version before assuming any of it is deployed, not just committed.
 
 ---
 
 ## Where things stand right now
 
-**Shipped and confirmed working today:**
+**Shipped (committed + pushed) and confirmed working before the deploy issue started:**
 - Registration: password strength rules (6+ chars, upper, lower, number) with a live checklist UI
 - Registration: proper "Email confirmed!" landing screen for fresh signups (previously silently logged people straight into the app with no acknowledgment)
 - Login: fixed a real race condition where 2FA accounts briefly flashed into the actual app before the OTP screen took over
@@ -15,9 +26,11 @@ _Read this first if picking up a new session. Full technical detail for everythi
 - SMS: admins can now select individual members via checkboxes for ad-hoc sub-group sends (executive, women's wing, youth, etc.) — no formal sub-group/tagging feature exists, this is manual per-send selection
 - Fixed: deleting a member left their org access (`user_orgs`) behind even though their member record was gone — they'd still show up as "belonging" to the org with blank data
 - Fixed: "Delete User" (full account deletion) was blocked by foreign key constraints across 13+ tables that reference a user as "who did this" (transactions, expenses, payment approvals, etc.) — now nulls those references instead of blocking or cascading into data loss
+- Fixed: stale `profiles.org_id` was silently resurrecting deleted members' org access on every login — see incident/root-cause entries in CHANGELOG.md
 
 **⚠️ Needs verification at the start of next session, not assumed done:**
-- Confirm Atinda Obed's account is now **fully deleted** (was the ongoing test case all session — last action was rerunning the fixed `delete_user_completely` against him, but this wasn't confirmed successful before the session ended)
+- Confirm Atinda Obed's account is now **fully deleted**, and that ADA no longer reappears on his picker after logging in (last fix was clearing his stale `profiles.org_id` — should be resolved but wasn't re-confirmed before session end)
+
 - Confirm the ~10 ADA members whose access was accidentally wiped (see incident below) are still showing correct access, and check with ADA whether any of them need their **role** manually restored — Austine Olare, Brian Magero, David Okoth Otieno, Peter Ouma Ombwayo, Raphael Onyango, Stephen Otieno, Francis Onyango Nyawalo, Fredrick Oduor Oremo, Tyrus Omondi Okuyu were all reset to plain "member" since their original role (if elevated) couldn't be recovered
 
 ## ⚠️ Incident this session (read before running any DB cleanup query)
