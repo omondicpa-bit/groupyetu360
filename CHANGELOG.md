@@ -98,3 +98,4 @@ What happened: to fix Atinda's orphaned `user_orgs` row (see entry above), a dia
 - If you're picking this up in a new session: read the last 3-5 entries before doing anything, especially any marked ⚠️ (known follow-ups / things deliberately left alone).
 - This file should be pushed to the repo alongside every code change from now on — it's part of the deliverable, not an afterthought.
 
+
