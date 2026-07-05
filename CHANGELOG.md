@@ -3,7 +3,27 @@ _Maintained for Play Store closed-testing report and cross-session handover. New
 
 ---
 
-## Session: 5 Jul 2026 (continued — same day)
+## Session: 5 Jul 2026 (continued — incident + final fix)
+
+**⚠️ Incident: a cleanup query removed workspace access for ~10 real ADA members**
+
+What happened: to fix Atinda's orphaned `user_orgs` row (see entry above), a diagnostic query was written that matched members by `user_orgs.user_id = members.user_id`. That query was flawed — many real, active ADA members had `members.user_id` still `NULL` (it only gets backfilled on first login via the app's self-heal logic), so the query wrongly identified them as "no member record, safe to remove" and deleted their `user_orgs` grant. Felix ran the full SQL file (including the flawed cleanup step) before a follow-up warning about it landed. Real members — Austine Olare, Brian Magero, David Okoth Otieno, Peter Ouma Ombwayo, Raphael Onyango, Stephen Otieno, Francis Onyango Nyawalo, Fredrick Oduor Oremo, Tyrus Omondi Okuyu, and others — temporarily lost access to ADA.
+
+**Recovery:** their `members` rows were still intact (only `user_orgs` was wiped), so access was rebuilt from that — matched by phone instead of `user_id`, since `user_id` being null was the whole problem. Also backfilled `members.user_id` for everyone where it was still null but a phone match existed, closing the same gap for good. **Role information could not be recovered** — anyone who was `admin`/`treasurer` within ADA specifically (not just platform role) needs manual re-promotion via Set Role; this data was lost when the row was deleted and there's no way to reconstruct it from what remains.
+
+**Correction:** the recovery script also accidentally re-granted Atinda access to ADA — his removal was the *original intentional test deletion*, not collateral damage, so he shouldn't have been restored. Removed again, this time with a scoped delete targeting only his specific user_id + the two orgs in question, not a broad matching query.
+
+**Lesson, stated plainly for next session:** any query that *deletes* based on a join/match condition needs the match logic itself scrutinized for false negatives (people who look "unmatched" but genuinely aren't) before it's treated as safe to run — a SELECT preview isn't enough if the matching logic itself is wrong, since the preview will just as confidently show the wrong people. Prefer narrow, ID-specific deletes over broad heuristic-matched ones whenever the target is actually known (as it was here — Atinda's ID was known from the start).
+
+**Bug: "Delete User" — final fix, based on the *complete* FK catalog**
+- The first fix (earlier entry) only covered FKs pointing at `profiles.id`, found via `information_schema`. Testing surfaced a second failure on `pending_members.user_id`, which references `auth.users.id` directly — a completely different parent table that first search didn't check, and which `information_schema.constraint_column_usage` failed to surface at all even when queried directly (returned incomplete results — switched to querying `pg_constraint` directly instead, which is authoritative).
+- Full catalog obtained via `pg_constraint`, confirmed complete. Most `auth.*` tables cascade automatically (identities, mfa_factors, sessions, oauth_*, webauthn_*, one_time_tokens) — no manual handling ever needed there. `members.user_id` and `user_orgs.user_id` also cascade/set-null automatically. The one real remaining gap was `pending_members.user_id` (no cascade) — now nulled alongside `pending_members.reviewed_by`.
+- `delete_user_completely()` replaced again with the complete version — see `delete_user_completely_final.sql`.
+- **Test:** Delete User on Atinda (should now fully succeed and remove him from ADA/Miruka entirely), and on any other test account regardless of which tables they've touched (transactions, pending join requests, payment approvals, etc.) — should no longer surface FK errors for any of the 13+ reference points now covered.
+
+**Files changed (DB only, no app code this round):** `delete_user_completely()` function (twice, first incomplete then comprehensive), one-time data recovery for the incident above. No `.js`/`.html` changes.
+
+---
 
 **Bug: deleted members still showed as belonging to their org**
 - Root cause: `deleteMember()` (superadmin-only "Delete Member" action) deleted the `members` row and its transactions/balance/attendance, but **never removed the `user_orgs` grant**. That grant is what actually controls whether someone shows up as belonging to an org platform-wide — so the member record was genuinely gone, but the person still appeared in "All Members" with the org listed (balance/status showing "—" since there was no member record left to read from).
