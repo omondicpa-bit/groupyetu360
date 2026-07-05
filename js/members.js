@@ -853,6 +853,16 @@ async function deleteMember() {
     if (m.user_id && m.org_id) {
       const { error: e5 } = await sb.from('user_orgs').delete().eq('user_id', m.user_id).eq('org_id', m.org_id);
       if (e5) console.warn('user_orgs delete:', e5.message);
+
+      // profiles.org_id is a separate legacy single-org field the login flow falls
+      // back to when user_orgs is empty — if it's left pointing at this org, login
+      // silently recreates the exact user_orgs row we just deleted above. Only clear
+      // it if it actually matches this org (don't touch it if they have a different
+      // primary org elsewhere).
+      const { data: prof } = await sb.from('profiles').select('org_id').eq('id', m.user_id).maybeSingle();
+      if (prof?.org_id === m.org_id) {
+        await sb.from('profiles').update({ org_id: null }).eq('id', m.user_id);
+      }
     }
     await logActivity('DELETE MEMBER', `Deleted member: ${m.full_name}${m.is_founder?' [FOUNDER]':''}`, 'member', currentMemberId);
     toast(m.full_name + ' removed');

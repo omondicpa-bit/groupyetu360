@@ -3,7 +3,26 @@ _Maintained for Play Store closed-testing report and cross-session handover. New
 
 ---
 
-## Session: 5 Jul 2026 (continued — incident + final fix)
+## Session: 5 Jul 2026 (continued — real root cause found)
+
+**The actual reason Atinda's ADA access kept coming back after every SQL fix**
+
+Felix noticed something specific and correct: after clearing his `user_orgs` row via SQL, ADA disappeared from his SA profile — but reappeared the moment he actually logged in, both on his own workspace picker and back in SA's All Members view. He also correctly guessed that the *other* ~10 recovered members would self-heal automatically on their next login without needing manual SQL. Both observations pointed at the same mechanism.
+
+**Root cause:** `profiles.org_id` is a separate, legacy single-org field, distinct from `user_orgs` (the real multi-org membership table). At login, if `user_orgs` comes back empty for a user, `_loadProfileAndOrgInner()` in `auth.js` falls back to `profiles.org_id` to decide which org to load them into — and if it finds one, it **recreates** the `user_orgs` row from it (this is the same "single org, skip picker, go straight in" fast path everyone uses on a normal day).
+
+For the 10 real members: this field is still correctly set to ADA, so yes — their access genuinely will self-heal on next login, no manual fix required.
+
+For Atinda: this field was **never cleared** when he was originally deleted as a member (that step didn't exist before today), so it's a stale pointer still saying "ADA" — meaning every login silently re-derives and recreates the exact `user_orgs` row we kept deleting via SQL. The app itself was undoing our fixes, not a caching or propagation issue.
+
+**Fix:** `deleteMember()` (`members.js`) now also clears `profiles.org_id` on the deleted person's profile, but *only* if it currently matches the org they're being removed from (won't touch it if their primary org is elsewhere). One-time SQL also provided to clear Atinda's specific stale value directly (`clear_atinda_stale_org_id.sql`).
+
+- **Test:** delete a member who has `profiles.org_id` pointing at that same org, confirm the field is nulled afterward (not just `user_orgs`). Then have Atinda log in again — ADA should not reappear anywhere this time.
+- ⚠️ Did not touch the login fallback logic itself (`_loadProfileAndOrgInner`) — it's working as designed for everyone whose `profiles.org_id` is accurate; the bug was the *stale data*, not the fallback mechanism. Worth knowing this fallback exists if a similar "access came back after I deleted it" report shows up again for a different reason.
+
+**Files changed:** `members.js`. SW bumped to v5.19, cache-bust to `v=2026070503`.
+
+---
 
 **⚠️ Incident: a cleanup query removed workspace access for ~10 real ADA members**
 
