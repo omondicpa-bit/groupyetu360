@@ -43,3 +43,4 @@ _Maintained for Play Store closed-testing report and cross-session handover. New
 - Each entry: date, what was asked, what was actually changed (files + functions), why, and what to manually test afterward.
 - If you're picking this up in a new session: read the last 3-5 entries before doing anything, especially any marked ⚠️ (known follow-ups / things deliberately left alone).
 - This file should be pushed to the repo alongside every code change from now on — it's part of the deliverable, not an afterthought.
+
