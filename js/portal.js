@@ -1640,24 +1640,12 @@ function populateMobileMeetings(upcoming, past, attendanceSummary) {
 
 // ── Toggle collapsible mobile summary card ──
 
-async function start() {
-  const isReset = await handleAuthRedirect();
-  if (!isReset) init();
-}
-start();
-
-// ── REGISTER SERVICE WORKER (PWA) ──
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(reg => {
-        console.log('[GY360] Service Worker registered:', reg.scope);
-      })
-      .catch(err => {
-        console.log('[GY360] SW registration failed:', err);
-      });
-  });
-}
+// REMOVED (5 Jul 2026): a duplicate copy of start()/init() and service worker
+// registration used to live here — leftover from the "auto-split from index.html"
+// refactor. index.html already runs this bootstrap once; having a second copy here
+// meant handleAuthRedirect()/init() and SW registration both ran twice on every
+// page load. Harmless most of the time, but an unnecessary source of confusion
+// and duplicate work. The real, single bootstrap now lives only in index.html.
 
 // ── PWA INSTALL PROMPT ──
 let deferredInstallPrompt = null;

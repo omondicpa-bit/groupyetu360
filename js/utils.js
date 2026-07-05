@@ -67,61 +67,15 @@ function toggleFaq(el) {
 // globals: window.sb, window.currentOrg, window.currentUser, window.currentProfile etc.
 
 // ── HANDLE PASSWORD RESET ──
-async function handleAuthRedirect() {
-  const hash = window.location.hash;
-  // Check for password recovery token in URL
-  if (hash && (hash.includes('type=recovery') || hash.includes('type=signup'))) {
-    // Let Supabase process the token from URL
-    const { data: { session }, error } = await sb.auth.getSession();
-    console.log('Auth redirect session:', session, error);
-    if (session) {
-      // Show password reset form
-      document.getElementById('auth-screen').style.display = 'flex';
-      document.getElementById('pending-screen').style.display = 'none';
-      document.getElementById('app-screen').classList.remove('visible');
-      document.querySelectorAll('.auth-panel').forEach(p => p.classList.remove('active'));
-      document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-      const loginPanel = document.getElementById('auth-login');
-      if (loginPanel) {
-        loginPanel.classList.add('active');
-        loginPanel.innerHTML = `
-          <div style="text-align:center;margin-bottom:1.25rem">
-            <div class="auth-logo" style="font-size:1.4rem">GroupYetu<span style="color:var(--gold)">360</span></div>
-          </div>
-          <div class="auth-error" id="reset-error" style="display:none"></div>
-          <div class="auth-success" id="reset-success" style="display:none"></div>
-          <div style="font-size:.95rem;font-weight:700;color:var(--ink);margin-bottom:.25rem">Set New Password</div>
-          <div style="font-size:.78rem;color:var(--ink-faint);margin-bottom:1.25rem">Enter your new password below.</div>
-          <div class="form-group">
-            <label class="form-label">New Password</label>
-            <input class="form-input" type="password" id="new-password" placeholder="Minimum 6 characters"/>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Confirm Password</label>
-            <input class="form-input" type="password" id="confirm-password" placeholder="Repeat new password"/>
-          </div>
-          <button class="btn btn-primary" onclick="updatePassword()">Update Password</button>`;
-      }
-      return true;
-    }
-  }
-  return false;
-}
-
-async function updatePassword() {
-  const newPass = document.getElementById('new-password').value;
-  const confirmPass = document.getElementById('confirm-password').value;
-  const errEl = document.getElementById('reset-error');
-  const sucEl = document.getElementById('reset-success');
-  errEl.classList.remove('show'); sucEl.classList.remove('show');
-  if (!newPass || newPass.length < 6) { errEl.textContent='Password must be at least 6 characters'; errEl.classList.add('show'); return; }
-  if (newPass !== confirmPass) { errEl.textContent='Passwords do not match'; errEl.classList.add('show'); return; }
-  const { error } = await sb.auth.updateUser({ password: newPass });
-  if (error) { errEl.textContent = error.message; errEl.classList.add('show'); return; }
-  sucEl.textContent = 'Password updated! Signing you in…';
-  sucEl.classList.add('show');
-  setTimeout(() => window.location.href = window.location.pathname, 2000);
-}
+// REMOVED (5 Jul 2026): handleAuthRedirect() and updatePassword() used to live here,
+// checking window.location.hash for 'type=signup'/'type=recovery' and showing a
+// hardcoded password form BEFORE init() ever ran. This silently intercepted every
+// confirm-email AND reset-password link (both match this check identically, which
+// is exactly why both looked the same to the user) and skipped init() entirely —
+// meaning the entire ?intent=confirm|reset|invite routing added to auth.js never
+// got a chance to execute. All of that logic now lives in auth.js's init() and
+// setNewPassword(), driven by the explicit intent param. See CHANGELOG.md,
+// "Registration flow overhaul — the actual fix, round two."
 
 // ── BANK BALANCE AUTO-UPDATE ──
 async function updateBankBalance(orgId, amount, direction) {

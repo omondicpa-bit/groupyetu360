@@ -3,6 +3,33 @@ _Maintained for Play Store closed-testing report and cross-session handover. New
 
 ---
 
+## Session: 5 Jul 2026 (continued yet further — the actual actual root cause)
+
+**Before any of the below: the first version of `v3f_registration_overhaul.sql` caused a 500 on every signup.** It assumed `profiles` had an `email` column (based on other code elsewhere in the app referencing `profiles.email`) — it doesn't. Confirmed via `information_schema.columns`: `profiles` has exactly `id, org_id, role, full_name, phone, id_number, created_at, two_fa_enabled` — no `email`. The trigger's INSERT statements failed outright (Postgres error `42703: column "email" of relation "profiles" does not exist`), which aborted the whole transaction, which is why `signUp()` returned a 500 instead of silently misbehaving. Corrected version removes every `profiles.email` reference; `pending_members.email` was left as-is since that table genuinely does have the column. ⚠️ **Flagged, not fixed:** `settings.js`'s `openOrgDetail()` also does `select('id,full_name,role,email')` from `profiles` — same wrong assumption, degrades silently (error isn't checked) rather than crashing, so the SA org-detail page may be missing member email data right now.
+
+**The overhaul below was structurally correct but never actually ran, separately from the above.** After fixing the trigger, registration itself started working — but confirm-email and forgot-password links still landed on a "reset password" prompt, and refreshing still logged people straight in, exactly as before the overhaul. Traced it down: there was a **second, older auth-handling function living in `utils.js`, never inspected during the overhaul**, called `handleAuthRedirect()`, wired into the page bootstrap like this:
+
+```js
+async function start() {
+  const isReset = await handleAuthRedirect();
+  if (!isReset) init();   // ← skipped entirely if handleAuthRedirect() returns true
+}
+```
+
+`handleAuthRedirect()` checked `window.location.hash` for `type=signup` **or** `type=recovery` — the exact fragile hash-based mechanism the overhaul below was meant to replace, just living in a file nobody thought to check. Since Supabase's confirm-signup link legitimately contains `type=signup` in the hash, this old function matched it, showed its own hardcoded "Set New Password" form on the spot, and returned `true` — which meant **the new `init()` with all the `?intent=` routing never executed at all**, for either confirm or reset links. This function never signed anyone out either, which is why refreshing silently completed a login.
+
+**Also found:** `portal.js` had a full duplicate copy of the same `start()` call and service worker registration — leftover from an "auto-split from index.html" refactor mentioned in that file's own header comment. Harmless on its own, but a second, independent invocation of the entire bootstrap sequence on every page load is exactly the kind of thing that makes bugs like this one hard to trace, since two copies of "the thing that runs first" can each behave differently.
+
+**Fix:** removed `handleAuthRedirect()` and its companion `updatePassword()` from `utils.js` entirely — fully superseded by `auth.js`'s `init()`/`setNewPassword()`. Removed the duplicate `start()`/service-worker-registration block from `portal.js`, keeping the genuinely non-duplicated `beforeinstallprompt`/`showInstallBanner` PWA-install code that lives in the same file. Simplified `index.html`'s bootstrap to just call `init()` directly.
+
+**Files changed:** `utils.js`, `portal.js`, `index.html`. SW bumped to v5.21, cache-bust to `v=2026070505`.
+
+**Test checklist, same as the overhaul below, now that the actual blocker is gone:**
+- Register with a brand-new email → confirm link → should land on "Email confirmed!" screen, not reset-password, and refreshing it should not log you in.
+- Forgot password → link goes to app.groupyetu.org → set new password → should sign out and show "Password set! Sign in" screen, not auto-enter the app.
+
+---
+
 ## Session: 5 Jul 2026 (continued further — registration/reset/invite complete overhaul)
 
 **This closes out a bug that survived two earlier "fixes" this same day — both previous attempts patched symptoms without finding the actual root cause. This entry documents the full email/auth architecture so it doesn't need re-diagnosing next session.**

@@ -1,7 +1,7 @@
 # GroupYetu360 — Handover Summary
 _Read this first if picking up a new session. Full technical detail for everything below is in CHANGELOG.md — this is the "what do I need to know before touching anything" version._
 
-**As of:** 5 Jul 2026, end of session · **Code state:** app SW v5.20, cache-bust v=2026070504
+**As of:** 5 Jul 2026, end of session · **Code state:** app SW v5.21, cache-bust v=2026070505
 
 ---
 
@@ -15,24 +15,32 @@ If a future deploy fails: check the Actions tab first (`.github/workflows/static
 
 ---
 
-## Registration/reset/invite — completely overhauled this session, read before touching auth.js
+## Registration/reset/invite — completely overhauled this session, read before touching auth.js/utils.js/portal.js
 
-**Root cause of the "confirm email → wrongly lands on reset password screen" bug (survived two earlier attempted fixes today):** `profiles` table's INSERT policy requires `auth.uid() = id`. Since `signUp()` with email confirmation ON doesn't create a session until the link is clicked, every client-side attempt to write a `profiles` row immediately after `signUp()` was silently blocked by RLS — for every registration, not intermittently. The routing logic that decided "is this a signup confirmation or a password reset?" was checking whether a profile existed — which it never did.
+**Two separate root causes, found in sequence — both real, both now fixed:**
+
+1. **The DB trigger (`v3f_registration_overhaul.sql`) 500'd on every signup at first** — it assumed `profiles` had an `email` column; it doesn't (`profiles` has `id, org_id, role, full_name, phone, id_number, created_at, two_fa_enabled` — confirmed via `information_schema.columns`). Corrected version removes every `profiles.email` reference. ⚠️ `settings.js`'s `openOrgDetail()` makes the same wrong assumption and degrades silently rather than crashing — **not fixed yet**, flagged for next session.
+
+2. **Even after the trigger worked, confirm/reset links still misbehaved** — because a completely separate, older function `handleAuthRedirect()` in `utils.js` ran *before* `init()` in the page bootstrap, checked the URL hash for `type=signup`/`type=recovery` (the old fragile mechanism), and — if it matched — showed its own hardcoded password form and **skipped `init()` entirely**, meaning the whole new `?intent=` routing never got a chance to execute. This function never signed anyone out either, which is why refreshing silently logged people in. **Removed entirely** — `init()` now runs directly and is the only auth-bootstrap code path. Also removed a duplicate copy of the same bootstrap sequence that was sitting in `portal.js` (leftover from an old "auto-split from index.html" refactor).
+
+**If a future "confirm/reset link does something weird" bug shows up again:** check for any OTHER stray legacy auth-handling code first (grep for `location.hash`, `type=signup`, `type=recovery` across all `.js` files) before assuming the bug is in `auth.js`'s `init()` itself — this exact failure mode (a second, forgotten handler intercepting first) is exactly what cost an extra round this session.
+
+**Root cause of the original bug (the one that started this whole thread):** `profiles` table's INSERT policy requires `auth.uid() = id`. Since `signUp()` with email confirmation ON doesn't create a session until the link is clicked, every client-side attempt to write a `profiles` row immediately after `signUp()` was silently blocked by RLS — for every registration, not intermittently.
 
 **Permanent fix, not a patch:**
-- Every `signUp()`/`resetPasswordForEmail()` call now carries an explicit `?intent=confirm|reset|invite` on its redirect URL. `init()` in `auth.js` routes strictly off that param — no more guessing from Supabase's hash `type` or DB state.
-- All `profiles`/`user_orgs`/`pending_members` creation moved into a `SECURITY DEFINER` trigger on `auth.users` (`v3f_registration_overhaul.sql`) — runs with elevated privileges regardless of session state, so it can never be blocked by this class of RLS timing issue again.
-- Every auth screen now behaves consistently: confirm, reset, and invite-password-setup all sign the user out afterward and show an explicit "please log in" screen — no path leaves a live session sitting around for a stray refresh to exploit.
-- Fixed two more real bugs found while tracing this: forgot-password was redirecting to the marketing site instead of the app; and adding a brand-new member with "send portal invite" checked was silently sending nothing at all (used `resetPasswordForEmail()`, which requires an account to already exist).
+- Every `signUp()`/`resetPasswordForEmail()` call now carries an explicit `?intent=confirm|reset|invite` on its redirect URL. `init()` in `auth.js` routes strictly off that param.
+- All `profiles`/`user_orgs`/`pending_members` creation moved into a `SECURITY DEFINER` trigger on `auth.users` (`v3f_registration_overhaul.sql`).
+- Every auth screen signs the user out afterward and shows an explicit "please log in" screen.
+- Fixed two more real bugs found while tracing this: forgot-password was redirecting to the marketing site instead of the app; adding a brand-new member with "send portal invite" checked was silently sending nothing at all.
 
 **⚠️ Needs verification at start of next session:**
-- Run `v3f_registration_overhaul.sql` in Supabase SQL editor if not already done.
-- Paste `email_template_reset_password.html` into Supabase Dashboard → Auth → Email Templates → Reset Password (it currently contains the Invite template's wording by mistake — that's the "awkward" reset copy Felix flagged).
-- Test the full checklist in CHANGELOG.md's latest entry (register/confirm, forgot-password, new-member-invite, join-org, admin-invite).
+- Confirm `v3f_registration_overhaul.sql` (corrected version, no `email` column) has been run.
+- Paste `email_template_reset_password.html` into Supabase Dashboard → Auth → Email Templates → Reset Password.
+- Full test checklist: register → confirm link → should land on "Email confirmed!" (not reset-password), refresh should NOT log in. Forgot-password → correct domain → set password → signs out, shows "Password set!" screen.
 
-**⚠️ Known limitation, not fixed this session (flagged for a decision):** admin-invited members still receive Supabase's "Confirm signup" email (not the dashboard's separate "Invite" template), because invites go through `signUp()`, not Supabase's native `admin.inviteUserByEmail()` API. Getting genuinely distinct "You've been invited" wording requires moving invites server-side into an Edge Function (same pattern as Celcom SMS) — real, bigger follow-up, not urgent.
+**⚠️ Known limitation, not fixed this session:** admin-invited members still receive Supabase's "Confirm signup" wording, not true "Invite" wording — requires moving invites to a server-side Edge Function using Supabase's native invite API. Real, bigger follow-up.
 
-**⚠️ Product decision made without explicit sign-off, easy to reverse:** after an invited member sets their first password, they now see a "Password set — please log in" screen rather than being carried straight into the app, for consistency with the reset-password flow. If immediate auto-login-after-invite is preferred instead, this is a one-line change in `setNewPassword()`.
+**⚠️ Product decision made without explicit sign-off, easy to reverse:** invited members now see "Password set — please log in" instead of auto-entering the app after setting their first password, for consistency with reset-password. One-line change in `setNewPassword()` if auto-login is preferred instead.
 
 ---
 
