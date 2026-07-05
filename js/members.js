@@ -830,7 +830,7 @@ async function deleteMember() {
     toast('⚠ Only the platform SuperAdmin can delete members.');
     return;
   }
-  const { data: m } = await sb.from('members').select('full_name,is_founder').eq('id', currentMemberId).single();
+  const { data: m } = await sb.from('members').select('full_name,is_founder,user_id,org_id').eq('id', currentMemberId).single();
   if (!m) return;
   const confirmMsg = m.is_founder
     ? `SUPERADMIN ACTION: You are about to remove the FOUNDING MEMBER (${m.full_name}). This is irreversible. Are you absolutely sure?`
@@ -847,6 +847,13 @@ async function deleteMember() {
     if (e3) console.warn('attendance delete:', e3.message);
     const { error: e4 } = await sb.from('members').delete().eq('id', currentMemberId);
     if (e4) { toast('❌ Could not delete member: ' + e4.message); return; }
+    // Remove the actual workspace grant — without this, the person still shows up
+    // as belonging to this org platform-wide (in All Members / their own picker)
+    // even though their member record is gone. This was the real bug.
+    if (m.user_id && m.org_id) {
+      const { error: e5 } = await sb.from('user_orgs').delete().eq('user_id', m.user_id).eq('org_id', m.org_id);
+      if (e5) console.warn('user_orgs delete:', e5.message);
+    }
     await logActivity('DELETE MEMBER', `Deleted member: ${m.full_name}${m.is_founder?' [FOUNDER]':''}`, 'member', currentMemberId);
     toast(m.full_name + ' removed');
     closeModal('memberDetail');
