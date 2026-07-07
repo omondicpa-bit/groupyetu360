@@ -503,6 +503,15 @@ function formatPhone(phone) {
   return p;
 }
 
+// Validate a Kenyan phone number (any input format formatPhone() accepts).
+// Used to enforce mandatory phone at registration — format check only, not a
+// live/carrier verification (see CHANGELOG.md for the OTP-verification option
+// discussed but not built).
+function isValidKenyanPhone(phone) {
+  const formatted = formatPhone(phone);
+  return /^254[17]\d{8}$/.test(formatted);
+}
+
 // Track SMS usage: logs to sms_usage, deducts from sms_bundle, auto-disables 2FA if balance hits 0
 async function trackSmsUsage(orgId, count) {
   if (!orgId || !count) return;

@@ -1,7 +1,39 @@
 # GroupYetu360 — Handover Summary
 _Read this first if picking up a new session. Full technical detail for everything below is in CHANGELOG.md — this is the "what do I need to know before touching anything" version._
 
-**As of:** 5 Jul 2026, end of session · **Code state:** app SW v5.21, cache-bust v=2026070505
+**As of:** 7 Jul 2026, end of session · **Code state:** app SW v5.22, cache-bust v=2026070506
+
+---
+
+## Business direction — SasaPay group-deposits pivot under discussion (not yet built)
+
+Felix is exploring a second revenue line beyond subscriptions: onboarding each group under EPH's own SasaPay merchant account with a dedicated paybill, adding a small markup (~0.5%) on member contributions, disclosed transparently at the point of payment. SasaPay has confirmed this model works on their end. **Deliberately going slow** — no code for this yet. Before building: get SasaPay's actual API docs for the per-group-paybill/markup product, confirm webhook signature verification, settlement timing, and KYC requirements per group. This is a genuine shift from "software vendor" to "handles pooled group funds" — meaningfully more liability, needs its own security-first design pass before any implementation starts.
+
+## Registration/auth screens — second round of real bugs fixed, read before touching auth.js again
+
+The overhaul from 5 Jul (intent-based routing, DB trigger for profile creation) was structurally correct, but this session found two more concrete bugs in it:
+
+1. **Reset/invite screens had invisible text** — inline dark-theme styling was used on a form that renders on the same white card as login/register, which needs the opposite (dark text, light background). Fixed by matching the existing `.form-input` class everyone else uses. Also added the same live password-checklist registration has.
+2. **A refresh mid-reset/invite silently logged people in without setting a password** — the `?intent=` URL param was being stripped on first load, so any refresh before the flow completed lost the routing signal entirely, while a valid session (from the email link) was still active. Fixed by persisting intent in `sessionStorage`, cleared only once the flow genuinely completes.
+
+**If a future bug shows up in this area:** check both of these mechanisms specifically (inline style vs. shared CSS class; URL-param vs. sessionStorage persistence) before assuming the intent-routing architecture itself is wrong — it isn't, these were implementation bugs within it.
+
+## `profiles.email` — added this session, was missing since before this whole thread started
+
+`profiles` never had an `email` column. This silently broke three unrelated things (SA member-detail view, `openOrgDetail()`, and briefly the registration trigger itself, which is the only one of the three that failed loudly since a trigger exception aborts the whole transaction). Run `v3g_add_profiles_email.sql` if not already done — adds the column, backfills every existing user from `auth.users`, and updates the trigger. **No JS changes were needed for SA to see phone/email** — that UI already existed and already expected this column.
+
+## Duplicate-org creation — root cause found and fixed
+
+Two identical "Hills" orgs in the activity log, created one second apart by the same user, were a **double-submit bug**, not suspicious activity: `registerNewOrg()` had no guard against being called twice in quick succession (a fast double-click/double-tap). Fixed with a flag inside the function itself, since it's called from two independent places in the UI. Deliberately did **not** add a database-level uniqueness constraint on org name — legitimately different chamas can share common names, so hard-blocking would reject real registrations. If Felix wants SA-facing duplicate-name detection (flagged, not blocked) as a follow-up, that's small and separate.
+
+## Registration now requires a phone number
+
+`reg-phone` and `join-phone` are mandatory with format validation (reuses the existing `formatPhone()` E.164 normalizer already used for SMS, via a new `isValidKenyanPhone()` helper). **Format validation only, not live verification** — actually confirming the number is reachable would need an OTP-based check using the existing Celcom SMS function, a new table, and costs one SMS credit per attempt. Flagged as a next step, not built this round since it wasn't confirmed as wanted given the cost.
+
+## ⚠️ Reported but not fixed this session — needs real diagnostic data first
+
+- **SA feels slow to load, especially on mobile.** `loadSAMembers()` fetches ALL profiles/user_orgs/members/orgs with `select('*')` and no pagination on every load — a plausible contributor as user count grows, but not confirmed against actual timing evidence. Get Network-tab load times for the specific slow screen before treating this as the fix.
+- `join-password` (join-existing-org flow) only checks length ≥ 6, not the full strength rules (upper/lower/number) registration and reset now enforce — minor inconsistency, not fixed since it wasn't explicitly flagged.
 
 ---
 

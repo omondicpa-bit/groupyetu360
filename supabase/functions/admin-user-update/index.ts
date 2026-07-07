@@ -78,9 +78,13 @@ serve(async (req) => {
       })
     }
 
-    // Sync email to profiles table
+    // Sync email to profiles table (this previously failed silently — profiles
+    // had no email column until v3g_add_profiles_email.sql. Now checked properly.)
     if (email) {
-      await adminClient.from('profiles').update({ email }).eq('id', user_id)
+      const { error: syncErr } = await adminClient.from('profiles').update({ email }).eq('id', user_id)
+      if (syncErr) {
+        console.error('profiles.email sync failed:', syncErr.message)
+      }
     }
 
     return new Response(

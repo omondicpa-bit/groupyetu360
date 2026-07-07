@@ -29,13 +29,28 @@ let attState = {};
 // failed under RLS before email confirmation — see CHANGELOG.md, "Registration flow —
 // complete overhaul"). Declaring intent ourselves removes that ambiguity entirely.
 let _urlIntent = null; // 'confirm' | 'reset' | 'invite' | null — captured once at load
+const _PENDING_INTENT_KEY = 'gy360_pending_intent';
+
+function _clearPendingIntent() {
+  try { sessionStorage.removeItem(_PENDING_INTENT_KEY); } catch(e) {}
+}
 
 async function init() {
   const urlParams = new URLSearchParams(window.location.search);
   _urlIntent = urlParams.get('intent');
+
   if (_urlIntent) {
-    // Clear the query param so a refresh doesn't re-trigger this screen
+    // Persist BEFORE clearing the URL — the URL alone can't survive a refresh,
+    // and reset/invite need the user to stay on the set-password screen across
+    // one. Without this, refreshing mid-flow lost all trace of why a session
+    // existed and fell straight through to loadProfileAndOrg() — logging an
+    // invited member straight into the app without ever setting a password.
+    try { sessionStorage.setItem(_PENDING_INTENT_KEY, _urlIntent); } catch(e) {}
     history.replaceState(null, '', window.location.pathname + (window.location.hash || ''));
+  } else {
+    // No intent in the URL this load — check if one is still pending from
+    // earlier in this tab (e.g. a refresh during the set-password screen).
+    try { _urlIntent = sessionStorage.getItem(_PENDING_INTENT_KEY) || null; } catch(e) {}
   }
 
   const { data: { session } } = await sb.auth.getSession();
@@ -344,8 +359,12 @@ async function joinOrg() {
   const sucEl = document.getElementById('join-success');
   errEl.classList.remove('show'); sucEl.classList.remove('show');
   if (!joinSelectedOrgId) { errEl.textContent='Please search and select your organisation'; errEl.classList.add('show'); return; }
-  if (!name||!email||!password) { errEl.textContent='Please fill all fields'; errEl.classList.add('show'); return; }
+  if (!name||!email||!password||!phone) { errEl.textContent='Please fill all fields'; errEl.classList.add('show'); return; }
+  if (!isValidKenyanPhone(phone)) { errEl.textContent='Please enter a valid phone number (e.g. 0712345678)'; errEl.classList.add('show'); return; }
   if (password.length < 6) { errEl.textContent='Password must be at least 6 characters'; errEl.classList.add('show'); return; }
+
+  const joinBtn = document.querySelector('#auth-join button.btn-primary');
+  if (joinBtn) { if (joinBtn.disabled) return; joinBtn.disabled = true; }
 
   // Create auth account. profiles/user_orgs/pending_members are created server-side by
   // the handle_new_user() trigger (see v3f_registration_overhaul.sql) — NOT here. This
@@ -363,7 +382,7 @@ async function joinOrg() {
       emailRedirectTo: 'https://app.groupyetu.org/?intent=confirm'
     }
   });
-  if (authErr) { errEl.textContent = authErr.message; errEl.classList.add('show'); return; }
+  if (authErr) { errEl.textContent = authErr.message; errEl.classList.add('show'); if (joinBtn) joinBtn.disabled = false; return; }
 
   sucEl.textContent = 'Request submitted! Check your email to confirm your address, then your group admin will review and approve your access.';
   sucEl.classList.add('show');
@@ -740,7 +759,8 @@ function validatePasswordStrength(pw) {
   return { valid, checks, message };
 }
 
-function updatePasswordChecklist(pw) {
+function updatePasswordChecklist(pw, suffix) {
+  suffix = suffix || '';
   const { checks } = validatePasswordStrength(pw || '');
   const set = (id, met) => {
     const el = document.getElementById(id);
@@ -748,10 +768,10 @@ function updatePasswordChecklist(pw) {
     el.classList.toggle('met', met);
     el.textContent = (met ? '✓ ' : '○ ') + el.textContent.replace(/^[✓○]\s*/, '');
   };
-  set('pw-check-len', checks.len);
-  set('pw-check-upper', checks.upper);
-  set('pw-check-lower', checks.lower);
-  set('pw-check-num', checks.num);
+  set('pw-check-len' + suffix, checks.len);
+  set('pw-check-upper' + suffix, checks.upper);
+  set('pw-check-lower' + suffix, checks.lower);
+  set('pw-check-num' + suffix, checks.num);
 }
 
 async function registerAccount() {
@@ -764,10 +784,16 @@ async function registerAccount() {
   const sucEl = document.getElementById('register-success');
   errEl.classList.remove('show'); sucEl.classList.remove('show');
 
-  if (!name || !email || !password) { errEl.textContent = 'Please fill in all required fields'; errEl.classList.add('show'); return; }
+  if (!name || !email || !password || !phone) { errEl.textContent = 'Please fill in all required fields'; errEl.classList.add('show'); return; }
+  if (!isValidKenyanPhone(phone)) { errEl.textContent = 'Please enter a valid phone number (e.g. 0712345678)'; errEl.classList.add('show'); return; }
   const strength = validatePasswordStrength(password);
   if (!strength.valid) { errEl.textContent = strength.message; errEl.classList.add('show'); return; }
   if (confirm !== undefined && confirm !== '' && confirm !== password) { errEl.textContent = 'Passwords do not match'; errEl.classList.add('show'); return; }
+
+  // Double-submit guard: without this, a fast double-click/double-tap fires
+  // signUp() twice before the first call even returns.
+  const submitBtn = document.querySelector('#auth-register button.btn-primary');
+  if (submitBtn) { if (submitBtn.disabled) return; submitBtn.disabled = true; }
 
   sucEl.textContent = 'Creating your account…'; sucEl.classList.add('show');
 
@@ -785,7 +811,7 @@ async function registerAccount() {
       emailRedirectTo: 'https://app.groupyetu.org/?intent=confirm'
     }
   });
-  if (authErr) { sucEl.classList.remove('show'); errEl.textContent = authErr.message; errEl.classList.add('show'); return; }
+  if (authErr) { sucEl.classList.remove('show'); errEl.textContent = authErr.message; errEl.classList.add('show'); if (submitBtn) submitBtn.disabled = false; return; }
 
   sucEl.textContent = '✓ Account created! Check your email to confirm and get started.';
   sucEl.classList.add('show');
@@ -859,6 +885,12 @@ async function pickerCreateOrg() {
   if (!orgName) { if (errEl) { errEl.textContent = 'Please enter a group name'; errEl.style.display = 'block'; } return; }
   if (!currentUser?.id) { if (errEl) { errEl.textContent = 'Session error — please sign in again'; errEl.style.display = 'block'; } return; }
 
+  // Double-submit guard: a fast double-click/double-tap (very plausible on
+  // mobile) previously fired this twice before the first call returned,
+  // creating two identical orgs. See CHANGELOG.md, 7 Jul 2026 entry.
+  const createBtn = document.getElementById('picker-create-btn');
+  if (createBtn) { if (createBtn.disabled) return; createBtn.disabled = true; }
+
   if (sucEl) { sucEl.textContent = 'Creating group…'; sucEl.style.display = 'block'; }
 
   const isPaidPlan = plan !== 'starter';
@@ -917,6 +949,7 @@ async function pickerCreateOrg() {
       }, 1500);
     }
   }
+  if (createBtn) createBtn.disabled = false;
 }
 
 async function pickerJoinOrg() {
@@ -1294,13 +1327,21 @@ async function registerNewOrg() {
 
   if (!name) { errEl.textContent='Please enter an organisation name'; errEl.classList.add('show'); return; }
 
+  // Double-submit guard, at the source rather than per-button: this function
+  // has two independent entry points (pickerCreateOrg() and a direct "Create
+  // Organisation" button elsewhere in the app) — a flag here protects both at
+  // once, regardless of which UI triggered it. This is what actually caused
+  // the duplicate "Hills" orgs — see CHANGELOG.md, 7 Jul 2026 entry.
+  if (window._registeringOrg) return;
+  window._registeringOrg = true;
+
   const orgCode = 'GY' + Math.random().toString(36).toUpperCase().slice(2,6);
   // Always create on Starter — pickerCreateOrg handles paid plan activation separately
   const { data: org, error: orgErr } = await sb.from('organisations')
     .insert({ name, plan: 'starter', status:'active', org_code: orgCode, subscription_status:'active', sms_bundle: 0 })
     .select().single();
 
-  if (orgErr) { errEl.textContent='Error: '+orgErr.message; errEl.classList.add('show'); return; }
+  if (orgErr) { errEl.textContent='Error: '+orgErr.message; errEl.classList.add('show'); window._registeringOrg = false; return; }
 
   // Founder always gets admin role in their own org regardless of form selection
   await sb.from('user_orgs').upsert({ user_id: currentUser.id, org_id: org.id, role: 'admin' });
@@ -1347,6 +1388,7 @@ async function registerNewOrg() {
     await selectOrg(org.id);
     showPage('dashboard');
     toast(`✓ Welcome to ${name}!`);
+    window._registeringOrg = false;
   }, 1200);
 }
 
@@ -1368,6 +1410,12 @@ function showPasswordResetScreen(intent) {
   // intent: 'reset' (forgot-password) or 'invite' (brand-new member/admin setting
   // their first password). Both need a live session just long enough to call
   // updateUser({password}) — setNewPassword() below signs out immediately after.
+  //
+  // NOTE: this panel renders on the SAME white card as login/register (not a dark
+  // background) — a previous version of this function used inline white-text-on-
+  // dark-tint styling copied from elsewhere, which made typed characters nearly
+  // invisible against the white card. Fixed by just using plain class="form-input"
+  // like every other working input on this screen, with no inline color overrides.
   const isInvite = intent === 'invite';
   window._pwScreenIntent = intent;
   document.getElementById('auth-screen').style.display = 'flex';
@@ -1380,17 +1428,23 @@ function showPasswordResetScreen(intent) {
   if (forgotPanel) {
     forgotPanel.classList.add('active');
     forgotPanel.innerHTML = `
-      <div style="margin-bottom:1rem;font-size:.82rem;color:rgba(255,255,255,.7);line-height:1.6">
+      <div style="margin-bottom:1rem;font-size:.82rem;color:var(--ink-faint);line-height:1.6">
         ${isInvite ? 'Welcome to GroupYetu360! Set a password to complete your account setup.' : 'Set a new password for your GroupYetu360 account.'}
       </div>
       <div class="form-group">
-        <input class="form-input" type="password" id="new-password-input" placeholder="Choose a password (min 6 characters)" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:#fff"/>
+        <input class="form-input" type="password" id="new-password-input" placeholder="Choose a password (min 6 characters)" oninput="updatePasswordChecklist(this.value,'2')"/>
+      </div>
+      <div id="pw-checklist2" style="display:flex;gap:.6rem;flex-wrap:wrap;margin:.4rem 0 .75rem">
+        <span class="pw-check" id="pw-check-len2" style="font-size:.68rem;color:var(--ink-faint)">○ 6+ characters</span>
+        <span class="pw-check" id="pw-check-upper2" style="font-size:.68rem;color:var(--ink-faint)">○ Uppercase</span>
+        <span class="pw-check" id="pw-check-lower2" style="font-size:.68rem;color:var(--ink-faint)">○ Lowercase</span>
+        <span class="pw-check" id="pw-check-num2" style="font-size:.68rem;color:var(--ink-faint)">○ Number</span>
       </div>
       <div class="form-group">
-        <input class="form-input" type="password" id="new-password-confirm" placeholder="Confirm your password" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:#fff"/>
+        <input class="form-input" type="password" id="new-password-confirm" placeholder="Confirm your password"/>
       </div>
       <div id="new-password-error" class="auth-error" style="display:none"></div>
-      <div id="new-password-success" class="auth-error" style="display:none;color:#4ade80"></div>
+      <div id="new-password-success" class="auth-error" style="display:none;color:#0f6e56"></div>
       <button class="btn btn-primary" onclick="setNewPassword()" style="width:100%;margin-top:.5rem">
         ${isInvite ? 'Set Password' : 'Set New Password'} →
       </button>`;
@@ -1411,6 +1465,7 @@ async function showEmailConfirmedScreen() {
   window._suppressAuthScreenOnce = true;
   await sb.auth.signOut();
   window._suppressAuthAutoLoad = false;
+  _clearPendingIntent();
   document.getElementById('auth-screen').style.display = 'flex';
   document.getElementById('app-screen').classList.remove('visible');
   const picker = document.getElementById('org-picker-screen');
@@ -1467,7 +1522,8 @@ async function setNewPassword() {
   const conf = document.getElementById('new-password-confirm')?.value?.trim();
   const errEl = document.getElementById('new-password-error');
   const sucEl = document.getElementById('new-password-success');
-  if (!pw || pw.length < 6) { if(errEl){errEl.textContent='Password must be at least 6 characters';errEl.style.display='block';} return; }
+  const strength = validatePasswordStrength(pw || '');
+  if (!strength.valid) { if(errEl){errEl.textContent=strength.message;errEl.style.display='block';} return; }
   if (pw !== conf) { if(errEl){errEl.textContent='Passwords do not match';errEl.style.display='block';} return; }
   if(errEl) errEl.style.display='none';
   const { error } = await sb.auth.updateUser({ password: pw });
@@ -1480,6 +1536,7 @@ async function setNewPassword() {
   window._suppressAuthScreenOnce = true;
   await sb.auth.signOut();
   window._suppressAuthAutoLoad = false;
+  _clearPendingIntent();
   setTimeout(() => showPasswordSetConfirmedScreen(), 900);
 }
 
