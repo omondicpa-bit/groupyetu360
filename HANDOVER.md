@@ -1,7 +1,19 @@
 # GroupYetu360 — Handover Summary
 _Read this first if picking up a new session. Full technical detail for everything below is in CHANGELOG.md — this is the "what do I need to know before touching anything" version._
 
-**As of:** 8 Jul 2026, end of session · **Code state:** app SW v5.23, cache-bust v=2026070507
+**As of:** 8 Jul 2026, end of session · **Code state:** app SW v5.24, cache-bust v=2026070508
+
+---
+
+## Security audit — 3 unauthenticated Edge Functions fixed, MUST BE REDEPLOYED
+
+Full detail: `SECURITY_AUDIT_2026-07-08.md` and CHANGELOG.md's top entry. Short version: `paystack-charge`, `daraja-stk`, and `send-sms-celcom` had **no caller authentication at all** — anyone with the function URL could trigger real M-Pesa charges or send SMS at the platform's expense, with no login. All three now verify the caller and their org membership, matching the pattern `admin-user-update` already used correctly.
+
+**⚠️ CRITICAL: Edge Functions do not go live by pushing to GitHub.** They need `supabase functions deploy <name>` run for each of the 6 changed functions, or none of these fixes actually take effect in production, no matter how confident the code push looks.
+
+**Not fixed, needs a product decision:** `send-sms-celcom` checks org membership now, but sending and SMS-bundle deduction are still two separate non-atomic steps — a client could theoretically skip the deduction call. Needs a decision on whether to hard-block sending at zero balance before this gets restructured.
+
+**RLS policies on financial tables** (`transactions`, `expenses`, `payment_requests`, `organisations`) — not yet re-verified this session. Query is at the bottom of the audit doc, needs to be run and reviewed before considering this audit fully closed.
 
 ---
 

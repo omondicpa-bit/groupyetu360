@@ -643,13 +643,14 @@ async function sendSMS(to, message) {
   // ── CELCOM AFRICA (via Supabase Edge Function — credentials read server-side) ──
   if (provider === 'celcom') {
     try {
+      const { data: { session } } = await sb.auth.getSession();
       const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/send-sms-celcom`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_KEY}`
+          'Authorization': `Bearer ${session?.access_token || SUPABASE_KEY}`
         },
-        body: JSON.stringify({ message, recipients })
+        body: JSON.stringify({ message, recipients, org_id: currentOrg?.id })
       });
       const result = await res.json();
       console.log('[sendSMS celcom] response:', JSON.stringify(result));

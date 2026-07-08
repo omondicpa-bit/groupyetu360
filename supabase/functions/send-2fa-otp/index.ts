@@ -34,6 +34,23 @@ Deno.serve(async (req) => {
     // Use service role client — bypasses RLS to write to otp_codes
     const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+    // Rate limit: refuse a new code if one was issued to this email in the
+    // last 60 seconds. Without this, the endpoint had no throttle at all —
+    // anyone could hammer it for any email address with unlimited requests.
+    const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
+    const { data: recent } = await sb
+      .from('otp_codes')
+      .select('id')
+      .eq('email', normalizedEmail)
+      .gte('created_at', oneMinuteAgo)
+      .limit(1);
+    if (recent && recent.length > 0) {
+      return new Response(
+        JSON.stringify({ error: 'Please wait a moment before requesting another code' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Clean up any existing unused OTPs for this email
     await sb.from('otp_codes')
       .delete()

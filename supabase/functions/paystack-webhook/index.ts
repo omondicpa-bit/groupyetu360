@@ -46,7 +46,17 @@ serve(async (req) => {
   console.log('[GY360 Webhook] sig received:', sig.slice(0, 20) + '...');
   console.log('[GY360 Webhook] sig expected:', expectedSig.slice(0, 20) + '...');
 
-  if (sig !== expectedSig) {
+  // Timing-safe comparison — a plain !== leaks timing information about how
+  // many leading characters matched, which matters for a function protecting
+  // real payment confirmations. Constant-time regardless of where they diverge.
+  function timingSafeEqual(a: string, b: string): boolean {
+    if (a.length !== b.length) return false;
+    let diff = 0;
+    for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    return diff === 0;
+  }
+
+  if (!timingSafeEqual(sig, expectedSig)) {
     console.error('[GY360 Webhook] HMAC mismatch — rejecting');
     return new Response('Invalid signature', { status: 401 });
   }

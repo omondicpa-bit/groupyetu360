@@ -19,10 +19,48 @@ serve(async (req) => {
       });
     }
 
+    // ── Verify the caller is a real, logged-in user, and that they actually
+    // belong to org_id — this Edge Function used to trust org_id/amount/phone
+    // from the raw request body with no auth check at all, meaning anyone who
+    // found this URL could trigger a real M-Pesa charge attributed to any org.
+    const authHeader = req.headers.get('Authorization') || '';
+    const token = authHeader.replace('Bearer ', '');
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const callerClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const { data: { user: callerUser }, error: userErr } = await callerClient.auth.getUser();
+    if (userErr || !callerUser) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
+
+    // Confirm the caller actually belongs to this org before letting them
+    // trigger a charge attributed to it.
+    const { data: membership } = await supabase
+      .from('user_orgs')
+      .select('role')
+      .eq('user_id', callerUser.id)
+      .eq('org_id', org_id)
+      .maybeSingle();
+    if (!membership) {
+      return new Response(JSON.stringify({ error: 'Forbidden — not a member of this organisation' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     const { data: ps } = await supabase
       .from('platform_settings')

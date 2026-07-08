@@ -29,15 +29,19 @@ serve(async (req) => {
     const resultCode = result.ResultCode; // 0 = success, anything else = failed/cancelled
     const resultDesc = result.ResultDesc;
 
-    // Find the pending payment request
+    // Find the pending payment request — filtering on status='pending' is the
+    // idempotency guard. Safaricom retries callbacks under real network/timeout
+    // conditions; without this filter, a retried successful callback would
+    // double-credit SMS bundles or subscription extensions for one real payment.
     const { data: payReq } = await supabase
       .from("payment_requests")
       .select("*")
       .eq("reference", checkoutRequestId)
+      .eq("status", "pending")
       .maybeSingle();
 
     if (!payReq) {
-      console.log("No payment request found for checkout ID:", checkoutRequestId);
+      console.log("No PENDING payment request found for checkout ID (already processed, or unknown):", checkoutRequestId);
       return new Response("OK", { status: 200 });
     }
 

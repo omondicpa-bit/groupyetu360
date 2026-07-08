@@ -1,5 +1,5 @@
-// GroupYetu360 Service Worker v5.23 — groupyetu.org
-const CACHE_NAME = 'gy360-v5.23';
+// GroupYetu360 Service Worker v5.24 — groupyetu.org
+const CACHE_NAME = 'gy360-v5.24';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -12,7 +12,7 @@ const STATIC_ASSETS = [
 // so the browser always fetches fresh JS on version bumps
 
 self.addEventListener('install', event => {
-  console.log('[GY360 SW] Installing v5.23');
+  console.log('[GY360 SW] Installing v5.24');
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache =>
       cache.addAll(STATIC_ASSETS).catch(err =>
@@ -24,7 +24,7 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  console.log('[GY360 SW] Activating v5.23 — clearing old caches');
+  console.log('[GY360 SW] Activating v5.24 — clearing old caches');
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => {

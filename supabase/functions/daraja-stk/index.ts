@@ -22,11 +22,47 @@ serve(async (req) => {
       });
     }
 
+    // ── Verify the caller is a real, logged-in member of orgId — this
+    // function used to trust orgId/amount/phone from the raw request body
+    // with no auth check, meaning anyone could trigger a real STK push
+    // (including through an org's OWN Daraja credentials via useOrgCredentials)
+    // with no login at all.
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace("Bearer ", "");
+    if (!token) {
+      return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+    const callerClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const { data: { user: callerUser }, error: userErr } = await callerClient.auth.getUser();
+    if (userErr || !callerUser) {
+      return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
     // Init Supabase admin client
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    const { data: membership } = await supabase
+      .from("user_orgs")
+      .select("role")
+      .eq("user_id", callerUser.id)
+      .eq("org_id", orgId)
+      .maybeSingle();
+    if (!membership) {
+      return new Response(JSON.stringify({ success: false, error: "Forbidden — not a member of this organisation" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
 
     // ── Get Daraja credentials ────────────────────────────────────────────
     let consumerKey: string, consumerSecret: string, shortcode: string, passkey: string, env: string;

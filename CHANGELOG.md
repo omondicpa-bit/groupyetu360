@@ -3,6 +3,40 @@ _Maintained for Play Store closed-testing report and cross-session handover. New
 
 ---
 
+## Session: 8 Jul 2026 (continued) — full security audit, prompted by SasaPay wallet-collection plans
+
+Full findings in `SECURITY_AUDIT_2026-07-08.md`. Summary of what was found and fixed:
+
+**Critical — three Edge Functions had NO caller authentication at all**, meaning anyone with the function's URL (predictable Supabase pattern) could call them directly with no login:
+- `paystack-charge` — could trigger a real M-Pesa charge via Paystack, attributed to any `org_id`, for any amount, to any phone number.
+- `daraja-stk` — same issue, worse: could also trigger charges through an *org's own* Daraja merchant credentials if `useOrgCredentials: true` was passed. Not yet called by the client anywhere (Daraja per-org STK is still deferred per earlier notes), but the hole existed regardless.
+- `send-sms-celcom` — could send arbitrary SMS to arbitrary numbers at the platform's expense, with no org attribution at all (the function didn't even accept an `org_id` parameter before this fix).
+
+**Fixed:** all three now verify the caller via `Authorization: Bearer <token>` → `auth.getUser()`, then confirm the caller actually belongs to the `org_id` they're claiming to act for via `user_orgs`, before doing anything. Matches the pattern already correctly used in `admin-user-update`. Client-side: `send-sms-celcom`'s call in `utils.js` was sending the **static anon key** as the bearer token instead of the real user session token, and never passed `org_id` at all — both fixed. `paystack-charge`'s client call in `settings.js` was already correctly sending the real session token — no client fix needed there.
+
+**High:**
+- `daraja-callback` had no idempotency guard (unlike `paystack-webhook`, which correctly filters `status='pending'`) — a retried Safaricom callback (which does happen under real network conditions) could have double-credited SMS bundles or subscription extensions. Fixed by adding the same `status='pending'` filter.
+- Stored XSS: `finance.js` inserted `f.reason` (a fine's free-text reason) into `innerHTML` unescaped in 3 places. A malicious or compromised admin account could have entered a `<script>` payload as a fine's reason, executing in every subsequent viewer's browser. Fixed using the existing `h()` escaping helper already correctly used elsewhere in the same file (line 525) — just wasn't applied consistently to all 3 spots.
+- `send-2fa-otp` had no rate limiting — fixed with a 60-second per-email throttle using the existing `otp_codes` table (checks `created_at`, no new infra).
+
+**Medium:**
+- `paystack-webhook`'s HMAC signature check used a plain `!==` string comparison rather than timing-safe — fixed with a constant-time comparison function.
+- RLS policies on `transactions`/`expenses`/`payment_requests`/`organisations` not yet re-verified against direct client access this session — query provided in the audit doc, needs Felix to run and share.
+
+**⚠️ Not fixed, flagged for a design decision:** `send-sms-celcom` still checks org membership but not remaining `sms_bundle` balance before sending — the actual send (via Celcom) and the balance deduction (`trackSmsUsage()`) remain two separate steps, with sending happening first. A client that skipped the deduction call could still get sends without being charged against their bundle. Properly fixing this means moving the balance check + deduction into the same atomic server-side call, and deciding whether to hard-block sending at zero balance — didn't want to make that product decision unilaterally.
+
+**Files changed:** `supabase/functions/paystack-charge/index.ts`, `supabase/functions/daraja-stk/index.ts`, `supabase/functions/send-sms-celcom/index.ts`, `supabase/functions/daraja-callback/index.ts`, `supabase/functions/paystack-webhook/index.ts`, `supabase/functions/send-2fa-otp/index.ts`, `js/utils.js`, `js/finance.js`. New: `SECURITY_AUDIT_2026-07-08.md`. SW bumped to v5.24, cache-bust to `v=2026070508`.
+
+**⚠️ Edge Functions need to be redeployed, not just pushed to git** — unlike the app's own JS files (served directly from GitHub Pages), Supabase Edge Functions require `supabase functions deploy <name>` to actually take effect. Pushing these files to the repo alone does nothing until each of the 6 changed functions is redeployed.
+
+**Test checklist:**
+- Try calling `paystack-charge`/`daraja-stk`/`send-sms-celcom` directly (e.g. via curl/Postman) with no Authorization header — should get 401, not proceed.
+- Try calling any of them with a valid logged-in user's token but an `org_id` they don't belong to — should get 403.
+- Confirm normal in-app SMS sending and Paystack charging still work end-to-end as a real logged-in admin (these fixes should be invisible to legitimate use).
+- Issue a test fine with a reason like `<b>test</b>` — should display as literal text `<b>test</b>`, not render as bold, confirming the XSS fix works.
+
+---
+
 ## Session: 8 Jul 2026 — bank balance frozen (ADA), root cause was a prior session's own fix
 
 **Reported:** ADA's bank balance stopped increasing with new deposits, stuck at whatever it was set to during a manual reset roughly a week earlier. A previous session's advice at the time was: "set the prevailing balance manually, then it will update automatically going forward" — this advice was the actual cause of the freeze, not a fix for it.
