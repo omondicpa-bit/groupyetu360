@@ -81,23 +81,34 @@ function toggleFaq(el) {
 async function updateBankBalance(orgId, amount, direction) {
   // direction: 'credit' for income, 'debit' for expense
   // Uses atomic Postgres RPC — no read-modify-write race condition
-  try {
-    const change = parseFloat(amount) || 0;
-    if (!change) return;
-    const today = new Date().toISOString().split('T')[0];
-    const { data: newBalance, error } = await sb.rpc('update_bank_balance', {
-      p_org_id: orgId,
-      p_amount: change,
-      p_direction: direction,
-      p_date: today
-    });
-    if (error) throw error;
-    // Update local org object so dashboard reflects new balance immediately
-    if (currentOrg?.id === orgId && newBalance !== null) {
-      currentOrg.bank_balance = newBalance;
-    }
-  } catch(e) {
-    console.log('Bank balance update skipped:', e.message);
+  const change = parseFloat(amount) || 0;
+  if (!change) return;
+  const today = new Date().toISOString().split('T')[0];
+  const { data: newBalance, error } = await sb.rpc('update_bank_balance', {
+    p_org_id: orgId,
+    p_amount: change,
+    p_direction: direction,
+    p_date: today
+  });
+  if (error) {
+    // A financial balance failing to update must never be invisible — this
+    // used to be a silent console.log only, which is exactly what let ADA's
+    // balance sit frozen for a week with nobody aware anything was wrong.
+    console.error('[GY360] Bank balance update FAILED:', error.message, { orgId, amount, direction });
+    toast('⚠ Warning: this was recorded, but the bank balance total failed to update. Please check Settings and contact support if the balance looks wrong.');
+    return;
+  }
+  if (newBalance === null) {
+    // RPC ran without error but matched zero rows (e.g. wrong org id) — this
+    // should never happen in normal operation, but if it does, it must be
+    // just as visible as a thrown error, not silently ignored.
+    console.error('[GY360] Bank balance update matched no rows — org_id may be invalid:', orgId);
+    toast('⚠ Warning: bank balance total did not update. Please contact support.');
+    return;
+  }
+  // Update local org object so dashboard reflects new balance immediately
+  if (currentOrg?.id === orgId) {
+    currentOrg.bank_balance = newBalance;
   }
 }
 

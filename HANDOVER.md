@@ -1,7 +1,17 @@
 # GroupYetu360 — Handover Summary
 _Read this first if picking up a new session. Full technical detail for everything below is in CHANGELOG.md — this is the "what do I need to know before touching anything" version._
 
-**As of:** 7 Jul 2026, end of session · **Code state:** app SW v5.22, cache-bust v=2026070506
+**As of:** 8 Jul 2026, end of session · **Code state:** app SW v5.23, cache-bust v=2026070507
+
+---
+
+## Bank balance frozen bug (ADA) — root cause was a PRIOR session's own advice
+
+`update_bank_balance()` had two overloaded versions in the DB — a broken one (checked `bank_balance_locked`, blocking real transaction updates) and a correct one (no lock check). Client calls were resolving to the broken one. The lock itself is legitimate and well-designed (makes the Settings balance field read-only after first set) — it was never meant to block the automatic RPC, only manual re-entry. Fixed by dropping the broken overload, not by removing the manual-set feature. Also fixed `updateBankBalance()` silently swallowing errors — now surfaces a toast on any failure.
+
+**⚠️ ADA's balance needs a manual one-time correction, not yet applied.** Run `diagnostic_ada_missed_balance.sql` first, review the numbers with Felix (ideally cross-checked against ADA's real bank/M-Pesa statement), before writing any corrected value.
+
+**If a similar "balance frozen" report comes in for another org:** check `SELECT oid, pg_get_function_identity_arguments(oid) FROM pg_proc WHERE proname='update_bank_balance'` returns exactly one row first — if it's back to two, something recreated the broken overload.
 
 ---
 

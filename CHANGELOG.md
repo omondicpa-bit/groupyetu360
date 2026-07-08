@@ -3,6 +3,29 @@ _Maintained for Play Store closed-testing report and cross-session handover. New
 
 ---
 
+## Session: 8 Jul 2026 — bank balance frozen (ADA), root cause was a prior session's own fix
+
+**Reported:** ADA's bank balance stopped increasing with new deposits, stuck at whatever it was set to during a manual reset roughly a week earlier. A previous session's advice at the time was: "set the prevailing balance manually, then it will update automatically going forward" — this advice was the actual cause of the freeze, not a fix for it.
+
+**Root cause, confirmed via the live function definitions (not guessed):** `update_bank_balance()` existed as **two overloaded functions** in the database — one taking `p_date` as `text`, one as `date`. The `text` version had `AND (bank_balance_locked IS NULL OR bank_balance_locked = false)` in its `WHERE` clause; the `date` version had no such check. Since the client always sends the date as a plain JS string, every real call was resolving to the broken `text` overload. The moment a manual balance is set, `settings.js` sets `bank_balance_locked = true` (intentionally, to make the Settings input field read-only afterward) — but this also caused the RPC's `WHERE` clause to match **zero rows** on every subsequent real transaction, silently returning `NULL` with no error thrown.
+
+**Compounding it:** `updateBankBalance()` in `utils.js` wrapped the RPC call in a try/catch that only did `console.log` on error — no toast, nothing visible. So even the one path that *would* throw an actual error was invisible to any admin.
+
+**Fix — surgical, not a feature removal.** Traced the actual intent of the lock: the Settings UI already correctly makes the balance input **read-only** once locked, with a note saying "Updates automatically with transactions." The lock was only ever meant to stop an admin from manually re-typing a number — never meant to block the automatic RPC. So instead of removing the manual-balance feature entirely (as first proposed), the fix is narrower: **dropped the broken `text`-parameter overload entirely**, leaving only the correct `date`-parameter version (no lock check) as the single, unambiguous function — see `v3h_fix_bank_balance_rpc.sql`. The existing manual-set-then-lock UI in Settings, and the SA-only `unlockBankBalance()` override, are both kept as-is — they were never the problem.
+
+Also fixed `updateBankBalance()` in `utils.js` to stop silently swallowing errors — any failure (RPC error, or a `NULL` return from zero rows matched) now logs properly to console **and** shows a toast telling the admin the balance total may be wrong, so this specific failure mode can never be invisible again regardless of what causes a future issue.
+
+**⚠️ ADA's balance still needs a one-time manual correction — not done automatically.** `diagnostic_ada_missed_balance.sql` sums everything recorded in `transactions` and `expenses` since the freeze date to estimate the correct current balance. This was deliberately left as a diagnostic query, not an auto-applied fix — Felix needs to review the numbers (and ideally cross-check against ADA's actual M-Pesa/bank statement for the period) before we write a corrected value back, since this is real group money and the reconstruction is only as good as what actually got recorded in the app.
+
+**Files changed:** `js/utils.js`. New: `v3h_fix_bank_balance_rpc.sql` (run in Supabase SQL editor), `diagnostic_ada_missed_balance.sql` (run first, review before any correction). SW bumped to v5.23, cache-bust to `v=2026070507`.
+
+**Test checklist:**
+- After running the SQL fix, confirm only one `update_bank_balance` function remains: `SELECT oid, pg_get_function_identity_arguments(oid) FROM pg_proc WHERE proname = 'update_bank_balance';` should return exactly one row.
+- Record a test contribution for a group whose balance was previously locked — confirm the balance actually increments now.
+- Deliberately trigger a bank-balance RPC failure (e.g. temporarily pass an invalid org id in a test) and confirm the new toast warning actually appears — don't just trust the code, watch it fire once.
+
+---
+
 ## Session: 7 Jul 2026 — reset/invite screen bugs, mandatory phone, missing profiles.email, duplicate-org root cause
 
 **Reported:** reset-password and invite-password screens show white/invisible text while typing and don't show password requirements; refreshing during either screen logs the user straight into the app without ever setting a password; SA can't see registered users' phone/email; a "Send Mate" account had two identically-named "Hills" orgs in the activity log; SA feels slow to load, especially on mobile.
