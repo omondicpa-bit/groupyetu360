@@ -3,6 +3,20 @@ _Maintained for Play Store closed-testing report and cross-session handover. New
 
 ---
 
+## Session: 9 Jul 2026 (continued again) — Send SMS to Admin: "Missing org_id" after the previous fix
+
+**Reported:** immediately after fixing the role-column bug, testing surfaced a new error: `{"sent":0,"failed":0,"error":"Missing org_id"}` — confirmed via console on the actual Organisation Detail page.
+
+**Root cause:** yesterday's security-audit fix made `send-sms-celcom` require `org_id`, and the client-side `sendSMS()` sources it from `currentOrg?.id`. That's correct for every org's own Messages page (where `currentOrg` genuinely is that org), but on SA's "Organisation Detail" page, `currentOrg` isn't reliably swapped to the org being viewed — `currentDetailOrgId` is the value that's actually reliable there (it's what already correctly powers the bank balance editor on the same page).
+
+**Fixed:** `sendSMS(to, message, orgIdOverride)` now takes an optional third parameter that takes precedence over `currentOrg?.id` when provided. `sendMessageToOrgAdmin()` now passes `currentDetailOrgId` explicitly instead of depending on the ambient `currentOrg` swap. Every other caller of `sendSMS()` (org's own Messages page, etc.) is unaffected — they don't pass the third argument, so they fall back to the existing `currentOrg?.id` behavior exactly as before.
+
+**Files changed:** `js/utils.js`, `js/settings.js`. SW bumped to v5.27, cache-bust to `v=2026070511`.
+
+**Test checklist:** as SA, open Organisation Detail for a different org than the one currently "selected," send a test message to admin — confirm it actually sends now rather than erroring with "Missing org_id."
+
+---
+
 ## Session: 9 Jul 2026 (continued) — "Send SMS to Admin" was checking the wrong role column, and was never actually wired to send
 
 **Reported:** SA's "Send SMS to Admin" button (View Group Profile page) always said "No admin phone found for this org," even for orgs with real admins.

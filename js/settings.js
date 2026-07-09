@@ -1604,7 +1604,7 @@ async function sendMessageToOrgAdmin() {
   // page, so the SMS bundle/org_id context resolves correctly.
   const btn = document.getElementById('od-send-admin-sms-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
-  const result = await sendSMS(phones, msg);
+  const result = await sendSMS(phones, msg, currentDetailOrgId);
   if (btn) { btn.disabled = false; btn.textContent = '📱 Send SMS to Admin →'; }
 
   if (result?.sent > 0) {

@@ -1,7 +1,7 @@
 # GroupYetu360 — Handover Summary
 _Read this first if picking up a new session. Full technical detail for everything below is in CHANGELOG.md — this is the "what do I need to know before touching anything" version._
 
-**As of:** 9 Jul 2026, end of session · **Code state:** app SW v5.26, cache-bust v=2026070510
+**As of:** 9 Jul 2026, end of session · **Code state:** app SW v5.27, cache-bust v=2026070511
 
 ---
 

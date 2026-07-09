@@ -566,7 +566,7 @@ async function trackSmsUsage(orgId, count) {
 // to: array of raw phone strings (will be formatted automatically)
 // message: string
 // Returns { sent: N, failed: N }
-async function sendSMS(to, message) {
+async function sendSMS(to, message, orgIdOverride) {
   if (!to?.length || !message) return { sent: 0, failed: to?.length || 0 };
 
   const recipients = to.map(formatPhone).filter(Boolean);
@@ -650,7 +650,7 @@ async function sendSMS(to, message) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session?.access_token || SUPABASE_KEY}`
         },
-        body: JSON.stringify({ message, recipients, org_id: currentOrg?.id })
+        body: JSON.stringify({ message, recipients, org_id: orgIdOverride || currentOrg?.id })
       });
       const result = await res.json();
       console.log('[sendSMS celcom] response:', JSON.stringify(result));
