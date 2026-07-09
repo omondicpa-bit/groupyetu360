@@ -1581,12 +1581,39 @@ async function sendMessageToOrgAdmin() {
   if (!currentDetailOrgId) return;
   const org = _saOrgs.find(o=>o.id===currentDetailOrgId);
   if (!org) return;
-  // Get admin phone
-  const { data: profiles } = await sb.from('profiles').select('phone,full_name').eq('org_id',currentDetailOrgId).in('role',['admin','officer','treasurer']);
-  if (!profiles?.length) { toast('No admin phone found for this org'); return; }
-  // Use platform SMS (simplified - would call SMS function)
-  toast(`✓ Message queued for ${profiles.length} admin(s) — SMS feature coming soon`);
-  document.getElementById('od-admin-message').value = '';
+
+  // Get admin/treasurer/officer contacts for THIS org — role lives on
+  // user_orgs, never on profiles.role (profiles.role is platform-wide
+  // account status only: member/admin/superadmin/pending — see HANDOVER.md).
+  // This was the actual bug: the old query filtered profiles.role for
+  // 'admin'/'officer'/'treasurer', which those rows never contain as an
+  // org-scoped value, so it always came back empty regardless of how many
+  // real admins the org had.
+  const { data: adminLinks } = await sb.from('user_orgs')
+    .select('user_id').eq('org_id', currentDetailOrgId).in('role', ['admin','treasurer','officer']);
+  if (!adminLinks?.length) { toast('No admin/treasurer/officer found for this org'); return; }
+
+  const userIds = adminLinks.map(a => a.user_id);
+  const { data: profiles } = await sb.from('profiles').select('phone,full_name').in('id', userIds);
+  const phones = (profiles||[]).map(p=>p.phone).filter(Boolean);
+  if (!phones.length) { toast('Admin(s) found, but none have a phone number on file'); return; }
+
+  // This used to be a stub ("SMS feature coming soon") — now actually sends,
+  // reusing the same sendSMS()/send-sms-celcom path every org's own Messages
+  // page uses. currentOrg is swapped to this org while viewing its detail
+  // page, so the SMS bundle/org_id context resolves correctly.
+  const btn = document.getElementById('od-send-admin-sms-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+  const result = await sendSMS(phones, msg);
+  if (btn) { btn.disabled = false; btn.textContent = '📱 Send SMS to Admin →'; }
+
+  if (result?.sent > 0) {
+    toast(`✓ SMS sent to ${result.sent} admin(s)${result.failed?`, ${result.failed} failed`:''}`);
+    document.getElementById('od-admin-message').value = '';
+    try { await logActivity('SA MESSAGE TO ADMIN', `Sent SMS to ${result.sent} admin(s) of ${org.name}: "${msg}"`, 'organisation', currentDetailOrgId); } catch(e) {}
+  } else {
+    toast('⚠ Failed to send — check SMS provider configuration in Platform Settings');
+  }
 }
 
 async function saDeleteOrg() {

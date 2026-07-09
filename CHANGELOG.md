@@ -3,6 +3,24 @@ _Maintained for Play Store closed-testing report and cross-session handover. New
 
 ---
 
+## Session: 9 Jul 2026 (continued) — "Send SMS to Admin" was checking the wrong role column, and was never actually wired to send
+
+**Reported:** SA's "Send SMS to Admin" button (View Group Profile page) always said "No admin phone found for this org," even for orgs with real admins.
+
+**Root cause:** `sendMessageToOrgAdmin()` queried `profiles.role IN ('admin','officer','treasurer')` — but `profiles.role` is platform-wide account status only (member/admin/superadmin/pending), never an org-scoped role. Org-scoped admin/treasurer/officer roles live on `user_orgs.role`, not `profiles.role` — this exact distinction is what an earlier "Set Role bug" (documented in HANDOVER.md) was about, and this function had the same mistake independently. The query was checking a column that could never contain the values it was filtering for, so it always came back empty regardless of how many real admins existed.
+
+**Also found while fixing it:** even if the lookup had worked, the function never actually sent anything — it was a stub (`toast('✓ Message queued... SMS feature coming soon')`).
+
+**Fixed:** now correctly queries `user_orgs` for the org's admin/treasurer/officer `user_id`s, fetches their phone numbers from `profiles`, and actually sends via the existing `sendSMS()`/`send-sms-celcom` path (the same one every org's own Messages page already uses, now with the auth fix from yesterday's security audit).
+
+**Also confirmed, not changed:** Felix asked whether SA's SMS capabilities should be scoped to the View Group Profile page only — checked, and both SA-specific SMS entry points (the SMS tab and Send-to-Admin button) are already scoped there. The other "Send SMS" button found in the app is each org's own normal Messages page (for messaging their own members) — a different, expected feature, not something to restrict.
+
+**Files changed:** `js/settings.js`, `index.html`. SW bumped to v5.26, cache-bust to `v=2026070510`.
+
+**Test checklist:** as SA, open View Group Profile for an org with a real admin who has a phone number on file, send a test message — confirm an actual SMS arrives, not just a toast.
+
+---
+
 ## Session: 9 Jul 2026 — welfare module fix (was silently broken), independent welfare balance, superadmin bypass added
 
 **Context:** Felix noticed ADA members contributing to an AGM/party fund outside the app entirely (straight to the treasurer's personal M-Pesa number) and asked how to bring this into the system without disrupting how groups actually run these events (welfare separate from everyday shares/savings, real-time visibility, WhatsApp-shareable contributor lists). Discussed building a new parallel "funds" system, then discovered a **full Welfare module already existed** — well-designed UI, but its write path was never actually connected.
