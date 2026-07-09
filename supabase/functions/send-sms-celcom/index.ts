@@ -71,7 +71,15 @@ serve(async (req: Request) => {
       .eq('user_id', callerUser.id)
       .eq('org_id', org_id)
       .maybeSingle();
+
+    let isSuperadmin = false;
     if (!membership) {
+      const { data: callerProfile } = await supabase
+        .from('profiles').select('role').eq('id', callerUser.id).maybeSingle();
+      isSuperadmin = callerProfile?.role === 'superadmin';
+    }
+
+    if (!membership && !isSuperadmin) {
       return new Response(
         JSON.stringify({ sent: 0, failed: 0, error: 'Forbidden — not a member of this organisation' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

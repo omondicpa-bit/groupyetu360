@@ -766,28 +766,59 @@ async function approvePaymentRequest(requestId) {
   const memberData = req.members;
   const memberUpdates = {};
 
-  // Insert ONE summary transaction for the whole payment (so member card shows one entry)
-  // Then accumulate per-allocation balance updates
-  const totalAmount = allocations.reduce((s,a)=>s+Number(a.amount||0),0);
-  const allocationSummary = allocations.map(a=>a.typeName+': Ksh '+Number(a.amount).toLocaleString()).join(' | ');
-  const summaryTxn = {
-    org_id: currentOrg.id,
-    member_id: req.member_id,
-    amount: totalAmount,
-    mpesa_ref: req.mpesa_ref || null,
-    transaction_date: req.payment_date || new Date().toISOString().split('T')[0],
-    notes: `Approved. Ref: ${req.mpesa_ref||'—'}. ${allocationSummary}`,
-    recorded_by: currentUser.id
-  };
-  // Use type_id of first named allocation if available
-  const firstTypedAlloc = allocations.find(a => a.typeId && a.typeId.length > 10);
-  if (firstTypedAlloc) summaryTxn.type_id = firstTypedAlloc.typeId;
+  // Split allocations: welfare-tagged vs everything else. This split is the
+  // actual fix — welfare contributions used to get silently folded into the
+  // same summary transaction as shares/savings, with no welfare_event_id set
+  // anywhere (the paid/unpaid tracker was reading a column nothing wrote to),
+  // and the FULL payment total (including welfare) was credited to
+  // bank_balance with no separation at all.
+  const welfareAllocs = allocations.filter(a => a.isWelfare && a.eventId);
+  const regularAllocs = allocations.filter(a => !(a.isWelfare && a.eventId));
+  const regularTotal = regularAllocs.reduce((s,a)=>s+Number(a.amount||0),0);
+  const welfareTotal = welfareAllocs.reduce((s,a)=>s+Number(a.amount||0),0);
 
-  const { error: txErr } = await sb.from('transactions').insert(summaryTxn);
-  if (!txErr) successCount++;
+  // Insert ONE summary transaction for the non-welfare portion (so member
+  // card shows one entry for shares/savings/subscriptions as before)
+  if (regularAllocs.length && regularTotal > 0) {
+    const allocationSummary = regularAllocs.map(a=>a.typeName+': Ksh '+Number(a.amount).toLocaleString()).join(' | ');
+    const summaryTxn = {
+      org_id: currentOrg.id,
+      member_id: req.member_id,
+      amount: regularTotal,
+      mpesa_ref: req.mpesa_ref || null,
+      transaction_date: req.payment_date || new Date().toISOString().split('T')[0],
+      notes: `Approved. Ref: ${req.mpesa_ref||'—'}. ${allocationSummary}`,
+      recorded_by: currentUser.id
+    };
+    const firstTypedAlloc = regularAllocs.find(a => a.typeId && a.typeId.length > 10);
+    if (firstTypedAlloc) summaryTxn.type_id = firstTypedAlloc.typeId;
+    const { error: txErr } = await sb.from('transactions').insert(summaryTxn);
+    if (!txErr) successCount++;
+  }
 
-  // Accumulate per-allocation member balance updates
-  for (const alloc of allocations) {
+  // Insert a SEPARATE, properly-tagged transaction per welfare allocation —
+  // each welfare event is its own pot and needs its own reference, and this
+  // is what makes the paid/unpaid tracker in openWelfareContribs() actually
+  // work for the first time.
+  for (const alloc of welfareAllocs) {
+    const { error: welErr } = await sb.from('transactions').insert({
+      org_id: currentOrg.id,
+      member_id: req.member_id,
+      amount: Number(alloc.amount),
+      mpesa_ref: req.mpesa_ref || null,
+      transaction_date: req.payment_date || new Date().toISOString().split('T')[0],
+      welfare_event_id: alloc.eventId,
+      notes: `Welfare contribution — ${alloc.typeName}. Ref: ${req.mpesa_ref||'—'}.`,
+      recorded_by: currentUser.id
+    });
+    if (!welErr) successCount++;
+  }
+
+  // Accumulate per-allocation member balance updates — only for regular
+  // (non-welfare) allocations. Welfare money doesn't touch shares/savings
+  // balances or bank_balance; it's tracked entirely through
+  // welfare_event_id-tagged transactions, kept independent by design.
+  for (const alloc of regularAllocs) {
     const name = (alloc.typeName || '').toLowerCase();
     if (name.includes('share')) {
       memberUpdates.shares_balance = ((memberUpdates.shares_balance ?? (memberData?.shares_balance||0)) + Number(alloc.amount));
@@ -802,14 +833,16 @@ async function approvePaymentRequest(requestId) {
     await sb.from('members').update(memberUpdates).eq('id', req.member_id);
   }
 
-  // Update bank balance — always via atomic RPC, never read-modify-write.
-  // No fallback: if updateBankBalance is somehow unavailable, surface the error
-  // rather than silently risking a lost-update race condition on real money.
-  try {
-    await updateBankBalance(currentOrg.id, req.amount, 'credit');
-  } catch(e) {
-    console.error('Bank balance update FAILED:', e.message);
-    toast('⚠ Payment approved but bank balance update failed — check Finance page and refresh.');
+  // Update bank balance — ONLY for the non-welfare portion. This is the other
+  // half of the independence fix: welfare contributions no longer touch the
+  // everyday bank_balance at all, in either direction.
+  if (regularTotal > 0) {
+    try {
+      await updateBankBalance(currentOrg.id, regularTotal, 'credit');
+    } catch(e) {
+      console.error('Bank balance update FAILED:', e.message);
+      toast('⚠ Payment approved but bank balance update failed — check Finance page and refresh.');
+    }
   }
 
   // Auto-resolve fines

@@ -1,7 +1,17 @@
 # GroupYetu360 — Handover Summary
 _Read this first if picking up a new session. Full technical detail for everything below is in CHANGELOG.md — this is the "what do I need to know before touching anything" version._
 
-**As of:** 8 Jul 2026, end of session · **Code state:** app SW v5.24, cache-bust v=2026070508
+**As of:** 9 Jul 2026, end of session · **Code state:** app SW v5.25, cache-bust v=2026070509
+
+---
+
+## Welfare module — was silently broken, now fixed and made independent from bank_balance
+
+The Welfare feature (event tracking, paid/unpaid member list, progress bar) already existed with good UI, but `approvePaymentRequest()` never actually set `welfare_event_id` on transactions — the tracker was always reading a column nothing wrote to. Fixed, and while fixing it: welfare money no longer touches `bank_balance` at all (tracked entirely via `welfare_event_id`-tagged transactions instead), closing an event now requires a real disbursement record (reuses `expenses`, tagged with `welfare_event_id` — no new parallel table), and events can now be open-ended (no fixed per-member amount) alongside the existing fixed-levy model. Full detail in CHANGELOG.md's top entry.
+
+**⚠️ Needs Felix to run `v3i_welfare_module_fix.sql`** before any of this works — adds `expenses.welfare_event_id` and `welfare_events.closed_by`/`closed_at`.
+
+**⚠️ Superadmin bypass added to yesterday's 3 secured Edge Functions** (`paystack-charge`, `daraja-stk`, `send-sms-celcom`) — SA has no `user_orgs` row for any org, so the membership check added in the security audit would have blocked SA's own support actions. Found by inspection, not yet confirmed via Felix's own curl/Postman test — worth closing that loop.
 
 ---
 

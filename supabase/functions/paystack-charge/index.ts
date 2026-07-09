@@ -56,7 +56,19 @@ serve(async (req) => {
       .eq('user_id', callerUser.id)
       .eq('org_id', org_id)
       .maybeSingle();
+
+    // Superadmin doesn't have a user_orgs row for every org (access comes from
+    // profiles.role = 'superadmin' instead) — without this check, SA's own
+    // legitimate support actions would be incorrectly blocked by the
+    // membership check above.
+    let isSuperadmin = false;
     if (!membership) {
+      const { data: callerProfile } = await supabase
+        .from('profiles').select('role').eq('id', callerUser.id).maybeSingle();
+      isSuperadmin = callerProfile?.role === 'superadmin';
+    }
+
+    if (!membership && !isSuperadmin) {
       return new Response(JSON.stringify({ error: 'Forbidden — not a member of this organisation' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });

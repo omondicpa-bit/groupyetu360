@@ -81,6 +81,25 @@ async function loadDashboard() {
   const showBalToggle = document.getElementById('show-balance-toggle');
   if (showBalToggle) showBalToggle.checked = currentOrg?.show_balance_to_members || false;
 
+  // ── Welfare funds total — separate from bank_balance by design. Computed
+  // live (sum of welfare-tagged transactions for currently-open events, minus
+  // any disbursed-but-not-yet-closed amounts) rather than a cached column, to
+  // avoid the exact class of drift/lock bug that froze bank_balance earlier.
+  (async () => {
+    const { data: openEvents } = await sb.from('welfare_events')
+      .select('id').eq('org_id', orgId).eq('is_active', true);
+    const openIds = (openEvents||[]).map(e=>e.id);
+    const welMetaEl = document.getElementById('dash-welfare-meta');
+    if (!openIds.length) { if (welMetaEl) welMetaEl.style.display = 'none'; return; }
+    const { data: welTxns } = await sb.from('transactions')
+      .select('amount').eq('org_id', orgId).in('welfare_event_id', openIds);
+    const welfareTotal = (welTxns||[]).reduce((s,t)=>s+Number(t.amount||0),0);
+    if (welMetaEl) {
+      welMetaEl.style.display = welfareTotal > 0 ? '' : 'none';
+      welMetaEl.innerHTML = `+ Ksh ${welfareTotal.toLocaleString()} in ${openIds.length} open welfare fund${openIds.length!==1?'s':''} <span style="opacity:.7">(separate from balance above)</span>`;
+    }
+  })();
+
   const thisYear = now.getFullYear().toString();
 
   // ── Members — renders member count, bar, snapshot, unregistered warning ──

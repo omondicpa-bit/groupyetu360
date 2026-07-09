@@ -320,13 +320,40 @@ async function loadWelfare() {
     .order('created_at', {ascending: false});
   const events = data || [];
 
+  // ── Fetch actual collected totals per event, live from transactions —
+  // this is the real fix: contribution_per_member*paidCount was previously
+  // an ESTIMATE since welfare_event_id was never actually set on any
+  // transaction. Now that approvePaymentRequest() sets it correctly, we
+  // can compute real collected totals and real paid-member lists.
+  const { data: welTxns } = await sb.from('transactions')
+    .select('welfare_event_id,member_id,amount')
+    .eq('org_id', currentOrg.id)
+    .not('welfare_event_id', 'is', null);
+  const txnsByEvent = {};
+  (welTxns||[]).forEach(t => {
+    if (!txnsByEvent[t.welfare_event_id]) txnsByEvent[t.welfare_event_id] = [];
+    txnsByEvent[t.welfare_event_id].push(t);
+  });
+
+  // ── Fetch disbursement records for closed events ──
+  const { data: disbursements } = await sb.from('expenses')
+    .select('welfare_event_id,amount,description,expense_date')
+    .eq('org_id', currentOrg.id)
+    .not('welfare_event_id', 'is', null);
+  const disbByEvent = {};
+  (disbursements||[]).forEach(d => { disbByEvent[d.welfare_event_id] = d; });
+
   // ── Stats ──
   const openEvents = events.filter(e => e.is_active !== false);
-  const totalContrib = events.reduce((s,e) => s + Number(e.contribution_per_member||0), 0);
+  const totalCollectedAllEvents = Object.values(txnsByEvent).flat().reduce((s,t)=>s+Number(t.amount||0),0);
+  const openCollected = openEvents.reduce((s,e) => {
+    const txns = txnsByEvent[e.id] || [];
+    return s + txns.reduce((s2,t)=>s2+Number(t.amount||0),0);
+  }, 0);
   const setEl = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
   setEl('wel-stat-total', events.length);
   setEl('wel-stat-open', openEvents.length);
-  setEl('wel-stat-collected', 'Ksh ' + totalContrib.toLocaleString());
+  setEl('wel-stat-collected', 'Ksh ' + openCollected.toLocaleString());
 
   // ── Event type labels ──
   const typeLabel = {
@@ -354,16 +381,21 @@ async function loadWelfare() {
   listEl.innerHTML = events.map((e, i) => {
     const isGeneral = !e.affected_member_id;
     const isClosed = e.is_active === false;
+    const isOpenEnded = !e.contribution_per_member || Number(e.contribution_per_member) <= 0;
     const label = typeLabel[e.event_type] || e.event_type || 'Welfare Event';
     const icon = typeIcon[e.event_type] || '♡';
     const memberName = isGeneral ? 'General / Community' : (e.members?.full_name || 'Member');
     const dateStr = e.event_date ? new Date(e.event_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : 'Date not set';
     const cardClass = isClosed ? 'closed' : isGeneral ? 'general' : '';
-    const paidCount = e.paid_count || 0;
+    const txns = txnsByEvent[e.id] || [];
+    const paidIds = new Set(txns.map(t=>t.member_id));
+    const paidCount = paidIds.size;
     const totalMembers = allMembers?.length || 0;
-    const paidPct = totalMembers ? Math.round((paidCount/totalMembers)*100) : 0;
-    const expectedPool = Number(e.contribution_per_member||0) * totalMembers;
-    const collectedPool = Number(e.contribution_per_member||0) * paidCount;
+    const collectedPool = txns.reduce((s,t)=>s+Number(t.amount||0),0);
+    const expectedPool = isOpenEnded ? null : Number(e.contribution_per_member||0) * totalMembers;
+    const paidPct = (!isOpenEnded && totalMembers) ? Math.round((paidCount/totalMembers)*100) : null;
+    const disb = disbByEvent[e.id];
+
     return `<div class="wel-event-card ${cardClass}" style="animation-delay:${i*0.05}s">
       <div class="wel-event-header">
         <div class="wel-event-icon ${isGeneral?'general':''}">${icon}</div>
@@ -372,17 +404,18 @@ async function loadWelfare() {
             <div class="wel-event-type">${label}</div>
             <span class="badge ${isClosed?'badge-grey':'badge-green'}" style="font-size:.6rem">${isClosed?'Closed':'Open'}</span>
             ${isGeneral?'<span class="badge badge-grey" style="font-size:.6rem;background:var(--teal-pale);color:var(--teal-dk)">General</span>':''}
+            ${isOpenEnded?'<span class="badge badge-grey" style="font-size:.6rem;background:var(--gold-pale);color:#8a6d1f">Open Contribution</span>':''}
           </div>
-          <div class="wel-event-member">👤 ${memberName}</div>
+          <div class="wel-event-member">👤 ${h(memberName)}</div>
           <div class="wel-event-date">📅 ${dateStr}</div>
         </div>
         <div style="text-align:right">
-          <div class="wel-event-amt-val">Ksh ${Number(e.contribution_per_member).toLocaleString()}</div>
-          <div class="wel-event-amt-label">per member</div>
-          <div style="font-size:.65rem;color:var(--teal);margin-top:.2rem">Pool: Ksh ${collectedPool.toLocaleString()}</div>
+          ${isOpenEnded
+            ? `<div class="wel-event-amt-val">Ksh ${collectedPool.toLocaleString()}</div><div class="wel-event-amt-label">collected so far</div>`
+            : `<div class="wel-event-amt-val">Ksh ${Number(e.contribution_per_member).toLocaleString()}</div><div class="wel-event-amt-label">per member</div><div style="font-size:.65rem;color:var(--teal);margin-top:.2rem">Pool: Ksh ${collectedPool.toLocaleString()}</div>`}
         </div>
       </div>
-      ${totalMembers ? `<div style="padding:0 1rem .75rem">
+      ${(!isOpenEnded && totalMembers) ? `<div style="padding:0 1rem .75rem">
         <div style="display:flex;justify-content:space-between;font-size:.68rem;color:var(--ink-faint);margin-bottom:.25rem">
           <span>${paidCount} of ${totalMembers} paid</span><span>${paidPct}%</span>
         </div>
@@ -390,17 +423,26 @@ async function loadWelfare() {
           <div style="height:100%;width:${paidPct}%;background:${paidPct===100?'var(--teal)':'var(--maroon)'};border-radius:2px;transition:width .8s ease"></div>
         </div>
       </div>` : ''}
+      ${isClosed && disb ? `<div style="padding:.6rem 1rem;background:var(--surface-2);border-top:1px solid var(--border);font-size:.75rem;color:var(--ink-soft)">
+        <strong>Disbursed:</strong> Ksh ${Number(disb.amount).toLocaleString()} — ${h(disb.description||'')} <span style="color:var(--ink-faint)">(${disb.expense_date||''})</span>
+      </div>` : ''}
+      ${isClosed && !disb ? `<div style="padding:.6rem 1rem;background:var(--maroon-pale);border-top:1px solid var(--border);font-size:.75rem;color:var(--maroon)">
+        ⚠ Closed without a recorded disbursement
+      </div>` : ''}
       <div class="wel-event-footer">
-        <div class="wel-event-notes">${e.notes || 'No notes'}</div>
+        <div class="wel-event-notes">${h(e.notes) || 'No notes'}</div>
         <div style="display:flex;gap:.4rem">
           <button class="btn btn-secondary btn-sm" style="font-size:.7rem"
-            onclick="openWelfareContribs('${e.id}','${label.replace(/'/g,"\'")}',${Number(e.contribution_per_member)})">
+            onclick="openWelfareContribs('${e.id}','${label.replace(/'/g,"\\'")}',${isOpenEnded ? 0 : Number(e.contribution_per_member)})">
             👥 Track
           </button>
-          <button class="btn btn-secondary btn-sm" style="font-size:.7rem"
-            onclick="toggleWelfareActive('${e.id}',${e.is_active!==false})">
-            ${isClosed ? '↺ Reopen' : '✓ Close'}
-          </button>
+          ${!isClosed ? `<button class="btn btn-secondary btn-sm" style="font-size:.7rem"
+            onclick="openCloseWelfareModal('${e.id}','${label.replace(/'/g,"\\'")}',${collectedPool})">
+            ✓ Close &amp; Disburse
+          </button>` : `<button class="btn btn-secondary btn-sm" style="font-size:.7rem"
+            onclick="reopenWelfareEvent('${e.id}')">
+            ↺ Reopen
+          </button>`}
           <button class="btn btn-danger btn-sm" style="font-size:.7rem"
             onclick="deleteWelfareEvent('${e.id}')">✕</button>
         </div>
@@ -417,15 +459,101 @@ async function deleteWelfareEvent(id) {
   loadWelfare();
 }
 
-async function toggleWelfareActive(id, isCurrentlyActive) {
-  const newState = !isCurrentlyActive;
-  await sb.from('welfare_events').update({ is_active: newState }).eq('id', id);
-  toast(newState ? '✓ Welfare event reopened — visible to members' : '✓ Welfare event closed — hidden from member payments');
-  await logActivity(
-    newState ? 'WELFARE REOPEN' : 'WELFARE CLOSE',
-    `Welfare event ${newState ? 'reopened' : 'closed'}`,
-    'welfare', id
-  );
+async function reopenWelfareEvent(id) {
+  await sb.from('welfare_events').update({ is_active: true, closed_by: null, closed_at: null }).eq('id', id);
+  toast('✓ Welfare event reopened — visible to members');
+  await logActivity('WELFARE REOPEN', 'Welfare event reopened', 'welfare', id);
+  loadWelfare();
+}
+
+// ── Close & Disburse — replaces the old one-click toggleWelfareActive() close
+// path. Closing a welfare event now REQUIRES recording where the money
+// actually went (recipient, amount, method) — a real disbursement, not just
+// flipping a flag. This is the actual point of separating welfare money from
+// bank_balance: making the disbursement side as visible as the collection
+// side, since money silently going to a personal M-Pesa number with no
+// group-visible record was the original problem being solved.
+let _welCloseCtx = null;
+
+function openCloseWelfareModal(eventId, eventLabel, collectedTotal) {
+  _welCloseCtx = { eventId, eventLabel, collectedTotal };
+  const setVal = (id,v) => { const el=document.getElementById(id); if(el) el.value=v; };
+  setVal('wcl-amount', collectedTotal);
+  setVal('wcl-recipient', '');
+  setVal('wcl-phone', '');
+  setVal('wcl-method', 'mpesa');
+  setVal('wcl-notes', '');
+  const titleEl = document.getElementById('wcl-modal-title');
+  if (titleEl) titleEl.textContent = 'Close & Disburse — ' + eventLabel;
+  const collectedEl = document.getElementById('wcl-collected-total');
+  if (collectedEl) collectedEl.textContent = 'Ksh ' + Number(collectedTotal).toLocaleString() + ' collected';
+  const warnEl = document.getElementById('wcl-mismatch-warning');
+  if (warnEl) warnEl.style.display = 'none';
+  showModal('welfareClose');
+}
+
+function checkWelfareCloseMismatch() {
+  if (!_welCloseCtx) return;
+  const amt = parseFloat(document.getElementById('wcl-amount')?.value) || 0;
+  const warnEl = document.getElementById('wcl-mismatch-warning');
+  const notesEl = document.getElementById('wcl-notes');
+  const mismatch = Math.abs(amt - _welCloseCtx.collectedTotal) > 0.5;
+  if (warnEl) {
+    warnEl.style.display = mismatch ? 'block' : 'none';
+    warnEl.textContent = mismatch
+      ? `⚠ Disbursed amount differs from Ksh ${_welCloseCtx.collectedTotal.toLocaleString()} collected — please explain in notes below.`
+      : '';
+  }
+  if (notesEl) notesEl.required = mismatch;
+}
+
+async function submitCloseWelfare() {
+  if (!_welCloseCtx) return;
+  const amount = parseFloat(document.getElementById('wcl-amount')?.value);
+  const recipient = document.getElementById('wcl-recipient')?.value?.trim();
+  const phone = document.getElementById('wcl-phone')?.value?.trim();
+  const method = document.getElementById('wcl-method')?.value || 'mpesa';
+  const notes = document.getElementById('wcl-notes')?.value?.trim();
+
+  if (!amount || amount <= 0) { toast('Please enter the disbursed amount'); return; }
+  if (!recipient) { toast('Please enter who received the funds'); return; }
+  const mismatch = Math.abs(amount - _welCloseCtx.collectedTotal) > 0.5;
+  if (mismatch && !notes) { toast('Please explain the mismatch between collected and disbursed amounts in the notes'); return; }
+  if (!canDo('recordPayment')) { toast('⚠ You do not have permission to close welfare events.'); return; }
+
+  const methodLabel = { mpesa: 'M-Pesa', cash: 'Cash', bank: 'Bank Transfer' }[method] || method;
+
+  // Record the disbursement as an expense, tagged to this welfare event —
+  // reuses the existing expenses table rather than a new one. This does NOT
+  // touch bank_balance, matching how the collection side never did either —
+  // welfare money stays fully independent of the everyday balance, in and out.
+  const { error: expErr } = await sb.from('expenses').insert({
+    org_id: currentOrg.id,
+    category: 'Welfare Disbursement',
+    description: `${_welCloseCtx.eventLabel} → ${recipient}${phone ? ' ('+phone+')' : ''} via ${methodLabel}`,
+    amount,
+    expense_date: new Date().toISOString().split('T')[0],
+    entry_type: 'expense',
+    welfare_event_id: _welCloseCtx.eventId,
+    recorded_by: currentUser.id,
+    notes: notes || null
+  });
+  if (expErr) { toast('Error recording disbursement: ' + expErr.message); return; }
+
+  const { error: closeErr } = await sb.from('welfare_events').update({
+    is_active: false,
+    closed_by: currentUser.id,
+    closed_at: new Date().toISOString()
+  }).eq('id', _welCloseCtx.eventId);
+  if (closeErr) { toast('Disbursement recorded, but failed to close event: ' + closeErr.message); return; }
+
+  await logActivity('WELFARE CLOSE',
+    `Closed "${_welCloseCtx.eventLabel}" — disbursed Ksh ${amount.toLocaleString()} to ${recipient} via ${methodLabel}`,
+    'welfare', _welCloseCtx.eventId);
+
+  toast('✓ Welfare event closed and disbursement recorded');
+  closeModal('welfareClose');
+  _welCloseCtx = null;
   loadWelfare();
 }
 
@@ -434,8 +562,10 @@ async function saveWelfareEvent() {
   const typeVal = document.getElementById('wel-type')?.value;
   if (!typeVal) { toast('Please select an event type'); return; }
   const cat = document.getElementById('wel-category')?.value || 'member_specific';
-  const amount = parseFloat(document.getElementById('wel-amount').value);
-  if (!amount || isNaN(amount)) { toast('Please enter a contribution amount'); return; }
+  const amountRaw = document.getElementById('wel-amount').value;
+  // Empty/0 amount = open-ended contribution (no fixed amount per member),
+  // not a validation error — a member has no way to specify this otherwise.
+  const amount = amountRaw ? parseFloat(amountRaw) : 0;
   const memberId = cat === 'general' ? null : (document.getElementById('wel-member').value || null);
   if (cat === 'member_specific' && !memberId) { toast('Please select the affected member'); return; }
 
@@ -510,27 +640,42 @@ function updateWelfareTotal() {
 
 async function openWelfareContribs(eventId, eventLabel, amtPerMember) {
   document.getElementById('wc-modal-title').textContent = eventLabel;
-  document.getElementById('wc-modal-sub').textContent = 'Ksh '+amtPerMember.toLocaleString()+' per member';
+  const isOpenEnded = !amtPerMember || amtPerMember <= 0;
+  document.getElementById('wc-modal-sub').textContent = isOpenEnded ? 'Open contribution — any amount' : 'Ksh '+amtPerMember.toLocaleString()+' per member';
   document.getElementById('wc-member-list').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   showModal('welfareContribs');
+  window._wcCurrentEvent = { eventId, eventLabel, amtPerMember };
 
-  // Get transactions for this welfare event
+  // Get transactions for this welfare event — welfare_event_id is now
+  // actually set by approvePaymentRequest(), so this reflects real data.
   const { data: txns } = await sb.from('transactions')
-    .select('member_id,amount')
+    .select('member_id,amount,transaction_date')
     .eq('org_id', currentOrg.id)
     .eq('welfare_event_id', eventId);
-  const paidIds = new Set((txns||[]).map(t=>t.member_id));
+  const amountByMember = {};
+  (txns||[]).forEach(t => { amountByMember[t.member_id] = (amountByMember[t.member_id]||0) + Number(t.amount||0); });
+  const paidIds = new Set(Object.keys(amountByMember));
   const collected = (txns||[]).reduce((s,t)=>s+Number(t.amount||0),0);
   const members = allMembers || [];
-  const expected = amtPerMember * members.length;
-  const outstanding = Math.max(0, expected - collected);
-  const pct = expected ? Math.round((collected/expected)*100) : 0;
+  const expected = isOpenEnded ? null : amtPerMember * members.length;
+  const outstanding = isOpenEnded ? null : Math.max(0, expected - collected);
+  const pct = (!isOpenEnded && expected) ? Math.round((collected/expected)*100) : null;
 
-  document.getElementById('wc-expected').textContent = 'Ksh '+expected.toLocaleString();
+  const setDisplay = (id, val) => { const el=document.getElementById(id); if(el) el.style.display = val; };
   document.getElementById('wc-collected').textContent = 'Ksh '+collected.toLocaleString();
-  document.getElementById('wc-outstanding').textContent = 'Ksh '+outstanding.toLocaleString();
-  document.getElementById('wc-progress-bar').style.width = pct+'%';
-  document.getElementById('wc-progress-label').textContent = pct+'% collected ('+paidIds.size+' of '+members.length+' members)';
+  if (isOpenEnded) {
+    setDisplay('wc-expected-row', 'none');
+    setDisplay('wc-outstanding-row', 'none');
+    document.getElementById('wc-progress-bar').style.width = '0%';
+    document.getElementById('wc-progress-label').textContent = paidIds.size + ' contributor' + (paidIds.size!==1?'s':'') + ' so far';
+  } else {
+    setDisplay('wc-expected-row', '');
+    setDisplay('wc-outstanding-row', '');
+    document.getElementById('wc-expected').textContent = 'Ksh '+expected.toLocaleString();
+    document.getElementById('wc-outstanding').textContent = 'Ksh '+outstanding.toLocaleString();
+    document.getElementById('wc-progress-bar').style.width = pct+'%';
+    document.getElementById('wc-progress-label').textContent = pct+'% collected ('+paidIds.size+' of '+members.length+' members)';
+  }
 
   const listEl = document.getElementById('wc-member-list');
   const paid = members.filter(m=>paidIds.has(m.id));
@@ -539,18 +684,51 @@ async function openWelfareContribs(eventId, eventLabel, amtPerMember) {
     ...paid.map(m=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:.6rem 1.25rem;border-bottom:1px solid var(--border)">
       <div style="display:flex;align-items:center;gap:.6rem">
         <div style="width:8px;height:8px;border-radius:50%;background:var(--teal);flex-shrink:0"></div>
-        <span style="font-size:.82rem">${m.full_name}</span>
+        <span style="font-size:.82rem">${h(m.full_name)}</span>
       </div>
-      <span class="badge badge-green" style="font-size:.65rem">✓ Paid</span>
+      <span class="badge badge-green" style="font-size:.65rem">✓ Ksh ${amountByMember[m.id].toLocaleString()}</span>
     </div>`),
-    ...unpaid.map(m=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:.6rem 1.25rem;border-bottom:1px solid var(--border)">
+    ...(isOpenEnded ? [] : unpaid.map(m=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:.6rem 1.25rem;border-bottom:1px solid var(--border)">
       <div style="display:flex;align-items:center;gap:.6rem">
         <div style="width:8px;height:8px;border-radius:50%;background:var(--border);flex-shrink:0"></div>
-        <span style="font-size:.82rem;color:var(--ink-soft)">${m.full_name}</span>
+        <span style="font-size:.82rem;color:var(--ink-soft)">${h(m.full_name)}</span>
       </div>
       <span class="badge badge-warn" style="font-size:.65rem">Pending</span>
-    </div>`)
+    </div>`))
   ].join('') || '<div style="padding:2rem;text-align:center;color:var(--ink-faint)">No contributions recorded yet</div>';
+}
+
+// Build a plain-text summary formatted for pasting straight into WhatsApp —
+// this is what replaces manually typing out a contributor list by hand.
+function shareWelfareContribsToWhatsApp() {
+  const ctx = window._wcCurrentEvent;
+  if (!ctx) return;
+  const members = allMembers || [];
+  const listEl = document.getElementById('wc-member-list');
+  if (!listEl) return;
+
+  sb.from('transactions')
+    .select('member_id,amount')
+    .eq('org_id', currentOrg.id)
+    .eq('welfare_event_id', ctx.eventId)
+    .then(({ data: txns }) => {
+      const amountByMember = {};
+      (txns||[]).forEach(t => { amountByMember[t.member_id] = (amountByMember[t.member_id]||0) + Number(t.amount||0); });
+      const collected = Object.values(amountByMember).reduce((s,a)=>s+a,0);
+      const paid = members.filter(m=>amountByMember[m.id]);
+      const unpaid = members.filter(m=>!amountByMember[m.id]);
+
+      let text = `*${ctx.eventLabel}*\n${currentOrg.name}\n\n*Collected: Ksh ${collected.toLocaleString()}*\n\n✅ *Paid (${paid.length}):*\n`;
+      text += paid.map(m => `${m.full_name} — Ksh ${amountByMember[m.id].toLocaleString()}`).join('\n');
+      if (!ctx.amtPerMember || ctx.amtPerMember <= 0) {
+        text += `\n\n_Open contribution — no fixed amount per member_`;
+      } else if (unpaid.length) {
+        text += `\n\n⏳ *Pending (${unpaid.length}):*\n` + unpaid.map(m => m.full_name).join('\n');
+      }
+
+      const url = 'https://wa.me/?text=' + encodeURIComponent(text);
+      window.open(url, '_blank');
+    });
 }
 
 function setWelfareAmt(val) {

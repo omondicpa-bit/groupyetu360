@@ -3,6 +3,41 @@ _Maintained for Play Store closed-testing report and cross-session handover. New
 
 ---
 
+## Session: 9 Jul 2026 — welfare module fix (was silently broken), independent welfare balance, superadmin bypass added
+
+**Context:** Felix noticed ADA members contributing to an AGM/party fund outside the app entirely (straight to the treasurer's personal M-Pesa number) and asked how to bring this into the system without disrupting how groups actually run these events (welfare separate from everyday shares/savings, real-time visibility, WhatsApp-shareable contributor lists). Discussed building a new parallel "funds" system, then discovered a **full Welfare module already existed** — well-designed UI, but its write path was never actually connected.
+
+**Root cause, traced all the way to the actual insert:** `approvePaymentRequest()` built one summary transaction per approved payment and only extracted `type_id` from allocations — welfare-tagged allocations use `eventId`, not `typeId`, so **`welfare_event_id` was never set on any transaction, ever**. The paid/unpaid tracker (`openWelfareContribs()`) was fully built and displaying real-looking UI, but reading a column nothing had ever written to. Separately, the *entire* approved payment total — including any welfare-tagged portion — was being credited into `bank_balance` with `updateBankBalance()`, meaning welfare and everyday money were already indistinguishable in the numbers, exactly matching what Felix sensed from the outside without having read the code.
+
+**Decision made together: extend the existing module, not build a parallel one.** Fixes:
+
+1. **`approvePaymentRequest()` now correctly splits allocations.** Non-welfare allocations (shares/savings/subscriptions) still produce one summary transaction as before. Each welfare-tagged allocation now gets its own transaction row with `welfare_event_id` set correctly — this is what makes the paid/unpaid tracker work for the first time.
+2. **`bank_balance` is now only credited for the non-welfare portion.** Welfare contributions are tracked entirely through `welfare_event_id`-tagged transactions and never touch `bank_balance`, in either direction — genuinely independent, as discussed.
+3. **Closing an event now requires recording a real disbursement**, not just flipping `is_active`. New `openCloseWelfareModal()`/`submitCloseWelfare()` flow: recipient, amount, method, notes — inserted as an `expenses` row tagged with `welfare_event_id` (reused the existing expenses table rather than creating a new dedicated one — no parallel systems). Warns (doesn't hard-block) if the disbursed amount differs from the collected total, and requires a note explaining the gap if so. `reopenWelfareEvent()` stays a simple flag-flip since reopening has no money implications.
+4. **Open-ended contributions supported alongside the existing fixed-per-member model.** Leaving the amount blank when creating an event now means "any amount, no fixed target" — event cards, the contribution tracker, and the WhatsApp share text all adapt (no expected-pool/progress-bar math for open-ended events, since there's no fixed total to measure against).
+5. **`shareWelfareContribsToWhatsApp()`** — generates a formatted contributor list (paid members + amounts, pending members if the event has a fixed amount) and opens `wa.me` with it pre-filled, replacing manually typing out a list by hand.
+6. **Dashboard now shows a "money in a box" breakdown** — total sitting in currently-open welfare funds, displayed separately from the everyday `bank_balance`, computed live (not cached) for the same reason `bank_balance` itself no longer uses a cached-and-lockable value: avoids the exact class of drift bug from the bank-balance freeze earlier this week.
+
+**Also applied consistently while rewriting:** the welfare card rendering now uses the existing `h()` escaping helper for member names and notes (the same XSS-prevention pattern fixed in `finance.js` yesterday) — this rewrite touched the same rendering code anyway, so applied it here too rather than leaving it inconsistent.
+
+**Superadmin bypass added to the three secured Edge Functions from yesterday's audit** (`paystack-charge`, `daraja-stk`, `send-sms-celcom`). Superadmin doesn't have a `user_orgs` row for every org — access comes from `profiles.role = 'superadmin'` instead (confirmed earlier this session: SA shows "0 ORGS" in All Members). Without this fix, the membership check added yesterday would have incorrectly blocked SA's own legitimate support actions. Found by inspection while working on something else, not yet confirmed via Felix's own test (that test was queued but not completed before this session's focus shifted to welfare) — worth still running to confirm end-to-end.
+
+**Files changed:** `js/finance.js`, `js/modules.js`, `js/dashboard.js`, `index.html`, `supabase/functions/paystack-charge/index.ts`, `supabase/functions/daraja-stk/index.ts`, `supabase/functions/send-sms-celcom/index.ts`. New: `v3i_welfare_module_fix.sql` (run in Supabase SQL editor, then redeploy the 3 Edge Functions — code changes alone don't take effect). SW bumped to v5.25, cache-bust to `v=2026070509`.
+
+**⚠️ Not addressed, flagged for later per Felix's own prioritization:**
+- Reports aggregating closed welfare funds into wider financial reporting — real value, deliberately sequenced after proving the fund lifecycle itself works.
+- SasaPay auto-population of contributor lists from real payment webhooks (tagging an `AccountReference` per fund) — natural fit once SasaPay lands, not before.
+- The `send-sms-celcom` balance-check-timing gap (sending and deduction still not atomic) — still needs Felix's decision on hard-blocking at zero balance.
+
+**Test checklist:**
+- Create a welfare event with NO amount entered — confirm it shows "Open Contribution" badge, no progress bar, just a running total.
+- Create a fixed-amount event, have a member submit a payment allocated to it, approve it as admin — confirm the member now shows as "Paid" in the tracker (previously would have stayed "Pending" forever regardless of real payment).
+- Confirm `bank_balance` does NOT change when a welfare-only payment is approved, but DOES change normally for shares/savings payments.
+- Close an open event with a disbursement amount that doesn't match collected — confirm the mismatch warning appears and notes become required.
+- Confirm `dash-welfare-meta` shows the correct total and is hidden when there are no open funds with a positive balance.
+
+---
+
 ## Session: 8 Jul 2026 (continued) — full security audit, prompted by SasaPay wallet-collection plans
 
 Full findings in `SECURITY_AUDIT_2026-07-08.md`. Summary of what was found and fixed:
