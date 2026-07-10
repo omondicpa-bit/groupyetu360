@@ -153,7 +153,11 @@ async function selectMeeting(meetingId, dateStr) {
   existing?.forEach(a => { attState[a.member_id] = a.status; });
   grid.innerHTML = allMembers.map(m => {
     const s = attState[m.id] || 'absent';
-    return `<button class="att-btn ${s}" onclick="cycleAtt('${m.id}',this)">${m.full_name.split(' ')[0]}</button>`;
+    const label = s === 'present' ? 'Present' : s === 'apology' ? 'Apology' : 'Absent';
+    return `<button class="att-btn ${s}" onclick="cycleAtt('${m.id}',this)">
+      <span class="att-btn-name">${h(m.full_name)}</span>
+      <span class="att-btn-status">${label}</span>
+    </button>`;
   }).join('');
   updateAttCounts();
 }
@@ -163,6 +167,10 @@ function cycleAtt(memberId, btn) {
   const cur = states.indexOf(attState[memberId] || 'absent');
   attState[memberId] = states[(cur+1)%3];
   btn.className = 'att-btn ' + attState[memberId];
+  const labelEl = btn.querySelector('.att-btn-status');
+  if (labelEl) {
+    labelEl.textContent = attState[memberId] === 'present' ? 'Present' : attState[memberId] === 'apology' ? 'Apology' : 'Absent';
+  }
   updateAttCounts();
 }
 
