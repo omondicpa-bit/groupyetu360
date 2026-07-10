@@ -265,13 +265,38 @@ async function sendMeetingReminders() {
   if (btn) { btn.disabled = false; btn.textContent = '📱 Send Reminders'; }
 }
 
+function updateMeetVenueDetailField() {
+  const type = document.getElementById('meet-venue')?.value;
+  const labelEl = document.getElementById('meet-venue-detail-label');
+  const inputEl = document.getElementById('meet-venue-detail');
+  if (!labelEl || !inputEl) return;
+  if (type === 'Physical Location') {
+    labelEl.textContent = 'Location';
+    inputEl.placeholder = 'e.g. Community Hall, Kibra';
+  } else {
+    labelEl.textContent = 'Meeting Link';
+    inputEl.placeholder = 'e.g. Zoom/Google Meet link';
+  }
+}
+
 async function saveMeeting() {
   if (!currentOrg?.id) return;
+  const venueType = document.getElementById('meet-venue').value;
+  const venueDetail = document.getElementById('meet-venue-detail').value.trim();
+  // Actual venue saved is the real name/link the admin typed, not the generic
+  // "Physical Location"/"Online (Virtual)" label — that label alone used to
+  // get saved verbatim as the venue, which is why every meeting just showed
+  // "Physical Location" with no actual place name. Falls back to the plain
+  // label only if the detail field was left blank, so nothing breaks for
+  // meetings scheduled without filling it in.
+  const venue = venueDetail
+    ? (venueType === 'Physical Location' ? venueDetail : `Online — ${venueDetail}`)
+    : venueType;
   const payload = {
     org_id: currentOrg.id,
     meeting_date: document.getElementById('meet-date').value,
     meeting_time: document.getElementById('meet-time').value,
-    venue: document.getElementById('meet-venue').value,
+    venue,
     agenda: document.getElementById('meet-agenda').value,
     status: 'scheduled'
   };
