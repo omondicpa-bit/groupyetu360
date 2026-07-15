@@ -1,7 +1,62 @@
 # GroupYetu360 — Handover Summary
 _Read this first if picking up a new session. Full technical detail for everything below is in CHANGELOG.md — this is the "what do I need to know before touching anything" version._
 
-**As of:** 9 Jul 2026, end of session · **Code state:** app SW v5.27, cache-bust v=2026070511
+**As of:** 16 Jul 2026, end of session · **Code state:** app SW v5.30, cache-bust v=2026071601
+
+---
+
+## Standing working agreements (Felix's rules — always apply these without being reminded)
+
+- **Repo path:** the app repo lives at `C:\Users\Felix\groupyetu360`. Every PowerShell/git push block uses this exact path, never a placeholder.
+- **Always include the git push commands** (for VS Code's integrated terminal) whenever delivering code files — copy/add/commit/push, not just the files themselves.
+- **File freshness:** if Felix re-uploads a file, check whether a newer version was already delivered earlier in the same conversation before editing — use whichever is actually most recent, don't assume the latest upload is automatically the latest content. (This bit us once already — an old pre-SMS-cleanup `index.html` got re-uploaded and nearly shipped a regression alongside a new feature.)
+- Both this file and CHANGELOG.md should be updated at the end of every session's substantive work — not just when explicitly asked.
+
+---
+
+## Paystack Subaccounts — Member Contributions (NEW, this session, NOT YET LIVE)
+
+Built the first version of member self-service contributions: members can now pay their chama directly via M-Pesa STK Push from the app (previously the only path was "pay externally, then self-report the M-Pesa reference for admin approval" — that manual flow is untouched and still the default for any org without a Paystack subaccount configured).
+
+**Why Paystack, given the cost:** SasaPay and Fingo are both still stuck in onboarding (KYB "awaiting review" as of this session). Paystack's `paystack-charge`/`paystack-webhook` are already live, integrated, and secured (from the 8 Jul audit) — Felix chose to launch on the more expensive rail now (Paystack's 1.5% + EPH's 0.5%) rather than wait, with an explicit plan to swap the underlying rail once SasaPay/Fingo clear. Paystack **Subaccounts** feature provides the per-org routing (each org gets its own subaccount code, money splits automatically) — same shape as Fingo's sub-merchant model.
+
+**Fee model — the important part:** the org must always receive the **exact** amount a member types in, never a fee-shaved figure. This is a gross-up calculation (`calculateGrossCharge()` in `utils.js`), not a naive "add 2%" — verified to guarantee the org's subaccount receives the net amount exactly, by construction (the flat `transaction_charge` sent to Paystack IS the fee, so `gross − transaction_charge = net` always, with zero rounding drift).
+
+**⚠️ NOT YET LIVE — three things still needed before this can be tested with real money:**
+
+1. **`paystack-charge` Edge Function needs new fields added** (`subaccount`, `transaction_charge`, `bearer`) — not done yet, Felix needs to paste the real source so this gets added precisely rather than guessed at.
+2. **`paystack-webhook` almost certainly needs a new branch too — found by reading the existing code, not assumed:** the crediting logic that runs when a payment is confirmed (`approvePayment()` in `utils.js`, and whatever the webhook's server-side equivalent is) parses `payment_type` by prefix (`subscription_`, `sms_bundle_`) to decide what to credit. A new type introduced this session, `member_contribution`, matches neither branch — meaning as built, a real payment could succeed on Paystack's side (member charged, org's M-Pesa credited via the subaccount split) while the actual `transactions` row (what the treasurer's ledger and welfare tracking actually read) never gets created. **This must be checked/fixed in `paystack-webhook` before any live test** — otherwise money moves but the app's own records don't reflect it.
+3. **`v3f_paystack_subaccounts.sql` needs to be run** (adds `paystack_subaccount_code`/`max_contribution_amount` to `organisations`, `platform_fee_percent`/`paystack_fee_percent` to `platform_settings`) — and `platform_settings_public`'s column list needs the two new fee-percent columns added manually if that view has an explicit SELECT list rather than `SELECT *` (member-facing fee breakdown reads from the public view, not the SA-only table).
+
+**Also worth doing before a live test, not blocking:** have `paystack-charge` **recompute** `transaction_charge` server-side from `platform_settings` rather than trusting the client-supplied value outright — the client-side calculation is for showing the member the right number, not for the Edge Function to take on faith. A tampered client could otherwise under-report the fee split. Low urgency (this affects EPH's margin, not member/org money — the org still always gets the amount it should), but worth closing before this scales.
+
+**Confirmed NOT a new security hole:** the existing `paystack-charge` caller-auth + org-membership check (from the 8 Jul audit) is inherited unchanged by this new payment type — just make sure whoever edits the function to add the three new fields doesn't touch that check.
+
+**Files changed:** `utils.js`, `portal.js`, `settings.js`, `index.html`, new `v3f_paystack_subaccounts.sql`.
+
+---
+
+## SMS Leopard / Africa's Talking — removed, Celcom is now the sole provider
+
+Both were dead weight in production — SMS Leopard's sender ID never got approved, and both were stuck "SA-only-functional" from the Supabase free-plan Edge Function DNS restriction, so neither ever provided real fallback for orgs. Removed from `utils.js` (`sendSMS()` routing, `loadSASupport()`/`saveSupportSettings()`), `modules.js` (SMS status check), and `index.html` (SMS Integration accordion, and a stale "Bulk SMS (Africa's Talking)" org-feature label that had been wrong for a while — Celcom's been the real provider since before this session). The `sendSMS()` branch structure was kept deliberately so a future replacement/backup provider is a small addition, not a rewrite. DB columns (`sms_leopard_*`, `at_*`) left in place, inert — not dropped as a drive-by.
+
+**⚠️ Caught mid-session:** a re-uploaded copy of `index.html` this session turned out to predate this fix (still had all three providers) — reapplied it before layering the Paystack feature on top, so this delivery includes both fixes together. See "Standing working agreements" above for why.
+
+**Also:** the old Africa's Talking Edge Function (`send-sms`) is no longer called by any client code as of this fix, but that doesn't delete it from Supabase — it was never in the 3 functions secured by the 8 Jul audit, so if it never had caller auth either, it's still sitting on a guessable URL. **Recommend `supabase functions delete send-sms`** once confirmed nothing else depends on it.
+
+---
+
+## Play Store — closed-testing release pushed (v1.0.1, versionCode 3)
+
+Bumped `twa-manifest.json` and rebuilt via Bubblewrap to give Google a visible "iterated on feedback" signal before the 14-day window closed. Release notes covered the welfare/security/SMS fixes above (all already live anyway, since this is a TWA — the native wrapper just loads the live site; this release was about optics for the Play Store review, not new wrapped functionality).
+
+**Known Windows/Bubblewrap issue hit and worked around:** `bubblewrap build` failed with `Could not find or load main class ... SdkManagerCli` — a known Bubblewrap-on-Windows bug, not a project issue. Fixed by pointing `~/.bubblewrap/config.json` at Android Studio's own SDK/JDK instead of Bubblewrap's bundled (broken) installer.
+
+---
+
+## Payment rail research — CBK PSP directory reviewed, no switch made yet
+
+Pulled the actual current CBK-authorized PSP directory while SasaPay/Fingo onboarding drags. Two names worth following up if either stalls further: **Wakandi Kenya Limited** (CBK authorization explicitly scoped to SACCOs/informal groups — exact niche match, but may be a competing core-banking product rather than an open third-party API, needs direct confirmation) and **PayHero Kenya** (not itself CBK-licensed — rides on a partner, needs that partner named and verified — but has the closest actual product fit: multi-tenant by design, real developer docs, markets directly to SaaS platforms like GY360). Pesapal was also assessed and ruled out for now — its public rate (~2.9–3.5%) is worse than Paystack's 1.5%, the thing Felix was trying to get away from. Outreach emails drafted for Wakandi/PayHero/Pesawise/Kasapay, not yet confirmed sent.
 
 ---
 

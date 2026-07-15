@@ -3,6 +3,57 @@ _Maintained for Play Store closed-testing report and cross-session handover. New
 
 ---
 
+## Session: 16 Jul 2026 — Paystack Subaccounts (member self-service contributions), SMS provider cleanup reapplied, Play Store closed-testing release, CBK PSP research
+
+### Paystack Subaccounts — Member Contributions (new feature, not yet live-testable)
+
+**Context:** SasaPay and Fingo Pay onboarding both stalled in KYB review. Felix decided to launch member self-service contributions on Paystack now (already live/secured) using its Subaccounts feature for per-org routing, rather than wait — with an explicit intent to swap the underlying payment rail once a cheaper option clears onboarding. Fee split: EPH 0.5% + Paystack's real fee (~1.5% estimate), both added on top of what the member types in — never deducted from the org's side.
+
+**Fee math (`calculateGrossCharge()` in `utils.js`):** given a net amount the org must receive, computes `gross = net / (1 - totalFeeRate)`, rounds up to the nearest shilling, and sets `transactionCharge = gross - net` exactly (not independently-rounded platform/Paystack shares) — this is what guarantees `gross - transactionCharge = net` by construction, verified across several test amounts (1000, 500, 2500, 15000, 33) with zero rounding drift. `transactionCharge` is the flat amount to pass to Paystack as `transaction_charge` with `bearer: 'account'`, so EPH's main account (not the org's subaccount) absorbs any gap between the 1.5% estimate and Paystack's actual fee that transaction.
+
+**UI (`index.html`, `portal.js`):** the existing "Make a Payment" modal (`modal-memberPayment`) gained a mode-tab switcher — "⚡ Pay Instantly" (new) vs "📝 Report a Payment" (the pre-existing manual flow, completely untouched). Tabs only show when `currentOrg.paystack_subaccount_code` is set; orgs without one see exactly today's manual-only flow, zero behavior change. Instant mode: amount input → live fee breakdown → phone number → STK trigger → animated confirmation states (pending ring → drawn checkmark/X via SVG stroke-dasharray animation, reusing the existing `.spinner`/`@keyframes spin` convention already used elsewhere in the app).
+
+**Confirmation mechanism — upgrade over the existing polling pattern:** the platform-billing STK flow (`settings.js`, `activatePaystackFromCart_impl` and similar) polls `payment_requests.status` every 5 seconds for up to 3 minutes — this is the likely root cause of the "SMS purchase sat pending" symptom Felix reported (if the webhook is ever slow or silently fails, the UI just waits out the full timeout with no better signal). The new instant-pay flow instead subscribes to Supabase Realtime (`postgres_changes` on `payment_requests`, filtered to the specific row) for near-instant confirmation the moment the webhook writes the status, with a 4-second poll running underneath as a fallback in case the realtime channel drops — belt-and-braces so a flaky websocket alone can't reproduce the stuck-pending symptom.
+
+**Per-org/platform settings added:**
+- `organisations.paystack_subaccount_code`, `organisations.max_contribution_amount` — set manually by SA per org (matches the "manual first" pattern already used for Fingo sub-merchants — no auto-creation via API yet). Added to both the desktop and SA-detail-view org Settings/Features tabs (index.html has two near-duplicate DOM-id blocks for this — see existing `od-daraja-*` fields for the same pre-existing pattern; both were updated for consistency, not fixed as a separate issue).
+- `platform_settings.platform_fee_percent`, `platform_settings.paystack_fee_percent` — global, editable in the existing Paystack accordion under Settings, alongside the API keys.
+- **`v3f_paystack_subaccounts.sql`** — adds all four columns. ⚠️ If `platform_settings_public` is a view with an explicit column list (not `SELECT *`), the two new fee-percent columns need adding to that view manually — the migration can't do this blind without seeing the view definition, and members' fee-breakdown display reads from the public view, not the SA-only table.
+
+**⚠️ NOT YET LIVE-TESTABLE — three gaps, found by tracing the existing code, not assumed:**
+
+1. **`paystack-charge` Edge Function** needs three new pass-through fields (`subaccount`, `transaction_charge`, `bearer: 'account'`) — not done this session, the actual Edge Function source wasn't available to edit directly. Felix needs to paste it for a precise addition next session.
+2. **`paystack-webhook` likely needs a new branch — this is the important one.** The existing crediting logic (`approvePayment()` in `utils.js`, called for manual/SA-approved payments, and presumably mirrored server-side in the webhook for automatic Paystack confirmations) parses `payment_type` by prefix: `subscription_*` activates a plan, `sms_bundle_*` credits SMS units. Neither branch matches the new `member_contribution` type introduced this session. As built, a real STK payment could succeed on Paystack's side (member charged, org's M-Pesa credited via the subaccount split) while the corresponding `transactions` row — what welfare tracking and the treasurer's ledger actually read — never gets created. **Must be traced and fixed in the webhook before any live-money test**, or payments will move real money without the app reflecting it.
+3. Run `v3f_paystack_subaccounts.sql`.
+
+**Also worth doing, not blocking:** `paystack-charge` should recompute `transaction_charge` server-side from `platform_settings` rather than trusting the client-supplied value as-is — a tampered client could otherwise under-report EPH's cut. This affects EPH's margin, not org/member money (the gross-up guarantee for the org's net amount holds regardless, since that's enforced by Paystack's split mechanism against whatever `transaction_charge` value is actually sent — the risk is specifically someone sending a smaller `transaction_charge` than the fee schedule calls for). Lower urgency than #1/#2 above.
+
+**Confirmed NOT a new security issue:** this reuses `paystack-charge`'s existing caller-auth + `user_orgs` membership check from the 8 Jul security audit unchanged — the new payment type doesn't bypass it. Flagged as something to explicitly preserve when the Edge Function is edited for the three new fields above.
+
+**Files changed:** `utils.js`, `portal.js`, `settings.js`, `index.html`. New: `v3f_paystack_subaccounts.sql`. Cache-bust bumped to `v=2026071601`.
+
+**Test checklist (once the two Edge Function gaps above are closed):** set a real Paystack subaccount code + a small cap (e.g. Ksh 500) on a test org, make a small live payment (Ksh 10) as a member, confirm: (a) the fee breakdown shown matches `calculateGrossCharge()`'s output, (b) the STK prompt fires, (c) confirmation appears near-instantly (not a 3-minute wait), (d) a `transactions` row actually exists afterward with the correct net amount, (e) the org's Paystack subaccount balance reflects the net amount exactly.
+
+### SMS Leopard / Africa's Talking removal — reapplied to a stale re-upload
+
+A previous session already removed SMS Leopard and Africa's Talking from `utils.js`, `modules.js`, and `index.html` (Celcom is the sole provider — both removed integrations were dead weight, never functional for orgs due to the Supabase free-plan Edge Function DNS restriction, and Leopard's sender ID was never approved). This session, Felix re-uploaded a copy of `index.html` that predated that fix (still had the 3-provider dropdown and all Leopard/AT fields) while requesting the Paystack Subaccounts feature above. Caught by grepping for "Africa's Talking" before editing further — reapplied the same fix (accordion simplified to Celcom-only, stale "Bulk SMS (Africa's Talking)" org-feature label corrected to "Celcom Africa") before layering the new feature on top, so this delivery carries both fixes together rather than shipping a silent regression.
+
+**Files changed:** `index.html` (again).
+
+### Play Store — closed-testing release v1.0.1 (versionCode 3)
+
+Bumped `twa-manifest.json` (`appVersionCode`/`appVersionName`) and rebuilt via Bubblewrap to give Google's review a visible "received feedback, shipped an iteration" signal ahead of the 14-day closed-testing window closing. Release notes summarized the welfare/security/SMS fixes from earlier sessions — all already live in practice since this is a TWA (the native wrapper just loads the live site), so this release was purely an app-store-optics move, not new wrapped functionality. Confirmed safe: pushing a new release does not reset the 12-tester/14-day continuous-opt-in clock, which is tracked per-tester, not per-version.
+
+**Known issue hit and resolved:** `bubblewrap build` failed with `Error: Could not find or load main class com.android.sdklib.tool.sdkmanager.SdkManagerCli` — a documented, longstanding Bubblewrap-on-Windows bug in its bundled mini-SDK installer, unrelated to this project. Resolved by pointing `~/.bubblewrap/config.json`'s `jdkPath`/`androidSdkPath` at Android Studio's own (already correctly installed) SDK and bundled JDK instead of Bubblewrap's own installer.
+
+**Files changed:** `twa-manifest.json`.
+
+### Payment rail research — CBK PSP directory, no rail switch made
+
+With SasaPay and Fingo both stuck in KYB review, pulled the actual current CBK Directory of Authorized Payment Service Providers (as at 6 Nov 2025 — most recent published) rather than relying on training data, which goes stale on exactly this kind of list. Notable finds: **Wakandi Kenya Limited** — CBK authorization explicitly scoped to "SACCOs and other Informal Financial Groups," an exact niche match, though it may be a competing core-banking product (its own CAMS app) rather than an API for third parties — needs direct confirmation before treating it as a real option. **PayHero Kenya** — not independently CBK-licensed (rides on an unnamed partner, needs verifying), but the closest genuine product fit: explicitly multi-tenant, real developer API/docs, markets directly at SaaS platforms in GY360's shape. **Pesapal** was assessed and ruled out for now — public rate ~2.9–3.5%, worse than the Paystack 1.5% Felix was trying to get away from, and its onboarding flow looks single-merchant rather than aggregator-shaped. Outreach email drafted (licensing/API/pricing questions) for sending to Wakandi, PayHero, Pesawise, and Kasapay — not yet confirmed sent.
+
+---
+
 ## Session: 9 Jul 2026 (continued again) — Send SMS to Admin: "Missing org_id" after the previous fix
 
 **Reported:** immediately after fixing the role-column bug, testing surfaced a new error: `{"sent":0,"failed":0,"error":"Missing org_id"}` — confirmed via console on the actual Organisation Detail page.

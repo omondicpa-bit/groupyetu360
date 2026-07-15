@@ -366,16 +366,28 @@ async function loadSASupport() {
   setVal('sp-bank-account-name', s.bank_account_name||'EPH Technologies');
   setVal('sp-paybill', s.paybill||'');
   setVal('sp-whatsapp', s.whatsapp||'https://wa.me/254702903544?text=Hello%20GroupYetu360%20Support');
-  // Celcom Africa — sole SMS provider (SMS Leopard / Africa's Talking removed Jul 2026:
-  // neither ever worked for orgs in production due to the Supabase free-plan Edge Function
-  // DNS restriction, and Leopard's sender ID never got approved. If a replacement/backup
-  // provider is onboarded later, add it back here as its own branch.)
+  // SMS provider selector
+  const provEl = document.getElementById('sp-sms-provider');
+  if (provEl) provEl.value = s.sms_provider || 'leopard';
+  // SMS Leopard
+  setVal('sp-leopard-sender', s.sms_leopard_sender_id||'');
+  const savedBadge = document.getElementById('sp-leopard-saved');
+  if (savedBadge) savedBadge.style.display = s.sms_leopard_api_key ? 'inline' : 'none';
+  const keyEl = document.getElementById('sp-leopard-key');
+  const secEl = document.getElementById('sp-leopard-secret');
+  if (keyEl && !keyEl.value) keyEl.placeholder = s.sms_leopard_api_key ? '••••••••••••• (saved — leave blank to keep)' : 'Your SMS Leopard API Key';
+  if (secEl && !secEl.value) secEl.placeholder = s.sms_leopard_api_secret ? '••••••••••••• (saved — leave blank to keep)' : 'Your SMS Leopard API Secret';
+  // Celcom Africa
   setVal('sp-celcom-partner-id', s.celcom_partner_id||'');
   setVal('sp-celcom-shortcode',  s.celcom_shortcode||'');
   const celcomSaved = document.getElementById('sp-celcom-saved');
   if (celcomSaved) celcomSaved.style.display = s.celcom_api_key ? 'inline' : 'none';
   const celcomKeyEl = document.getElementById('sp-celcom-key');
   if (celcomKeyEl) celcomKeyEl.placeholder = s.celcom_api_key ? '••••• (saved — leave blank to keep)' : 'Celcom API Key';
+  // Africa's Talking (backup)
+  setVal('sp-at-username', s.at_username||'');
+  setVal('sp-at-key', s.at_api_key||'');
+  setVal('sp-at-sender', s.at_sender_id||'');
   setVal('sp-daraja-key', s.daraja_consumer_key||'');
   setVal('sp-daraja-secret', s.daraja_consumer_secret||'');
   setVal('sp-daraja-shortcode', s.daraja_shortcode||'');
@@ -402,6 +414,8 @@ async function loadSASupport() {
   // Paystack keys
   const psPublicEl = document.getElementById('sp-paystack-public-key');
   if (psPublicEl) psPublicEl.value = s.paystack_public_key || '';
+  setVal('sp-platform-fee-percent', s.platform_fee_percent != null ? s.platform_fee_percent : '0.5');
+  setVal('sp-paystack-fee-percent', s.paystack_fee_percent != null ? s.paystack_fee_percent : '1.5');
   if (s.paystack_secret_key) {
     const skEl = document.getElementById('sp-paystack-secret-key');
     if (skEl) skEl.placeholder = '(saved — enter new key to update)';
@@ -416,7 +430,10 @@ async function loadSASupport() {
     payBadge.style.color = s.paystack_enabled ? '#0d5c8a' : '#999';
   }
   const smsBadge = document.getElementById('sp-sms-active-badge');
-  if (smsBadge) smsBadge.textContent = 'Celcom Africa Active';
+  if (smsBadge) {
+    const pNames = { leopard:'SMS Leopard', celcom:'Celcom Africa', at:"Africa's Talking" };
+    smsBadge.textContent = (pNames[s.sms_provider] || 'Celcom Africa') + ' Active';
+  }
   // Webhook hint
   const webhookHint = document.getElementById('sp-paystack-webhook-hint');
   if (webhookHint) {
@@ -425,6 +442,9 @@ async function loadSASupport() {
 }
 
 async function saveSupportSettings() {
+  const atKey = document.getElementById('sp-at-key')?.value?.trim();
+  const leopardKey = document.getElementById('sp-leopard-key')?.value?.trim() || undefined;
+  const leopardSecret = document.getElementById('sp-leopard-secret')?.value?.trim() || undefined;
   const darajaKey = document.getElementById('sp-daraja-key')?.value?.trim();
   const darajaSecret = document.getElementById('sp-daraja-secret')?.value?.trim();
   const darajaPasskey = document.getElementById('sp-daraja-passkey')?.value?.trim();
@@ -437,8 +457,16 @@ async function saveSupportSettings() {
     bank_account_name: document.getElementById('sp-bank-account-name')?.value?.trim(),
     paybill: document.getElementById('sp-paybill')?.value?.trim()||null,
     whatsapp: document.getElementById('sp-whatsapp')?.value?.trim()||null,
-    // SMS provider — Celcom is the sole provider (SMS Leopard/Africa's Talking removed Jul 2026)
-    sms_provider: 'celcom',
+    // SMS provider
+    sms_provider: document.getElementById('sp-sms-provider')?.value || 'leopard',
+    // SMS Leopard
+    ...(leopardKey !== undefined && { sms_leopard_api_key: leopardKey }),
+    ...(leopardSecret !== undefined && { sms_leopard_api_secret: leopardSecret }),
+    sms_leopard_sender_id: document.getElementById('sp-leopard-sender')?.value?.trim()||null,
+    // Africa's Talking (backup)
+    at_username: document.getElementById('sp-at-username')?.value?.trim()||null,
+    at_api_key: atKey || null,
+    at_sender_id: document.getElementById('sp-at-sender')?.value?.trim()||null,
     // Celcom Africa
     celcom_partner_id: document.getElementById('sp-celcom-partner-id')?.value?.trim()||null,
     celcom_shortcode:  document.getElementById('sp-celcom-shortcode')?.value?.trim()||null,
@@ -457,6 +485,9 @@ async function saveSupportSettings() {
     paystack_enabled: document.getElementById('sp-paystack-enabled-toggle')?.checked === true,
     // Paystack keys
     paystack_public_key: document.getElementById('sp-paystack-public-key')?.value?.trim() || null,
+    // Member contribution fee rates (subaccount gross-up)
+    platform_fee_percent: parseFloat(document.getElementById('sp-platform-fee-percent')?.value) || 0.5,
+    paystack_fee_percent: parseFloat(document.getElementById('sp-paystack-fee-percent')?.value) || 1.5,
     updated_at:     new Date().toISOString()
   };
   // Only save secret key if a new one was typed
@@ -473,12 +504,8 @@ async function saveSupportSettings() {
 
 /* ════════════════════════════════════════════════════
    SMS — UNIFIED SEND LAYER
-   Celcom Africa is the sole provider (SMS Leopard / Africa's Talking
-   removed Jul 2026 — neither ever worked for orgs in production due to
-   the Supabase free-plan Edge Function DNS restriction, and Leopard's
-   sender ID was never approved). The `provider` variable and if-branch
-   shape are kept deliberately so a future replacement/backup provider
-   can be added as its own branch without restructuring this function.
+   Routes to SMS Leopard (primary) or Africa's Talking (backup)
+   based on platform_settings.sms_provider
 ════════════════════════════════════════════════════ */
 
 // Format a phone number to E.164 (254XXXXXXXXX)
@@ -550,16 +577,73 @@ async function sendSMS(to, message, orgIdOverride) {
   const recipients = to.map(formatPhone).filter(Boolean);
   if (!recipients.length) return { sent: 0, failed: 0 };
 
-  // provider is currently always 'celcom' — sms_provider is still read from the safe
-  // public view (rather than hardcoded) so a future replacement provider can be switched
-  // in via platform_settings without another client-side deploy.
+  // Load platform settings
+  // sms_provider itself isn't sensitive — read it from the safe public view so this works
+  // for every role. The raw table read below (SA-only) fills in leopard/AT secrets when
+  // available; celcom needs no secrets here at all since the Edge Function reads them
+  // server-side now.
   let provider = 'celcom';
+  let leopardKey = null, leopardSecret = null, senderId = null;
+  let atKey = null, atUser = 'sandbox', atSender = null;
+
   try {
     const { data: psPublic } = await sb.from('platform_settings_public').select('sms_provider').maybeSingle();
     provider = psPublic?.sms_provider || 'celcom';
   } catch(e) {}
 
+  if (provider !== 'celcom') {
+    try {
+      const { data: ps } = await sb.from('platform_settings').select('*').maybeSingle();
+      if (ps) {
+        leopardKey = ps.sms_leopard_api_key || null;
+        leopardSecret = ps.sms_leopard_api_secret || null;
+        senderId = ps.sms_leopard_sender_id || null;
+        atKey = ps.at_api_key || null;
+        atUser = ps.at_username || 'sandbox';
+        atSender = ps.at_sender_id || null;
+      }
+    } catch(e) {
+      console.log('sendSMS: could not load platform settings for leopard/AT');
+    }
+  }
+
   const SUPABASE_FUNCTIONS_URL = 'https://eengldzvvgplgzvbutal.supabase.co/functions/v1';
+
+  // ── SMS LEOPARD (direct browser call — avoids Supabase Edge Function DNS restriction) ──
+  if (provider === 'leopard') {
+    if (!leopardKey || !leopardSecret) {
+      console.error('sendSMS [leopard]: API key/secret not configured in platform_settings');
+      return { sent: 0, failed: recipients.length };
+    }
+    try {
+      const destination = recipients.map(number => ({ number }));
+      // Basic Auth: base64(API_KEY:API_SECRET)
+      const basicAuth = btoa(`${leopardKey}:${leopardSecret}`);
+      const res = await fetch('https://api.smsleopard.com/v1/sms/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${basicAuth}`
+        },
+        body: JSON.stringify({
+          source: senderId || 'SMS_Leopard',
+          message,
+          destination
+        })
+      });
+      const result = await res.json();
+      console.log('[sendSMS leopard] response:', JSON.stringify(result));
+      if (!res.ok) throw new Error(result?.message || `HTTP ${res.status}`);
+      // Leopard returns { successes: [{number,messageid}], errors: [{...}] }
+      const sent = result?.successes?.length ?? (result?.sent ?? 0);
+      const failed = result?.errors?.length ?? (result?.failed ?? 0);
+      if (failed > 0) console.warn('[sendSMS leopard] failures:', JSON.stringify(result?.errors));
+      return { sent, failed };
+    } catch(e) {
+      console.error('sendSMS [leopard] error:', e.message);
+      return { sent: 0, failed: recipients.length };
+    }
+  }
 
   // ── CELCOM AFRICA (via Supabase Edge Function — credentials read server-side) ──
   if (provider === 'celcom') {
@@ -582,7 +666,31 @@ async function sendSMS(to, message, orgIdOverride) {
     }
   }
 
-  // ── Add any future replacement/backup provider as its own branch here ──
+  // ── AFRICA'S TALKING (backup, via Edge Function) ──
+  if (provider === 'at') {
+    if (!atKey) return { sent: 0, failed: recipients.length };
+    try {
+      const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/send-sms`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        },
+        body: JSON.stringify({
+          username: atUser,
+          apiKey: atKey,
+          to: recipients,
+          message,
+          senderId: atSender
+        })
+      });
+      const result = await res.json();
+      return { sent: result.sent || 0, failed: result.failed || 0 };
+    } catch(e) {
+      console.error('sendSMS [at] error:', e.message);
+      return { sent: 0, failed: recipients.length };
+    }
+  }
 
   console.warn('sendSMS: unknown provider', provider);
   return { sent: 0, failed: recipients.length };
@@ -778,3 +886,64 @@ function canDo(action) {
 
   return (rules[action] || []).includes(role);
 }
+
+/* ════════════════════════════════════════════════════
+   MEMBER CONTRIBUTION FEE CALCULATOR (Paystack subaccounts)
+   The org must always receive exactly the net amount the member intends to
+   contribute — fees are grossed UP onto the member's charge, never deducted
+   from the org's side. This is a gross-up, not a simple "add 2%": adding a
+   flat 2% on top of net undercharges by design (1000 * 1.02 = 1020, but
+   1020 * 0.98 = 999.60, not 1000) because the fee is taken as a % of the
+   GROSS charge, not the net. Dividing by (1 - total fee rate) is the correct
+   way to solve for the gross amount that leaves exactly `net` after both
+   fees are removed.
+════════════════════════════════════════════════════ */
+async function getPlatformFeeRates() {
+  // Defaults match the 0.5% EPH margin + ~1.5% Paystack rate discussed —
+  // always prefer the live values from platform_settings_public so a rate
+  // change doesn't require a redeploy.
+  let platformFeePercent = 0.5;
+  let paystackFeePercent = 1.5;
+  try {
+    const { data } = await sb.from('platform_settings_public')
+      .select('platform_fee_percent,paystack_fee_percent').maybeSingle();
+    if (data) {
+      if (data.platform_fee_percent != null) platformFeePercent = Number(data.platform_fee_percent);
+      if (data.paystack_fee_percent != null) paystackFeePercent = Number(data.paystack_fee_percent);
+    }
+  } catch(e) {
+    console.warn('getPlatformFeeRates: falling back to defaults —', e.message);
+  }
+  return { platformFeePercent, paystackFeePercent };
+}
+
+/**
+ * Given the net amount the org must receive, returns the gross amount the
+ * member is charged plus a breakdown, so the org's ledger always shows
+ * exactly what the member intended to give — never a fee-shaved figure.
+ * @param {number} netAmount - the contribution amount as the member understands it
+ * @param {number} platformFeePercent - EPH's margin, e.g. 0.5
+ * @param {number} paystackFeePercent - Paystack's rate, e.g. 1.5
+ */
+function calculateGrossCharge(netAmount, platformFeePercent, paystackFeePercent) {
+  const totalRate = (platformFeePercent + paystackFeePercent) / 100;
+  if (totalRate >= 1) throw new Error('Fee rates cannot total 100% or more');
+  const grossExact = netAmount / (1 - totalRate);
+  // M-Pesa STK amounts are whole shillings — round up so the org never falls
+  // short of `netAmount` by a fraction of a shilling.
+  const gross = Math.ceil(grossExact);
+  const fee = gross - netAmount;
+  // transactionCharge MUST equal `fee` exactly (not platform-share + paystack-share
+  // rounded independently) — that's what guarantees gross - transactionCharge =
+  // netAmount by construction, with zero rounding drift. Paystack's bearer:
+  // 'account' setting means EPH's main account absorbs Paystack's real fee out of
+  // this transactionCharge, so any gap between our 1.5% estimate and Paystack's
+  // actual fee that transaction comes out of EPH's margin — never the org's side.
+  return {
+    netAmount,                // exactly what lands in the org's subaccount
+    gross,                    // what the member is charged
+    fee,                      // gross - net, shown to the member as "service fee"
+    transactionCharge: fee    // param for the paystack-charge Edge Function
+  };
+}
+

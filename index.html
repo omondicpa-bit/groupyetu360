@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026071401">
+  <link rel="stylesheet" href="style.css?v=2026071601">
 </head>
 <body>
 
@@ -2336,6 +2336,17 @@
             </div>
           </div>
         </div>
+        <!-- Paystack Subaccount — Member Contributions -->
+        <div class="card" style="margin-top:1rem">
+          <div class="card-header"><div class="card-title">💳 Paystack Subaccount (Member Contributions)</div></div>
+          <div class="card-body">
+            <div style="font-size:.75rem;color:var(--ink-faint);margin-bottom:.75rem">Created manually in the Paystack dashboard (Payments → Subaccounts), then pasted here. Fee rates are set once, platform-wide, under Settings → Paystack.</div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Paystack Subaccount Code</label><input class="form-input" id="od-paystack-subaccount" placeholder="ACCT_…"/></div>
+              <div class="form-group"><label class="form-label">Max Contribution Amount (Ksh)</label><input class="form-input" type="number" id="od-max-contribution" placeholder="e.g. 15000"/></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- TAB: SUPPORT -->
@@ -2915,6 +2926,14 @@
           <div class="form-row">
             <div class="form-group"><label class="form-label">Public Key</label><input class="form-input" id="sp-paystack-public-key" placeholder="pk_live_…"/></div>
             <div class="form-group"><label class="form-label">Secret Key <span id="sp-paystack-secret-saved" style="display:none;color:var(--teal);font-size:.68rem;font-weight:700">✓ SAVED</span></label><input class="form-input" type="password" id="sp-paystack-secret-key" placeholder="sk_live_… (enter to update)" autocomplete="new-password"/></div>
+          </div>
+          <div class="ps-section-label">Member Contribution Fees (Subaccounts)</div>
+          <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:.65rem 1rem;font-size:.75rem;color:var(--ink-soft);margin-bottom:1rem">
+            ℹ️ Added on top of what a member types in — never deducted from the org's side, so the org always receives the exact contribution amount. Each org's Paystack Subaccount Code and contribution cap are set on that org's own Details tab.
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">EPH Platform Fee (%)</label><input class="form-input" type="number" step="0.1" id="sp-platform-fee-percent" placeholder="0.5"/></div>
+            <div class="form-group"><label class="form-label">Paystack Fee (%)</label><input class="form-input" type="number" step="0.1" id="sp-paystack-fee-percent" placeholder="1.5"/></div>
           </div>
           <div class="ps-section-label">Status</div>
           <div class="ps-row">
@@ -4124,6 +4143,88 @@
       <!-- Status alert (arrears, pending) -->
       <div id="mp-status-alert" style="display:none;margin-bottom:1rem"></div>
 
+      <!-- Mode tabs — only shown when the org has a Paystack subaccount configured -->
+      <style>
+        .mp-tabs{display:none;gap:.4rem;margin-bottom:1rem;background:var(--surface-2);border-radius:8px;padding:.3rem}
+        .mp-tab{flex:1;text-align:center;padding:.55rem .5rem;border-radius:6px;font-size:.78rem;font-weight:600;color:var(--ink-faint);cursor:pointer;transition:all .18s}
+        .mp-tab.active{background:#fff;color:var(--maroon);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+        .mp-fee-row{display:flex;justify-content:space-between;font-size:.82rem;padding:.3rem 0}
+        .mp-fee-row.total{border-top:1px solid var(--border);margin-top:.3rem;padding-top:.55rem;font-weight:700;font-size:.95rem;color:var(--maroon)}
+        .mp-pay-btn{width:100%;padding:.85rem;border:none;border-radius:8px;background:var(--teal);color:#fff;font-size:.92rem;font-weight:700;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:.5rem}
+        .mp-pay-btn:hover{background:var(--teal-dk,#085041);transform:translateY(-1px)}
+        .mp-pay-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+        /* Payment state machine — pending → processing → success/fail */
+        .mp-state-box{display:none;flex-direction:column;align-items:center;text-align:center;padding:1.75rem 1rem;border-radius:10px;margin-top:1rem;transition:all .3s}
+        .mp-state-box.show{display:flex}
+        .mp-state-pending{background:var(--surface-2);border:1px solid var(--border)}
+        .mp-state-success{background:#e8f5e9;border:1px solid #a5d6a7}
+        .mp-state-fail{background:#fdecea;border:1px solid #f5b3ac}
+        .mp-ring{width:52px;height:52px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--teal);animation:mpSpin .8s linear infinite;margin-bottom:.85rem}
+        @keyframes mpSpin{to{transform:rotate(360deg)}}
+        .mp-check{width:52px;height:52px;margin-bottom:.7rem}
+        .mp-check circle{stroke:#2e7d32;stroke-width:3;fill:none;stroke-dasharray:166;stroke-dashoffset:166;animation:mpCheckCircle .5s ease forwards}
+        .mp-check path{stroke:#2e7d32;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:48;stroke-dashoffset:48;animation:mpCheckMark .3s .45s ease forwards}
+        @keyframes mpCheckCircle{to{stroke-dashoffset:0}}
+        @keyframes mpCheckMark{to{stroke-dashoffset:0}}
+        .mp-x{width:52px;height:52px;margin-bottom:.7rem}
+        .mp-x circle{stroke:#c62828;stroke-width:3;fill:none;stroke-dasharray:166;stroke-dashoffset:166;animation:mpCheckCircle .5s ease forwards}
+        .mp-x path{stroke:#c62828;stroke-width:3;fill:none;stroke-linecap:round;stroke-dasharray:24;stroke-dashoffset:24;animation:mpCheckMark .3s .45s ease forwards}
+        .mp-state-title{font-size:.95rem;font-weight:700;color:var(--ink);margin-bottom:.25rem}
+        .mp-state-sub{font-size:.78rem;color:var(--ink-faint)}
+      </style>
+      <div class="mp-tabs" id="mp-mode-tabs">
+        <div class="mp-tab active" id="mp-tab-instant" onclick="switchPaymentMode('instant')">⚡ Pay Instantly</div>
+        <div class="mp-tab" id="mp-tab-manual" onclick="switchPaymentMode('manual')">📝 Report a Payment</div>
+      </div>
+
+      <!-- INSTANT PAY (Paystack subaccount — STK Push, auto-confirmed) -->
+      <div id="mp-instant-section" style="display:none">
+        <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem">
+          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.6rem">How much are you contributing?</div>
+          <input class="form-input" type="number" id="mp-instant-amount"
+            placeholder="Enter amount e.g. 1000"
+            oninput="recalcInstantFee()"
+            style="font-size:1.1rem;font-weight:700;color:var(--maroon);padding:.6rem .85rem;margin-bottom:.85rem"/>
+          <input class="form-input" type="tel" id="mp-instant-phone"
+            placeholder="M-Pesa number e.g. 0712345678"
+            style="margin-bottom:.85rem"/>
+          <div id="mp-fee-breakdown" style="display:none">
+            <div class="mp-fee-row"><span>Contribution</span><span id="mp-fee-net">Ksh 0</span></div>
+            <div class="mp-fee-row"><span>Service fee</span><span id="mp-fee-amount">Ksh 0</span></div>
+            <div class="mp-fee-row total"><span>You'll be charged</span><span id="mp-fee-gross">Ksh 0</span></div>
+          </div>
+          <div id="mp-cap-warning" style="display:none;font-size:.75rem;color:var(--danger);margin-top:.5rem"></div>
+        </div>
+        <button class="mp-pay-btn" id="mp-instant-pay-btn" onclick="payInstantContribution()">
+          <span>📲</span> <span id="mp-instant-btn-label">Pay via M-Pesa</span>
+        </button>
+
+        <!-- Pending state -->
+        <div class="mp-state-box mp-state-pending" id="mp-state-pending">
+          <div class="mp-ring"></div>
+          <div class="mp-state-title">Check your phone<span id="mp-pending-dots">...</span></div>
+          <div class="mp-state-sub">Enter your M-Pesa PIN to complete the payment</div>
+        </div>
+
+        <!-- Success state -->
+        <div class="mp-state-box mp-state-success" id="mp-state-success">
+          <svg class="mp-check" viewBox="0 0 52 52"><circle cx="26" cy="26" r="24"/><path d="M14 27l7 7 17-17"/></svg>
+          <div class="mp-state-title" style="color:#2e7d32">Payment Confirmed</div>
+          <div class="mp-state-sub" id="mp-success-detail">Your contribution has been recorded.</div>
+        </div>
+
+        <!-- Fail state -->
+        <div class="mp-state-box mp-state-fail" id="mp-state-fail">
+          <svg class="mp-x" viewBox="0 0 52 52"><circle cx="26" cy="26" r="24"/><path d="M17 17l18 18M35 17l-18 18"/></svg>
+          <div class="mp-state-title" style="color:#c62828">Payment Failed</div>
+          <div class="mp-state-sub" id="mp-fail-detail">The prompt was cancelled or timed out.</div>
+          <button class="btn btn-secondary btn-sm" style="margin-top:.85rem" onclick="resetInstantPayState()">Try Again</button>
+        </div>
+      </div>
+
+      <!-- MANUAL / REPORT-A-PAYMENT (existing flow) -->
+      <div id="mp-manual-section">
+
       <!-- STEP 1: Enter amount you're paying -->
       <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:1rem;margin-bottom:1rem">
         <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.6rem">Step 1 — How much are you paying?</div>
@@ -4196,10 +4297,11 @@
       <div id="mp-reg-fields" style="display:none"><input id="mp-reg-amount" type="number" value="0"/></div>
       <div id="mp-contrib-fields" style="display:none"><div id="mp-contrib-list"></div></div>
       <div id="mp-option-reg" style="display:none"></div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('memberPayment')">Cancel</button>
-      <button class="btn btn-primary" onclick="submitMemberPayment()" style="background:var(--teal);box-shadow:0 3px 10px rgba(15,110,86,.2)">Confirm Payment →</button>
+      <button class="btn btn-primary" id="mp-manual-confirm-btn" onclick="submitMemberPayment()" style="background:var(--teal);box-shadow:0 3px 10px rgba(15,110,86,.2)">Confirm Payment →</button>
     </div>
   </div>
 </div>
@@ -4524,6 +4626,15 @@
                 </select>
               </div>
             </div>
+          </div>
+        </div>
+        <!-- Paystack Subaccount feature -->
+        <div style="border:1px solid var(--maroon-muted);background:var(--maroon-pale);padding:1rem;margin-bottom:.75rem">
+          <div style="font-size:.82rem;font-weight:700;color:var(--maroon);margin-bottom:.5rem">💳 Paystack Subaccount (Member Contributions)</div>
+          <div style="font-size:.72rem;color:var(--ink-faint);margin-bottom:.75rem">Created manually in the Paystack dashboard (Payments → Subaccounts), then pasted here.</div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Subaccount Code</label><input class="form-input" id="od-paystack-subaccount" placeholder="ACCT_…"/></div>
+            <div class="form-group"><label class="form-label">Max Contribution (Ksh)</label><input class="form-input" type="number" id="od-max-contribution" placeholder="e.g. 15000"/></div>
           </div>
         </div>
         <!-- SMS feature -->
@@ -5181,14 +5292,14 @@
 
 
   <!-- GroupYetu360 Scripts — load order matters -->
-  <script src="js/auth.js?v=2026071401"></script>
-  <script src="js/utils.js?v=2026071401"></script>
-  <script src="js/dashboard.js?v=2026071401"></script>
-  <script src="js/members.js?v=2026071401"></script>
-  <script src="js/finance.js?v=2026071401"></script>
-  <script src="js/settings.js?v=2026071401"></script>
-  <script src="js/portal.js?v=2026071401"></script>
-  <script src="js/modules.js?v=2026071401"></script>
+  <script src="js/auth.js?v=2026071601"></script>
+  <script src="js/utils.js?v=2026071601"></script>
+  <script src="js/dashboard.js?v=2026071601"></script>
+  <script src="js/members.js?v=2026071601"></script>
+  <script src="js/finance.js?v=2026071601"></script>
+  <script src="js/settings.js?v=2026071601"></script>
+  <script src="js/portal.js?v=2026071601"></script>
+  <script src="js/modules.js?v=2026071601"></script>
   <script>
     // Bootstrap — runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —

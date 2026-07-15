@@ -603,6 +603,10 @@ async function checkSubscriptionAccess() {
 ═══════════════════════════════════ */
 let _mpContribTypes = [];
 let _mpMemberStatus = null;
+let _mpInstantCalc = null;
+let _mpPendingDotsInterval = null;
+let _mpRealtimeChannel = null;
+let _mpPollInterval = null;
 
 async function openMemberPaymentModal() {
   const dateEl = document.getElementById('mp-pay-date');
@@ -695,6 +699,222 @@ async function openMemberPaymentModal() {
 
   // Load Table Banking obligations
   if (memberId) await loadMemberTBObligations(memberId);
+
+  // ── Instant Pay (Paystack subaccount) setup ──
+  resetInstantPayState();
+  const tabsEl = document.getElementById('mp-mode-tabs');
+  const hasSubaccount = !!currentOrg?.paystack_subaccount_code;
+  if (tabsEl) tabsEl.style.display = hasSubaccount ? 'flex' : 'none';
+  // Orgs without a subaccount configured see exactly today's manual flow — no change.
+  switchPaymentMode(hasSubaccount ? 'instant' : 'manual');
+
+  const phoneEl = document.getElementById('mp-instant-phone');
+  if (phoneEl) phoneEl.value = myRecord?.phone || currentProfile?.phone || '';
+  const amtEl = document.getElementById('mp-instant-amount');
+  if (amtEl) amtEl.value = '';
+  document.getElementById('mp-fee-breakdown').style.display = 'none';
+  document.getElementById('mp-cap-warning').style.display = 'none';
+}
+
+function switchPaymentMode(mode) {
+  const instantSection = document.getElementById('mp-instant-section');
+  const manualSection = document.getElementById('mp-manual-section');
+  const manualBtn = document.getElementById('mp-manual-confirm-btn');
+  const tabInstant = document.getElementById('mp-tab-instant');
+  const tabManual = document.getElementById('mp-tab-manual');
+  if (mode === 'instant') {
+    if (instantSection) instantSection.style.display = 'block';
+    if (manualSection) manualSection.style.display = 'none';
+    if (manualBtn) manualBtn.style.display = 'none';
+    if (tabInstant) tabInstant.classList.add('active');
+    if (tabManual) tabManual.classList.remove('active');
+  } else {
+    if (instantSection) instantSection.style.display = 'none';
+    if (manualSection) manualSection.style.display = 'block';
+    if (manualBtn) manualBtn.style.display = '';
+    if (tabInstant) tabInstant.classList.remove('active');
+    if (tabManual) tabManual.classList.add('active');
+  }
+}
+
+async function recalcInstantFee() {
+  const amtEl = document.getElementById('mp-instant-amount');
+  const breakdownEl = document.getElementById('mp-fee-breakdown');
+  const capWarningEl = document.getElementById('mp-cap-warning');
+  const net = parseFloat(amtEl?.value);
+  if (!net || net <= 0) {
+    if (breakdownEl) breakdownEl.style.display = 'none';
+    if (capWarningEl) capWarningEl.style.display = 'none';
+    return;
+  }
+  const { platformFeePercent, paystackFeePercent } = await getPlatformFeeRates();
+  const calc = calculateGrossCharge(net, platformFeePercent, paystackFeePercent);
+  _mpInstantCalc = calc; // cache for payInstantContribution()
+
+  document.getElementById('mp-fee-net').textContent = 'Ksh ' + net.toLocaleString();
+  document.getElementById('mp-fee-amount').textContent = 'Ksh ' + calc.fee.toLocaleString();
+  document.getElementById('mp-fee-gross').textContent = 'Ksh ' + calc.gross.toLocaleString();
+  if (breakdownEl) breakdownEl.style.display = 'block';
+
+  const cap = currentOrg?.max_contribution_amount;
+  const payBtn = document.getElementById('mp-instant-pay-btn');
+  if (cap && net > cap) {
+    if (capWarningEl) {
+      capWarningEl.style.display = 'block';
+      capWarningEl.textContent = `⚠ Maximum contribution right now is Ksh ${Number(cap).toLocaleString()} — contact your group admin for larger amounts.`;
+    }
+    if (payBtn) payBtn.disabled = true;
+  } else {
+    if (capWarningEl) capWarningEl.style.display = 'none';
+    if (payBtn) payBtn.disabled = false;
+  }
+}
+
+function resetInstantPayState() {
+  ['mp-state-pending','mp-state-success','mp-state-fail'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('show');
+  });
+  const payBtn = document.getElementById('mp-instant-pay-btn');
+  if (payBtn) { payBtn.style.display = ''; payBtn.disabled = false; }
+  const amtEl = document.getElementById('mp-instant-amount');
+  const phoneEl = document.getElementById('mp-instant-phone');
+  if (amtEl) amtEl.disabled = false;
+  if (phoneEl) phoneEl.disabled = false;
+  if (_mpPendingDotsInterval) { clearInterval(_mpPendingDotsInterval); _mpPendingDotsInterval = null; }
+  if (_mpRealtimeChannel) { try { sb.removeChannel(_mpRealtimeChannel); } catch(e){} _mpRealtimeChannel = null; }
+  if (_mpPollInterval) { clearInterval(_mpPollInterval); _mpPollInterval = null; }
+}
+
+function showInstantState(state) {
+  ['mp-state-pending','mp-state-success','mp-state-fail'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('show', id === 'mp-state-' + state);
+  });
+}
+
+async function payInstantContribution() {
+  const amtEl = document.getElementById('mp-instant-amount');
+  const phoneEl = document.getElementById('mp-instant-phone');
+  const payBtn = document.getElementById('mp-instant-pay-btn');
+  const net = parseFloat(amtEl?.value);
+  const phone = phoneEl?.value?.trim();
+
+  if (!net || net <= 0) { toast('Enter a contribution amount'); return; }
+  if (!phone || phone.replace(/[^0-9]/g,'').length < 9) { toast('Enter a valid M-Pesa number'); return; }
+  const cap = currentOrg?.max_contribution_amount;
+  if (cap && net > cap) { toast(`Maximum contribution right now is Ksh ${Number(cap).toLocaleString()}`); return; }
+  if (!currentOrg?.paystack_subaccount_code) { toast('Payments are not yet set up for this group'); return; }
+
+  let calc = _mpInstantCalc;
+  if (!calc || calc.netAmount !== net) {
+    const { platformFeePercent, paystackFeePercent } = await getPlatformFeeRates();
+    calc = calculateGrossCharge(net, platformFeePercent, paystackFeePercent);
+  }
+
+  if (payBtn) { payBtn.disabled = true; }
+  amtEl.disabled = true; phoneEl.disabled = true;
+  showInstantState('pending');
+
+  // Animate "Check your phone..." dots
+  let dotCount = 0;
+  _mpPendingDotsInterval = setInterval(() => {
+    dotCount = (dotCount + 1) % 4;
+    const dotsEl = document.getElementById('mp-pending-dots');
+    if (dotsEl) dotsEl.textContent = '.'.repeat(dotCount + 1);
+  }, 500);
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/paystack-charge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({
+        org_id: currentOrg.id,
+        amount: calc.gross,
+        phone,
+        email: currentUser.email,
+        payment_type: 'member_contribution',
+        notes: `Member contribution — Ksh ${net.toLocaleString()} net`,
+        member_id: window._myMemberId,
+        subaccount: currentOrg.paystack_subaccount_code,
+        transaction_charge: calc.transactionCharge,
+        bearer: 'account'
+      })
+    });
+    const result = await res.json();
+    if (!res.ok || result.error) throw new Error(result.error || 'Payment could not be started');
+
+    logActivity('MEMBER CONTRIBUTION (INSTANT) INITIATED', `Ksh ${net} net (charged Ksh ${calc.gross}) · phone ${phone}`, 'member', window._myMemberId);
+    listenForContributionConfirmation(result.payment_request_id, net);
+
+  } catch(e) {
+    clearInterval(_mpPendingDotsInterval); _mpPendingDotsInterval = null;
+    document.getElementById('mp-fail-detail').textContent = e.message || 'Could not start the payment. Please try again.';
+    showInstantState('fail');
+    if (payBtn) payBtn.disabled = false;
+    amtEl.disabled = false; phoneEl.disabled = false;
+  }
+}
+
+// Instant confirmation via Supabase Realtime — falls back to short-interval
+// polling if the realtime subscription doesn't confirm within a few seconds,
+// so a flaky websocket never leaves the member staring at a dead spinner.
+function listenForContributionConfirmation(paymentRequestId, netAmount) {
+  let resolved = false;
+
+  const onResult = (status) => {
+    if (resolved) return;
+    resolved = true;
+    clearInterval(_mpPendingDotsInterval); _mpPendingDotsInterval = null;
+    if (_mpRealtimeChannel) { try { sb.removeChannel(_mpRealtimeChannel); } catch(e){} _mpRealtimeChannel = null; }
+    if (_mpPollInterval) { clearInterval(_mpPollInterval); _mpPollInterval = null; }
+
+    if (status === 'approved') {
+      document.getElementById('mp-success-detail').textContent = `Ksh ${netAmount.toLocaleString()} recorded to ${currentOrg?.name || 'your group'}.`;
+      showInstantState('success');
+      setTimeout(() => { closeModal('memberPayment'); if (typeof loadMemberDashboard === 'function') loadMemberDashboard(); }, 1800);
+    } else {
+      document.getElementById('mp-fail-detail').textContent = status === 'timeout'
+        ? 'This is taking longer than expected — check Payment History before retrying.'
+        : 'The prompt was cancelled or declined.';
+      showInstantState('fail');
+      document.getElementById('mp-instant-pay-btn').style.display = '';
+      document.getElementById('mp-instant-amount').disabled = false;
+      document.getElementById('mp-instant-phone').disabled = false;
+    }
+  };
+
+  // Realtime subscription — instant confirmation the moment the webhook writes it
+  try {
+    _mpRealtimeChannel = sb.channel(`payment_request_${paymentRequestId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'payment_requests',
+        filter: `id=eq.${paymentRequestId}`
+      }, (payload) => {
+        const status = payload.new?.status;
+        if (status === 'approved') onResult('approved');
+        else if (status === 'failed' || status === 'declined') onResult('failed');
+      })
+      .subscribe();
+  } catch(e) {
+    console.warn('Realtime subscription failed, falling back to polling —', e.message);
+  }
+
+  // Fallback poll every 4s in case the realtime channel misses the update —
+  // belt-and-braces so "stuck on pending forever" can't happen from a dropped
+  // websocket alone. Times out at 3 minutes, same as the platform billing flow.
+  let polls = 0;
+  _mpPollInterval = setInterval(async () => {
+    if (resolved) { clearInterval(_mpPollInterval); return; }
+    polls++;
+    if (polls > 45) { onResult('timeout'); return; }
+    try {
+      const { data: pr } = await sb.from('payment_requests').select('status').eq('id', paymentRequestId).maybeSingle();
+      if (pr?.status === 'approved') onResult('approved');
+      else if (pr?.status === 'failed' || pr?.status === 'declined') onResult('failed');
+    } catch(e) {}
+  }, 4000);
 }
 
 // ── MGR OBLIGATIONS — shown on My Profile dashboard and in Make Payment modal ──

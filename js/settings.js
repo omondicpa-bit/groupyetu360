@@ -1400,6 +1400,8 @@ async function openOrgDetail(orgId) {
   // Settings tab
   sv('od-daraja-key', org.daraja_consumer_key); sv('od-daraja-secret', org.daraja_consumer_secret);
   sv('od-daraja-shortcode', org.daraja_shortcode); sv('od-daraja-passkey', org.daraja_passkey);
+  sv('od-paystack-subaccount', org.paystack_subaccount_code);
+  sv('od-max-contribution', org.max_contribution_amount);
   sv('od-daraja-env', org.daraja_env||'sandbox');
   sv('od-daraja-enabled', org.daraja_enabled?'true':'false');
   sv('od-sms-enabled', org.sms_enabled===false?'false':'true');
@@ -1727,6 +1729,10 @@ async function saveOrgDetail() {
   const ds = gv('od-daraja-secret'); if(ds) updates.daraja_consumer_secret = ds;
   const dp = gv('od-daraja-passkey'); if(dp) updates.daraja_passkey = dp;
   const dsc = gv('od-daraja-shortcode'); if(dsc) updates.daraja_shortcode = dsc;
+  // Paystack subaccount (member contributions)
+  const pac = gv('od-paystack-subaccount'); if(pac) updates.paystack_subaccount_code = pac;
+  const maxContribRaw = document.getElementById('od-max-contribution')?.value;
+  updates.max_contribution_amount = maxContribRaw ? parseFloat(maxContribRaw) : null;
   const { error } = await sb.from('organisations').update(updates).eq('id', currentDetailOrgId);
   if (error) { toast('Error: '+error.message); return; }
   toast('✓ Organisation updated successfully');

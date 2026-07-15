@@ -21,8 +21,8 @@
     "path": "C:\\Users\\Felix\\groupyetu360\\android.keystore",
     "alias": "android"
   },
-  "appVersionName": "1",
-  "appVersionCode": 1,
+  "appVersionName": "1.0.1",
+  "appVersionCode": 3,
   "shortcuts": [
     {
       "name": "Dashboard",
@@ -63,5 +63,5 @@
   "fileHandlers": [],
   "launchHandlerClientMode": "",
   "displayOverride": [],
-  "appVersion": "1"
+  "appVersion": "1.0.1"
 }
