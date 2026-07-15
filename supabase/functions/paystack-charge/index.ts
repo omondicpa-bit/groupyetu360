@@ -7,11 +7,33 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Mirrors calculateGrossCharge() in utils.js exactly — given the net amount an
+// org must receive, computes the gross member charge and the exact flat fee
+// (transaction_charge) that guarantees gross - transactionCharge = net, by
+// construction, with zero rounding drift. Kept here so the server can
+// independently verify/recompute this instead of trusting client-supplied
+// numbers for a subaccount split — a tampered client could otherwise
+// under-report EPH's cut (the org still always gets its net amount either
+// way, since that's enforced by Paystack's own split math against whatever
+// transactionCharge is actually sent — this closes the gap on EPH's margin
+// specifically, not on org/member safety, which was already sound).
+function calculateGrossCharge(netAmount: number, platformFeePercent: number, paystackFeePercent: number) {
+  const totalRate = (platformFeePercent + paystackFeePercent) / 100;
+  if (totalRate >= 1) throw new Error('Fee rates cannot total 100% or more');
+  const grossExact = netAmount / (1 - totalRate);
+  const gross = Math.ceil(grossExact);
+  const fee = gross - netAmount;
+  return { netAmount, gross, fee, transactionCharge: fee };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { org_id, amount, phone, email, payment_type, notes, member_id } = await req.json();
+    const {
+      org_id, amount, phone, email, payment_type, notes, member_id,
+      subaccount, bearer, allocations
+    } = await req.json();
 
     if (!org_id || !amount || !phone || !email) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
@@ -76,13 +98,49 @@ serve(async (req) => {
 
     const { data: ps } = await supabase
       .from('platform_settings')
-      .select('paystack_secret_key, paystack_enabled')
+      .select('paystack_secret_key, paystack_enabled, platform_fee_percent, paystack_fee_percent')
       .single();
 
     if (!ps?.paystack_enabled || !ps?.paystack_secret_key) {
       return new Response(JSON.stringify({ error: 'Paystack not enabled. Configure in SA Platform Settings.' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
+    }
+
+    // ── Member-contribution subaccount charges: recompute the fee split
+    // server-side rather than trusting the client's gross/transaction_charge.
+    // The client sends `amount` (its own gross-up calculation, used purely to
+    // drive its UI) and `allocations` (the real net breakdown the member
+    // chose) — here we IGNORE the client's `amount` entirely for this path,
+    // sum `allocations` for the true net amount, and independently derive the
+    // gross charge + fee from the platform's own fee rates. This is what
+    // actually gets sent to Paystack, so a tampered client can't under-report
+    // EPH's cut — it can't even successfully pass a manipulated split, since
+    // the server never looks at a client-supplied transaction_charge at all.
+    let finalAmount = parseFloat(amount);
+    let finalTransactionCharge: number | undefined;
+    let netAmountForRecord: number | null = null;
+
+    if (subaccount) {
+      let parsedAllocations: Array<{ amount?: number }> = [];
+      try { parsedAllocations = JSON.parse(allocations || '[]'); } catch (e) { /* falls through to validation below */ }
+
+      const netAmount = parsedAllocations.reduce((s, a) => s + Number(a.amount || 0), 0);
+      if (!netAmount || netAmount <= 0) {
+        return new Response(JSON.stringify({ error: 'Missing or invalid allocations for a subaccount charge' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const platformFeePercent = ps.platform_fee_percent != null ? Number(ps.platform_fee_percent) : 0.5;
+      const paystackFeePercent = ps.paystack_fee_percent != null ? Number(ps.paystack_fee_percent) : 1.5;
+      const calc = calculateGrossCharge(netAmount, platformFeePercent, paystackFeePercent);
+
+      finalAmount = calc.gross;
+      finalTransactionCharge = calc.transactionCharge;
+      netAmountForRecord = calc.netAmount;
+
+      console.log('[GY360] Server-recomputed subaccount split:', JSON.stringify(calc), '(client sent amount:', amount, ')');
     }
 
     // Paystack Kenya M-Pesa: phone must be in format +2547XXXXXXXX (E.164 with +)
@@ -99,21 +157,27 @@ serve(async (req) => {
       org_id,
       member_id: member_id || null,
       payment_type: payment_type || 'subscription',
-      amount: parseFloat(amount),
+      amount: finalAmount,
       mpesa_ref: ref,
       paystack_ref: ref,
       paystack_status: 'pending',
       status: 'pending',
       notes: notes || '',
       payment_date: new Date().toISOString().split('T')[0],
+      // Passed through as-is (already JSON.stringify'd by the client) so
+      // approvePaymentRequest() in finance.js can parse it exactly like the
+      // manual "Report a Payment" flow already does — this is what makes the
+      // right contribution type + net amount actually get credited instead
+      // of falling into that function's "no allocations" generic fallback.
+      allocations: allocations || null,
     }).select('id').single();
 
     if (prErr) throw new Error('DB error: ' + prErr.message);
 
     // Paystack Charge — mobile_money for KES
-    const chargeBody = {
+    const chargeBody: Record<string, unknown> = {
       email,
-      amount: Math.round(parseFloat(amount) * 100), // kobo/cents
+      amount: Math.round(finalAmount * 100), // kobo/cents
       currency: 'KES',
       mobile_money: {
         phone: phoneE164,
@@ -129,6 +193,17 @@ serve(async (req) => {
         ]
       }
     };
+
+    // Only attached when a subaccount is provided — every existing caller
+    // (platform subscription/SMS billing) never sends one, so this leaves
+    // that flow completely unchanged.
+    if (subaccount) {
+      chargeBody.subaccount = subaccount;
+      chargeBody.bearer = bearer || 'account';
+      if (finalTransactionCharge != null) {
+        chargeBody.transaction_charge = Math.round(finalTransactionCharge * 100);
+      }
+    }
 
     console.log('[GY360] Paystack charge request:', JSON.stringify(chargeBody));
 
@@ -166,6 +241,7 @@ serve(async (req) => {
       payment_request_id: pr.id,
       display_text: paystackData.data?.display_text || 'Check your phone for an M-Pesa prompt',
       status: paystackData.data?.status,
+      net_amount: netAmountForRecord, // for the client to display in its confirmation state, if useful
     }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
