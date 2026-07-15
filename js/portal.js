@@ -362,8 +362,19 @@ async function loadMyContributions() {
   // Check for pending payment requests
   try {
     const { data: pendingReqs } = await sb.from('payment_requests')
-      .select('amount,status,requested_at').eq('member_id', memberId).eq('status','pending');
-    const pendingTotal = (pendingReqs||[]).reduce((s,r)=>s+Number(r.amount||0),0);
+      .select('amount,allocations,status,requested_at').eq('member_id', memberId).eq('status','pending');
+    // Prefer the sum of `allocations` (the true net contribution value) over the
+    // raw `amount` column, which for instant STK payments is the gross Paystack
+    // charge including the service fee — that number was only ever meant to be
+    // seen at checkout, not surfaced again here.
+    const netOf = (r) => {
+      try {
+        const allocs = JSON.parse(r.allocations || '[]');
+        if (allocs.length) return allocs.reduce((s,a) => s + Number(a.amount||0), 0);
+      } catch(e) {}
+      return Number(r.amount || 0);
+    };
+    const pendingTotal = (pendingReqs||[]).reduce((s,r) => s + netOf(r), 0);
     const pendingEl = document.getElementById('mc-pending-notice');
     if (pendingEl) {
       pendingEl.style.display = pendingReqs?.length ? 'block' : 'none';
@@ -714,6 +725,12 @@ async function openMemberPaymentModal() {
   if (amtEl) amtEl.value = '';
   document.getElementById('mp-fee-breakdown').style.display = 'none';
   document.getElementById('mp-cap-warning').style.display = 'none';
+
+  const contribTypeEl = document.getElementById('mp-instant-contrib-type');
+  if (contribTypeEl) {
+    contribTypeEl.innerHTML = '<option value="">Select a contribution type…</option>' +
+      _mpContribTypes.map(t => `<option value="${t.id}" data-name="${(t.name||'').replace(/"/g,'')}">${t.name||'Contribution'}</option>`).join('');
+  }
 }
 
 function switchPaymentMode(mode) {
@@ -779,8 +796,10 @@ function resetInstantPayState() {
   if (payBtn) { payBtn.style.display = ''; payBtn.disabled = false; }
   const amtEl = document.getElementById('mp-instant-amount');
   const phoneEl = document.getElementById('mp-instant-phone');
+  const contribTypeEl = document.getElementById('mp-instant-contrib-type');
   if (amtEl) amtEl.disabled = false;
   if (phoneEl) phoneEl.disabled = false;
+  if (contribTypeEl) contribTypeEl.disabled = false;
   if (_mpPendingDotsInterval) { clearInterval(_mpPendingDotsInterval); _mpPendingDotsInterval = null; }
   if (_mpRealtimeChannel) { try { sb.removeChannel(_mpRealtimeChannel); } catch(e){} _mpRealtimeChannel = null; }
   if (_mpPollInterval) { clearInterval(_mpPollInterval); _mpPollInterval = null; }
@@ -796,10 +815,14 @@ function showInstantState(state) {
 async function payInstantContribution() {
   const amtEl = document.getElementById('mp-instant-amount');
   const phoneEl = document.getElementById('mp-instant-phone');
+  const contribTypeEl = document.getElementById('mp-instant-contrib-type');
   const payBtn = document.getElementById('mp-instant-pay-btn');
   const net = parseFloat(amtEl?.value);
   const phone = phoneEl?.value?.trim();
+  const typeId = contribTypeEl?.value;
+  const typeName = contribTypeEl?.selectedOptions?.[0]?.dataset?.name || 'Contribution';
 
+  if (!typeId) { toast('Select what this contribution is for'); return; }
   if (!net || net <= 0) { toast('Enter a contribution amount'); return; }
   if (!phone || phone.replace(/[^0-9]/g,'').length < 9) { toast('Enter a valid M-Pesa number'); return; }
   const cap = currentOrg?.max_contribution_amount;
@@ -812,8 +835,17 @@ async function payInstantContribution() {
     calc = calculateGrossCharge(net, platformFeePercent, paystackFeePercent);
   }
 
+  // Same shape the manual "Report a Payment" flow already produces, so this
+  // routes through the exact same tested approvePaymentRequest() logic in
+  // finance.js — welfare-vs-regular splitting, type tagging, balance updates
+  // — instead of falling into its "no allocations" fallback (which is what
+  // silently produced a type-less transaction at the GROSS amount before
+  // this fix, and is why the first live test didn't show up correctly in
+  // the contribution list).
+  const allocations = [{ typeId, typeName, amount: net }];
+
   if (payBtn) { payBtn.disabled = true; }
-  amtEl.disabled = true; phoneEl.disabled = true;
+  amtEl.disabled = true; phoneEl.disabled = true; contribTypeEl.disabled = true;
   showInstantState('pending');
 
   // Animate "Check your phone..." dots
@@ -839,7 +871,8 @@ async function payInstantContribution() {
         member_id: window._myMemberId,
         subaccount: currentOrg.paystack_subaccount_code,
         transaction_charge: calc.transactionCharge,
-        bearer: 'account'
+        bearer: 'account',
+        allocations: JSON.stringify(allocations)
       })
     });
     const result = await res.json();
@@ -853,7 +886,7 @@ async function payInstantContribution() {
     document.getElementById('mp-fail-detail').textContent = e.message || 'Could not start the payment. Please try again.';
     showInstantState('fail');
     if (payBtn) payBtn.disabled = false;
-    amtEl.disabled = false; phoneEl.disabled = false;
+    amtEl.disabled = false; phoneEl.disabled = false; contribTypeEl.disabled = false;
   }
 }
 
@@ -882,6 +915,7 @@ function listenForContributionConfirmation(paymentRequestId, netAmount) {
       document.getElementById('mp-instant-pay-btn').style.display = '';
       document.getElementById('mp-instant-amount').disabled = false;
       document.getElementById('mp-instant-phone').disabled = false;
+      document.getElementById('mp-instant-contrib-type').disabled = false;
     }
   };
 
