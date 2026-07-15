@@ -124,6 +124,16 @@ async function processPayment(supabase: any, pr: any, reference: string, amountK
 
   console.log('[GY360 Webhook] Processing payment_request id:', pr.id, 'type:', paymentType);
 
+  // Member contributions (Paystack subaccounts) need entirely different
+  // handling from subscription/SMS billing — welfare-vs-regular splitting,
+  // per-member balance updates, fine auto-resolution, and a bank_balance
+  // credit for only the non-welfare portion (never the full gross charge).
+  // Routed to its own function and returned early so the subscription/SMS
+  // path below is completely untouched.
+  if (paymentType === 'member_contribution') {
+    return await processMemberContribution(supabase, pr, reference, amountKes);
+  }
+
   try {
     if (paymentType.startsWith('subscription_') || paymentType === 'subscription') {
       const plan = paymentType.includes('_') ? paymentType.split('_').slice(1).join('_') : 'basic';
@@ -209,6 +219,161 @@ async function processPayment(supabase: any, pr: any, reference: string, amountK
       user_role: 'system',
       action: 'WEBHOOK ERROR',
       details: `Failed for ref ${reference}: ${err.message}`,
+      created_at: new Date().toISOString(),
+    }).catch(() => {});
+  }
+
+  return new Response('OK', { status: 200 });
+}
+
+// ── Member contribution crediting — ported from approvePaymentRequest() in
+// finance.js, so an automatic Paystack confirmation produces exactly the same
+// records a manual admin approval would: welfare kept separate from
+// shares/savings, bank_balance only credited for the non-welfare portion,
+// fines auto-resolved, and the summary transaction tagged with the member's
+// chosen contribution type (via `allocations`, set by paystack-charge from
+// what the member picked at checkout) instead of falling into any generic
+// "just log the gross amount" fallback.
+async function processMemberContribution(supabase: any, pr: any, reference: string, amountKes: number) {
+  const orgId = pr.org_id;
+  const today = new Date().toISOString().split('T')[0];
+
+  try {
+    let allocations: any[] = [];
+    try { allocations = JSON.parse(pr.allocations || '[]'); } catch (e) { /* falls through to fallback below */ }
+
+    // Shouldn't happen — paystack-charge always sets allocations for this
+    // payment type and rejects the charge otherwise — but if one somehow
+    // arrives without one, record something rather than silently dropping
+    // real money with no ledger entry at all.
+    if (!allocations.length) {
+      console.error('[GY360 Webhook] member_contribution with no allocations — using fallback amount:', pr.id);
+      allocations = [{ typeName: 'Payment', amount: pr.amount }];
+    }
+
+    const welfareAllocs = allocations.filter((a: any) => a.isWelfare && a.eventId);
+    const regularAllocs = allocations.filter((a: any) => !(a.isWelfare && a.eventId));
+    const regularTotal = regularAllocs.reduce((s: number, a: any) => s + Number(a.amount || 0), 0);
+    const welfareTotal = welfareAllocs.reduce((s: number, a: any) => s + Number(a.amount || 0), 0);
+
+    let successCount = 0;
+
+    const { data: member } = await supabase.from('members')
+      .select('shares_balance,savings_balance,registration_paid')
+      .eq('id', pr.member_id).maybeSingle();
+
+    // One summary transaction for the non-welfare portion
+    if (regularAllocs.length && regularTotal > 0) {
+      const allocationSummary = regularAllocs
+        .map((a: any) => a.typeName + ': Ksh ' + Number(a.amount).toLocaleString())
+        .join(' | ');
+      const summaryTxn: any = {
+        org_id: orgId,
+        member_id: pr.member_id,
+        amount: regularTotal,
+        mpesa_ref: reference,
+        transaction_date: pr.payment_date || today,
+        notes: `Auto-approved via Paystack. Ref: ${reference}. ${allocationSummary}`,
+      };
+      const firstTypedAlloc = regularAllocs.find((a: any) => a.typeId && a.typeId.length > 10);
+      if (firstTypedAlloc) summaryTxn.type_id = firstTypedAlloc.typeId;
+      const { error: txErr } = await supabase.from('transactions').insert(summaryTxn);
+      if (!txErr) successCount++;
+      else console.error('[GY360 Webhook] regular transaction insert failed:', txErr.message);
+    }
+
+    // Separate, properly-tagged transaction per welfare allocation
+    for (const alloc of welfareAllocs) {
+      const { error: welErr } = await supabase.from('transactions').insert({
+        org_id: orgId,
+        member_id: pr.member_id,
+        amount: Number(alloc.amount),
+        mpesa_ref: reference,
+        transaction_date: pr.payment_date || today,
+        welfare_event_id: alloc.eventId,
+        notes: `Welfare contribution — ${alloc.typeName}. Auto-approved via Paystack. Ref: ${reference}.`,
+      });
+      if (!welErr) successCount++;
+      else console.error('[GY360 Webhook] welfare transaction insert failed:', welErr.message);
+    }
+
+    // Member balance updates — regular allocations only, welfare never
+    // touches shares/savings, matching the manual approval path exactly.
+    const memberUpdates: any = {};
+    for (const alloc of regularAllocs) {
+      const name = (alloc.typeName || '').toLowerCase();
+      if (name.includes('share')) {
+        memberUpdates.shares_balance = (memberUpdates.shares_balance ?? (member?.shares_balance || 0)) + Number(alloc.amount);
+      } else if (name.includes('saving')) {
+        memberUpdates.savings_balance = (memberUpdates.savings_balance ?? (member?.savings_balance || 0)) + Number(alloc.amount);
+      }
+      if (alloc.isReg) memberUpdates.registration_paid = true;
+    }
+    if (pr.member_id && Object.keys(memberUpdates).length) {
+      const { error: memErr } = await supabase.from('members').update(memberUpdates).eq('id', pr.member_id);
+      if (memErr) console.error('[GY360 Webhook] member balance update failed:', memErr.message);
+    }
+
+    // Bank balance — regular portion only. Welfare money stays entirely
+    // outside bank_balance, by design, same as the manual approval path.
+    if (regularTotal > 0) {
+      const { error: bbErr } = await supabase.rpc('update_bank_balance', {
+        p_org_id: orgId, p_amount: regularTotal, p_direction: 'credit', p_date: today,
+      });
+      if (bbErr) console.error('[GY360 Webhook] bank balance update failed:', bbErr.message);
+    }
+
+    // Auto-resolve fines
+    const fineAllocs = allocations.filter((a: any) => a.isFine && a.fineId);
+    for (const fa of fineAllocs) {
+      await supabase.from('fines').update({
+        status: 'paid',
+        paid_date: pr.payment_date || today,
+        recovery_method: 'mpesa',
+      }).eq('id', fa.fineId);
+      await supabase.from('expenses').insert({
+        org_id: orgId,
+        category: 'Fine',
+        description: `Fine paid: ${fa.reason || 'fine'} — auto via Paystack`,
+        amount: fa.amount,
+        expense_date: pr.payment_date || today,
+        entry_type: 'income',
+      });
+    }
+
+    // Mark approved — no approved_by, matching how the existing
+    // subscription/SMS auto-approval path also leaves it unset for
+    // system-driven confirmations (there's no human approver here).
+    await supabase.from('payment_requests').update({
+      status: 'approved',
+      paystack_status: 'success',
+      mpesa_ref: reference,
+      approved_at: new Date().toISOString(),
+      notes: (pr.notes || '') + ` | Auto-approved via Paystack webhook. Ref: ${reference}`,
+    }).eq('id', pr.id);
+
+    await supabase.from('activity_log').insert({
+      org_id: orgId,
+      user_id: null,
+      user_name: 'Paystack Auto',
+      user_role: 'system',
+      action: 'MEMBER CONTRIBUTION AUTO-APPROVED',
+      details: `Ksh ${regularTotal.toLocaleString()}${welfareTotal ? ' + Ksh ' + welfareTotal.toLocaleString() + ' welfare' : ''} · ref: ${reference}`,
+      target_type: 'payment',
+      target_id: pr.id,
+      created_at: new Date().toISOString(),
+    });
+
+    console.log('[GY360 Webhook] ✓ Member contribution processed for ref:', reference, '— transactions written:', successCount);
+
+  } catch (err: any) {
+    console.error('[GY360 Webhook] Member contribution processing error:', err.message);
+    await supabase.from('activity_log').insert({
+      org_id: orgId,
+      user_name: 'Paystack Webhook',
+      user_role: 'system',
+      action: 'WEBHOOK ERROR',
+      details: `Member contribution failed for ref ${reference}: ${err.message}`,
       created_at: new Date().toISOString(),
     }).catch(() => {});
   }
