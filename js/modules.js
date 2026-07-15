@@ -1013,25 +1013,10 @@ async function loadMessages() {
   renderPaymentMethods(currentOrg, 'msg-payment-methods-display', true);
 
   // ── SMS Status ──
-  // Real provider comes from the safe public view (non-sensitive) — works for every
-  // role. Actual credential presence (for leopard/AT) still requires the SA-only table,
-  // so those two branches degrade gracefully to "assume active" for non-SA callers.
+  // Celcom is the sole provider — credentials are read server-side by send-sms-celcom,
+  // so there's nothing client-visible to check here; assume active. (If a future
+  // replacement provider needs a real credential check, add it back as its own branch.)
   let smsActive = true;
-  try {
-    const { data: psPublic } = await sb.from('platform_settings_public').select('sms_provider').maybeSingle();
-    const provider = psPublic?.sms_provider || 'celcom';
-    if (provider === 'celcom') {
-      smsActive = true;
-    } else {
-      const { data: ps } = await sb.from('platform_settings').select('sms_leopard_api_key,sms_leopard_api_secret,at_api_key').maybeSingle();
-      if (ps) {
-        if (provider === 'leopard') smsActive = !!(ps.sms_leopard_api_key && ps.sms_leopard_api_secret);
-        else if (provider === 'at') smsActive = !!ps.at_api_key;
-      }
-      // else: non-SA caller, can't verify leopard/AT credentials — assume active rather
-      // than falsely showing Inactive to every non-SA admin.
-    }
-  } catch(e) {}
 
   // Update hero dot
   const dot = document.getElementById('msg-status-dot');
