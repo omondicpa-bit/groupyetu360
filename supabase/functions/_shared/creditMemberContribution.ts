@@ -41,18 +41,37 @@ export async function creditMemberContribution(supabase: any, pr: any, reference
     return msg;
   }
 
-  // ── STUB — needs the real send-sms-celcom request shape before this
-  // actually sends anything. Wrapped so an SMS failure NEVER blocks or
-  // reverts the crediting above it — a missed confirmation text is a minor
-  // inconvenience, a missed transaction record is not. Currently just logs
-  // what it would have sent, so this is safe to deploy before the real
-  // Celcom call is filled in.
-  async function sendConfirmationSms(supabase: any, phone: string, message: string) {
+  // Sends directly to Celcom's API rather than calling send-sms-celcom over
+  // HTTP — that function requires a real user JWT (org-membership check),
+  // which this server-to-server context doesn't have. Same credentials,
+  // same endpoint, same payload shape and response parsing as
+  // send-sms-celcom itself (including their API's 'respose-code' typo) —
+  // kept in sync with that function manually since Deno Edge Functions can't
+  // easily share a non-DB HTTP call the way creditMemberContribution itself
+  // is shared as a module. Wrapped so an SMS failure NEVER blocks or reverts
+  // the crediting above it.
+  async function sendConfirmationSms(supabase: any, celcomCreds: any, phone: string, message: string) {
+    if (!celcomCreds?.celcom_api_key || !celcomCreds?.celcom_partner_id) {
+      console.warn('[GY360] Skipping confirmation SMS — Celcom not configured');
+      return;
+    }
     try {
-      console.log('[GY360] SMS would send to', phone, ':', message);
-      // TODO: replace with the real Celcom API call once send-sms-celcom's
-      // source confirms the exact endpoint/payload shape (same credentials
-      // this function already reads from platform_settings elsewhere).
+      const payload = {
+        apikey: celcomCreds.celcom_api_key,
+        partnerID: celcomCreds.celcom_partner_id,
+        shortcode: celcomCreds.celcom_shortcode || 'EPH TECH',
+        message,
+        mobile: phone,
+        messageID: Date.now().toString(),
+      };
+      const res = await fetch('https://isms.celcomafrica.com/api/services/sendsms/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const result = await res.json();
+      const code = result?.responses?.[0]?.['response-code'] ?? result?.responses?.[0]?.['respose-code'];
+      console.log('[GY360] Confirmation SMS to', phone, '— code:', code, 'raw:', JSON.stringify(result));
     } catch (e: any) {
       console.error('[GY360] Confirmation SMS failed (non-fatal):', e.message);
     }
@@ -87,6 +106,8 @@ export async function creditMemberContribution(supabase: any, pr: any, reference
     const { data: orgRow } = await supabase.from('organisations').select('name').eq('id', orgId).maybeSingle();
     const orgName = orgRow?.name || 'your group';
     const smsDate = formatSmsDate(new Date());
+    const { data: celcomCreds } = await supabase.from('platform_settings')
+      .select('celcom_api_key, celcom_partner_id, celcom_shortcode').maybeSingle();
 
     for (const [memberId, memberAllocs] of byMember.entries()) {
       const welfareAllocs = memberAllocs.filter((a: any) => a.isWelfare && a.eventId);
@@ -172,7 +193,7 @@ export async function creditMemberContribution(supabase: any, pr: any, reference
           new_balance: newBalance.toLocaleString(),
           member_name: member?.full_name || 'Member',
         });
-        await sendConfirmationSms(supabase, member.phone, message);
+        await sendConfirmationSms(supabase, celcomCreds, member.phone, message);
       }
     }
 
