@@ -1398,8 +1398,7 @@ async function openOrgDetail(orgId) {
   sv('od-bank-balance-edit', org.bank_balance||0);
 
   // Settings tab
-  sv('od-daraja-key', org.daraja_consumer_key); sv('od-daraja-secret', org.daraja_consumer_secret);
-  sv('od-daraja-shortcode', org.daraja_shortcode); sv('od-daraja-passkey', org.daraja_passkey);
+  // Daraja removed — Fingo + Paystack are the only two payment providers now.
   sv('od-max-contribution', org.max_contribution_amount);
   sv('od-active-provider', org.active_payment_provider || 'paystack');
 
@@ -1432,8 +1431,7 @@ async function openOrgDetail(orgId) {
   if (disbDateEl) disbDateEl.value = new Date().toISOString().split('T')[0];
   if (typeof loadOrgDisbursementHistory === 'function') loadOrgDisbursementHistory(orgId);
 
-  sv('od-daraja-env', org.daraja_env||'sandbox');
-  sv('od-daraja-enabled', org.daraja_enabled?'true':'false');
+  // (Daraja env/enabled fields removed alongside the rest of the integration)
   sv('od-sms-enabled', org.sms_enabled===false?'false':'true');
   sv('od-2fa-enabled', org.two_fa_enabled?'true':'false');
   toggleDarajaSection(org.plan);
@@ -1726,11 +1724,9 @@ async function unlockBankBalance() {
   toast('Bank balance unlocked for editing');
 }
 
-function toggleDarajaSection(plan) {
-  if (!plan) plan = document.getElementById('od-plan-select')?.value;
-  const section = document.getElementById('od-daraja-section');
-  if (section) section.style.display = ['standard','pro'].includes(plan) ? 'block' : 'none';
-}
+// Daraja removed from the platform — kept as a no-op in case any lingering
+// onclick/onchange reference wasn't caught during cleanup.
+function toggleDarajaSection() {}
 
 async function saveOrgDetail() {
   if (!currentDetailOrgId) return;
@@ -1745,8 +1741,6 @@ async function saveOrgDetail() {
     date_founded: gv('od-founded'),
     email: gv('od-email'),
     // Features
-    daraja_enabled: document.getElementById('od-daraja-enabled')?.value === 'true',
-    daraja_env: gv('od-daraja-env') || 'sandbox',
     sms_enabled: document.getElementById('od-sms-enabled')?.value !== 'false',
     two_fa_enabled: document.getElementById('od-2fa-enabled')?.value === 'true',
     // Billing
@@ -1754,11 +1748,7 @@ async function saveOrgDetail() {
     subscription_expires: gv('od-sub-expiry'),
     sms_bundle: parseInt(document.getElementById('od-sms-bundle')?.value) || 0
   };
-  // Daraja credentials
-  const dk = gv('od-daraja-key'); if(dk) updates.daraja_consumer_key = dk;
-  const ds = gv('od-daraja-secret'); if(ds) updates.daraja_consumer_secret = ds;
-  const dp = gv('od-daraja-passkey'); if(dp) updates.daraja_passkey = dp;
-  const dsc = gv('od-daraja-shortcode'); if(dsc) updates.daraja_shortcode = dsc;
+  // (Daraja credentials removed — Fingo + Paystack are the only two payment providers now)
   // Provider account refs (Paystack subaccount, Fingo sub-merchant, active
   // provider) are saved separately via saveOrgProviderSettings() into
   // org_payment_providers — not written here, to keep this one save action

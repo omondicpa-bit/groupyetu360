@@ -357,9 +357,17 @@ async function rejectPayment(paymentId) {
 async function loadSASupport() {
   let s = {};
   try {
-    const { data: settings } = await sb.from('platform_settings').select('*').maybeSingle();
-    if (settings) s = settings;
-  } catch(e) { console.log('Platform settings not yet created'); }
+    // Calls a SECURITY DEFINER RPC rather than a raw `select('*')` on
+    // platform_settings — that raw select used to pull every provider's
+    // actual secret key into the browser (visible in the Network tab, held
+    // in JS memory) even though the UI politely only showed a "SAVED"
+    // badge for most of them. This RPC returns "is it configured" booleans
+    // instead of the real secret values — it's not possible for it to leak
+    // one, since the secret columns never appear in its SELECT list at all.
+    const { data: rows, error } = await sb.rpc('get_platform_settings_safe');
+    if (error) throw error;
+    if (rows?.[0]) s = rows[0];
+  } catch(e) { console.log('Platform settings not yet created, or RPC not deployed yet:', e.message); }
   const setVal = (id, val) => { const el=document.getElementById(id); if(el) el.value=val||''; };
   setVal('sp-phone', s.support_phone||'0702903544');
   setVal('sp-email', s.support_email||'info@groupyetu.org');
@@ -379,14 +387,9 @@ async function loadSASupport() {
   if (celcomSaved) celcomSaved.style.display = s.celcom_api_key ? 'inline' : 'none';
   const celcomKeyEl = document.getElementById('sp-celcom-key');
   if (celcomKeyEl) celcomKeyEl.placeholder = s.celcom_api_key ? '••••• (saved — leave blank to keep)' : 'Celcom API Key';
-  setVal('sp-daraja-key', s.daraja_consumer_key||'');
-  setVal('sp-daraja-secret', s.daraja_consumer_secret||'');
-  setVal('sp-daraja-shortcode', s.daraja_shortcode||'');
-  setVal('sp-daraja-passkey', s.daraja_passkey||'');
-  const envEl = document.getElementById('sp-daraja-env');
-  if (envEl) envEl.value = s.daraja_env || 'sandbox';
-  const enabledEl = document.getElementById('sp-daraja-enabled');
-  if (enabledEl) enabledEl.value = s.daraja_enabled ? 'true' : 'false';
+  // Daraja removed — Fingo + Paystack are the only two payment providers
+  // going forward, per Felix's explicit decision. DB columns left in
+  // place, inert (same precedent as SMS Leopard/Africa's Talking removal).
   // Subscription controls
   const pmEl = document.getElementById('sp-payment-mode');
   if (pmEl) pmEl.value = s.payment_mode || 'manual';
@@ -448,9 +451,6 @@ async function loadSASupport() {
 }
 
 async function saveSupportSettings() {
-  const darajaKey = document.getElementById('sp-daraja-key')?.value?.trim();
-  const darajaSecret = document.getElementById('sp-daraja-secret')?.value?.trim();
-  const darajaPasskey = document.getElementById('sp-daraja-passkey')?.value?.trim();
   const payload = {
     id: 1,
     support_phone: document.getElementById('sp-phone')?.value?.trim(),
@@ -466,12 +466,6 @@ async function saveSupportSettings() {
     celcom_partner_id: document.getElementById('sp-celcom-partner-id')?.value?.trim()||null,
     celcom_shortcode:  document.getElementById('sp-celcom-shortcode')?.value?.trim()||null,
     ...(document.getElementById('sp-celcom-key')?.value?.trim() ? { celcom_api_key: document.getElementById('sp-celcom-key').value.trim() } : {}),
-    daraja_consumer_key: darajaKey || null,
-    daraja_consumer_secret: darajaSecret || null,
-    daraja_shortcode: document.getElementById('sp-daraja-shortcode')?.value?.trim()||null,
-    daraja_passkey: darajaPasskey || null,
-    daraja_env: document.getElementById('sp-daraja-env')?.value || 'sandbox',
-    daraja_enabled: document.getElementById('sp-daraja-enabled')?.value === 'true',
     payment_mode:   document.getElementById('sp-payment-mode')?.value || 'manual',
     promo_active:   document.getElementById('sp-promo-active')?.checked === true,
     promo_days:     document.getElementById('sp-promo-days')?.value || '60',
