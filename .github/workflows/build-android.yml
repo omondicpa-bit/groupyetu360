@@ -1,0 +1,75 @@
+name: Build Android App Bundle
+
+# Builds the signed .aab using GitHub's hosted runner, which ships with the
+# Android SDK and JDK already installed — this is what replaces the local
+# Windows Bubblewrap SDK setup that kept failing with the
+# "SdkManagerCli" error. Nothing about the app's own code changes; this
+# only changes WHERE the build happens.
+#
+# Only runs when Android-relevant files change, or manually on demand —
+# not on every web-only push, since most commits to this repo don't touch
+# the Android wrapper at all.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'twa-manifest.json'
+      - 'app/**'
+      - 'gradle/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - '.github/workflows/build-android.yml'
+  workflow_dispatch: {}  # lets you trigger a build manually from the Actions tab, any time
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Reconstructs the keystore file from a GitHub Secret at build time —
+      # the keystore itself is NEVER committed to the repo. signing.keystore
+      # should already be in .gitignore; this step recreates it fresh on
+      # the runner's disk, which is discarded when the job finishes.
+      - name: Decode signing keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > signing.keystore
+
+      # ubuntu-latest ships with the Android SDK pre-installed at
+      # $ANDROID_HOME — this is what replaces Bubblewrap's own broken
+      # bundled SDK installer entirely. Telling Bubblewrap to use the
+      # runner's real JDK/SDK paths explicitly avoids the "difficult to
+      # fully automate" issue reported against bare `bubblewrap build` in CI
+      # (GoogleChromeLabs/bubblewrap#806) — it needs to be told, not just
+      # left to detect its environment.
+      - name: Point Bubblewrap at the runner's JDK/SDK
+        run: npx @bubblewrap/cli updateConfig --jdkPath="$JAVA_HOME" --androidSdkPath="$ANDROID_HOME"
+
+      # Official non-interactive CI mode, confirmed against Bubblewrap's own
+      # CLI documentation (packages/cli/README.md) — these two env vars are
+      # what let `build` run without prompting for keystore passwords.
+      - name: Build signed AAB
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: npx @bubblewrap/cli build
+
+      # Wildcard, not a hardcoded filename — safer than assuming exactly
+      # where/what Bubblewrap names its output.
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: groupyetu360-release-aab
+          path: '**/*.aab'
+          if-no-files-found: error
