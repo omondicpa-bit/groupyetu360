@@ -34,6 +34,15 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      # GitHub's runners ship with a partial Android SDK, but deliberately
+      # without the sdkmanager binary or accepted licenses (confirmed —
+      # this is why the earlier attempt using $ANDROID_HOME directly failed
+      # with "The provided androidSdk isn't correct"). This installs a
+      # complete, correctly-licensed SDK that satisfies Bubblewrap's own
+      # validation, rather than relying on what's there by default.
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -66,7 +75,7 @@ jobs:
           cat > ~/.bubblewrap/config.json << EOF
           {
             "jdkPath": "$JAVA_HOME",
-            "androidSdkPath": "$ANDROID_HOME"
+            "androidSdkPath": "${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
           }
           EOF
           cat ~/.bubblewrap/config.json
