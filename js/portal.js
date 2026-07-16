@@ -890,9 +890,13 @@ async function payInstantContribution() {
   }
 }
 
-// Instant confirmation via Supabase Realtime — falls back to short-interval
-// polling if the realtime subscription doesn't confirm within a few seconds,
-// so a flaky websocket never leaves the member staring at a dead spinner.
+// Instant confirmation — actively asks Paystack directly (paystack-verify)
+// on a fast 2-second loop, rather than passively waiting for their webhook.
+// Built after live testing showed Paystack's webhook wasn't reliably
+// reaching us even when the charge genuinely succeeded (customer debited,
+// Paystack's own confirmation email sent) — so this doesn't wait to be
+// told, it asks. Supabase Realtime stays subscribed too as a free bonus
+// fast-path for whichever gets there first (e.g. if the webhook does fire).
 function listenForContributionConfirmation(paymentRequestId, netAmount) {
   let resolved = false;
 
@@ -909,7 +913,7 @@ function listenForContributionConfirmation(paymentRequestId, netAmount) {
       setTimeout(() => { closeModal('memberPayment'); if (typeof loadMemberDashboard === 'function') loadMemberDashboard(); }, 1800);
     } else {
       document.getElementById('mp-fail-detail').textContent = status === 'timeout'
-        ? 'This is taking longer than expected — check Payment History before retrying.'
+        ? "That's taking longer than usual — check Payment History in a moment before retrying."
         : 'The prompt was cancelled or declined.';
       showInstantState('fail');
       document.getElementById('mp-instant-pay-btn').style.display = '';
@@ -919,7 +923,7 @@ function listenForContributionConfirmation(paymentRequestId, netAmount) {
     }
   };
 
-  // Realtime subscription — instant confirmation the moment the webhook writes it
+  // Realtime subscription — free instant win if the webhook DOES fire
   try {
     _mpRealtimeChannel = sb.channel(`payment_request_${paymentRequestId}`)
       .on('postgres_changes', {
@@ -932,23 +936,35 @@ function listenForContributionConfirmation(paymentRequestId, netAmount) {
       })
       .subscribe();
   } catch(e) {
-    console.warn('Realtime subscription failed, falling back to polling —', e.message);
+    console.warn('Realtime subscription failed — active verify polling still covers this —', e.message);
   }
 
-  // Fallback poll every 4s in case the realtime channel misses the update —
-  // belt-and-braces so "stuck on pending forever" can't happen from a dropped
-  // websocket alone. Times out at 3 minutes, same as the platform billing flow.
+  // Active verify — every 2 seconds, ask Paystack directly via paystack-verify
+  // rather than passively reading our own DB. This is the primary, reliable
+  // path now; Realtime above is just a bonus if it happens to be faster.
+  // 90-second window: enough time to genuinely enter an M-Pesa PIN, short
+  // enough that "confirm or fail" doesn't feel like it's hanging.
   let polls = 0;
+  const maxPolls = 45; // 45 * 2s = 90s
   _mpPollInterval = setInterval(async () => {
     if (resolved) { clearInterval(_mpPollInterval); return; }
     polls++;
-    if (polls > 45) { onResult('timeout'); return; }
+    if (polls > maxPolls) { onResult('timeout'); return; }
     try {
-      const { data: pr } = await sb.from('payment_requests').select('status').eq('id', paymentRequestId).maybeSingle();
-      if (pr?.status === 'approved') onResult('approved');
-      else if (pr?.status === 'failed' || pr?.status === 'declined') onResult('failed');
-    } catch(e) {}
-  }, 4000);
+      const { data: { session } } = await sb.auth.getSession();
+      const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/paystack-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ payment_request_id: paymentRequestId })
+      });
+      const result = await res.json();
+      if (result.status === 'approved') onResult('approved');
+      else if (result.status === 'declined' || result.status === 'failed') onResult('failed');
+      // status === 'pending' → keep polling, customer likely still entering PIN
+    } catch(e) {
+      console.warn('paystack-verify poll error (will retry):', e.message);
+    }
+  }, 2000);
 }
 
 // ── MGR OBLIGATIONS — shown on My Profile dashboard and in Make Payment modal ──
