@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026071602">
+  <link rel="stylesheet" href="style.css?v=2026071603">
 </head>
 <body>
 
@@ -623,7 +623,7 @@
             </div>
             <div style="text-align:center;padding:.6rem 1rem;background:rgba(196,154,48,.15);border:1px solid rgba(196,154,48,.25)">
               <div style="font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:var(--gold-lt)" id="dash-hero-balance">—</div>
-              <div style="font-size:.62rem;color:rgba(196,154,48,.7);text-transform:uppercase;letter-spacing:.1em">Bank Balance</div>
+              <div style="font-size:.62rem;color:rgba(196,154,48,.7);text-transform:uppercase;letter-spacing:.1em">Account Balance</div>
             </div>
           </div>
         </div>
@@ -648,7 +648,7 @@
       <div class="stats-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:1.5rem">
         <div class="stat-card dash-stat" style="cursor:pointer" onclick="showPage('finance')">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">
-            <div class="stat-label">Bank Balance</div>
+            <div class="stat-label">Account Balance</div>
             <div style="width:30px;height:30px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;font-size:.85rem">🏦</div>
           </div>
           <div class="stat-value" id="dash-balance" style="font-size:1.25rem">—</div>
@@ -941,7 +941,7 @@
       <div class="fin-scorecard">
         <!-- Bank balance — hero number -->
         <div class="fin-score-main">
-          <div class="fin-score-label">Total Bank Balance</div>
+          <div class="fin-score-label">Total Account Balance</div>
           <div class="fin-score-value" id="fin-bank-balance">—</div>
           <div class="fin-score-meta">All funds across group accounts</div>
           <div class="fin-score-bar">
@@ -1760,11 +1760,11 @@
           </div>
 
           <div class="card">
-            <div class="card-header"><div class="card-title">Bank Balance</div><div class="card-sub">Group's recorded cash balance</div></div>
+            <div class="card-header"><div class="card-title">Account Balance</div><div class="card-sub">Group's recorded cash balance</div></div>
             <div class="card-body">
               <div class="form-row">
                 <div class="form-group">
-                  <label class="form-label">Bank Balance (Ksh)</label>
+                  <label class="form-label">Account Balance (Ksh)</label>
                   <input class="form-input" type="number" id="settings-bank-balance" placeholder="0"/>
                   <div class="field-hint" id="bank-balance-note">Balance updates automatically with recorded transactions</div>
                 </div>
@@ -2136,7 +2136,7 @@
         <div class="stat-card gold"><div class="stat-label">Plan</div><div class="stat-value" id="od-plan" style="font-size:1.2rem">—</div></div>
         <div class="stat-card green"><div class="stat-label">Status</div><div class="stat-value" id="od-status" style="font-size:1.2rem">—</div></div>
         <div class="stat-card" style="border-top-color:var(--maroon)"><div class="stat-label">Org Code</div><div class="stat-value" id="od-org-code" style="font-size:1.2rem;color:var(--maroon);letter-spacing:.08em">—</div></div>
-        <div class="stat-card"><div class="stat-label">Bank Balance</div><div class="stat-value" id="od-bank-balance" style="font-size:1.1rem">—</div></div>
+        <div class="stat-card"><div class="stat-label">Account Balance</div><div class="stat-value" id="od-bank-balance" style="font-size:1.1rem">—</div></div>
       </div>
 
       <!-- Tab nav -->
@@ -2183,7 +2183,7 @@
               </div>
               <div class="form-row">
                 <div class="form-group"><label class="form-label">Paybill</label><input class="form-input" id="od-paybill"/></div>
-                <div class="form-group"><label class="form-label">Bank Balance (Ksh)</label>
+                <div class="form-group"><label class="form-label">Account Balance (Ksh)</label>
                   <input class="form-input" type="number" id="od-bank-balance-edit" placeholder="0"/>
                   <div class="field-hint">Override the org's recorded bank balance</div>
                 </div>
@@ -2365,7 +2365,7 @@
                   </div>
                 </div>
                 <div style="border:1px solid var(--border);border-radius:6px;padding:.85rem 1rem">
-                  <div style="font-size:.82rem;font-weight:600;margin-bottom:.25rem">Adjust Bank Balance</div>
+                  <div style="font-size:.82rem;font-weight:600;margin-bottom:.25rem">Adjust Account Balance</div>
                   <div style="font-size:.75rem;color:var(--ink-faint);margin-bottom:.6rem">Manually set the organisation's recorded bank balance</div>
                   <div style="display:flex;gap:.5rem">
                     <input class="form-input" type="number" id="od-new-balance" placeholder="New balance (Ksh)" style="flex:1;font-size:.78rem"/>
@@ -3199,7 +3199,7 @@
             </div>
           </div>
           <div class="card" id="org-balance-card" style="display:none;animation:portalFadeUp .4s ease .35s both">
-            <div class="card-header"><div class="card-title">Group Bank Balance</div></div>
+            <div class="card-header"><div class="card-title">Group Account Balance</div></div>
             <div class="card-body">
               <div style="font-family:'Crimson Pro',serif;font-size:2rem;font-weight:700;color:var(--maroon)" id="mp-org-balance">—</div>
               <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.2rem">As of <span id="mp-org-balance-date">—</span></div>
@@ -4179,18 +4179,36 @@
 
       <!-- INSTANT PAY (Paystack subaccount — STK Push, auto-confirmed) -->
       <div id="mp-instant-section" style="display:none">
+        <style>
+          .mp-bene-row{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:.75rem;margin-bottom:.6rem;position:relative}
+          .mp-bene-top{display:flex;align-items:center;gap:.6rem;margin-bottom:.6rem}
+          .mp-bene-chip{display:flex;align-items:center;gap:.5rem;background:#fff;border:1px solid var(--border);border-radius:99px;padding:.3rem .3rem .3rem .3rem;cursor:pointer;transition:border-color .15s;flex:1;min-width:0}
+          .mp-bene-chip:hover{border-color:var(--maroon-muted)}
+          .mp-bene-avatar{width:26px;height:26px;border-radius:50%;background:var(--maroon);color:#fff;font-size:.68rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+          .mp-bene-name{font-size:.82rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+          .mp-bene-chevron{margin-left:auto;margin-right:.5rem;color:var(--ink-faint);font-size:.65rem;flex-shrink:0}
+          .mp-bene-remove{width:26px;height:26px;border-radius:50%;border:none;background:transparent;color:var(--ink-faint);font-size:1rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+          .mp-bene-remove:hover{background:#fdecea;color:#c62828}
+          .mp-bene-fields{display:flex;gap:.5rem}
+          .mp-bene-type{flex:1.3}
+          .mp-bene-amount{flex:1}
+          .mp-bene-search-panel{position:absolute;top:calc(100% + 2px);left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:50;max-height:220px;display:flex;flex-direction:column;overflow:hidden}
+          .mp-bene-search-input{border:none;border-bottom:1px solid var(--border);padding:.65rem .8rem;font-size:.82rem;outline:none;width:100%;box-sizing:border-box}
+          .mp-bene-search-list{overflow-y:auto;flex:1}
+          .mp-bene-search-item{padding:.55rem .8rem;font-size:.82rem;cursor:pointer;display:flex;align-items:center;gap:.5rem;transition:background .1s}
+          .mp-bene-search-item:hover{background:var(--surface-2)}
+          .mp-bene-search-empty{padding:.75rem .8rem;font-size:.78rem;color:var(--ink-faint)}
+          .mp-add-person{display:inline-flex;align-items:center;gap:.35rem;font-size:.8rem;font-weight:600;color:var(--teal);cursor:pointer;padding:.3rem 0;margin-bottom:.85rem}
+          .mp-add-person:hover{text-decoration:underline}
+        </style>
+
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.6rem">Who is this for, and what's it for?</div>
+        <div id="mp-beneficiary-rows"></div>
+        <div class="mp-add-person" onclick="addBeneficiaryRow()"><span>＋</span> Add another person</div>
+
         <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem">
-          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.6rem">What is this contribution for?</div>
-          <select class="form-select" id="mp-instant-contrib-type" style="margin-bottom:.85rem">
-            <option value="">Select a contribution type…</option>
-          </select>
-          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.6rem">How much are you contributing?</div>
-          <input class="form-input" type="number" id="mp-instant-amount"
-            placeholder="Enter amount e.g. 1000"
-            oninput="recalcInstantFee()"
-            style="font-size:1.1rem;font-weight:700;color:var(--maroon);padding:.6rem .85rem;margin-bottom:.85rem"/>
           <input class="form-input" type="tel" id="mp-instant-phone"
-            placeholder="M-Pesa number e.g. 0712345678"
+            placeholder="Your M-Pesa number e.g. 0712345678"
             style="margin-bottom:.85rem"/>
           <div id="mp-fee-breakdown" style="display:none">
             <div class="mp-fee-row"><span>Contribution</span><span id="mp-fee-net">Ksh 0</span></div>
@@ -5296,14 +5314,14 @@
 
 
   <!-- GroupYetu360 Scripts — load order matters -->
-  <script src="js/auth.js?v=2026071602"></script>
-  <script src="js/utils.js?v=2026071602"></script>
-  <script src="js/dashboard.js?v=2026071602"></script>
-  <script src="js/members.js?v=2026071602"></script>
-  <script src="js/finance.js?v=2026071602"></script>
-  <script src="js/settings.js?v=2026071602"></script>
-  <script src="js/portal.js?v=2026071602"></script>
-  <script src="js/modules.js?v=2026071602"></script>
+  <script src="js/auth.js?v=2026071603"></script>
+  <script src="js/utils.js?v=2026071603"></script>
+  <script src="js/dashboard.js?v=2026071603"></script>
+  <script src="js/members.js?v=2026071603"></script>
+  <script src="js/finance.js?v=2026071603"></script>
+  <script src="js/settings.js?v=2026071603"></script>
+  <script src="js/portal.js?v=2026071603"></script>
+  <script src="js/modules.js?v=2026071603"></script>
   <script>
     // Bootstrap — runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —

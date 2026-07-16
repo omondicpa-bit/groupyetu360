@@ -721,15 +721,23 @@ async function openMemberPaymentModal() {
 
   const phoneEl = document.getElementById('mp-instant-phone');
   if (phoneEl) phoneEl.value = myRecord?.phone || currentProfile?.phone || '';
-  const amtEl = document.getElementById('mp-instant-amount');
-  if (amtEl) amtEl.value = '';
   document.getElementById('mp-fee-breakdown').style.display = 'none';
   document.getElementById('mp-cap-warning').style.display = 'none';
 
-  const contribTypeEl = document.getElementById('mp-instant-contrib-type');
-  if (contribTypeEl) {
-    contribTypeEl.innerHTML = '<option value="">Select a contribution type…</option>' +
-      _mpContribTypes.map(t => `<option value="${t.id}" data-name="${(t.name||'').replace(/"/g,'')}">${t.name||'Contribution'}</option>`).join('');
+  if (hasSubaccount) {
+    // Reuse the welfare events already fetched above for the manual flow's
+    // checkboxes, rather than querying twice — same data, one source.
+    _mpWelfareEventsCache = welfareEvents || [];
+
+    // Org member list for "pay for another member" search — loaded once per
+    // modal open. Small enough per-org that a full list is fine; no need for
+    // server-side search on every keystroke.
+    const { data: orgMembers } = await sb.from('members')
+      .select('id,full_name').eq('org_id', currentOrg.id).order('full_name');
+    _mpOrgMembers = orgMembers || [];
+
+    _mpOpenSearchRowId = null;
+    initBeneficiaryRows(window._myMemberId, myRecord?.full_name || 'Myself');
   }
 }
 
@@ -754,11 +762,156 @@ function switchPaymentMode(mode) {
   }
 }
 
+// ── Multi-beneficiary instant-pay rows ──
+// Supports paying for another member, or splitting one M-Pesa charge across
+// several beneficiaries in a single go (e.g. a member's own subscription +
+// their spouse's, common in groups like KPA that require a combined amount
+// per household). Each row is independent: its own member, its own
+// contribution type (or welfare event), its own amount.
+let _mpBeneficiaryRows = [];
+let _mpOrgMembers = [];
+let _mpWelfareEventsCache = [];
+let _mpOpenSearchRowId = null;
+let _mpRowIdCounter = 0;
+
+function initBeneficiaryRows(selfMemberId, selfName) {
+  _mpRowIdCounter = 0;
+  _mpBeneficiaryRows = [{
+    id: 'row' + (_mpRowIdCounter++), memberId: selfMemberId, memberName: 'Myself',
+    typeId: '', typeName: '', isWelfare: false, eventId: null, amount: ''
+  }];
+  renderBeneficiaryRows();
+}
+
+function addBeneficiaryRow() {
+  _mpBeneficiaryRows.push({
+    id: 'row' + (_mpRowIdCounter++), memberId: null, memberName: '',
+    typeId: '', typeName: '', isWelfare: false, eventId: null, amount: ''
+  });
+  renderBeneficiaryRows();
+}
+
+function removeBeneficiaryRow(rowId) {
+  _mpBeneficiaryRows = _mpBeneficiaryRows.filter(r => r.id !== rowId);
+  if (_mpOpenSearchRowId === rowId) _mpOpenSearchRowId = null;
+  renderBeneficiaryRows();
+  recalcInstantFee();
+}
+
+function typeOptionsHtml(selectedTypeId, selectedIsWelfare, selectedEventId) {
+  let html = '<option value="">Select…</option>';
+  for (const t of _mpContribTypes) {
+    const sel = (!selectedIsWelfare && t.id === selectedTypeId) ? 'selected' : '';
+    html += `<option value="${t.id}" data-welfare="false" ${sel}>${(t.name||'Contribution').replace(/</g,'')}</option>`;
+  }
+  if (_mpWelfareEventsCache.length) {
+    html += '<optgroup label="Welfare">';
+    for (const w of _mpWelfareEventsCache) {
+      const sel = (selectedIsWelfare && w.id === selectedEventId) ? 'selected' : '';
+      html += `<option value="${w.id}" data-welfare="true" ${sel}>${(w.event_type||'Welfare').replace(/</g,'')}</option>`;
+    }
+    html += '</optgroup>';
+  }
+  return html;
+}
+
+function renderBeneficiaryRows() {
+  const container = document.getElementById('mp-beneficiary-rows');
+  if (!container) return;
+  container.innerHTML = _mpBeneficiaryRows.map(row => {
+    const initials = row.memberName ? row.memberName.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase() : '?';
+    const showRemove = _mpBeneficiaryRows.length > 1;
+    return `
+    <div class="mp-bene-row" data-row-id="${row.id}">
+      <div class="mp-bene-top">
+        <div class="mp-bene-chip" onclick="toggleBeneficiarySearch('${row.id}')">
+          <div class="mp-bene-avatar">${initials}</div>
+          <div class="mp-bene-name">${row.memberName || 'Select member…'}</div>
+        </div>
+        <div class="mp-bene-chevron">▼</div>
+        ${showRemove ? `<button class="mp-bene-remove" onclick="event.stopPropagation();removeBeneficiaryRow('${row.id}')">✕</button>` : ''}
+        ${_mpOpenSearchRowId === row.id ? renderBeneficiarySearchPanel(row.id) : ''}
+      </div>
+      <div class="mp-bene-fields">
+        <select class="form-select mp-bene-type" onchange="updateBeneficiaryType('${row.id}', this)">
+          ${typeOptionsHtml(row.typeId, row.isWelfare, row.eventId)}
+        </select>
+        <input class="form-input mp-bene-amount" type="number" placeholder="Amount" value="${row.amount||''}"
+          oninput="updateBeneficiaryAmount('${row.id}', this.value)"/>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderBeneficiarySearchPanel(rowId) {
+  return `
+    <div class="mp-bene-search-panel" onclick="event.stopPropagation()">
+      <input class="mp-bene-search-input" placeholder="Search members…"
+        oninput="filterBeneficiarySearch('${rowId}', this.value)"/>
+      <div class="mp-bene-search-list" id="mp-bene-search-list-${rowId}">
+        ${beneficiarySearchListHtml(rowId, '')}
+      </div>
+    </div>`;
+}
+
+function beneficiarySearchListHtml(rowId, query) {
+  const q = query.trim().toLowerCase();
+  const matches = _mpOrgMembers.filter(m => !q || (m.full_name||'').toLowerCase().includes(q));
+  if (!matches.length) return '<div class="mp-bene-search-empty">No members found</div>';
+  return matches.slice(0, 30).map(m => `
+    <div class="mp-bene-search-item" data-member-id="${m.id}" data-member-name="${(m.full_name||'Member').replace(/"/g,'&quot;')}"
+      onclick="selectBeneficiaryMember('${rowId}', this.dataset.memberId, this.dataset.memberName)">
+      ${(m.full_name || 'Member').replace(/</g,'')}
+    </div>`).join('');
+}
+
+function filterBeneficiarySearch(rowId, query) {
+  const listEl = document.getElementById('mp-bene-search-list-' + rowId);
+  if (listEl) listEl.innerHTML = beneficiarySearchListHtml(rowId, query);
+}
+
+function toggleBeneficiarySearch(rowId) {
+  _mpOpenSearchRowId = (_mpOpenSearchRowId === rowId) ? null : rowId;
+  renderBeneficiaryRows();
+  if (_mpOpenSearchRowId) {
+    setTimeout(() => {
+      const input = document.querySelector(`.mp-bene-row[data-row-id="${rowId}"] .mp-bene-search-input`);
+      if (input) input.focus();
+    }, 0);
+  }
+}
+
+function selectBeneficiaryMember(rowId, memberId, memberName) {
+  const row = _mpBeneficiaryRows.find(r => r.id === rowId);
+  if (row) {
+    row.memberId = memberId;
+    row.memberName = (memberId === window._myMemberId) ? 'Myself' : memberName;
+  }
+  _mpOpenSearchRowId = null;
+  renderBeneficiaryRows();
+}
+
+function updateBeneficiaryType(rowId, selectEl) {
+  const row = _mpBeneficiaryRows.find(r => r.id === rowId);
+  if (!row) return;
+  const opt = selectEl.selectedOptions[0];
+  row.typeId = selectEl.value;
+  row.typeName = opt?.textContent?.trim() || 'Contribution';
+  row.isWelfare = opt?.dataset?.welfare === 'true';
+  row.eventId = row.isWelfare ? selectEl.value : null;
+  recalcInstantFee();
+}
+
+function updateBeneficiaryAmount(rowId, value) {
+  const row = _mpBeneficiaryRows.find(r => r.id === rowId);
+  if (row) row.amount = value;
+  recalcInstantFee();
+}
+
 async function recalcInstantFee() {
-  const amtEl = document.getElementById('mp-instant-amount');
   const breakdownEl = document.getElementById('mp-fee-breakdown');
   const capWarningEl = document.getElementById('mp-cap-warning');
-  const net = parseFloat(amtEl?.value);
+  const net = _mpBeneficiaryRows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
   if (!net || net <= 0) {
     if (breakdownEl) breakdownEl.style.display = 'none';
     if (capWarningEl) capWarningEl.style.display = 'none';
@@ -778,7 +931,7 @@ async function recalcInstantFee() {
   if (cap && net > cap) {
     if (capWarningEl) {
       capWarningEl.style.display = 'block';
-      capWarningEl.textContent = `⚠ Maximum contribution right now is Ksh ${Number(cap).toLocaleString()} — contact your group admin for larger amounts.`;
+      capWarningEl.textContent = `⚠ Maximum total right now is Ksh ${Number(cap).toLocaleString()} — contact your group admin for larger amounts.`;
     }
     if (payBtn) payBtn.disabled = true;
   } else {
@@ -794,12 +947,10 @@ function resetInstantPayState() {
   });
   const payBtn = document.getElementById('mp-instant-pay-btn');
   if (payBtn) { payBtn.style.display = ''; payBtn.disabled = false; }
-  const amtEl = document.getElementById('mp-instant-amount');
   const phoneEl = document.getElementById('mp-instant-phone');
-  const contribTypeEl = document.getElementById('mp-instant-contrib-type');
-  if (amtEl) amtEl.disabled = false;
   if (phoneEl) phoneEl.disabled = false;
-  if (contribTypeEl) contribTypeEl.disabled = false;
+  const rowsEl = document.getElementById('mp-beneficiary-rows');
+  if (rowsEl) { rowsEl.style.pointerEvents = ''; rowsEl.style.opacity = ''; }
   if (_mpPendingDotsInterval) { clearInterval(_mpPendingDotsInterval); _mpPendingDotsInterval = null; }
   if (_mpRealtimeChannel) { try { sb.removeChannel(_mpRealtimeChannel); } catch(e){} _mpRealtimeChannel = null; }
   if (_mpPollInterval) { clearInterval(_mpPollInterval); _mpPollInterval = null; }
@@ -813,20 +964,19 @@ function showInstantState(state) {
 }
 
 async function payInstantContribution() {
-  const amtEl = document.getElementById('mp-instant-amount');
   const phoneEl = document.getElementById('mp-instant-phone');
-  const contribTypeEl = document.getElementById('mp-instant-contrib-type');
   const payBtn = document.getElementById('mp-instant-pay-btn');
-  const net = parseFloat(amtEl?.value);
   const phone = phoneEl?.value?.trim();
-  const typeId = contribTypeEl?.value;
-  const typeName = contribTypeEl?.selectedOptions?.[0]?.dataset?.name || 'Contribution';
 
-  if (!typeId) { toast('Select what this contribution is for'); return; }
-  if (!net || net <= 0) { toast('Enter a contribution amount'); return; }
+  for (const row of _mpBeneficiaryRows) {
+    if (!row.memberId) { toast('Select who each row is for'); return; }
+    if (!row.typeId) { toast('Select what each contribution is for'); return; }
+    if (!row.amount || parseFloat(row.amount) <= 0) { toast('Enter an amount for each person'); return; }
+  }
+  const net = _mpBeneficiaryRows.reduce((s, r) => s + parseFloat(r.amount), 0);
   if (!phone || phone.replace(/[^0-9]/g,'').length < 9) { toast('Enter a valid M-Pesa number'); return; }
   const cap = currentOrg?.max_contribution_amount;
-  if (cap && net > cap) { toast(`Maximum contribution right now is Ksh ${Number(cap).toLocaleString()}`); return; }
+  if (cap && net > cap) { toast(`Maximum total right now is Ksh ${Number(cap).toLocaleString()}`); return; }
   if (!currentOrg?.paystack_subaccount_code) { toast('Payments are not yet set up for this group'); return; }
 
   let calc = _mpInstantCalc;
@@ -835,17 +985,21 @@ async function payInstantContribution() {
     calc = calculateGrossCharge(net, platformFeePercent, paystackFeePercent);
   }
 
-  // Same shape the manual "Report a Payment" flow already produces, so this
-  // routes through the exact same tested approvePaymentRequest() logic in
-  // finance.js — welfare-vs-regular splitting, type tagging, balance updates
-  // — instead of falling into its "no allocations" fallback (which is what
-  // silently produced a type-less transaction at the GROSS amount before
-  // this fix, and is why the first live test didn't show up correctly in
-  // the contribution list).
-  const allocations = [{ typeId, typeName, amount: net }];
+  // Each row carries its own memberId now — this is what lets paying for
+  // another member (or splitting between myself and my spouse in one go)
+  // land on the right person's ledger. creditMemberContribution() groups by
+  // memberId server-side and processes each beneficiary independently.
+  const allocations = _mpBeneficiaryRows.map(row => ({
+    memberId: row.memberId,
+    typeName: row.typeName,
+    amount: parseFloat(row.amount),
+    ...(row.isWelfare ? { isWelfare: true, eventId: row.eventId } : { typeId: row.typeId })
+  }));
 
-  if (payBtn) { payBtn.disabled = true; }
-  amtEl.disabled = true; phoneEl.disabled = true; contribTypeEl.disabled = true;
+  if (payBtn) payBtn.disabled = true;
+  phoneEl.disabled = true;
+  const rowsEl = document.getElementById('mp-beneficiary-rows');
+  if (rowsEl) { rowsEl.style.pointerEvents = 'none'; rowsEl.style.opacity = '.6'; }
   showInstantState('pending');
 
   // Animate "Check your phone..." dots
@@ -867,7 +1021,7 @@ async function payInstantContribution() {
         phone,
         email: currentUser.email,
         payment_type: 'member_contribution',
-        notes: `Member contribution — Ksh ${net.toLocaleString()} net`,
+        notes: `Member contribution — Ksh ${net.toLocaleString()} net${_mpBeneficiaryRows.length > 1 ? ' (split across ' + _mpBeneficiaryRows.length + ' members)' : ''}`,
         member_id: window._myMemberId,
         subaccount: currentOrg.paystack_subaccount_code,
         transaction_charge: calc.transactionCharge,
@@ -878,7 +1032,7 @@ async function payInstantContribution() {
     const result = await res.json();
     if (!res.ok || result.error) throw new Error(result.error || 'Payment could not be started');
 
-    logActivity('MEMBER CONTRIBUTION (INSTANT) INITIATED', `Ksh ${net} net (charged Ksh ${calc.gross}) · phone ${phone}`, 'member', window._myMemberId);
+    logActivity('MEMBER CONTRIBUTION (INSTANT) INITIATED', `Ksh ${net} net (charged Ksh ${calc.gross}) · phone ${phone}${_mpBeneficiaryRows.length > 1 ? ' · split across ' + _mpBeneficiaryRows.length + ' members' : ''}`, 'member', window._myMemberId);
     listenForContributionConfirmation(result.payment_request_id, net);
 
   } catch(e) {
@@ -886,7 +1040,8 @@ async function payInstantContribution() {
     document.getElementById('mp-fail-detail').textContent = e.message || 'Could not start the payment. Please try again.';
     showInstantState('fail');
     if (payBtn) payBtn.disabled = false;
-    amtEl.disabled = false; phoneEl.disabled = false; contribTypeEl.disabled = false;
+    phoneEl.disabled = false;
+    if (rowsEl) { rowsEl.style.pointerEvents = ''; rowsEl.style.opacity = ''; }
   }
 }
 
@@ -917,9 +1072,9 @@ function listenForContributionConfirmation(paymentRequestId, netAmount) {
         : 'The prompt was cancelled or declined.';
       showInstantState('fail');
       document.getElementById('mp-instant-pay-btn').style.display = '';
-      document.getElementById('mp-instant-amount').disabled = false;
       document.getElementById('mp-instant-phone').disabled = false;
-      document.getElementById('mp-instant-contrib-type').disabled = false;
+      const rowsEl = document.getElementById('mp-beneficiary-rows');
+      if (rowsEl) { rowsEl.style.pointerEvents = ''; rowsEl.style.opacity = ''; }
     }
   };
 

@@ -8,6 +8,12 @@
 // near-duplicate copies drifted apart. Both callers should import this
 // instead of keeping their own copy.
 //
+// Supports paying for another member (or splitting a single charge across
+// multiple beneficiaries — e.g. a member's own subscription + their spouse's,
+// in one M-Pesa prompt): each allocation MAY carry its own `memberId`; any
+// allocation without one falls back to the payer's own pr.member_id, for
+// backward compatibility with payments made before this existed.
+//
 // Idempotency: callers MUST have already confirmed pr.status === 'pending'
 // before calling this — it does not re-check itself, since both the webhook
 // and the verify endpoint already filter on that in their own queries, and
@@ -24,80 +30,105 @@ export async function creditMemberContribution(supabase: any, pr: any, reference
 
     if (!allocations.length) {
       console.error('[GY360] member_contribution with no allocations — using fallback amount:', pr.id);
-      allocations = [{ typeName: 'Payment', amount: pr.amount }];
+      allocations = [{ memberId: pr.member_id, typeName: 'Payment', amount: pr.amount }];
     }
 
-    const welfareAllocs = allocations.filter((a: any) => a.isWelfare && a.eventId);
-    const regularAllocs = allocations.filter((a: any) => !(a.isWelfare && a.eventId));
-    const regularTotal = regularAllocs.reduce((s: number, a: any) => s + Number(a.amount || 0), 0);
-    const welfareTotal = welfareAllocs.reduce((s: number, a: any) => s + Number(a.amount || 0), 0);
+    // Group allocations by beneficiary member — this is what makes "pay for
+    // another member" and "split between myself and my spouse in one go"
+    // work: each group gets processed exactly like a normal single-member
+    // contribution (its own regular/welfare split, its own balance updates),
+    // just looped once per distinct beneficiary instead of assuming everyone
+    // in the payment is the payer themselves.
+    const byMember = new Map<string, any[]>();
+    for (const a of allocations) {
+      const mId = a.memberId || pr.member_id;
+      if (!byMember.has(mId)) byMember.set(mId, []);
+      byMember.get(mId)!.push(a);
+    }
 
     let successCount = 0;
+    let grandRegularTotal = 0;
+    let grandWelfareTotal = 0;
 
-    const { data: member } = await supabase.from('members')
-      .select('shares_balance,savings_balance,registration_paid')
-      .eq('id', pr.member_id).maybeSingle();
+    for (const [memberId, memberAllocs] of byMember.entries()) {
+      const welfareAllocs = memberAllocs.filter((a: any) => a.isWelfare && a.eventId);
+      const regularAllocs = memberAllocs.filter((a: any) => !(a.isWelfare && a.eventId));
+      const regularTotal = regularAllocs.reduce((s: number, a: any) => s + Number(a.amount || 0), 0);
+      const welfareTotal = welfareAllocs.reduce((s: number, a: any) => s + Number(a.amount || 0), 0);
+      grandRegularTotal += regularTotal;
+      grandWelfareTotal += welfareTotal;
 
-    // One summary transaction for the non-welfare portion
-    if (regularAllocs.length && regularTotal > 0) {
-      const allocationSummary = regularAllocs
-        .map((a: any) => a.typeName + ': Ksh ' + Number(a.amount).toLocaleString())
-        .join(' | ');
-      const summaryTxn: any = {
-        org_id: orgId,
-        member_id: pr.member_id,
-        amount: regularTotal,
-        mpesa_ref: reference,
-        transaction_date: pr.payment_date || today,
-        notes: `Auto-approved via Paystack. Ref: ${reference}. ${allocationSummary}`,
-      };
-      const firstTypedAlloc = regularAllocs.find((a: any) => a.typeId && a.typeId.length > 10);
-      if (firstTypedAlloc) summaryTxn.type_id = firstTypedAlloc.typeId;
-      const { error: txErr } = await supabase.from('transactions').insert(summaryTxn);
-      if (!txErr) successCount++;
-      else console.error('[GY360] regular transaction insert failed:', txErr.message);
-    }
+      const paidByAnother = memberId !== pr.member_id;
+      const attribution = paidByAnother ? ' (paid on their behalf by another member)' : '';
 
-    // Separate, properly-tagged transaction per welfare allocation
-    for (const alloc of welfareAllocs) {
-      const { error: welErr } = await supabase.from('transactions').insert({
-        org_id: orgId,
-        member_id: pr.member_id,
-        amount: Number(alloc.amount),
-        mpesa_ref: reference,
-        transaction_date: pr.payment_date || today,
-        welfare_event_id: alloc.eventId,
-        notes: `Welfare contribution — ${alloc.typeName}. Auto-approved via Paystack. Ref: ${reference}.`,
-      });
-      if (!welErr) successCount++;
-      else console.error('[GY360] welfare transaction insert failed:', welErr.message);
-    }
+      const { data: member } = await supabase.from('members')
+        .select('shares_balance,savings_balance,registration_paid')
+        .eq('id', memberId).maybeSingle();
 
-    // Member balance updates — regular allocations only
-    const memberUpdates: any = {};
-    for (const alloc of regularAllocs) {
-      const name = (alloc.typeName || '').toLowerCase();
-      if (name.includes('share')) {
-        memberUpdates.shares_balance = (memberUpdates.shares_balance ?? (member?.shares_balance || 0)) + Number(alloc.amount);
-      } else if (name.includes('saving')) {
-        memberUpdates.savings_balance = (memberUpdates.savings_balance ?? (member?.savings_balance || 0)) + Number(alloc.amount);
+      // One summary transaction per beneficiary for their non-welfare portion
+      if (regularAllocs.length && regularTotal > 0) {
+        const allocationSummary = regularAllocs
+          .map((a: any) => a.typeName + ': Ksh ' + Number(a.amount).toLocaleString())
+          .join(' | ');
+        const summaryTxn: any = {
+          org_id: orgId,
+          member_id: memberId,
+          amount: regularTotal,
+          mpesa_ref: reference,
+          transaction_date: pr.payment_date || today,
+          notes: `Auto-approved via Paystack. Ref: ${reference}. ${allocationSummary}${attribution}`,
+        };
+        const firstTypedAlloc = regularAllocs.find((a: any) => a.typeId && a.typeId.length > 10);
+        if (firstTypedAlloc) summaryTxn.type_id = firstTypedAlloc.typeId;
+        const { error: txErr } = await supabase.from('transactions').insert(summaryTxn);
+        if (!txErr) successCount++;
+        else console.error('[GY360] regular transaction insert failed:', txErr.message);
       }
-      if (alloc.isReg) memberUpdates.registration_paid = true;
-    }
-    if (pr.member_id && Object.keys(memberUpdates).length) {
-      const { error: memErr } = await supabase.from('members').update(memberUpdates).eq('id', pr.member_id);
-      if (memErr) console.error('[GY360] member balance update failed:', memErr.message);
+
+      // Separate, properly-tagged transaction per welfare allocation, per beneficiary
+      for (const alloc of welfareAllocs) {
+        const { error: welErr } = await supabase.from('transactions').insert({
+          org_id: orgId,
+          member_id: memberId,
+          amount: Number(alloc.amount),
+          mpesa_ref: reference,
+          transaction_date: pr.payment_date || today,
+          welfare_event_id: alloc.eventId,
+          notes: `Welfare contribution — ${alloc.typeName}. Auto-approved via Paystack. Ref: ${reference}.${attribution}`,
+        });
+        if (!welErr) successCount++;
+        else console.error('[GY360] welfare transaction insert failed:', welErr.message);
+      }
+
+      // Member balance updates — per beneficiary, regular allocations only
+      const memberUpdates: any = {};
+      for (const alloc of regularAllocs) {
+        const name = (alloc.typeName || '').toLowerCase();
+        if (name.includes('share')) {
+          memberUpdates.shares_balance = (memberUpdates.shares_balance ?? (member?.shares_balance || 0)) + Number(alloc.amount);
+        } else if (name.includes('saving')) {
+          memberUpdates.savings_balance = (memberUpdates.savings_balance ?? (member?.savings_balance || 0)) + Number(alloc.amount);
+        }
+        if (alloc.isReg) memberUpdates.registration_paid = true;
+      }
+      if (memberId && Object.keys(memberUpdates).length) {
+        const { error: memErr } = await supabase.from('members').update(memberUpdates).eq('id', memberId);
+        if (memErr) console.error('[GY360] member balance update failed:', memErr.message);
+      }
     }
 
-    // Bank balance — regular portion only, welfare never touches it
-    if (regularTotal > 0) {
+    // Bank balance — ONE credit for the combined regular total across every
+    // beneficiary in this single charge. Welfare money stays entirely
+    // outside bank_balance, by design, same as the manual approval path.
+    if (grandRegularTotal > 0) {
       const { error: bbErr } = await supabase.rpc('update_bank_balance', {
-        p_org_id: orgId, p_amount: regularTotal, p_direction: 'credit', p_date: today,
+        p_org_id: orgId, p_amount: grandRegularTotal, p_direction: 'credit', p_date: today,
       });
       if (bbErr) console.error('[GY360] bank balance update failed:', bbErr.message);
     }
 
-    // Auto-resolve fines
+    // Auto-resolve fines — unaffected by beneficiary grouping, each fine
+    // allocation already carries its own fineId regardless of who paid it.
     const fineAllocs = allocations.filter((a: any) => a.isFine && a.fineId);
     for (const fa of fineAllocs) {
       await supabase.from('fines').update({
@@ -130,13 +161,13 @@ export async function creditMemberContribution(supabase: any, pr: any, reference
       user_name: 'Paystack Auto',
       user_role: 'system',
       action: 'MEMBER CONTRIBUTION AUTO-APPROVED',
-      details: `Ksh ${regularTotal.toLocaleString()}${welfareTotal ? ' + Ksh ' + welfareTotal.toLocaleString() + ' welfare' : ''} · ref: ${reference}`,
+      details: `Ksh ${grandRegularTotal.toLocaleString()}${grandWelfareTotal ? ' + Ksh ' + grandWelfareTotal.toLocaleString() + ' welfare' : ''}${byMember.size > 1 ? ' · split across ' + byMember.size + ' members' : ''} · ref: ${reference}`,
       target_type: 'payment',
       target_id: pr.id,
       created_at: new Date().toISOString(),
     });
 
-    console.log('[GY360] ✓ Member contribution processed for ref:', reference, '— transactions written:', successCount);
+    console.log('[GY360] ✓ Member contribution processed for ref:', reference, '— transactions written:', successCount, '— beneficiaries:', byMember.size);
     return { success: true };
 
   } catch (err: any) {
