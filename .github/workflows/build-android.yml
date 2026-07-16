@@ -44,7 +44,7 @@ jobs:
       # should already be in .gitignore; this step recreates it fresh on
       # the runner's disk, which is discarded when the job finishes.
       - name: Decode signing keystore
-        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > signing.keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode --ignore-garbage > signing.keystore
 
       # ubuntu-latest ships with the Android SDK pre-installed at
       # $ANDROID_HOME — this is what replaces Bubblewrap's own broken
