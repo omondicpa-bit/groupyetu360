@@ -828,17 +828,19 @@ async function getPlatformFeeRates() {
   // change doesn't require a redeploy.
   let platformFeePercent = 0.5;
   let paystackFeePercent = 1.5;
+  let fingoFeeMultiplier = 2.0;
   try {
     const { data } = await sb.from('platform_settings_public')
-      .select('platform_fee_percent,paystack_fee_percent').maybeSingle();
+      .select('platform_fee_percent,paystack_fee_percent,fingo_fee_multiplier').maybeSingle();
     if (data) {
       if (data.platform_fee_percent != null) platformFeePercent = Number(data.platform_fee_percent);
       if (data.paystack_fee_percent != null) paystackFeePercent = Number(data.paystack_fee_percent);
+      if (data.fingo_fee_multiplier != null) fingoFeeMultiplier = Number(data.fingo_fee_multiplier);
     }
   } catch(e) {
     console.warn('getPlatformFeeRates: falling back to defaults —', e.message);
   }
-  return { platformFeePercent, paystackFeePercent };
+  return { platformFeePercent, paystackFeePercent, fingoFeeMultiplier };
 }
 
 /**
@@ -870,4 +872,83 @@ function calculateGrossCharge(netAmount, platformFeePercent, paystackFeePercent)
     transactionCharge: fee    // param for the paystack-charge Edge Function
   };
 }
+
+/* ════════════════════════════════════════════════════
+   FINGO FEE CALCULATOR — tiered lookup, not a percentage
+   Fingo's own published rate (docs.fingopay.io / dashboard Tariff & Fees) is
+   a flat fee per amount band, not a %. EPH's margin for Fingo is a
+   multiplier on Fingo's own fee (Felix's "double their fee" approach —
+   matches what Fingo itself earns, doubled), not a separate percentage like
+   the Paystack model. Bands below are Fingo's own published M-Pesa
+   Collections tariff as at Jul 2026 — re-verify against their dashboard if
+   this is ever revisited, since Fingo could change these independently of
+   anything in this codebase.
+════════════════════════════════════════════════════ */
+const FINGO_FEE_BANDS = [
+  [1, 49, 2], [50, 100, 2], [101, 500, 5], [501, 1000, 9],
+  [1001, 1500, 14], [1501, 2500, 22], [2501, 3500, 16], [3501, 5000, 21],
+  [5001, 7500, 26], [7501, 10000, 29], [10001, 15000, 69], [15001, 20000, 75],
+  [20001, 25000, 81], [25001, 30000, 87],
+];
+
+function fingoBaseFeeForAmount(amount) {
+  for (const [min, max, fee] of FINGO_FEE_BANDS) {
+    if (amount >= min && amount <= max) return fee;
+  }
+  // Beyond the published table — use the highest published band's fee
+  // rather than fail outright; worth re-checking Fingo's dashboard if
+  // amounts routinely land here.
+  return FINGO_FEE_BANDS[FINGO_FEE_BANDS.length - 1][2];
+}
+
+/**
+ * Given the net amount the org must receive, returns the gross Fingo
+ * charge. Unlike Paystack's percentage-based gross-up (a closed-form
+ * division), Fingo's fee depends on which BAND the gross amount itself
+ * falls into — so this converges iteratively (a handful of passes is
+ * always enough since the bands are coarse relative to typical amounts).
+ * @param {number} netAmount
+ * @param {number} feeMultiplier - EPH's margin as a multiple of Fingo's own fee, e.g. 2.0
+ */
+function calculateFingoGrossCharge(netAmount, feeMultiplier) {
+  let gross = netAmount;
+  for (let i = 0; i < 6; i++) {
+    const baseFee = fingoBaseFeeForAmount(gross);
+    const totalFee = Math.round(baseFee * feeMultiplier);
+    const newGross = netAmount + totalFee;
+    if (newGross === gross) break;
+    gross = newGross;
+  }
+  const baseFee = fingoBaseFeeForAmount(gross);
+  const totalFee = Math.round(baseFee * feeMultiplier);
+  return {
+    netAmount,
+    gross: netAmount + totalFee,
+    fee: totalFee,
+    fingoBaseFee: baseFee, // Fingo's own published fee, before EPH's multiplier
+  };
+}
+
+/**
+ * Looks up which provider is active for an org and that provider's account
+ * reference (Paystack subaccount code / Fingo subMerchantId), from
+ * org_payment_providers rather than the legacy paystack_subaccount_code
+ * column directly — this is what lets SA switch an org's active provider
+ * at any time without a schema change or re-provisioning.
+ */
+async function getActiveProviderConfig(org) {
+  if (!org?.id) return null;
+  const activeProvider = org.active_payment_provider || 'paystack';
+  try {
+    const { data } = await sb.from('org_payment_providers')
+      .select('provider, provider_account_ref')
+      .eq('org_id', org.id).eq('provider', activeProvider).maybeSingle();
+    if (!data) return null;
+    return { provider: data.provider, accountRef: data.provider_account_ref };
+  } catch (e) {
+    console.warn('getActiveProviderConfig: lookup failed —', e.message);
+    return null;
+  }
+}
+
 
