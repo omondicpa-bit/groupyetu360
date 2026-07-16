@@ -262,8 +262,86 @@ async function loadDashboard() {
   loadDashboardModuleCards(orgId);
   populateMobileAdminHome(orgId);
   checkSmsBalanceWarning();
+  loadCollectionActivationCard(orgId);
 
   await Promise.allSettled([membersPromise, recentTxnPromise, allTxnPromise, projPromise, meetPromise]);
+}
+
+// Collection activation — dashboard prompt for orgs without an active
+// payment provider yet. Admin-only (bank/M-Pesa details are financial
+// admin data, not something regular members should see or edit).
+async function loadCollectionActivationCard(orgId) {
+  const cardEl = document.getElementById('dash-collection-card');
+  if (!cardEl) return;
+  if (!canDo('editSettings')) { cardEl.style.display = 'none'; return; }
+
+  try {
+    // Already has at least one provider configured — tabs in the payment
+    // modal already handle this; no dashboard prompt needed.
+    const { data: existingProviders } = await sb.from('org_payment_providers')
+      .select('provider').eq('org_id', orgId).limit(1);
+    if (existingProviders?.length) { cardEl.style.display = 'none'; return; }
+
+    const { data: pendingReq } = await sb.from('collection_activation_requests')
+      .select('id, requested_at').eq('org_id', orgId).eq('status', 'pending')
+      .order('requested_at', { ascending: false }).limit(1).maybeSingle();
+
+    cardEl.style.display = 'block';
+
+    if (pendingReq) {
+      cardEl.innerHTML = `
+        <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:.6rem;padding:1rem;display:flex;align-items:center;gap:.75rem">
+          <span style="font-size:1.2rem">⏳</span>
+          <div>
+            <div style="font-weight:700;font-size:.85rem">Instant Collection — Request Submitted</div>
+            <div style="font-size:.78rem;color:var(--ink-faint);margin-top:.1rem">Requested ${new Date(pendingReq.requested_at).toLocaleDateString()} — your GroupYetu360 admin will review it shortly.</div>
+          </div>
+        </div>`;
+      return;
+    }
+
+    const org = currentOrg || {};
+    cardEl.innerHTML = `
+      <div style="background:linear-gradient(135deg,var(--maroon-pale),#fff);border:1px solid var(--maroon-muted);border-radius:.6rem;padding:1.1rem">
+        <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem">
+          <span style="font-size:1.3rem">⚡</span>
+          <div style="font-weight:700;font-size:.9rem;color:var(--maroon)">Enable Instant M-Pesa Collection</div>
+        </div>
+        <div style="font-size:.8rem;color:var(--ink-soft);margin-bottom:.85rem;line-height:1.5">
+          Let members pay contributions directly via M-Pesa STK Push, confirmed instantly. Add where your group's collected funds should be disbursed, then request activation — your GroupYetu360 admin will set it up.
+        </div>
+        <div class="form-row single" style="margin-bottom:.6rem">
+          <div class="form-group">
+            <label class="form-label">Disbursement Method</label>
+            <select class="form-select" id="dc-disb-method" onchange="toggleDisbursementMethodFields()">
+              <option value="">Select…</option>
+              <option value="bank" ${org.disbursement_method==='bank'?'selected':''}>Bank Account</option>
+              <option value="mpesa" ${org.disbursement_method==='mpesa'?'selected':''}>M-Pesa Number</option>
+            </select>
+          </div>
+        </div>
+        <div id="dc-disb-bank-fields" style="display:${org.disbursement_method==='bank'?'block':'none'}">
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Bank Name</label><input class="form-input" id="dc-disb-bank-name" value="${org.disbursement_bank_name||''}" oninput="updateRequestCollectionButton()"/></div>
+            <div class="form-group"><label class="form-label">Account Number</label><input class="form-input" id="dc-disb-bank-account" value="${org.disbursement_bank_account_number||''}" oninput="updateRequestCollectionButton()"/></div>
+          </div>
+          <div class="form-row single" style="margin-bottom:.6rem">
+            <div class="form-group"><label class="form-label">Account Name</label><input class="form-input" id="dc-disb-bank-account-name" value="${org.disbursement_bank_account_name||''}" oninput="updateRequestCollectionButton()"/></div>
+          </div>
+        </div>
+        <div id="dc-disb-mpesa-fields" style="display:${org.disbursement_method==='mpesa'?'block':'none'};margin-bottom:.6rem">
+          <div class="form-row single">
+            <div class="form-group"><label class="form-label">M-Pesa Number</label><input class="form-input" id="dc-disb-mpesa" placeholder="07xxxxxxxx" value="${org.disbursement_mpesa_number||''}" oninput="updateRequestCollectionButton()"/></div>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="dc-request-btn" disabled onclick="requestCollectionActivation()">Request Automated Collection</button>
+      </div>`;
+
+    updateRequestCollectionButton();
+  } catch(e) {
+    console.warn('loadCollectionActivationCard error:', e.message);
+    cardEl.style.display = 'none';
+  }
 }
 
 // Show a dashboard warning if SMS bundle is zero (fires after login)

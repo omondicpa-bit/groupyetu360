@@ -304,6 +304,8 @@ async function loadSABilling() {
         }).join('')}</tbody>
       </table>`;
   }
+
+  if (typeof loadCollectionRequestsQueue === 'function') loadCollectionRequestsQueue();
 }
 
 async function approvePayment(paymentId, orgId, paymentType, amount) {

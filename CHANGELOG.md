@@ -3,6 +3,65 @@ _Maintained for Play Store closed-testing report and cross-session handover. New
 
 ---
 
+## Session: 16 Jul 2026 (continued) — Multi-provider payment infrastructure (Fingo + Paystack), instant-pay bug fixes from live testing, Kokotech/EPH office agreement
+
+### Multi-Provider Payment Infrastructure (new, not yet live)
+
+**Context:** Fingo Pay approved onboarding. Felix compared Fingo's tiered fee schedule against Paystack's 1.5% in detail — Fingo is cheaper above ~Ksh 150 per transaction but worse below it; his real transaction profile skews above Ksh 500, so doubling Fingo's own fee as EPH's margin stays comfortably under Paystack's rate everywhere that matters. Decision: build Fingo properly, run it alongside Paystack per-org (not a global cutover), keep Fingo's disbursement manual for now (Fingo has no auto-settlement-split the way Paystack's subaccounts do — confirmed against their actual API spec).
+
+**Schema (`v3g_multi_provider_infrastructure.sql`):**
+- `organisations.active_payment_provider` ('paystack'|'fingo', default 'paystack') — SA-changeable at any time, confirmed explicitly (not locked in at approval).
+- `organisations.disbursement_method` ('bank'|'mpesa') + `disbursement_bank_name/account_number/account_name` + `disbursement_mpesa_number`.
+- New `org_payment_providers` table (org_id, provider, provider_account_ref) — replaces `organisations.paystack_subaccount_code` as the source of truth going forward (legacy column left in place, migrated into this table for existing orgs, not dropped).
+- New `collection_activation_requests` table — the org-request → SA-approval queue.
+- New `disbursement_records` table — the manual payout log.
+- `payment_requests.provider` column added (default 'paystack') so verify/webhook functions know which provider's API to check against.
+- `platform_settings.fingo_fee_multiplier` (default 2.0), `fingo_api_key`, `fingo_webhook_secret` added.
+
+**Fingo fee calculator (`calculateFingoGrossCharge()` in `utils.js`):** Fingo's own tariff (confirmed from their live dashboard, Tariff & Fees page) is a flat fee per amount band, not a percentage — 14 bands from Ksh 2 (amounts ≤100) up to Ksh 87 (25,001–30,000). Unlike Paystack's closed-form percentage gross-up, this requires iterative convergence: the gross amount can cross into a higher fee band than a naive single-pass calculation from the net amount would suggest. Verified case: net Ksh 100 → naive calc would compute gross Ksh 104 (Ksh 100 + 2×Ksh 2), but Ksh 104 itself falls in the next fee band (Ksh 5, doubled to Ksh 10), requiring gross Ksh 110 — confirmed correct via a small test harness before shipping. `fingoBaseFeeForAmount()` bands are Fingo's own published rates as at 16 Jul 2026 and should be re-verified against their dashboard if this is ever revisited independently.
+
+**Three new Edge Functions, built against Fingo's actual OpenAPI spec and webhook documentation (docs.fingopay.io — fetched and confirmed, not guessed, same discipline applied throughout this project for Paystack):**
+- **`fingo-charge`** — `POST /v1/mpesa/charge`. Same security posture as `paystack-charge`: caller auth + org-membership check, and recomputes the fee server-side from `allocations` rather than trusting any client-supplied amount. Additionally looks up the org's `subMerchantId` itself from `org_payment_providers` — never trusts a client-supplied value for that either. Confirmed field names/formats: `merchantTransactionId` (our own ref, pattern `^[A-Za-z0-9._-]{1,64}$`), `amount` (cents, whole-KES only, min Ksh 10/max Ksh 250,000), `phoneNumber` (`+254`/`254`/`0` + 7 or 1 + 8 digits), `subMerchantId` (enterprise field for sub-merchant routing — metadata/tagging only, no automatic settlement split exists). Response is `202 Accepted`; final result arrives via webhook, same async pattern as Paystack.
+- **`fingo-webhook`** — HMAC-SHA256 signature verification matching Fingo's documented scheme exactly: header `X-Fingo-Signature: t=<unix>, v1=<hex_hmac>`, where `v1 = hex(hmac_sha256(secret, t + "." + raw_body))`, timestamp must be within 5 minutes. This differs from Paystack's scheme (SHA-512 over the raw body alone, no timestamp component) — each provider's webhook is verified against its own actual documented format. Handles `transaction.succeeded`/`transaction.failed`/`transaction.creation_failed`; `transaction.reversed` deliberately NOT auto-handled (a reversal on an already-credited contribution needs a human decision, not silent automated reversal). Scoped to `member_contribution` only — Fingo isn't used for platform subscription/SMS billing, so there's no equivalent Paystack-style type handling to replicate here.
+- **`fingo-verify`** — active-poll backup mirroring `paystack-verify`'s role and auth model, using Fingo's confirmed `GET /v1/transaction?merchantTransactionId=...` endpoint. Built proactively this time (not after a live failure) given the Paystack webhook-delivery lesson earlier this session.
+- **`creditMemberContribution.ts`** (shared module) required no changes — it already operates generically on a `payment_requests` row regardless of which provider produced it, confirming the earlier decision to centralize this logic was the right call.
+
+**Client-side (`portal.js`):** checkout now resolves the org's active provider via `getActiveProviderConfig()` (reads `org_payment_providers` + `active_payment_provider`, not the legacy column) and branches: correct fee calculator, correct Edge Function (`fingo-charge` vs `paystack-charge`), correct verify endpoint (`fingo-verify` vs `paystack-verify`) — all provider-specific fields (subaccount/transaction_charge/bearer) only sent for Paystack, since Fingo has no equivalent.
+
+**New org-side flow (`dashboard.js` — `loadCollectionActivationCard()`):** admin-only dashboard prompt for any org with zero rows in `org_payment_providers` — add bank-or-M-Pesa disbursement details, then request activation. Shows a "request submitted, awaiting review" state once submitted; disappears entirely once any provider is configured.
+
+**New SA-side flow (`settings.js`):** a Collection Requests queue (added to the existing SA Billing page, alongside Pending Payment Requests) — SA sees the org's submitted disbursement details, manually creates sub-accounts on both Paystack and Fingo dashboards, pastes both codes plus picks the active provider, approves — this single action upserts both `org_payment_providers` rows and sets `active_payment_provider`. Org detail's payment card upgraded from single-Paystack-field to dual-provider + active-provider selector (`saveOrgProviderSettings()`), duplicated across both existing DOM-id-duplicate views per the established (if imperfect) pattern already used for the Daraja fields elsewhere in this file.
+
+**New manual disbursement recorder (`settings.js` — `recordDisbursement()`/`loadOrgDisbursementHistory()`):** SA logs a real payout (amount/method/reference/date/notes) made outside the app; debits `bank_balance` via the same `update_bank_balance` RPC used elsewhere. Deliberately manual — matches the "prove it works before automating" pattern already used for Fingo sub-merchant creation and payout automation itself.
+
+**⚠️ NOT YET LIVE-TESTABLE:**
+1. Run `v3g_multi_provider_infrastructure.sql`.
+2. `platform_settings.fingo_api_key`/`fingo_webhook_secret` need real values.
+3. Register `fingo-webhook`'s URL with Fingo directly (their dashboard, not app-configurable).
+4. At least one org needs to go through the new Collection Request → SA approval flow (or be migrated manually into `org_payment_providers`) before any Fingo charge can succeed.
+
+**Files changed:** `utils.js`, `portal.js`, `dashboard.js`, `settings.js`, `index.html`. New: `v3g_multi_provider_infrastructure.sql`, `fingo-charge.ts`, `fingo-webhook.ts`, `fingo-verify.ts`. Cache-bust bumped to `v=2026071604`.
+
+### Bug fixes from live testing (all shipped this session)
+
+**`paystack-verify` was calling the wrong endpoint.** First live test after building it failed instantly — "Payment Failed, prompt cancelled" — before the customer could even see the STK prompt. Root cause: `/transaction/verify/:reference` is for payments created via Initialize Transaction; ours are created via the Charge API, a different object entirely in Paystack's system. Fixed to the correct endpoint, `GET /charge/:reference` (Check Pending Charge), and the still-in-progress status list corrected to match Paystack's actual documented charge lifecycle (`pending`/`send_pin`/`send_otp`/`pay_offline`/etc. all correctly treated as "keep polling," not failure).
+
+**Instant-pay checkout rebuilt for multi-beneficiary payments.** Felix's requirement: some groups (e.g. KPA) need a member to pay a combined amount covering themselves and another member (e.g. spouse) in one M-Pesa prompt, with no relationship restriction — any member can pay for any other member via search. Checkout redesigned as repeatable beneficiary rows (member picker + contribution type/welfare event + amount per row, "+ Add another person"). `creditMemberContribution.ts` restructured to group `allocations` by `memberId` (falling back to the payer's own `member_id` for old-style single-beneficiary rows) and process each beneficiary's regular/welfare split, transactions, and balance updates independently — one combined `bank_balance` credit for the whole charge, individual SMS confirmations per beneficiary describing only their own portion.
+
+**Real accounting bug caught and fixed:** the first live member-contribution test approved successfully but the transaction never appeared in the contribution list, and the amount charged (gross) differed from the recorded amount. Root cause: the instant-pay flow never populated `payment_requests.allocations`, so `approvePaymentRequest()`/`creditMemberContribution()` fell into their "no allocations" generic fallback — a type-less transaction at the raw gross amount, not the intended net contribution correctly tagged to a category. Fixed by having the instant-pay flow build the exact same `allocations` shape the manual "Report a Payment" flow already produces, routing it through the same tested crediting logic instead of the fallback. Also added a required "what is this for" selector to the instant-pay UI (previously missing entirely), now listing both contribution types and active welfare events.
+
+**Fixed a member-facing gross-amount leak:** the pending-payment dashboard banner (`checkPendingApprovals`-adjacent code in `portal.js`) summed raw `payment_requests.amount` (the gross Paystack/Fingo charge including the service fee) rather than the net contribution value — meaning a member paying a net Ksh 200 (charged Ksh 205) would see "Ksh 205 pending," the exact number the checkout screen was supposed to only show once, at the moment of payment. Fixed to sum `allocations`' net amounts instead, falling back to `amount` only for legacy manual-flow rows that predate `allocations` entirely.
+
+**Real confirmation SMS wired in** (draft copy: *"GroupYetu360: Ksh {net_amount} contribution to {org_name} confirmed on {date}. Ref: {mpesa_ref}. For: {contribution_type}. New balance: Ksh {new_balance}. Thank you, {member_name}."*) — sends via Celcom's actual API directly from `creditMemberContribution.ts` (server-to-server; can't route through the authenticated `send-sms-celcom` Edge Function since there's no user JWT in that server context) once a contribution is credited. One SMS per beneficiary in a split payment, describing only their own portion — not the combined charge.
+
+**"Bank Balance" renamed to "Account Balance"** throughout the UI (9 labels) — cosmetic only, the underlying `bank_balance` column and `update_bank_balance` RPC name are untouched.
+
+### Kokotech/EPH Office Cooperation Agreement (business, not code)
+
+Drafted a simple office-space cooperation agreement for SasaPay's KYB proof-of-address requirement — Felix is sole director of both Kokotech (host) and EPH Technologies (user), holds Kokotech's shares as a nominee for a foreign employer. Flagged two real considerations before delivery: whether the employer's awareness/consent matters given the nominee arrangement, and whether Kokotech's own office lease permits sharing space with an unrelated company. Delivered as a two-page docx; not a legal review, recommended an advocate check it before submission to a regulated institution.
+
+---
+
 ## Session: 16 Jul 2026 — Paystack Subaccounts (member self-service contributions), SMS provider cleanup reapplied, Play Store closed-testing release, CBK PSP research
 
 ### Paystack Subaccounts — Member Contributions (new feature, not yet live-testable)

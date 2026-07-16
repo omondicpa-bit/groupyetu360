@@ -615,6 +615,7 @@ async function checkSubscriptionAccess() {
 let _mpContribTypes = [];
 let _mpMemberStatus = null;
 let _mpInstantCalc = null;
+let _mpActiveProvider = null; // { provider: 'paystack'|'fingo', accountRef }
 let _mpPendingDotsInterval = null;
 let _mpRealtimeChannel = null;
 let _mpPollInterval = null;
@@ -711,20 +712,21 @@ async function openMemberPaymentModal() {
   // Load Table Banking obligations
   if (memberId) await loadMemberTBObligations(memberId);
 
-  // ── Instant Pay (Paystack subaccount) setup ──
+  // ── Instant Pay setup — provider-aware (Paystack or Fingo) ──
   resetInstantPayState();
   const tabsEl = document.getElementById('mp-mode-tabs');
-  const hasSubaccount = !!currentOrg?.paystack_subaccount_code;
-  if (tabsEl) tabsEl.style.display = hasSubaccount ? 'flex' : 'none';
-  // Orgs without a subaccount configured see exactly today's manual flow — no change.
-  switchPaymentMode(hasSubaccount ? 'instant' : 'manual');
+  _mpActiveProvider = await getActiveProviderConfig(currentOrg);
+  const hasProvider = !!_mpActiveProvider;
+  if (tabsEl) tabsEl.style.display = hasProvider ? 'flex' : 'none';
+  // Orgs without an active provider configured see exactly today's manual flow — no change.
+  switchPaymentMode(hasProvider ? 'instant' : 'manual');
 
   const phoneEl = document.getElementById('mp-instant-phone');
   if (phoneEl) phoneEl.value = myRecord?.phone || currentProfile?.phone || '';
   document.getElementById('mp-fee-breakdown').style.display = 'none';
   document.getElementById('mp-cap-warning').style.display = 'none';
 
-  if (hasSubaccount) {
+  if (hasProvider) {
     // Reuse the welfare events already fetched above for the manual flow's
     // checkboxes, rather than querying twice — same data, one source.
     _mpWelfareEventsCache = welfareEvents || [];
@@ -917,8 +919,10 @@ async function recalcInstantFee() {
     if (capWarningEl) capWarningEl.style.display = 'none';
     return;
   }
-  const { platformFeePercent, paystackFeePercent } = await getPlatformFeeRates();
-  const calc = calculateGrossCharge(net, platformFeePercent, paystackFeePercent);
+  const { platformFeePercent, paystackFeePercent, fingoFeeMultiplier } = await getPlatformFeeRates();
+  const calc = (_mpActiveProvider?.provider === 'fingo')
+    ? calculateFingoGrossCharge(net, fingoFeeMultiplier)
+    : calculateGrossCharge(net, platformFeePercent, paystackFeePercent);
   _mpInstantCalc = calc; // cache for payInstantContribution()
 
   document.getElementById('mp-fee-net').textContent = 'Ksh ' + net.toLocaleString();
@@ -977,12 +981,14 @@ async function payInstantContribution() {
   if (!phone || phone.replace(/[^0-9]/g,'').length < 9) { toast('Enter a valid M-Pesa number'); return; }
   const cap = currentOrg?.max_contribution_amount;
   if (cap && net > cap) { toast(`Maximum total right now is Ksh ${Number(cap).toLocaleString()}`); return; }
-  if (!currentOrg?.paystack_subaccount_code) { toast('Payments are not yet set up for this group'); return; }
+  if (!_mpActiveProvider) { toast('Payments are not yet set up for this group'); return; }
 
   let calc = _mpInstantCalc;
   if (!calc || calc.netAmount !== net) {
-    const { platformFeePercent, paystackFeePercent } = await getPlatformFeeRates();
-    calc = calculateGrossCharge(net, platformFeePercent, paystackFeePercent);
+    const { platformFeePercent, paystackFeePercent, fingoFeeMultiplier } = await getPlatformFeeRates();
+    calc = (_mpActiveProvider.provider === 'fingo')
+      ? calculateFingoGrossCharge(net, fingoFeeMultiplier)
+      : calculateGrossCharge(net, platformFeePercent, paystackFeePercent);
   }
 
   // Each row carries its own memberId now — this is what lets paying for
@@ -1010,30 +1016,43 @@ async function payInstantContribution() {
     if (dotsEl) dotsEl.textContent = '.'.repeat(dotCount + 1);
   }, 500);
 
+  const isFingo = _mpActiveProvider.provider === 'fingo';
+  const functionName = isFingo ? 'fingo-charge' : 'paystack-charge';
+  const notes = `Member contribution — Ksh ${net.toLocaleString()} net${_mpBeneficiaryRows.length > 1 ? ' (split across ' + _mpBeneficiaryRows.length + ' members)' : ''}`;
+
+  // Paystack needs subaccount/transaction_charge/bearer to route its
+  // automatic split; Fingo has no such split (it looks up its own
+  // sub-merchant server-side and never trusts a client-supplied fee), so
+  // those fields are simply omitted for that branch rather than sent and
+  // ignored.
+  const requestBody = {
+    org_id: currentOrg.id,
+    amount: calc.gross,
+    phone,
+    email: currentUser.email,
+    payment_type: 'member_contribution',
+    notes,
+    member_id: window._myMemberId,
+    allocations: JSON.stringify(allocations),
+    ...(isFingo ? {} : {
+      subaccount: _mpActiveProvider.accountRef,
+      transaction_charge: calc.transactionCharge,
+      bearer: 'account',
+    }),
+  };
+
   try {
     const { data: { session } } = await sb.auth.getSession();
-    const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/paystack-charge', {
+    const res = await fetch(`https://eengldzvvgplgzvbutal.supabase.co/functions/v1/${functionName}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-      body: JSON.stringify({
-        org_id: currentOrg.id,
-        amount: calc.gross,
-        phone,
-        email: currentUser.email,
-        payment_type: 'member_contribution',
-        notes: `Member contribution — Ksh ${net.toLocaleString()} net${_mpBeneficiaryRows.length > 1 ? ' (split across ' + _mpBeneficiaryRows.length + ' members)' : ''}`,
-        member_id: window._myMemberId,
-        subaccount: currentOrg.paystack_subaccount_code,
-        transaction_charge: calc.transactionCharge,
-        bearer: 'account',
-        allocations: JSON.stringify(allocations)
-      })
+      body: JSON.stringify(requestBody)
     });
     const result = await res.json();
     if (!res.ok || result.error) throw new Error(result.error || 'Payment could not be started');
 
-    logActivity('MEMBER CONTRIBUTION (INSTANT) INITIATED', `Ksh ${net} net (charged Ksh ${calc.gross}) · phone ${phone}${_mpBeneficiaryRows.length > 1 ? ' · split across ' + _mpBeneficiaryRows.length + ' members' : ''}`, 'member', window._myMemberId);
-    listenForContributionConfirmation(result.payment_request_id, net);
+    logActivity('MEMBER CONTRIBUTION (INSTANT) INITIATED', `Ksh ${net} net (charged Ksh ${calc.gross}) via ${_mpActiveProvider.provider} · phone ${phone}${_mpBeneficiaryRows.length > 1 ? ' · split across ' + _mpBeneficiaryRows.length + ' members' : ''}`, 'member', window._myMemberId);
+    listenForContributionConfirmation(result.payment_request_id, net, _mpActiveProvider.provider);
 
   } catch(e) {
     clearInterval(_mpPendingDotsInterval); _mpPendingDotsInterval = null;
@@ -1052,8 +1071,9 @@ async function payInstantContribution() {
 // Paystack's own confirmation email sent) — so this doesn't wait to be
 // told, it asks. Supabase Realtime stays subscribed too as a free bonus
 // fast-path for whichever gets there first (e.g. if the webhook does fire).
-function listenForContributionConfirmation(paymentRequestId, netAmount) {
+function listenForContributionConfirmation(paymentRequestId, netAmount, provider) {
   let resolved = false;
+  const verifyFunctionName = (provider === 'fingo') ? 'fingo-verify' : 'paystack-verify';
 
   const onResult = (status) => {
     if (resolved) return;
@@ -1107,7 +1127,7 @@ function listenForContributionConfirmation(paymentRequestId, netAmount) {
     if (polls > maxPolls) { onResult('timeout'); return; }
     try {
       const { data: { session } } = await sb.auth.getSession();
-      const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/paystack-verify', {
+      const res = await fetch(`https://eengldzvvgplgzvbutal.supabase.co/functions/v1/${verifyFunctionName}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
         body: JSON.stringify({ payment_request_id: paymentRequestId })
@@ -1117,7 +1137,7 @@ function listenForContributionConfirmation(paymentRequestId, netAmount) {
       else if (result.status === 'declined' || result.status === 'failed') onResult('failed');
       // status === 'pending' → keep polling, customer likely still entering PIN
     } catch(e) {
-      console.warn('paystack-verify poll error (will retry):', e.message);
+      console.warn(`${verifyFunctionName} poll error (will retry):`, e.message);
     }
   }, 2000);
 }

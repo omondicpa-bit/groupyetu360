@@ -1,16 +1,49 @@
 # GroupYetu360 — Handover Summary
 _Read this first if picking up a new session. Full technical detail for everything below is in CHANGELOG.md — this is the "what do I need to know before touching anything" version._
 
-**As of:** 16 Jul 2026, end of session · **Code state:** app SW v5.30, cache-bust v=2026071601
+**As of:** 16 Jul 2026, end of session · **Code state:** app SW v5.30, cache-bust v=2026071604
 
 ---
 
 ## Standing working agreements (Felix's rules — always apply these without being reminded)
 
 - **Repo path:** the app repo lives at `C:\Users\Felix\groupyetu360`. Every PowerShell/git push block uses this exact path, never a placeholder.
-- **Always include the git push commands** (for VS Code's integrated terminal) whenever delivering code files — copy/add/commit/push, not just the files themselves.
+- **Always include the FULL exact execution steps** when delivering files — for regular JS/HTML, the copy + git add/commit/push block; for Supabase Edge Function files, ALSO `supabase functions deploy <function-name>` for every changed top-level function, run BEFORE git push. **Never** include `supabase functions deploy _shared` — shared module files aren't their own deployable function; they get bundled automatically into whichever function imports them.
 - **File freshness:** if Felix re-uploads a file, check whether a newer version was already delivered earlier in the same conversation before editing — use whichever is actually most recent, don't assume the latest upload is automatically the latest content. (This bit us once already — an old pre-SMS-cleanup `index.html` got re-uploaded and nearly shipped a regression alongside a new feature.)
-- Both this file and CHANGELOG.md should be updated at the end of every session's substantive work — not just when explicitly asked.
+- Both this file and CHANGELOG.md should be updated at the end of every session's substantive work — not just when explicitly asked. (Slipped on this mid-session once — several rounds of live-testing fixes went undocumented until asked again. Don't let that gap recur.)
+
+---
+
+## Multi-Provider Payment Infrastructure — Fingo + Paystack side by side (NEW, this session, NOT YET LIVE)
+
+Built proper provider abstraction rather than bolting Fingo onto the Paystack-specific schema: `org_payment_providers` table holds both a Paystack subaccount code AND a Fingo sub-merchant ID per org (both pre-provisioned at approval time, so switching an org's active provider later is a config flip, not new setup). `organisations.active_payment_provider` (SA-changeable at any time, per Felix's explicit confirmation) decides which one actually handles that org's collections.
+
+**New org-side flow:** dashboard prompt (admin-only) to add disbursement details (bank OR M-Pesa — Felix confirmed both, since Paystack/Fingo both support either) and request activation. **New SA-side flow:** a Collection Requests queue (under Billing) — SA manually creates both providers' sub-accounts externally, pastes both codes, picks the active one, approves. **New SA-side manual disbursement recorder** — logs a real payout made outside the app and debits `bank_balance` accordingly; deliberately manual, matching the same "prove it before automating" pattern used for Fingo sub-merchant creation itself. Automating the actual payout transfer is separate future work.
+
+**Fingo's fee model required new math, not a copy of Paystack's:** Fingo charges a tiered flat fee per amount band (not a percentage) — `calculateFingoGrossCharge()` in `utils.js` converges iteratively since the gross amount can cross into a higher fee band than the net amount alone would suggest (verified: Ksh 100 net → Ksh 110 gross, not the naively-expected Ksh 104, because Ksh 104 itself falls in a higher band). EPH's margin for Fingo is a **multiplier** on Fingo's own published fee (Felix: "double their fee so we earn the same as them"), stored as `platform_settings.fingo_fee_multiplier` (default 2.0) — a fundamentally different mechanism from Paystack's percentage-based model, not a reused formula.
+
+**Fingo has no automatic settlement split** (unlike Paystack's `transaction_charge`/`bearer`) — confirmed against their actual API spec, not assumed. `subMerchantId` is metadata/tagging only; the full gross amount lands in EPH's own Fingo account, and moving the org's share out is what the manual disbursement recorder above is for.
+
+**All three new Fingo Edge Functions were built against Fingo's actual published OpenAPI spec and webhook docs (docs.fingopay.io)** — endpoints, field names, phone/amount formats, and the HMAC-SHA256 webhook signature scheme (`X-Fingo-Signature: t=..., v1=...`, different from Paystack's SHA-512-no-timestamp scheme) were all fetched and confirmed, not guessed. `fingo-charge` recomputes the fee server-side from `allocations` exactly like `paystack-charge` does — same "never trust the client for money-routing fields" discipline, and it looks up the org's sub-merchant ID itself from `org_payment_providers` rather than trusting a client-supplied value.
+
+**⚠️ NOT YET LIVE — before any real Fingo test:**
+1. Run `v3g_multi_provider_infrastructure.sql`.
+2. `platform_settings.fingo_api_key` and `fingo_webhook_secret` need real values — get these from the Fingo dashboard.
+3. Register `fingo-webhook`'s URL with Fingo (their dashboard, not something this app configures).
+4. A real Collection Request needs to go through the new SA queue for at least one test org (or migrate one manually) before any Fingo charge can succeed — `fingo-charge` requires an `org_payment_providers` row to exist.
+
+**Also decided this session, not yet built:** whether/how to surface Safaricom's own separate network fee (confirmed real via a live M-Pesa confirmation SMS showing a Ksh 5 charge Paystack's own support confirmed is because their STK collection is Paybill-routed, not Till-routed) — Felix chose option (b): a disclaimer on checkout rather than trying to predict Safaricom's exact fee band. Not yet implemented in the UI.
+
+---
+
+## Bug fixes from live testing, same session (all shipped)
+
+- **`paystack-verify` was calling the wrong Paystack endpoint** — `/transaction/verify/:reference` (for Initialize Transaction) instead of `/charge/:reference` (Check Pending Charge, the correct one for a Charge-API payment). Caused instant false "Payment Failed" before the customer could even enter their PIN. Fixed to the correct endpoint.
+- **Instant-pay checkout rebuilt for multi-beneficiary support** — "pay for another member" (search any member in the org, no relationship restriction) and splitting one charge across several beneficiaries in a single M-Pesa prompt (e.g. KPA's combined household subscription + forced savings). Required restructuring `creditMemberContribution()` to group allocations by beneficiary member rather than assuming the payer is always the sole beneficiary.
+- **Real confirmation SMS wired in** — sends via Celcom directly from the crediting function (server-to-server, can't route through the authenticated `send-sms-celcom` endpoint since there's no user JWT in that context) once a contribution is credited, to the correct beneficiary, with their own portion's amount/balance — not the combined charge if it was a split payment.
+- Fixed a real accounting bug: the first live test's transaction fell into `approvePaymentRequest()`'s generic "no allocations" fallback (wrong amount — gross instead of net — and no contribution type), because the instant-pay flow never populated `allocations`. Now builds the exact same `allocations` shape the manual flow already produces, so it flows through the same tested crediting logic instead of the fallback.
+- Fixed a member-facing "205" leak — the pending-payment dashboard banner summed the raw gross `payment_requests.amount`; now sums the net `allocations` total instead, falling back to `amount` only for legacy manual-flow rows.
+- "Bank Balance" renamed to "Account Balance" everywhere in the UI (label only, `bank_balance` column/RPC untouched).
 
 ---
 

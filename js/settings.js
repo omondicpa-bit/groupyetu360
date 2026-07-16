@@ -1400,8 +1400,38 @@ async function openOrgDetail(orgId) {
   // Settings tab
   sv('od-daraja-key', org.daraja_consumer_key); sv('od-daraja-secret', org.daraja_consumer_secret);
   sv('od-daraja-shortcode', org.daraja_shortcode); sv('od-daraja-passkey', org.daraja_passkey);
-  sv('od-paystack-subaccount', org.paystack_subaccount_code);
   sv('od-max-contribution', org.max_contribution_amount);
+  sv('od-active-provider', org.active_payment_provider || 'paystack');
+
+  // Provider account refs now live in org_payment_providers, not the legacy
+  // paystack_subaccount_code column directly — this is what lets SA switch
+  // an org's active provider at any time without touching a schema field.
+  try {
+    const { data: providerRows } = await sb.from('org_payment_providers')
+      .select('provider, provider_account_ref').eq('org_id', orgId);
+    const paystackRow = (providerRows||[]).find(p => p.provider === 'paystack');
+    const fingoRow = (providerRows||[]).find(p => p.provider === 'fingo');
+    sv('od-paystack-subaccount', paystackRow?.provider_account_ref || org.paystack_subaccount_code);
+    sv('od-fingo-submerchant', fingoRow?.provider_account_ref);
+  } catch(e) {
+    sv('od-paystack-subaccount', org.paystack_subaccount_code);
+  }
+
+  // Disbursement destination + history
+  const destEl = document.getElementById('od-disb-destination');
+  if (destEl) {
+    destEl.textContent = 'Destination: ' + (org.disbursement_method === 'bank'
+      ? `Bank — ${org.disbursement_bank_name || '—'} · ${org.disbursement_bank_account_number || '—'} (${org.disbursement_bank_account_name || '—'})`
+      : org.disbursement_method === 'mpesa'
+        ? `M-Pesa — ${org.disbursement_mpesa_number || '—'}`
+        : 'Not set — org has not submitted disbursement details yet');
+  }
+  const disbMethodEl = document.getElementById('sa-disb-method');
+  if (disbMethodEl && org.disbursement_method) disbMethodEl.value = org.disbursement_method;
+  const disbDateEl = document.getElementById('sa-disb-date');
+  if (disbDateEl) disbDateEl.value = new Date().toISOString().split('T')[0];
+  if (typeof loadOrgDisbursementHistory === 'function') loadOrgDisbursementHistory(orgId);
+
   sv('od-daraja-env', org.daraja_env||'sandbox');
   sv('od-daraja-enabled', org.daraja_enabled?'true':'false');
   sv('od-sms-enabled', org.sms_enabled===false?'false':'true');
@@ -1729,8 +1759,10 @@ async function saveOrgDetail() {
   const ds = gv('od-daraja-secret'); if(ds) updates.daraja_consumer_secret = ds;
   const dp = gv('od-daraja-passkey'); if(dp) updates.daraja_passkey = dp;
   const dsc = gv('od-daraja-shortcode'); if(dsc) updates.daraja_shortcode = dsc;
-  // Paystack subaccount (member contributions)
-  const pac = gv('od-paystack-subaccount'); if(pac) updates.paystack_subaccount_code = pac;
+  // Provider account refs (Paystack subaccount, Fingo sub-merchant, active
+  // provider) are saved separately via saveOrgProviderSettings() into
+  // org_payment_providers — not written here, to keep this one save action
+  // scoped to general org details rather than payment routing.
   const maxContribRaw = document.getElementById('od-max-contribution')?.value;
   updates.max_contribution_amount = maxContribRaw ? parseFloat(maxContribRaw) : null;
   const { error } = await sb.from('organisations').update(updates).eq('id', currentDetailOrgId);
@@ -2579,4 +2611,290 @@ async function loadPaymentHistory() {
     el.innerHTML = '<div style="padding:1rem;color:var(--danger);font-size:.8rem">Could not load history: ' + e.message + '</div>';
   }
 }
+
+/* ════════════════════════════════════════════════════
+   COLLECTION ACTIVATION — org-side request flow
+   Any org without an active payment provider yet sees a dashboard prompt to
+   add disbursement details and request instant collection. SA reviews the
+   request, manually creates sub-accounts on both Paystack and Fingo, and
+   approves — see settings.js's SA-side handleCollectionRequest() for the
+   other half of this flow.
+════════════════════════════════════════════════════ */
+function saveDisbursementDetails() {
+  const method = document.getElementById('dc-disb-method')?.value;
+  const updates = { disbursement_method: method || null };
+  if (method === 'bank') {
+    updates.disbursement_bank_name = document.getElementById('dc-disb-bank-name')?.value?.trim() || null;
+    updates.disbursement_bank_account_number = document.getElementById('dc-disb-bank-account')?.value?.trim() || null;
+    updates.disbursement_bank_account_name = document.getElementById('dc-disb-bank-account-name')?.value?.trim() || null;
+    updates.disbursement_mpesa_number = null;
+  } else if (method === 'mpesa') {
+    updates.disbursement_mpesa_number = document.getElementById('dc-disb-mpesa')?.value?.trim() || null;
+    updates.disbursement_bank_name = null;
+    updates.disbursement_bank_account_number = null;
+    updates.disbursement_bank_account_name = null;
+  }
+  return sb.from('organisations').update(updates).eq('id', currentOrg.id);
+}
+
+function disbursementDetailsComplete() {
+  const method = document.getElementById('dc-disb-method')?.value;
+  if (method === 'bank') {
+    return !!(document.getElementById('dc-disb-bank-name')?.value?.trim()
+      && document.getElementById('dc-disb-bank-account')?.value?.trim()
+      && document.getElementById('dc-disb-bank-account-name')?.value?.trim());
+  }
+  if (method === 'mpesa') {
+    return !!document.getElementById('dc-disb-mpesa')?.value?.trim();
+  }
+  return false;
+}
+
+function toggleDisbursementMethodFields() {
+  const method = document.getElementById('dc-disb-method')?.value;
+  const bankFields = document.getElementById('dc-disb-bank-fields');
+  const mpesaFields = document.getElementById('dc-disb-mpesa-fields');
+  if (bankFields) bankFields.style.display = method === 'bank' ? 'block' : 'none';
+  if (mpesaFields) mpesaFields.style.display = method === 'mpesa' ? 'block' : 'none';
+  updateRequestCollectionButton();
+}
+
+function updateRequestCollectionButton() {
+  const btn = document.getElementById('dc-request-btn');
+  if (btn) btn.disabled = !disbursementDetailsComplete();
+}
+
+async function requestCollectionActivation() {
+  if (!disbursementDetailsComplete()) { toast('Add your disbursement details first'); return; }
+  const btn = document.getElementById('dc-request-btn');
+  if (btn) btn.disabled = true;
+  try {
+    const { error: saveErr } = await saveDisbursementDetails();
+    if (saveErr) throw new Error(saveErr.message);
+
+    const { error: reqErr } = await sb.from('collection_activation_requests').insert({
+      org_id: currentOrg.id,
+      status: 'pending',
+      requested_by: currentUser.id,
+    });
+    if (reqErr) throw new Error(reqErr.message);
+
+    try { logActivity('COLLECTION ACTIVATION REQUESTED', `${currentOrg.name} requested instant M-Pesa collection`, 'org', currentOrg.id); } catch(e) {}
+    toast('✓ Request submitted — your GroupYetu360 admin will review it shortly.');
+    if (typeof loadCollectionActivationCard === 'function') loadCollectionActivationCard(currentOrg.id);
+  } catch(e) {
+    toast('Error submitting request: ' + e.message);
+    if (btn) btn.disabled = false;
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   COLLECTION ACTIVATION — SA-side review queue
+════════════════════════════════════════════════════ */
+async function loadCollectionRequestsQueue() {
+  const el = document.getElementById('sa-collection-requests-list');
+  if (!el) return;
+  el.innerHTML = '<div style="padding:1rem;color:var(--ink-faint);font-size:.8rem">Loading…</div>';
+  try {
+    const { data: reqs } = await sb.from('collection_activation_requests')
+      .select('*, organisations(name, disbursement_method, disbursement_bank_name, disbursement_bank_account_number, disbursement_bank_account_name, disbursement_mpesa_number, active_payment_provider)')
+      .eq('status', 'pending').order('requested_at', { ascending: true });
+
+    if (!reqs?.length) {
+      el.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--ink-faint);font-size:.85rem">No pending collection requests.</div>';
+      return;
+    }
+
+    el.innerHTML = reqs.map(r => {
+      const org = r.organisations || {};
+      const disbSummary = org.disbursement_method === 'bank'
+        ? `Bank: ${org.disbursement_bank_name || '—'} · ${org.disbursement_bank_account_number || '—'} (${org.disbursement_bank_account_name || '—'})`
+        : org.disbursement_method === 'mpesa'
+          ? `M-Pesa: ${org.disbursement_mpesa_number || '—'}`
+          : 'No disbursement details on file';
+      return `
+      <div class="card" style="margin-bottom:.85rem">
+        <div class="card-body">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.6rem">
+            <div>
+              <div style="font-weight:700;font-size:.9rem">${org.name || 'Unknown org'}</div>
+              <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.15rem">${disbSummary}</div>
+              <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.15rem">Requested ${new Date(r.requested_at).toLocaleDateString()}</div>
+            </div>
+          </div>
+          <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:.75rem;margin-bottom:.6rem;font-size:.72rem;color:var(--ink-soft)">
+            ℹ️ Create this org's sub-account on <strong>both</strong> Paystack and Fingo dashboards manually, then paste both codes below — pre-provisioning both means switching providers later is a config change, not a new setup step.
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Paystack Subaccount Code</label><input class="form-input" id="sa-req-paystack-${r.id}" placeholder="ACCT_…"/></div>
+            <div class="form-group"><label class="form-label">Fingo Sub-Merchant Internal ID</label><input class="form-input" id="sa-req-fingo-${r.id}" placeholder="SM-…"/></div>
+          </div>
+          <div class="form-row single">
+            <div class="form-group"><label class="form-label">Active Provider (default collection route)</label>
+              <select class="form-select" id="sa-req-active-${r.id}">
+                <option value="paystack">Paystack</option>
+                <option value="fingo">Fingo</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;gap:.5rem;margin-top:.6rem">
+            <button class="btn btn-primary btn-sm" onclick="approveCollectionRequest('${r.id}','${r.org_id}')">Approve &amp; Activate</button>
+            <button class="btn btn-secondary btn-sm" onclick="declineCollectionRequest('${r.id}')">Decline</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = '<div style="padding:1rem;color:var(--danger);font-size:.8rem">Error loading requests: ' + e.message + '</div>';
+  }
+}
+
+async function approveCollectionRequest(requestId, orgId) {
+  const paystackCode = document.getElementById(`sa-req-paystack-${requestId}`)?.value?.trim();
+  const fingoId = document.getElementById(`sa-req-fingo-${requestId}`)?.value?.trim();
+  const activeProvider = document.getElementById(`sa-req-active-${requestId}`)?.value || 'paystack';
+
+  if (!paystackCode && !fingoId) { toast('Enter at least one provider account reference'); return; }
+  if (activeProvider === 'paystack' && !paystackCode) { toast('Paystack is selected as active but has no subaccount code'); return; }
+  if (activeProvider === 'fingo' && !fingoId) { toast('Fingo is selected as active but has no sub-merchant ID'); return; }
+
+  try {
+    const rows = [];
+    if (paystackCode) rows.push({ org_id: orgId, provider: 'paystack', provider_account_ref: paystackCode });
+    if (fingoId) rows.push({ org_id: orgId, provider: 'fingo', provider_account_ref: fingoId });
+
+    const { error: providersErr } = await sb.from('org_payment_providers')
+      .upsert(rows, { onConflict: 'org_id,provider' });
+    if (providersErr) throw new Error(providersErr.message);
+
+    const { error: orgErr } = await sb.from('organisations')
+      .update({ active_payment_provider: activeProvider }).eq('id', orgId);
+    if (orgErr) throw new Error(orgErr.message);
+
+    const { error: reqErr } = await sb.from('collection_activation_requests').update({
+      status: 'approved', reviewed_by: currentUser.id, reviewed_at: new Date().toISOString(),
+    }).eq('id', requestId);
+    if (reqErr) throw new Error(reqErr.message);
+
+    try { logActivity('COLLECTION ACTIVATED', `Instant collection approved — active provider: ${activeProvider}`, 'org', orgId); } catch(e) {}
+    toast('✓ Collection activated');
+    loadCollectionRequestsQueue();
+  } catch(e) {
+    toast('Error approving request: ' + e.message);
+  }
+}
+
+async function declineCollectionRequest(requestId) {
+  const notes = prompt('Reason for declining (shown to the org admin):') || '';
+  try {
+    await sb.from('collection_activation_requests').update({
+      status: 'declined', reviewed_by: currentUser.id, reviewed_at: new Date().toISOString(), notes,
+    }).eq('id', requestId);
+    toast('Request declined');
+    loadCollectionRequestsQueue();
+  } catch(e) {
+    toast('Error declining request: ' + e.message);
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   MANUAL DISBURSEMENT — SA records that a real payout was made via
+   Paystack/Fingo's own dashboard or API. Deliberately manual — the actual
+   transfer happens outside this app; this just logs it and debits
+   bank_balance accordingly. Automating the transfer itself is separate,
+   future work (per the "prove it works before automating" pattern already
+   used for Fingo sub-merchant creation).
+════════════════════════════════════════════════════ */
+async function recordDisbursement(orgId) {
+  const amount = parseFloat(document.getElementById('sa-disb-amount')?.value);
+  const method = document.getElementById('sa-disb-method')?.value;
+  const reference = document.getElementById('sa-disb-reference')?.value?.trim();
+  const date = document.getElementById('sa-disb-date')?.value || new Date().toISOString().split('T')[0];
+  const notes = document.getElementById('sa-disb-notes')?.value?.trim();
+
+  if (!amount || amount <= 0) { toast('Enter a valid disbursement amount'); return; }
+  if (!method) { toast('Select a disbursement method'); return; }
+
+  try {
+    const { error: insErr } = await sb.from('disbursement_records').insert({
+      org_id: orgId, amount, method, reference: reference || null,
+      disbursed_date: date, notes: notes || null, recorded_by: currentUser.id,
+    });
+    if (insErr) throw new Error(insErr.message);
+
+    const { error: bbErr } = await sb.rpc('update_bank_balance', {
+      p_org_id: orgId, p_amount: amount, p_direction: 'debit', p_date: date,
+    });
+    if (bbErr) throw new Error(bbErr.message);
+
+    try { logActivity('DISBURSEMENT RECORDED', `Ksh ${amount.toLocaleString()} disbursed via ${method}${reference ? ' · ref: ' + reference : ''}`, 'org', orgId); } catch(e) {}
+    toast('✓ Disbursement recorded');
+    ['sa-disb-amount','sa-disb-reference','sa-disb-notes'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+    if (typeof loadOrgDisbursementHistory === 'function') loadOrgDisbursementHistory(orgId);
+  } catch(e) {
+    toast('Error recording disbursement: ' + e.message);
+  }
+}
+
+async function saveOrgProviderSettings() {
+  const orgId = currentDetailOrgId;
+  const paystackCode = document.getElementById('od-paystack-subaccount')?.value?.trim();
+  const fingoId = document.getElementById('od-fingo-submerchant')?.value?.trim();
+  const activeProvider = document.getElementById('od-active-provider')?.value || 'paystack';
+  const maxContribRaw = document.getElementById('od-max-contribution')?.value;
+
+  if (activeProvider === 'paystack' && !paystackCode) { toast('Paystack is selected as active but has no subaccount code'); return; }
+  if (activeProvider === 'fingo' && !fingoId) { toast('Fingo is selected as active but has no sub-merchant ID'); return; }
+
+  try {
+    const rows = [];
+    if (paystackCode) rows.push({ org_id: orgId, provider: 'paystack', provider_account_ref: paystackCode });
+    if (fingoId) rows.push({ org_id: orgId, provider: 'fingo', provider_account_ref: fingoId });
+
+    if (rows.length) {
+      const { error: providersErr } = await sb.from('org_payment_providers')
+        .upsert(rows, { onConflict: 'org_id,provider' });
+      if (providersErr) throw new Error(providersErr.message);
+    }
+
+    const { error: orgErr } = await sb.from('organisations').update({
+      active_payment_provider: activeProvider,
+      max_contribution_amount: maxContribRaw ? parseFloat(maxContribRaw) : null,
+    }).eq('id', orgId);
+    if (orgErr) throw new Error(orgErr.message);
+
+    try { logActivity('PROVIDER SETTINGS UPDATED', `Active provider set to ${activeProvider}`, 'org', orgId); } catch(e) {}
+    toast('✓ Provider settings saved');
+  } catch(e) {
+    toast('Error saving provider settings: ' + e.message);
+  }
+}
+
+async function loadOrgDisbursementHistory(orgId) {
+  const el = document.getElementById('sa-disb-history');
+  if (!el) return;
+  try {
+    const { data } = await sb.from('disbursement_records')
+      .select('*').eq('org_id', orgId).order('disbursed_date', { ascending: false }).limit(10);
+    if (!data?.length) {
+      el.innerHTML = '<div style="padding:.75rem;color:var(--ink-faint);font-size:.75rem">No disbursements recorded yet.</div>';
+      return;
+    }
+    el.innerHTML = `<table style="width:100%;font-size:.78rem;border-collapse:collapse">
+      <thead><tr style="border-bottom:1px solid var(--border);text-align:left">
+        <th style="padding:.4rem">Date</th><th style="padding:.4rem">Amount</th><th style="padding:.4rem">Method</th><th style="padding:.4rem">Reference</th>
+      </tr></thead>
+      <tbody>${data.map(d => `
+        <tr style="border-bottom:1px solid var(--border-soft)">
+          <td style="padding:.4rem">${d.disbursed_date}</td>
+          <td style="padding:.4rem;font-weight:600">Ksh ${Number(d.amount).toLocaleString()}</td>
+          <td style="padding:.4rem;text-transform:capitalize">${d.method}</td>
+          <td style="padding:.4rem;color:var(--ink-faint)">${d.reference || '—'}</td>
+        </tr>`).join('')}</tbody>
+    </table>`;
+  } catch(e) {
+    el.innerHTML = '<div style="padding:.75rem;color:var(--danger);font-size:.75rem">Could not load: ' + e.message + '</div>';
+  }
+}
+
 
