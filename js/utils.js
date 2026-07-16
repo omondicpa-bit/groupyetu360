@@ -368,17 +368,10 @@ async function loadSASupport() {
   setVal('sp-bank-account-name', s.bank_account_name||'EPH Technologies');
   setVal('sp-paybill', s.paybill||'');
   setVal('sp-whatsapp', s.whatsapp||'https://wa.me/254702903544?text=Hello%20GroupYetu360%20Support');
-  // SMS provider selector
-  const provEl = document.getElementById('sp-sms-provider');
-  if (provEl) provEl.value = s.sms_provider || 'leopard';
-  // SMS Leopard
-  setVal('sp-leopard-sender', s.sms_leopard_sender_id||'');
-  const savedBadge = document.getElementById('sp-leopard-saved');
-  if (savedBadge) savedBadge.style.display = s.sms_leopard_api_key ? 'inline' : 'none';
-  const keyEl = document.getElementById('sp-leopard-key');
-  const secEl = document.getElementById('sp-leopard-secret');
-  if (keyEl && !keyEl.value) keyEl.placeholder = s.sms_leopard_api_key ? '••••••••••••• (saved — leave blank to keep)' : 'Your SMS Leopard API Key';
-  if (secEl && !secEl.value) secEl.placeholder = s.sms_leopard_api_secret ? '••••••••••••• (saved — leave blank to keep)' : 'Your SMS Leopard API Secret';
+  // Celcom Africa — sole SMS provider (SMS Leopard / Africa's Talking removed Jul 2026:
+  // neither ever worked for orgs in production due to the Supabase free-plan Edge Function
+  // DNS restriction, and Leopard's sender ID never got approved. If a replacement/backup
+  // provider is onboarded later, add it back here as its own branch.)
   // Celcom Africa
   setVal('sp-celcom-partner-id', s.celcom_partner_id||'');
   setVal('sp-celcom-shortcode',  s.celcom_shortcode||'');
@@ -386,10 +379,6 @@ async function loadSASupport() {
   if (celcomSaved) celcomSaved.style.display = s.celcom_api_key ? 'inline' : 'none';
   const celcomKeyEl = document.getElementById('sp-celcom-key');
   if (celcomKeyEl) celcomKeyEl.placeholder = s.celcom_api_key ? '••••• (saved — leave blank to keep)' : 'Celcom API Key';
-  // Africa's Talking (backup)
-  setVal('sp-at-username', s.at_username||'');
-  setVal('sp-at-key', s.at_api_key||'');
-  setVal('sp-at-sender', s.at_sender_id||'');
   setVal('sp-daraja-key', s.daraja_consumer_key||'');
   setVal('sp-daraja-secret', s.daraja_consumer_secret||'');
   setVal('sp-daraja-shortcode', s.daraja_shortcode||'');
@@ -424,6 +413,24 @@ async function loadSASupport() {
     const savedEl = document.getElementById('sp-paystack-secret-saved');
     if (savedEl) savedEl.style.display = '';
   }
+
+  // Fingo credentials — same "show saved, blank until re-entered" pattern
+  // as Paystack's secret key, never populating the actual secret back into
+  // the input.
+  setVal('sp-fingo-fee-multiplier', s.fingo_fee_multiplier != null ? s.fingo_fee_multiplier : '2.0');
+  if (s.fingo_api_key) {
+    const fkEl = document.getElementById('sp-fingo-api-key');
+    if (fkEl) fkEl.placeholder = '(saved — enter new key to update)';
+    const fkSavedEl = document.getElementById('sp-fingo-key-saved');
+    if (fkSavedEl) fkSavedEl.style.display = '';
+  }
+  if (s.fingo_webhook_secret) {
+    const fsEl = document.getElementById('sp-fingo-webhook-secret');
+    if (fsEl) fsEl.placeholder = '(saved — enter new secret to update)';
+    const fsSavedEl = document.getElementById('sp-fingo-secret-saved');
+    if (fsSavedEl) fsSavedEl.style.display = '';
+  }
+
   // Accordion badges
   const payBadge = document.getElementById('sp-paystack-badge');
   if (payBadge) {
@@ -432,10 +439,7 @@ async function loadSASupport() {
     payBadge.style.color = s.paystack_enabled ? '#0d5c8a' : '#999';
   }
   const smsBadge = document.getElementById('sp-sms-active-badge');
-  if (smsBadge) {
-    const pNames = { leopard:'SMS Leopard', celcom:'Celcom Africa', at:"Africa's Talking" };
-    smsBadge.textContent = (pNames[s.sms_provider] || 'Celcom Africa') + ' Active';
-  }
+  if (smsBadge) smsBadge.textContent = 'Celcom Africa Active';
   // Webhook hint
   const webhookHint = document.getElementById('sp-paystack-webhook-hint');
   if (webhookHint) {
@@ -444,9 +448,6 @@ async function loadSASupport() {
 }
 
 async function saveSupportSettings() {
-  const atKey = document.getElementById('sp-at-key')?.value?.trim();
-  const leopardKey = document.getElementById('sp-leopard-key')?.value?.trim() || undefined;
-  const leopardSecret = document.getElementById('sp-leopard-secret')?.value?.trim() || undefined;
   const darajaKey = document.getElementById('sp-daraja-key')?.value?.trim();
   const darajaSecret = document.getElementById('sp-daraja-secret')?.value?.trim();
   const darajaPasskey = document.getElementById('sp-daraja-passkey')?.value?.trim();
@@ -459,16 +460,8 @@ async function saveSupportSettings() {
     bank_account_name: document.getElementById('sp-bank-account-name')?.value?.trim(),
     paybill: document.getElementById('sp-paybill')?.value?.trim()||null,
     whatsapp: document.getElementById('sp-whatsapp')?.value?.trim()||null,
-    // SMS provider
-    sms_provider: document.getElementById('sp-sms-provider')?.value || 'leopard',
-    // SMS Leopard
-    ...(leopardKey !== undefined && { sms_leopard_api_key: leopardKey }),
-    ...(leopardSecret !== undefined && { sms_leopard_api_secret: leopardSecret }),
-    sms_leopard_sender_id: document.getElementById('sp-leopard-sender')?.value?.trim()||null,
-    // Africa's Talking (backup)
-    at_username: document.getElementById('sp-at-username')?.value?.trim()||null,
-    at_api_key: atKey || null,
-    at_sender_id: document.getElementById('sp-at-sender')?.value?.trim()||null,
+    // SMS provider — Celcom is the sole provider (SMS Leopard/Africa's Talking removed Jul 2026)
+    sms_provider: 'celcom',
     // Celcom Africa
     celcom_partner_id: document.getElementById('sp-celcom-partner-id')?.value?.trim()||null,
     celcom_shortcode:  document.getElementById('sp-celcom-shortcode')?.value?.trim()||null,
@@ -490,11 +483,17 @@ async function saveSupportSettings() {
     // Member contribution fee rates (subaccount gross-up)
     platform_fee_percent: parseFloat(document.getElementById('sp-platform-fee-percent')?.value) || 0.5,
     paystack_fee_percent: parseFloat(document.getElementById('sp-paystack-fee-percent')?.value) || 1.5,
+    fingo_fee_multiplier: parseFloat(document.getElementById('sp-fingo-fee-multiplier')?.value) || 2.0,
     updated_at:     new Date().toISOString()
   };
-  // Only save secret key if a new one was typed
+  // Only save secret keys if a new one was typed — never overwrite a saved
+  // key with blank just because the field wasn't touched this time.
   const newPsSecret = document.getElementById('sp-paystack-secret-key')?.value?.trim();
   if (newPsSecret) payload.paystack_secret_key = newPsSecret;
+  const newFingoKey = document.getElementById('sp-fingo-api-key')?.value?.trim();
+  if (newFingoKey) payload.fingo_api_key = newFingoKey;
+  const newFingoSecret = document.getElementById('sp-fingo-webhook-secret')?.value?.trim();
+  if (newFingoSecret) payload.fingo_webhook_secret = newFingoSecret;
 
   const { error } = await sb.from('platform_settings').upsert(payload);
   if (error) { toast('Error: '+error.message); return; }
@@ -506,8 +505,12 @@ async function saveSupportSettings() {
 
 /* ════════════════════════════════════════════════════
    SMS — UNIFIED SEND LAYER
-   Routes to SMS Leopard (primary) or Africa's Talking (backup)
-   based on platform_settings.sms_provider
+   Celcom Africa is the sole provider (SMS Leopard / Africa's Talking
+   removed Jul 2026 — neither ever worked for orgs in production due to
+   the Supabase free-plan Edge Function DNS restriction, and Leopard's
+   sender ID was never approved). The `provider` variable and if-branch
+   shape are kept deliberately so a future replacement/backup provider
+   can be added as its own branch without restructuring this function.
 ════════════════════════════════════════════════════ */
 
 // Format a phone number to E.164 (254XXXXXXXXX)
@@ -569,7 +572,7 @@ async function trackSmsUsage(orgId, count) {
   }
 }
 
-// Unified SMS sender — reads sms_provider from platform_settings
+// Unified SMS sender.
 // to: array of raw phone strings (will be formatted automatically)
 // message: string
 // Returns { sent: N, failed: N }
@@ -579,73 +582,16 @@ async function sendSMS(to, message, orgIdOverride) {
   const recipients = to.map(formatPhone).filter(Boolean);
   if (!recipients.length) return { sent: 0, failed: 0 };
 
-  // Load platform settings
-  // sms_provider itself isn't sensitive — read it from the safe public view so this works
-  // for every role. The raw table read below (SA-only) fills in leopard/AT secrets when
-  // available; celcom needs no secrets here at all since the Edge Function reads them
-  // server-side now.
+  // provider is currently always 'celcom' — sms_provider is still read from the safe
+  // public view (rather than hardcoded) so a future replacement provider can be switched
+  // in via platform_settings without another client-side deploy.
   let provider = 'celcom';
-  let leopardKey = null, leopardSecret = null, senderId = null;
-  let atKey = null, atUser = 'sandbox', atSender = null;
-
   try {
     const { data: psPublic } = await sb.from('platform_settings_public').select('sms_provider').maybeSingle();
     provider = psPublic?.sms_provider || 'celcom';
   } catch(e) {}
 
-  if (provider !== 'celcom') {
-    try {
-      const { data: ps } = await sb.from('platform_settings').select('*').maybeSingle();
-      if (ps) {
-        leopardKey = ps.sms_leopard_api_key || null;
-        leopardSecret = ps.sms_leopard_api_secret || null;
-        senderId = ps.sms_leopard_sender_id || null;
-        atKey = ps.at_api_key || null;
-        atUser = ps.at_username || 'sandbox';
-        atSender = ps.at_sender_id || null;
-      }
-    } catch(e) {
-      console.log('sendSMS: could not load platform settings for leopard/AT');
-    }
-  }
-
   const SUPABASE_FUNCTIONS_URL = 'https://eengldzvvgplgzvbutal.supabase.co/functions/v1';
-
-  // ── SMS LEOPARD (direct browser call — avoids Supabase Edge Function DNS restriction) ──
-  if (provider === 'leopard') {
-    if (!leopardKey || !leopardSecret) {
-      console.error('sendSMS [leopard]: API key/secret not configured in platform_settings');
-      return { sent: 0, failed: recipients.length };
-    }
-    try {
-      const destination = recipients.map(number => ({ number }));
-      // Basic Auth: base64(API_KEY:API_SECRET)
-      const basicAuth = btoa(`${leopardKey}:${leopardSecret}`);
-      const res = await fetch('https://api.smsleopard.com/v1/sms/send', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Basic ${basicAuth}`
-        },
-        body: JSON.stringify({
-          source: senderId || 'SMS_Leopard',
-          message,
-          destination
-        })
-      });
-      const result = await res.json();
-      console.log('[sendSMS leopard] response:', JSON.stringify(result));
-      if (!res.ok) throw new Error(result?.message || `HTTP ${res.status}`);
-      // Leopard returns { successes: [{number,messageid}], errors: [{...}] }
-      const sent = result?.successes?.length ?? (result?.sent ?? 0);
-      const failed = result?.errors?.length ?? (result?.failed ?? 0);
-      if (failed > 0) console.warn('[sendSMS leopard] failures:', JSON.stringify(result?.errors));
-      return { sent, failed };
-    } catch(e) {
-      console.error('sendSMS [leopard] error:', e.message);
-      return { sent: 0, failed: recipients.length };
-    }
-  }
 
   // ── CELCOM AFRICA (via Supabase Edge Function — credentials read server-side) ──
   if (provider === 'celcom') {
@@ -668,31 +614,7 @@ async function sendSMS(to, message, orgIdOverride) {
     }
   }
 
-  // ── AFRICA'S TALKING (backup, via Edge Function) ──
-  if (provider === 'at') {
-    if (!atKey) return { sent: 0, failed: recipients.length };
-    try {
-      const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/send-sms`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_KEY}`
-        },
-        body: JSON.stringify({
-          username: atUser,
-          apiKey: atKey,
-          to: recipients,
-          message,
-          senderId: atSender
-        })
-      });
-      const result = await res.json();
-      return { sent: result.sent || 0, failed: result.failed || 0 };
-    } catch(e) {
-      console.error('sendSMS [at] error:', e.message);
-      return { sent: 0, failed: recipients.length };
-    }
-  }
+  // ── Add any future replacement/backup provider as its own branch here ──
 
   console.warn('sendSMS: unknown provider', provider);
   return { sent: 0, failed: recipients.length };
