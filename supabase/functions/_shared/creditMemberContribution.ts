@@ -24,6 +24,40 @@ export async function creditMemberContribution(supabase: any, pr: any, reference
   const orgId = pr.org_id;
   const today = new Date().toISOString().split('T')[0];
 
+  // Confirmation SMS template — {date} added per Felix's request, 16 Jul 2026.
+  // Formatted as "16 Jul 2026" to match how dates read elsewhere in the app.
+  const SMS_TEMPLATE = "GroupYetu360: Ksh {net_amount} contribution to {org_name} confirmed on {date}. Ref: {mpesa_ref}. For: {contribution_type}. New balance: Ksh {new_balance}. Thank you, {member_name}.";
+
+  function formatSmsDate(d: Date): string {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  }
+
+  function buildSms(vars: Record<string, string | number>): string {
+    let msg = SMS_TEMPLATE;
+    for (const [key, val] of Object.entries(vars)) {
+      msg = msg.replace(`{${key}}`, String(val));
+    }
+    return msg;
+  }
+
+  // ── STUB — needs the real send-sms-celcom request shape before this
+  // actually sends anything. Wrapped so an SMS failure NEVER blocks or
+  // reverts the crediting above it — a missed confirmation text is a minor
+  // inconvenience, a missed transaction record is not. Currently just logs
+  // what it would have sent, so this is safe to deploy before the real
+  // Celcom call is filled in.
+  async function sendConfirmationSms(supabase: any, phone: string, message: string) {
+    try {
+      console.log('[GY360] SMS would send to', phone, ':', message);
+      // TODO: replace with the real Celcom API call once send-sms-celcom's
+      // source confirms the exact endpoint/payload shape (same credentials
+      // this function already reads from platform_settings elsewhere).
+    } catch (e: any) {
+      console.error('[GY360] Confirmation SMS failed (non-fatal):', e.message);
+    }
+  }
+
   try {
     let allocations: any[] = [];
     try { allocations = JSON.parse(pr.allocations || '[]'); } catch (e) { /* falls through to fallback below */ }
@@ -50,6 +84,10 @@ export async function creditMemberContribution(supabase: any, pr: any, reference
     let grandRegularTotal = 0;
     let grandWelfareTotal = 0;
 
+    const { data: orgRow } = await supabase.from('organisations').select('name').eq('id', orgId).maybeSingle();
+    const orgName = orgRow?.name || 'your group';
+    const smsDate = formatSmsDate(new Date());
+
     for (const [memberId, memberAllocs] of byMember.entries()) {
       const welfareAllocs = memberAllocs.filter((a: any) => a.isWelfare && a.eventId);
       const regularAllocs = memberAllocs.filter((a: any) => !(a.isWelfare && a.eventId));
@@ -62,7 +100,7 @@ export async function creditMemberContribution(supabase: any, pr: any, reference
       const attribution = paidByAnother ? ' (paid on their behalf by another member)' : '';
 
       const { data: member } = await supabase.from('members')
-        .select('shares_balance,savings_balance,registration_paid')
+        .select('shares_balance,savings_balance,registration_paid,phone,full_name')
         .eq('id', memberId).maybeSingle();
 
       // One summary transaction per beneficiary for their non-welfare portion
@@ -114,6 +152,27 @@ export async function creditMemberContribution(supabase: any, pr: any, reference
       if (memberId && Object.keys(memberUpdates).length) {
         const { error: memErr } = await supabase.from('members').update(memberUpdates).eq('id', memberId);
         if (memErr) console.error('[GY360] member balance update failed:', memErr.message);
+      }
+
+      // Confirmation SMS — one per beneficiary, describing only their own
+      // portion of this payment (not the combined charge), since each
+      // beneficiary in a split payment is a separate person with their own
+      // phone number and their own balance.
+      if (member?.phone) {
+        const typeLabel = memberAllocs.map((a: any) => a.typeName).join(' + ') || 'Contribution';
+        const thisNetAmount = regularTotal + welfareTotal;
+        const newBalance = (memberUpdates.shares_balance ?? member?.shares_balance ?? 0)
+          + (memberUpdates.savings_balance ?? member?.savings_balance ?? 0);
+        const message = buildSms({
+          net_amount: thisNetAmount.toLocaleString(),
+          org_name: orgName,
+          date: smsDate,
+          mpesa_ref: reference,
+          contribution_type: typeLabel,
+          new_balance: newBalance.toLocaleString(),
+          member_name: member?.full_name || 'Member',
+        });
+        await sendConfirmationSms(supabase, member.phone, message);
       }
     }
 
