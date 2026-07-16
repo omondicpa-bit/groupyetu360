@@ -80,6 +80,9 @@ jobs:
           EOF
           cat ~/.bubblewrap/config.json
 
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
       # Official non-interactive CI mode, confirmed against Bubblewrap's own
       # CLI documentation (packages/cli/README.md) — these two env vars are
       # what let `build` run without prompting for keystore passwords.
