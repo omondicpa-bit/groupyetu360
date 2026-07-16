@@ -110,7 +110,15 @@ serve(async (req) => {
     }
 
     const reference = pr.paystack_ref || pr.mpesa_ref;
-    const verifyRes = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
+    // IMPORTANT: this reference belongs to a Charge (from paystack-charge's
+    // POST /charge call), not an initialized Transaction — those are two
+    // separate objects in Paystack's API. /transaction/verify/:reference is
+    // for the latter and doesn't recognize a charge-only reference, which is
+    // why an earlier version of this function immediately reported failure
+    // even when the charge was genuinely still in progress. The correct
+    // endpoint for a Charge API payment is Check Pending Charge:
+    // GET /charge/:reference
+    const verifyRes = await fetch(`https://api.paystack.co/charge/${encodeURIComponent(reference)}`, {
       headers: { 'Authorization': `Bearer ${ps.paystack_secret_key}` }
     });
     const verifyData = await verifyRes.json();
@@ -133,7 +141,10 @@ serve(async (req) => {
       });
     }
 
-    if (paystackStatus === 'failed' || paystackStatus === 'abandoned' || paystackStatus === 'reversed') {
+    // Charge API terminal failure statuses — matches Paystack's documented
+    // charge lifecycle (pending/send_pin/send_otp/send_phone/send_birthday/
+    // open_url/pay_offline are all still-in-progress states, not failures).
+    if (paystackStatus === 'failed' || paystackStatus === 'timeout' || paystackStatus === 'abandoned' || paystackStatus === 'reversed') {
       await supabase.from('payment_requests').update({
         status: 'declined',
         paystack_status: paystackStatus,
@@ -144,7 +155,8 @@ serve(async (req) => {
       });
     }
 
-    // Still pending on Paystack's side too (customer hasn't entered their PIN yet)
+    // Still in progress (pending, send_pin, send_otp, pay_offline, etc.) —
+    // customer likely still has the STK prompt open.
     return new Response(JSON.stringify({ status: 'pending' }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
