@@ -53,8 +53,23 @@ jobs:
       # fully automate" issue reported against bare `bubblewrap build` in CI
       # (GoogleChromeLabs/bubblewrap#806) — it needs to be told, not just
       # left to detect its environment.
+      # `bubblewrap updateConfig` itself is interactive and prompts "Do you
+      # want Bubblewrap to install the JDK?" with no way to answer on a CI
+      # runner (no stdin attached) — a known rough edge
+      # (GoogleChromeLabs/bubblewrap#806). Writing ~/.bubblewrap/config.json
+      # directly sidesteps the interactive command entirely — this is the
+      # exact same file/format that fixed this locally on Felix's Windows
+      # machine originally, just written non-interactively here instead.
       - name: Point Bubblewrap at the runner's JDK/SDK
-        run: npx @bubblewrap/cli updateConfig --jdkPath="$JAVA_HOME" --androidSdkPath="$ANDROID_HOME"
+        run: |
+          mkdir -p ~/.bubblewrap
+          cat > ~/.bubblewrap/config.json << EOF
+          {
+            "jdkPath": "$JAVA_HOME",
+            "androidSdkPath": "$ANDROID_HOME"
+          }
+          EOF
+          cat ~/.bubblewrap/config.json
 
       # Official non-interactive CI mode, confirmed against Bubblewrap's own
       # CLI documentation (packages/cli/README.md) — these two env vars are
