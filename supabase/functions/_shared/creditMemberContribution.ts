@@ -20,6 +20,8 @@
 // re-checking here would just be a second, redundant DB round trip on every
 // call.
 
+import { sendPushNotification } from './sendPushNotification.ts';
+
 export async function creditMemberContribution(supabase: any, pr: any, reference: string) {
   const orgId = pr.org_id;
   const today = new Date().toISOString().split('T')[0];
@@ -121,7 +123,7 @@ export async function creditMemberContribution(supabase: any, pr: any, reference
       const attribution = paidByAnother ? ' (paid on their behalf by another member)' : '';
 
       const { data: member } = await supabase.from('members')
-        .select('shares_balance,savings_balance,registration_paid,phone,full_name')
+        .select('shares_balance,savings_balance,registration_paid,phone,full_name,user_id')
         .eq('id', memberId).maybeSingle();
 
       // One summary transaction per beneficiary for their non-welfare portion
@@ -179,11 +181,14 @@ export async function creditMemberContribution(supabase: any, pr: any, reference
       // portion of this payment (not the combined charge), since each
       // beneficiary in a split payment is a separate person with their own
       // phone number and their own balance.
-      if (member?.phone) {
-        const typeLabel = memberAllocs.map((a: any) => a.typeName).join(' + ') || 'Contribution';
-        const thisNetAmount = regularTotal + welfareTotal;
-        const newBalance = (memberUpdates.shares_balance ?? member?.shares_balance ?? 0)
+      let thisNetAmount = 0, typeLabel = 'Contribution', newBalance = 0;
+      if (member?.phone || member?.user_id) {
+        typeLabel = memberAllocs.map((a: any) => a.typeName).join(' + ') || 'Contribution';
+        thisNetAmount = regularTotal + welfareTotal;
+        newBalance = (memberUpdates.shares_balance ?? member?.shares_balance ?? 0)
           + (memberUpdates.savings_balance ?? member?.savings_balance ?? 0);
+      }
+      if (member?.phone) {
         const message = buildSms({
           net_amount: thisNetAmount.toLocaleString(),
           org_name: orgName,
@@ -195,6 +200,42 @@ export async function creditMemberContribution(supabase: any, pr: any, reference
         });
         await sendConfirmationSms(supabase, celcomCreds, member.phone, message);
       }
+      // Same confirmation, as a push notification, if this beneficiary has
+      // the app installed and notifications enabled — additive to the SMS,
+      // never a replacement for it (some members won't have the app).
+      if (member?.user_id) {
+        await sendPushNotification(
+          supabase,
+          [member.user_id],
+          'Payment Confirmed',
+          `Ksh ${thisNetAmount.toLocaleString()} — ${typeLabel} — ${orgName}`,
+          '/#finance'
+        );
+      }
+    }
+
+    // Notify officials (admin/treasurer/officer) that a payment came in —
+    // this is new, not a duplicate of the beneficiary confirmation above.
+    // Nobody except the payer/beneficiary was ever told about a payment
+    // before this; officials had to check the app to find out. One
+    // combined notification per payment, not per beneficiary, since this
+    // describes the whole transaction from the org's point of view.
+    try {
+      const { data: officials } = await supabase.from('user_orgs')
+        .select('user_id').eq('org_id', orgId).in('role', ['admin', 'treasurer', 'officer']);
+      const officialUserIds = (officials || []).map((o: any) => o.user_id);
+      if (officialUserIds.length) {
+        const { data: payerRow } = await supabase.from('members').select('full_name').eq('id', pr.member_id).maybeSingle();
+        await sendPushNotification(
+          supabase,
+          officialUserIds,
+          'Payment Received',
+          `Ksh ${grandRegularTotal.toLocaleString()}${grandWelfareTotal ? ' + Ksh ' + grandWelfareTotal.toLocaleString() + ' welfare' : ''} from ${payerRow?.full_name || 'a member'} — ${orgName}`,
+          '/#finance'
+        );
+      }
+    } catch (e: any) {
+      console.error('[GY360] Officials push notification failed (non-fatal):', e.message);
     }
 
     // Bank balance — ONE credit for the combined regular total across every

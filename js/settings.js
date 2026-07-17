@@ -2888,3 +2888,148 @@ async function loadOrgDisbursementHistory(orgId) {
 }
 
 
+/* ════════════════════════════════════════════════════
+   BROADCAST COMPOSER — SA-only platform-wide push notifications
+════════════════════════════════════════════════════ */
+let _bcAllOrgs = [];
+let _bcAllMembers = [];
+let _bcSelectedOrgIds = new Set();
+let _bcSelectedMemberIds = new Set();
+
+function toggleBroadcastTargetPicker() {
+  const type = document.getElementById('bc-target-type')?.value;
+  const orgsPicker = document.getElementById('bc-orgs-picker');
+  const membersPicker = document.getElementById('bc-members-picker');
+  if (orgsPicker) orgsPicker.style.display = type === 'orgs' ? 'block' : 'none';
+  if (membersPicker) membersPicker.style.display = type === 'members' ? 'block' : 'none';
+
+  if (type === 'orgs' && !_bcAllOrgs.length) loadBroadcastOrgList();
+  if (type === 'members' && !_bcAllMembers.length) loadBroadcastMemberList();
+}
+
+async function loadBroadcastOrgList() {
+  const { data } = await sb.from('organisations').select('id,name').order('name');
+  _bcAllOrgs = data || [];
+  renderBroadcastOrgList('');
+}
+
+function renderBroadcastOrgList(query) {
+  const el = document.getElementById('bc-orgs-list');
+  if (!el) return;
+  const q = query.trim().toLowerCase();
+  const matches = _bcAllOrgs.filter(o => !q || (o.name || '').toLowerCase().includes(q));
+  if (!matches.length) { el.innerHTML = '<div style="padding:.5rem;color:var(--ink-faint);font-size:.78rem">No organisations found</div>'; return; }
+  el.innerHTML = matches.map(o => `
+    <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem 0;font-size:.82rem;cursor:pointer">
+      <input type="checkbox" ${_bcSelectedOrgIds.has(o.id) ? 'checked' : ''} onchange="toggleBroadcastOrgSelection('${o.id}', this.checked)"/>
+      ${(o.name || 'Org').replace(/</g,'')}
+    </label>`).join('');
+}
+
+function filterBroadcastOrgList(query) { renderBroadcastOrgList(query); }
+
+function toggleBroadcastOrgSelection(orgId, checked) {
+  if (checked) _bcSelectedOrgIds.add(orgId); else _bcSelectedOrgIds.delete(orgId);
+}
+
+async function loadBroadcastMemberList() {
+  const { data } = await sb.from('members').select('id,full_name,user_id').not('user_id', 'is', null).order('full_name');
+  _bcAllMembers = data || [];
+  renderBroadcastMemberList('');
+}
+
+function renderBroadcastMemberList(query) {
+  const el = document.getElementById('bc-members-list');
+  if (!el) return;
+  const q = query.trim().toLowerCase();
+  const matches = _bcAllMembers.filter(m => !q || (m.full_name || '').toLowerCase().includes(q));
+  if (!matches.length) { el.innerHTML = '<div style="padding:.5rem;color:var(--ink-faint);font-size:.78rem">No members found — only members with a linked app account can be selected</div>'; return; }
+  el.innerHTML = matches.slice(0, 50).map(m => `
+    <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem 0;font-size:.82rem;cursor:pointer">
+      <input type="checkbox" ${_bcSelectedMemberIds.has(m.id) ? 'checked' : ''} onchange="toggleBroadcastMemberSelection('${m.id}', this.checked)"/>
+      ${(m.full_name || 'Member').replace(/</g,'')}
+    </label>`).join('');
+  updateBroadcastMemberCount();
+}
+
+function filterBroadcastMemberList(query) { renderBroadcastMemberList(query); }
+
+function toggleBroadcastMemberSelection(memberId, checked) {
+  if (checked) _bcSelectedMemberIds.add(memberId); else _bcSelectedMemberIds.delete(memberId);
+  updateBroadcastMemberCount();
+}
+
+function updateBroadcastMemberCount() {
+  const el = document.getElementById('bc-members-selected');
+  if (el) el.textContent = `${_bcSelectedMemberIds.size} selected`;
+}
+
+async function sendBroadcast() {
+  const title = document.getElementById('bc-title')?.value?.trim();
+  const body = document.getElementById('bc-body')?.value?.trim();
+  const targetType = document.getElementById('bc-target-type')?.value;
+  const statusEl = document.getElementById('bc-status');
+
+  if (!title || !body) { toast('Enter a title and message'); return; }
+
+  let targetIds = null;
+  if (targetType === 'orgs') {
+    targetIds = [..._bcSelectedOrgIds];
+    if (!targetIds.length) { toast('Select at least one organisation'); return; }
+  } else if (targetType === 'members') {
+    targetIds = [..._bcSelectedMemberIds];
+    if (!targetIds.length) { toast('Select at least one member'); return; }
+  } else if (targetType === 'all') {
+    if (!confirm('This sends a push notification to every user on the platform. Continue?')) return;
+  }
+
+  if (statusEl) statusEl.textContent = 'Sending…';
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/send-broadcast', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ title, body, target_type: targetType, target_ids: targetIds })
+    });
+    const result = await res.json();
+    if (!res.ok || result.error) throw new Error(result.error || 'Broadcast failed');
+
+    if (statusEl) statusEl.textContent = `✓ Sent to ${result.sent}/${result.recipient_count} devices (${result.recipient_count} users targeted)`;
+    toast('✓ Broadcast sent');
+    document.getElementById('bc-title').value = '';
+    document.getElementById('bc-body').value = '';
+    _bcSelectedOrgIds.clear();
+    _bcSelectedMemberIds.clear();
+    loadBroadcastHistory();
+  } catch(e) {
+    if (statusEl) statusEl.textContent = '';
+    toast('Error sending broadcast: ' + e.message);
+  }
+}
+
+async function loadBroadcastHistory() {
+  const el = document.getElementById('bc-history');
+  if (!el) return;
+  try {
+    const { data } = await sb.from('broadcast_log').select('*').order('created_at', { ascending: false }).limit(10);
+    if (!data?.length) {
+      el.innerHTML = '<div style="padding:.75rem;color:var(--ink-faint);font-size:.75rem">No broadcasts sent yet.</div>';
+      return;
+    }
+    el.innerHTML = `<table style="width:100%;font-size:.78rem;border-collapse:collapse">
+      <thead><tr style="border-bottom:1px solid var(--border);text-align:left">
+        <th style="padding:.4rem">Sent</th><th style="padding:.4rem">Title</th><th style="padding:.4rem">Target</th><th style="padding:.4rem">Delivered</th>
+      </tr></thead>
+      <tbody>${data.map(b => `
+        <tr style="border-bottom:1px solid var(--border-soft)">
+          <td style="padding:.4rem">${new Date(b.created_at).toLocaleDateString()}</td>
+          <td style="padding:.4rem;font-weight:600">${(b.title||'').replace(/</g,'')}</td>
+          <td style="padding:.4rem;text-transform:capitalize">${b.target_type} (${b.recipient_count})</td>
+          <td style="padding:.4rem">${b.sent_count}/${b.recipient_count}</td>
+        </tr>`).join('')}</tbody>
+    </table>`;
+  } catch(e) {
+    el.innerHTML = '<div style="padding:.75rem;color:var(--danger);font-size:.75rem">Could not load: ' + e.message + '</div>';
+  }
+}

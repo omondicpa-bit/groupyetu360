@@ -1654,6 +1654,7 @@ function showApp() {
     }
     try { prefetchData(); } catch(e) { console.error('[GY360] Prefetch error:', e); }
     try { checkSubscriptionAccess(); } catch(e) { console.error('[GY360] Sub check error:', e); }
+    try { if (typeof maybeAutoPromptPushOnLogin === 'function') maybeAutoPromptPushOnLogin(); } catch(e) { console.error('[GY360] Push prompt error:', e); }
   }));
 }
 

@@ -101,6 +101,7 @@ async function saveNewPassword() {
 }
 
 async function loadMyProfile() {
+  refreshNotificationStatus();
   if (!currentOrg?.id || !currentProfile) return;
   // Reset member ID — will be set fresh for this org
   window._myMemberId = null;
@@ -1085,6 +1086,13 @@ function listenForContributionConfirmation(paymentRequestId, netAmount, provider
     if (status === 'approved') {
       document.getElementById('mp-success-detail').textContent = `Ksh ${netAmount.toLocaleString()} recorded to ${currentOrg?.name || 'your group'}.`;
       showInstantState('success');
+      // Ask about notifications right after a successful payment, while the
+      // success state is still visible — the person has just had a good
+      // experience with the app and understands exactly why a payment
+      // alert would be useful, which is why this moment converts better
+      // than a button sitting in My Profile. Fired before the modal
+      // closes, not after, so it still feels connected to the payment.
+      setTimeout(() => { if (typeof maybeAutoPromptPushOnPayment === 'function') maybeAutoPromptPushOnPayment(); }, 900);
       setTimeout(() => { closeModal('memberPayment'); if (typeof loadMemberDashboard === 'function') loadMemberDashboard(); }, 1800);
     } else {
       document.getElementById('mp-fail-detail').textContent = status === 'timeout'
@@ -2231,5 +2239,54 @@ async function submitWithdrawalRequest() {
     loadMyPendingWithdrawals();
   } catch(e) {
     toast('Error submitting request: ' + e.message);
+  }
+}
+
+// Updates the Notifications card on My Profile — checks both browser
+// permission state and whether an active subscription is actually saved,
+// since permission can be "granted" while the subscription itself was
+// never created or later expired.
+async function refreshNotificationStatus() {
+  const statusEl = document.getElementById('mp-notif-status');
+  const enableBtn = document.getElementById('mp-notif-enable-btn');
+  const disableBtn = document.getElementById('mp-notif-disable-btn');
+  if (!statusEl) return;
+
+  const permission = getPushPermissionStatus();
+
+  if (permission === 'unsupported') {
+    statusEl.textContent = 'Not supported on this browser/device';
+    statusEl.style.color = 'var(--ink-faint)';
+    if (enableBtn) enableBtn.style.display = 'none';
+    if (disableBtn) disableBtn.style.display = 'none';
+    return;
+  }
+  if (permission === 'denied') {
+    statusEl.textContent = '🔕 Blocked — enable in browser settings';
+    statusEl.style.color = 'var(--danger)';
+    if (enableBtn) enableBtn.style.display = 'none';
+    if (disableBtn) disableBtn.style.display = 'none';
+    return;
+  }
+
+  let hasActiveSubscription = false;
+  try {
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      const sub = await registration.pushManager.getSubscription();
+      hasActiveSubscription = !!sub;
+    }
+  } catch(e) {}
+
+  if (permission === 'granted' && hasActiveSubscription) {
+    statusEl.textContent = '🔔 Enabled on this device';
+    statusEl.style.color = 'var(--teal)';
+    if (enableBtn) enableBtn.style.display = 'none';
+    if (disableBtn) disableBtn.style.display = '';
+  } else {
+    statusEl.textContent = 'Not enabled on this device yet';
+    statusEl.style.color = 'var(--ink-faint)';
+    if (enableBtn) enableBtn.style.display = '';
+    if (disableBtn) disableBtn.style.display = 'none';
   }
 }

@@ -306,6 +306,7 @@ async function loadSABilling() {
   }
 
   if (typeof loadCollectionRequestsQueue === 'function') loadCollectionRequestsQueue();
+  if (typeof loadBroadcastHistory === 'function') loadBroadcastHistory();
 }
 
 async function approvePayment(paymentId, orgId, paymentType, amount) {
@@ -384,9 +385,9 @@ async function loadSASupport() {
   setVal('sp-celcom-partner-id', s.celcom_partner_id||'');
   setVal('sp-celcom-shortcode',  s.celcom_shortcode||'');
   const celcomSaved = document.getElementById('sp-celcom-saved');
-  if (celcomSaved) celcomSaved.style.display = s.celcom_api_key ? 'inline' : 'none';
+  if (celcomSaved) celcomSaved.style.display = s.celcom_api_key_set ? 'inline' : 'none';
   const celcomKeyEl = document.getElementById('sp-celcom-key');
-  if (celcomKeyEl) celcomKeyEl.placeholder = s.celcom_api_key ? '••••• (saved — leave blank to keep)' : 'Celcom API Key';
+  if (celcomKeyEl) celcomKeyEl.placeholder = s.celcom_api_key_set ? '••••• (saved — leave blank to keep)' : 'Celcom API Key';
   // Daraja removed — Fingo + Paystack are the only two payment providers
   // going forward, per Felix's explicit decision. DB columns left in
   // place, inert (same precedent as SMS Leopard/Africa's Talking removal).
@@ -410,7 +411,7 @@ async function loadSASupport() {
   if (psPublicEl) psPublicEl.value = s.paystack_public_key || '';
   setVal('sp-platform-fee-percent', s.platform_fee_percent != null ? s.platform_fee_percent : '0.5');
   setVal('sp-paystack-fee-percent', s.paystack_fee_percent != null ? s.paystack_fee_percent : '1.5');
-  if (s.paystack_secret_key) {
+  if (s.paystack_secret_key_set) {
     const skEl = document.getElementById('sp-paystack-secret-key');
     if (skEl) skEl.placeholder = '(saved — enter new key to update)';
     const savedEl = document.getElementById('sp-paystack-secret-saved');
@@ -421,17 +422,34 @@ async function loadSASupport() {
   // as Paystack's secret key, never populating the actual secret back into
   // the input.
   setVal('sp-fingo-fee-multiplier', s.fingo_fee_multiplier != null ? s.fingo_fee_multiplier : '2.0');
-  if (s.fingo_api_key) {
+  if (s.fingo_api_key_set) {
     const fkEl = document.getElementById('sp-fingo-api-key');
     if (fkEl) fkEl.placeholder = '(saved — enter new key to update)';
     const fkSavedEl = document.getElementById('sp-fingo-key-saved');
     if (fkSavedEl) fkSavedEl.style.display = '';
   }
-  if (s.fingo_webhook_secret) {
+  if (s.fingo_webhook_secret_set) {
     const fsEl = document.getElementById('sp-fingo-webhook-secret');
     if (fsEl) fsEl.placeholder = '(saved — enter new secret to update)';
     const fsSavedEl = document.getElementById('sp-fingo-secret-saved');
     if (fsSavedEl) fsSavedEl.style.display = '';
+  }
+
+  // Push notifications (VAPID) — public key is safe to show as-is (it's
+  // meant to be public), private key follows the same never-render pattern.
+  setVal('sp-vapid-public-key', s.vapid_public_key || '');
+  if (s.vapid_private_key_set) {
+    const vpEl = document.getElementById('sp-vapid-private-key');
+    if (vpEl) vpEl.placeholder = '(saved — enter new key to update)';
+    const vpSavedEl = document.getElementById('sp-vapid-private-saved');
+    if (vpSavedEl) vpSavedEl.style.display = '';
+  }
+  const vapidBadge = document.getElementById('sp-vapid-badge');
+  if (vapidBadge) {
+    const configured = !!(s.vapid_public_key && s.vapid_private_key_set);
+    vapidBadge.textContent = configured ? 'Active' : 'Not configured';
+    vapidBadge.style.background = configured ? '#e8f5e9' : '#f5f5f5';
+    vapidBadge.style.color = configured ? '#2e7d32' : '#999';
   }
 
   // Accordion badges
@@ -478,6 +496,7 @@ async function saveSupportSettings() {
     platform_fee_percent: parseFloat(document.getElementById('sp-platform-fee-percent')?.value) || 0.5,
     paystack_fee_percent: parseFloat(document.getElementById('sp-paystack-fee-percent')?.value) || 1.5,
     fingo_fee_multiplier: parseFloat(document.getElementById('sp-fingo-fee-multiplier')?.value) || 2.0,
+    vapid_public_key: document.getElementById('sp-vapid-public-key')?.value?.trim() || null,
     updated_at:     new Date().toISOString()
   };
   // Only save secret keys if a new one was typed — never overwrite a saved
@@ -488,6 +507,8 @@ async function saveSupportSettings() {
   if (newFingoKey) payload.fingo_api_key = newFingoKey;
   const newFingoSecret = document.getElementById('sp-fingo-webhook-secret')?.value?.trim();
   if (newFingoSecret) payload.fingo_webhook_secret = newFingoSecret;
+  const newVapidPrivate = document.getElementById('sp-vapid-private-key')?.value?.trim();
+  if (newVapidPrivate) payload.vapid_private_key = newVapidPrivate;
 
   const { error } = await sb.from('platform_settings').upsert(payload);
   if (error) { toast('Error: '+error.message); return; }
@@ -944,5 +965,134 @@ async function getActiveProviderConfig(org) {
     return null;
   }
 }
+
+/* ════════════════════════════════════════════════════
+   PUSH NOTIFICATIONS — client-side subscribe flow
+   Additive to SMS, never a replacement — a user without the app or with
+   notifications off simply doesn't get pushed to, and still gets their SMS
+   as before. sw.js's `push` listener already expects exactly the
+   {title, body, url} payload the server-side sender uses — no SW changes
+   needed for this feature.
+════════════════════════════════════════════════════ */
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+// Current status, for UI display — 'unsupported' | 'default' | 'granted' | 'denied'
+function getPushPermissionStatus() {
+  if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+    return 'unsupported';
+  }
+  return Notification.permission; // 'default' | 'granted' | 'denied'
+}
+
+async function subscribeToPushNotifications(silent) {
+  const status = getPushPermissionStatus();
+  if (status === 'unsupported') {
+    if (!silent) toast('Notifications are not supported on this browser/device');
+    return false;
+  }
+  if (status === 'denied') {
+    if (!silent) toast('Notifications are blocked for this site — enable them in your browser settings first');
+    return false;
+  }
+
+  try {
+    const permission = status === 'granted' ? 'granted' : await Notification.requestPermission();
+    if (permission !== 'granted') {
+      // A dismissed (not explicitly blocked) system dialog isn't really an
+      // error worth interrupting an automatic trigger about — the manual
+      // "Enable Notifications" button in My Profile still gives clear
+      // feedback when a real person clicked it on purpose.
+      if (!silent) toast('Notifications permission was not granted');
+      return false;
+    }
+
+    const { data: vapidRow } = await sb.from('platform_settings_public').select('vapid_public_key').maybeSingle();
+    if (!vapidRow?.vapid_public_key) {
+      console.warn('subscribeToPushNotifications: VAPID public key not configured yet');
+      if (!silent) toast('Notifications are not set up yet — try again later');
+      return false;
+    }
+
+    const registration = await navigator.serviceWorker.ready;
+    let subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidRow.vapid_public_key),
+      });
+    }
+
+    const subJson = subscription.toJSON();
+    const { error } = await sb.from('push_subscriptions').upsert({
+      user_id: currentUser.id,
+      endpoint: subJson.endpoint,
+      p256dh: subJson.keys.p256dh,
+      auth_key: subJson.keys.auth,
+      user_agent: navigator.userAgent,
+    }, { onConflict: 'endpoint' });
+
+    if (error) throw new Error(error.message);
+    toast('✓ Notifications enabled');
+    if (typeof refreshNotificationStatus === 'function') refreshNotificationStatus();
+    return true;
+  } catch (e) {
+    console.error('subscribeToPushNotifications error:', e.message);
+    if (!silent) toast('Could not enable notifications: ' + e.message);
+    return false;
+  }
+}
+
+async function unsubscribeFromPushNotifications() {
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    if (subscription) {
+      await sb.from('push_subscriptions').delete().eq('endpoint', subscription.endpoint);
+      await subscription.unsubscribe();
+    }
+    toast('Notifications disabled');
+  } catch (e) {
+    console.error('unsubscribeFromPushNotifications error:', e.message);
+  }
+}
+
+// Automatic prompt triggers — the browser's own "Allow notifications?"
+// dialog can never be silently auto-granted (no site can do that, by
+// design, on any browser), so this is the closest equivalent: ask
+// automatically at the two moments most likely to convert, rather than
+// waiting for someone to find the toggle in My Profile. Only fires while
+// permission is still 'default' (undecided) — once a user has explicitly
+// allowed or blocked it, neither trigger does anything further.
+//
+// Login/app-open trigger: gated with a per-tab-session flag (not
+// permanent) so a dismissed-without-deciding prompt doesn't re-appear on
+// every single page reload within the same visit — it tries again next
+// time the app is freshly opened instead.
+function maybeAutoPromptPushOnLogin() {
+  try {
+    if (getPushPermissionStatus() !== 'default') return;
+    if (sessionStorage.getItem('gy360_push_asked')) return;
+    sessionStorage.setItem('gy360_push_asked', '1');
+    subscribeToPushNotifications(true);
+  } catch(e) { /* sessionStorage can throw in some private-browsing modes — fail silent */ }
+}
+
+// Payment-success trigger: no session gate needed — this only fires once
+// or twice per session naturally, and it's specifically valuable to retry
+// here even if the login-time prompt was dismissed without a decision,
+// since the person has just had a good, trust-building experience with
+// the app (the best moment to ask, per general app-engagement practice).
+function maybeAutoPromptPushOnPayment() {
+  if (getPushPermissionStatus() !== 'default') return;
+  subscribeToPushNotifications(true);
+}
+
 
 

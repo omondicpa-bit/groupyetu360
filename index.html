@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026071607">
+  <link rel="stylesheet" href="style.css?v=2026071608">
 </head>
 <body>
 
@@ -2721,6 +2721,51 @@
         <div id="sa-collection-requests-list"><div class="loading"><div class="spinner"></div>Loading…</div></div>
       </div>
 
+      <!-- Broadcast Composer -->
+      <div class="card" style="margin-bottom:1.25rem">
+        <div class="card-header"><div class="card-title">📢 Broadcast Composer</div><div class="card-sub">Push notifications to all users, selected organisations, or selected members</div></div>
+        <div class="card-body">
+          <div class="form-row single">
+            <div class="form-group"><label class="form-label">Title</label><input class="form-input" id="bc-title" placeholder="e.g. Scheduled Maintenance"/></div>
+          </div>
+          <div class="form-row single">
+            <div class="form-group"><label class="form-label">Message</label><textarea class="form-input" id="bc-body" rows="3" placeholder="Keep it short — this shows as a phone notification"></textarea></div>
+          </div>
+          <div class="form-row single">
+            <div class="form-group"><label class="form-label">Send To</label>
+              <select class="form-select" id="bc-target-type" onchange="toggleBroadcastTargetPicker()">
+                <option value="all">All Users</option>
+                <option value="orgs">Selected Organisations</option>
+                <option value="members">Selected Members</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="bc-orgs-picker" style="display:none;margin-bottom:1rem">
+            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.5rem">Organisations</div>
+            <input class="form-input" placeholder="Search organisations…" oninput="filterBroadcastOrgList(this.value)" style="margin-bottom:.5rem"/>
+            <div id="bc-orgs-list" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:.5rem"></div>
+          </div>
+
+          <div id="bc-members-picker" style="display:none;margin-bottom:1rem">
+            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.5rem">Members</div>
+            <input class="form-input" placeholder="Search members by name…" oninput="filterBroadcastMemberList(this.value)" style="margin-bottom:.5rem"/>
+            <div id="bc-members-list" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:.5rem"></div>
+            <div id="bc-members-selected" style="font-size:.72rem;color:var(--ink-faint);margin-top:.4rem">0 selected</div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:1rem;margin-top:.5rem">
+            <button class="btn btn-primary" onclick="sendBroadcast()">Send Broadcast</button>
+            <span id="bc-status" style="font-size:.78rem;color:var(--ink-faint)"></span>
+          </div>
+
+          <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border)">
+            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.5rem">Recent Broadcasts</div>
+            <div id="bc-history"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+          </div>
+        </div>
+      </div>
+
       <!-- All Subscriptions -->
       <div class="card">
         <div class="card-header"><div class="card-title">📋 All Subscriptions</div></div>
@@ -3015,6 +3060,35 @@
         </div>
       </div>
 
+      <!-- ④c Push Notifications -->
+      <div class="ps-accordion">
+        <div class="ps-accordion-header" onclick="toggleAccordion(this)">
+          <div class="ps-acc-left">
+            <div class="ps-acc-icon" style="background:#fde8e8">🔔</div>
+            <div>
+              <div class="ps-acc-title">Push Notifications</div>
+              <div class="ps-acc-sub">VAPID keys — powers payment alerts and the broadcast composer</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:.75rem">
+            <span class="ps-acc-badge" id="sp-vapid-badge" style="background:#f5f5f5;color:#999">Not configured</span>
+            <span class="ps-acc-chevron">▼</span>
+          </div>
+        </div>
+        <div class="ps-accordion-body">
+          <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:.65rem 1rem;font-size:.75rem;color:var(--ink-soft);margin-bottom:1rem">
+            🔔 Generated once, used platform-wide. Never regenerate these once users have enabled notifications — every existing subscription would silently stop working.
+          </div>
+          <div class="form-row single">
+            <div class="form-group"><label class="form-label">Public Key</label><input class="form-input" id="sp-vapid-public-key" placeholder="Public key (safe to expose)"/></div>
+          </div>
+          <div class="form-row single">
+            <div class="form-group"><label class="form-label">Private Key <span id="sp-vapid-private-saved" style="display:none;color:var(--teal);font-size:.68rem;font-weight:700">✓ SAVED</span></label><input class="form-input" type="password" id="sp-vapid-private-key" placeholder="Private key (enter to update)" autocomplete="new-password"/></div>
+          </div>
+          <div class="ps-save-bar"><button class="btn btn-primary" onclick="saveSupportSettings()">Save Changes</button></div>
+        </div>
+      </div>
+
     </div>
 
     <!-- MY ACCOUNT (all roles) -->
@@ -3218,6 +3292,15 @@
             <div class="card-body">
               <div style="font-family:'Crimson Pro',serif;font-size:2rem;font-weight:700;color:var(--maroon)" id="mp-org-balance">—</div>
               <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.2rem">As of <span id="mp-org-balance-date">—</span></div>
+            </div>
+          </div>
+          <div class="card" style="animation:portalFadeUp .4s ease .4s both">
+            <div class="card-header"><div class="card-title">🔔 Notifications</div></div>
+            <div class="card-body">
+              <div style="font-size:.78rem;color:var(--ink-soft);line-height:1.6;margin-bottom:.85rem">Get instant alerts for payments and group updates on this device, in addition to SMS.</div>
+              <div id="mp-notif-status" style="font-size:.75rem;font-weight:600;margin-bottom:.75rem">Checking status…</div>
+              <button class="btn btn-primary btn-sm" id="mp-notif-enable-btn" onclick="subscribeToPushNotifications().then(refreshNotificationStatus)" style="display:none">Enable Notifications</button>
+              <button class="btn btn-secondary btn-sm" id="mp-notif-disable-btn" onclick="unsubscribeFromPushNotifications().then(refreshNotificationStatus)" style="display:none">Turn Off</button>
             </div>
           </div>
         </div>
@@ -5308,14 +5391,14 @@
 
 
   <!-- GroupYetu360 Scripts — load order matters -->
-  <script src="js/auth.js?v=2026071607"></script>
-  <script src="js/utils.js?v=2026071607"></script>
-  <script src="js/dashboard.js?v=2026071607"></script>
-  <script src="js/members.js?v=2026071607"></script>
-  <script src="js/finance.js?v=2026071607"></script>
-  <script src="js/settings.js?v=2026071607"></script>
-  <script src="js/portal.js?v=2026071607"></script>
-  <script src="js/modules.js?v=2026071607"></script>
+  <script src="js/auth.js?v=2026071608"></script>
+  <script src="js/utils.js?v=2026071608"></script>
+  <script src="js/dashboard.js?v=2026071608"></script>
+  <script src="js/members.js?v=2026071608"></script>
+  <script src="js/finance.js?v=2026071608"></script>
+  <script src="js/settings.js?v=2026071608"></script>
+  <script src="js/portal.js?v=2026071608"></script>
+  <script src="js/modules.js?v=2026071608"></script>
   <script>
     // Bootstrap — runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —
