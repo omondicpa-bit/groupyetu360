@@ -90,9 +90,12 @@ serve(async (req) => {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
-      // target_ids here are members.id — resolve to their linked auth user, if any
-      const { data } = await supabase.from('members').select('user_id').in('id', target_ids).not('user_id', 'is', null);
-      userIds = (data || []).map((r: any) => r.user_id);
+      // target_ids are profiles.id (= real user identity) directly now —
+      // the picker sources from profiles, not members, specifically so one
+      // person in several orgs is one selectable entry, not several. No
+      // lookup needed here, just validate they're real profiles.
+      const { data } = await supabase.from('profiles').select('id').in('id', target_ids);
+      userIds = (data || []).map((r: any) => r.id);
     }
 
     userIds = [...new Set(userIds.filter(Boolean))];

@@ -2933,7 +2933,11 @@ function toggleBroadcastOrgSelection(orgId, checked) {
 }
 
 async function loadBroadcastMemberList() {
-  const { data } = await sb.from('members').select('id,full_name,user_id').not('user_id', 'is', null).order('full_name');
+  // Sourced from profiles, not members — members has one row per org per
+  // person, so anyone in several groups would show up as several separate
+  // checkboxes for the same underlying account. profiles.id IS the real
+  // user identity (= auth.uid()), one row per person, always.
+  const { data } = await sb.from('profiles').select('id,full_name').order('full_name');
   _bcAllMembers = data || [];
   renderBroadcastMemberList('');
 }
@@ -2943,11 +2947,11 @@ function renderBroadcastMemberList(query) {
   if (!el) return;
   const q = query.trim().toLowerCase();
   const matches = _bcAllMembers.filter(m => !q || (m.full_name || '').toLowerCase().includes(q));
-  if (!matches.length) { el.innerHTML = '<div style="padding:.5rem;color:var(--ink-faint);font-size:.78rem">No members found — only members with a linked app account can be selected</div>'; return; }
+  if (!matches.length) { el.innerHTML = '<div style="padding:.5rem;color:var(--ink-faint);font-size:.78rem">No users found</div>'; return; }
   el.innerHTML = matches.slice(0, 50).map(m => `
     <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem 0;font-size:.82rem;cursor:pointer">
       <input type="checkbox" ${_bcSelectedMemberIds.has(m.id) ? 'checked' : ''} onchange="toggleBroadcastMemberSelection('${m.id}', this.checked)"/>
-      ${(m.full_name || 'Member').replace(/</g,'')}
+      ${(m.full_name || 'User').replace(/</g,'')}
     </label>`).join('');
   updateBroadcastMemberCount();
 }
