@@ -1094,5 +1094,113 @@ function maybeAutoPromptPushOnPayment() {
   subscribeToPushNotifications(true);
 }
 
+/* ════════════════════════════════════════════════════
+   NOTIFICATION BELL — workspace picker
+   Persistent, always-visible entry point for notification history and the
+   on/off toggle — separate from the automatic prompts (login/payment) and
+   the My Profile card, all three now coexist: automatic prompts for
+   opt-in, the bell for ongoing control and history, My Profile for anyone
+   who prefers a dedicated settings page.
+════════════════════════════════════════════════════ */
+async function loadNotificationBellBadge() {
+  const badge = document.getElementById('notif-bell-badge');
+  if (!badge || !currentUser?.id) return;
+  try {
+    const { count } = await sb.from('notification_log')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', currentUser.id).eq('read', false);
+    if (count > 0) {
+      badge.textContent = count > 9 ? '9+' : String(count);
+      badge.style.display = 'flex';
+      badge.style.alignItems = 'center';
+      badge.style.justifyContent = 'center';
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch(e) { console.warn('loadNotificationBellBadge:', e.message); }
+
+  // Reflect current permission/subscription state in the toggle
+  const checkbox = document.getElementById('notif-toggle-checkbox');
+  const label = document.getElementById('notif-toggle-label');
+  if (checkbox) {
+    const permission = getPushPermissionStatus();
+    let hasSub = false;
+    try {
+      if ('serviceWorker' in navigator) {
+        const reg = await navigator.serviceWorker.ready;
+        hasSub = !!(await reg.pushManager.getSubscription());
+      }
+    } catch(e) {}
+    const isOn = permission === 'granted' && hasSub;
+    checkbox.checked = isOn;
+    if (label) label.textContent = isOn ? 'On' : 'Off';
+  }
+}
+
+function toggleNotificationPanel() {
+  const panel = document.getElementById('notif-panel');
+  if (!panel) return;
+  const opening = panel.style.display === 'none';
+  panel.style.display = opening ? 'block' : 'none';
+  if (opening) loadNotificationHistory();
+}
+
+async function loadNotificationHistory() {
+  const el = document.getElementById('notif-history-list');
+  if (!el || !currentUser?.id) return;
+  try {
+    const { data } = await sb.from('notification_log')
+      .select('*').eq('user_id', currentUser.id)
+      .order('created_at', { ascending: false }).limit(20);
+
+    if (!data?.length) {
+      el.innerHTML = '<div style="padding:1.5rem 1rem;text-align:center;color:var(--ink-faint,#767676);font-size:.8rem">No notifications yet.</div>';
+    } else {
+      el.innerHTML = data.map(n => `
+        <div style="padding:.75rem 1rem;border-bottom:1px solid var(--border-soft,#e8f0eb);${n.read ? '' : 'background:var(--maroon-pale,#fdf0f3)'}">
+          <div style="font-size:.82rem;font-weight:700;color:var(--ink,#1a1a1a);margin-bottom:.15rem">${(n.title||'').replace(/</g,'')}</div>
+          <div style="font-size:.78rem;color:var(--ink-soft,#3d3d3d);line-height:1.4;margin-bottom:.3rem">${(n.body||'').replace(/</g,'')}</div>
+          <div style="font-size:.68rem;color:var(--ink-faint,#767676)">${timeAgo(n.created_at)}</div>
+        </div>`).join('');
+
+      // Mark visible ones as read now that the panel's actually been opened
+      const unreadIds = data.filter(n => !n.read).map(n => n.id);
+      if (unreadIds.length) {
+        await sb.from('notification_log').update({ read: true }).in('id', unreadIds);
+        loadNotificationBellBadge();
+      }
+    }
+  } catch(e) {
+    el.innerHTML = '<div style="padding:1rem;color:var(--danger,#c0392b);font-size:.78rem">Could not load notifications.</div>';
+  }
+}
+
+async function toggleNotificationsFromBell(checked) {
+  const label = document.getElementById('notif-toggle-label');
+  if (checked) {
+    const ok = await subscribeToPushNotifications();
+    if (label) label.textContent = ok ? 'On' : 'Off';
+    if (!ok) { const cb = document.getElementById('notif-toggle-checkbox'); if (cb) cb.checked = false; }
+  } else {
+    await unsubscribeFromPushNotifications();
+    if (label) label.textContent = 'Off';
+  }
+}
+
+// Small "3h ago" / "2d ago" style relative time — no dependency needed for
+// something this simple.
+function timeAgo(isoString) {
+  const seconds = Math.floor((Date.now() - new Date(isoString).getTime()) / 1000);
+  if (seconds < 60) return 'Just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(isoString).toLocaleDateString();
+}
+
+
 
 

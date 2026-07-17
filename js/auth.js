@@ -1047,6 +1047,8 @@ async function showOrgPicker() {
   const nameEl = document.getElementById('org-picker-user-name');
   if (nameEl) nameEl.textContent = currentProfile?.full_name || currentUser?.email || 'there';
 
+  try { if (typeof loadNotificationBellBadge === 'function') loadNotificationBellBadge(); } catch(e) {}
+
   // Populate left panel stats from platform settings if available
   try {
     const statOrgs = document.getElementById('picker-stat-orgs');

@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026071609">
+  <link rel="stylesheet" href="style.css?v=2026071610">
 </head>
 <body>
 
@@ -4954,8 +4954,30 @@
 
   <!-- RIGHT: Maroon workspace picker -->
   <div class="org-picker-right">
-    <div class="org-picker-welcome">Welcome back,</div>
-    <div class="org-picker-user" id="org-picker-user-name">—</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <div class="org-picker-welcome">Welcome back,</div>
+        <div class="org-picker-user" id="org-picker-user-name">—</div>
+      </div>
+      <div style="position:relative">
+        <button onclick="toggleNotificationPanel()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:50%;width:40px;height:40px;font-size:1.1rem;cursor:pointer;position:relative;color:#fff" title="Notifications">
+          🔔
+          <span id="notif-bell-badge" style="display:none;position:absolute;top:-2px;right:-2px;background:var(--gold,#c49a30);color:#1a1a1a;font-size:.62rem;font-weight:800;border-radius:99px;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 3px">0</span>
+        </button>
+        <div id="notif-panel" style="display:none;position:absolute;top:48px;right:0;width:320px;max-height:420px;background:#fff;border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.25);z-index:100;overflow:hidden;color:var(--ink,#1a1a1a)">
+          <div style="padding:.85rem 1rem;border-bottom:1px solid var(--border,#e0e8e4);display:flex;justify-content:space-between;align-items:center">
+            <strong style="font-size:.85rem">Notifications</strong>
+            <label style="display:flex;align-items:center;gap:.4rem;font-size:.72rem;cursor:pointer">
+              <span id="notif-toggle-label">On</span>
+              <input type="checkbox" id="notif-toggle-checkbox" onchange="toggleNotificationsFromBell(this.checked)"/>
+            </label>
+          </div>
+          <div id="notif-history-list" style="max-height:340px;overflow-y:auto">
+            <div class="loading" style="padding:1.5rem;text-align:center"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="org-picker-label">Choose a workspace</div>
     <div class="org-picker-list" id="org-picker-list">
       <div class="loading" style="padding:1.5rem;text-align:center"><div class="spinner"></div></div>
@@ -4971,7 +4993,10 @@
           <span style="font-size:1.05rem">＋</span> Create a New Group
         </button>
         <div id="picker-create-form" style="display:none;margin-top:.6rem;background:rgba(255,255,255,.06);border-radius:10px;padding:.85rem;border:1px solid rgba(255,255,255,.12)">
-          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.5);margin-bottom:.6rem">Group Details</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
+            <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.5)">Group Details</div>
+            <button onclick="togglePickerCreate()" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:1.1rem;cursor:pointer;line-height:1;padding:0 .2rem" title="Cancel">✕</button>
+          </div>
           <div class="form-group" style="margin-bottom:.5rem">
             <input class="form-input" id="picker-org-name" placeholder="Group / Organisation name *" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:#fff"/>
           </div>
@@ -5017,7 +5042,10 @@
           <span style="font-size:1.05rem">🔑</span> Join with Org Code
         </button>
         <div id="picker-join-form" style="display:none;margin-top:.6rem;background:rgba(255,255,255,.06);border-radius:10px;padding:.85rem;border:1px solid rgba(255,255,255,.12)">
-          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.5);margin-bottom:.6rem">Enter the code shared by your group admin</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
+            <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.5)">Enter the code shared by your group admin</div>
+            <button onclick="togglePickerJoin()" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:1.1rem;cursor:pointer;line-height:1;padding:0 .2rem" title="Cancel">✕</button>
+          </div>
           <input class="form-input" id="picker-org-code" placeholder="e.g. GYTPHA" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:#fff;text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:.5rem"/>
           <div id="picker-join-error" style="font-size:.72rem;color:#f87171;margin-bottom:.4rem;display:none"></div>
           <div id="picker-join-success" style="font-size:.72rem;color:#4ade80;margin-bottom:.4rem;display:none"></div>
@@ -5392,14 +5420,14 @@
 
 
   <!-- GroupYetu360 Scripts — load order matters -->
-  <script src="js/auth.js?v=2026071609"></script>
-  <script src="js/utils.js?v=2026071609"></script>
-  <script src="js/dashboard.js?v=2026071609"></script>
-  <script src="js/members.js?v=2026071609"></script>
-  <script src="js/finance.js?v=2026071609"></script>
-  <script src="js/settings.js?v=2026071609"></script>
-  <script src="js/portal.js?v=2026071609"></script>
-  <script src="js/modules.js?v=2026071609"></script>
+  <script src="js/auth.js?v=2026071610"></script>
+  <script src="js/utils.js?v=2026071610"></script>
+  <script src="js/dashboard.js?v=2026071610"></script>
+  <script src="js/members.js?v=2026071610"></script>
+  <script src="js/finance.js?v=2026071610"></script>
+  <script src="js/settings.js?v=2026071610"></script>
+  <script src="js/portal.js?v=2026071610"></script>
+  <script src="js/modules.js?v=2026071610"></script>
   <script>
     // Bootstrap — runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —

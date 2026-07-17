@@ -18,10 +18,13 @@ interface PushResult { sent: number; failed: number; }
 
 /**
  * Sends a push notification to every subscribed device for the given user
- * IDs. Silently no-ops (returns {sent:0,failed:0}) if VAPID isn't
- * configured yet, or if none of the target users have any subscriptions —
- * push is additive to SMS, never a hard dependency, so a missing config
- * here should never break the calling flow (payment crediting, etc.).
+ * IDs, and always logs it to notification_log for each of them regardless
+ * of whether live push succeeds — that log is what the workspace picker's
+ * bell/history reads from. Live push silently no-ops (returns
+ * {sent:0,failed:0}) if VAPID isn't configured yet, or if none of the
+ * target users have any subscriptions — push is additive to SMS and to the
+ * history log, never a hard dependency, so a missing config here should
+ * never break the calling flow (payment crediting, etc.).
  */
 export async function sendPushNotification(
   supabase: any,
@@ -33,11 +36,23 @@ export async function sendPushNotification(
   const uniqueUserIds = [...new Set((userIds || []).filter(Boolean))];
   if (!uniqueUserIds.length) return { sent: 0, failed: 0 };
 
+  // History is recorded for every targeted user regardless of whether live
+  // push actually goes out — this is what the workspace picker's bell
+  // reads from, and it needs to work even for someone who's never enabled
+  // push, or whose device missed the live notification.
+  try {
+    await supabase.from('notification_log').insert(
+      uniqueUserIds.map(uid => ({ user_id: uid, title, body, url: url || '/' }))
+    );
+  } catch (e: any) {
+    console.error('[Push] notification_log insert failed (non-fatal):', e.message);
+  }
+
   const { data: ps } = await supabase.from('platform_settings')
     .select('vapid_public_key, vapid_private_key, vapid_subject').maybeSingle();
 
   if (!ps?.vapid_public_key || !ps?.vapid_private_key) {
-    console.warn('[Push] VAPID keys not configured — skipping push send');
+    console.warn('[Push] VAPID keys not configured — history logged, live push skipped');
     return { sent: 0, failed: 0 };
   }
 
