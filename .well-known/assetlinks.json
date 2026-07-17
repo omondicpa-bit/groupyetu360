@@ -3,6 +3,9 @@
       "target": {
         "namespace": "android_app",
         "package_name": "com.ephtechnologies.groupyetu360",
-        "sha256_cert_fingerprints": ["08:D1:43:A0:41:E2:EF:0A:53:C2:60:E7:C8:65:0C:D8:E5:74:13:77:0B:CD:0E:1E:B7:1B:CC:EB:5F:3B:18:28"]
+        "sha256_cert_fingerprints": [
+          "08:D1:43:A0:41:E2:EF:0A:53:C2:60:E7:C8:65:0C:D8:E5:74:13:77:0B:CD:0E:1E:B7:1B:CC:EB:5F:3B:18:28",
+          "69:99:6E:48:48:08:6F:38:46:AF:74:E5:7B:63:E9:43:63:C1:C3:FF:E9:6A:4E:93:84:D3:BF:24:EB:F7:C5:47"
+        ]
       }
     }]
