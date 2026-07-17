@@ -2,7 +2,7 @@
   "packageId": "com.ephtechnologies.groupyetu360",
   "host": "app.groupyetu.org.",
   "name": "GroupYetu360",
-  "launcherName": "GY360",
+  "launcherName": "GroupYetu",
   "display": "standalone",
   "themeColor": "#800020",
   "themeColorDark": "#000000",
@@ -21,8 +21,8 @@
     "path": "./signing.keystore",
     "alias": "my-key-alias"
   },
-  "appVersionName": "1.1",
-  "appVersionCode": 5,
+  "appVersionName": "6",
+  "appVersionCode": 7,
   "shortcuts": [
     {
       "name": "Dashboard",
@@ -63,5 +63,5 @@
   "fileHandlers": [],
   "launchHandlerClientMode": "",
   "displayOverride": [],
-  "appVersion": "1.1"
+  "appVersion": "6"
 }

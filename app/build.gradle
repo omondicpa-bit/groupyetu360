@@ -25,7 +25,7 @@ def twaManifest = [
     hostName: 'app.groupyetu.org.', // The domain being opened in the TWA.
     launchUrl: '/', // The start path for the TWA. Must be relative to the domain.
     name: 'GroupYetu360', // The application name.
-    launcherName: 'GY360', // The name shown on the Android Launcher.
+    launcherName: 'GroupYetu', // The name shown on the Android Launcher.
     themeColor: '#800020', // The color used for the status bar.
     themeColorDark: '#000000', // The color used for the dark status bar.
     navigationColor: '#000000', // The color used for the navigation bar.
@@ -57,8 +57,8 @@ android {
         applicationId "com.ephtechnologies.groupyetu360"
         minSdkVersion 21
         targetSdkVersion 35
-        versionCode 5
-        versionName "1.1"
+        versionCode 7
+        versionName "6"
 
         // The name for the application
         resValue "string", "appName", twaManifest.name
