@@ -922,6 +922,16 @@ function showModal(id) {
   el.classList.add('open');
   if (id==='recordPayment'||id==='addMember'||id==='welfareEvent') populateSelects();
   if (id==='memberPayment') openMemberPaymentModal();
+  if (id==='welfareEvent') {
+    // Reset payout destination back to default each time this opens fresh —
+    // otherwise a previous event's "Pay Directly" selection and recipient
+    // details would silently carry over into the next one.
+    document.querySelectorAll('#wel-payout-seg .seg-opt').forEach(o=>o.classList.remove('active'));
+    document.querySelector('#wel-payout-seg .seg-opt[data-val="group_platform"]')?.classList.add('active');
+    const hidden = document.getElementById('wel-payout-type'); if (hidden) hidden.value = 'group_platform';
+    const directFields = document.getElementById('wel-direct-payout-fields'); if (directFields) directFields.style.display = 'none';
+    ['wel-recipient-name','wel-recipient-phone','wel-recipient-bank-name','wel-recipient-bank-account'].forEach(fid => { const f = document.getElementById(fid); if (f) f.value = ''; });
+  }
 }
 function closeModal(id) { document.getElementById('modal-'+id)?.classList.remove('open'); }
 document.addEventListener('DOMContentLoaded', () => {
@@ -3073,6 +3083,11 @@ async function loadBroadcastHistory() {
 // amount refreshed (in case more transactions landed for that date since
 // the last sync), and genuinely new (org, provider, date, line) combos
 // get created fresh.
+// Auto-batches REGULAR contributions only — welfare is deliberately
+// excluded here. Welfare events can run for days, so daily auto-batching
+// doesn't make sense for them; they're only turned into a settlement_batch
+// when the admin explicitly clicks "Request Settlement" on that specific
+// event (see requestWelfareSettlement() below).
 async function syncSettlementBatches() {
   const since = new Date(); since.setDate(since.getDate() - 60);
   const sinceStr = since.toISOString().split('T')[0];
@@ -3090,30 +3105,31 @@ async function syncSettlementBatches() {
     let allocs = [];
     try { allocs = JSON.parse(row.allocations || '[]'); } catch(e) { continue; }
     for (const a of allocs) {
-      const lineType = a.isWelfare ? 'welfare' : 'regular';
-      const key = `${row.org_id}|${row.provider}|${row.payment_date}|${lineType}`;
+      if (a.isWelfare) continue; // welfare handled entirely separately, on request
+      const key = `${row.org_id}|${row.provider}|${row.payment_date}`;
       groups[key] = (groups[key] || 0) + Number(a.amount || 0);
     }
   }
 
   const { data: existing } = await sb.from('settlement_batches')
-    .select('org_id,provider,settlement_date,line_type,status,amount')
+    .select('org_id,provider,settlement_date,status,amount')
+    .eq('line_type', 'regular')
     .gte('settlement_date', sinceStr);
   const existingMap = {};
   (existing || []).forEach(b => {
-    existingMap[`${b.org_id}|${b.provider}|${b.settlement_date}|${b.line_type}`] = b;
+    existingMap[`${b.org_id}|${b.provider}|${b.settlement_date}`] = b;
   });
 
   const toInsert = [];
   const toUpdate = [];
   for (const [key, amount] of Object.entries(groups)) {
-    const [org_id, provider, settlement_date, line_type] = key.split('|');
+    const [org_id, provider, settlement_date] = key.split('|');
     const roundedAmount = Math.round(amount * 100) / 100;
     const existingBatch = existingMap[key];
     if (!existingBatch) {
-      toInsert.push({ org_id, provider, settlement_date, line_type, amount: roundedAmount });
+      toInsert.push({ org_id, provider, settlement_date, line_type: 'regular', amount: roundedAmount });
     } else if (existingBatch.status === 'pending' && Number(existingBatch.amount) !== roundedAmount) {
-      toUpdate.push({ org_id, provider, settlement_date, line_type, amount: roundedAmount });
+      toUpdate.push({ org_id, provider, settlement_date, amount: roundedAmount });
     }
   }
 
@@ -3124,7 +3140,7 @@ async function syncSettlementBatches() {
   for (const u of toUpdate) {
     await sb.from('settlement_batches').update({ amount: u.amount })
       .eq('org_id', u.org_id).eq('provider', u.provider)
-      .eq('settlement_date', u.settlement_date).eq('line_type', u.line_type);
+      .eq('settlement_date', u.settlement_date).eq('line_type', 'regular');
   }
   console.log(`syncSettlementBatches: ${toInsert.length} new, ${toUpdate.length} refreshed`);
 }
@@ -3141,7 +3157,7 @@ async function loadSASettlements() {
 
     const since = new Date(); since.setDate(since.getDate() - 60);
     const { data: batches } = await sb.from('settlement_batches')
-      .select('*, organisations(name)')
+      .select('*, organisations(name), welfare_events(event_type)')
       .gte('settlement_date', since.toISOString().split('T')[0])
       .order('settlement_date', { ascending: false });
 
@@ -3176,7 +3192,7 @@ async function loadSASettlements() {
             <div style="display:flex;align-items:center;gap:.6rem;min-width:180px">
               <span style="font-weight:600;font-size:.82rem">${(b.organisations?.name || 'Unknown').replace(/</g,'')}</span>
             </div>
-            <div style="display:flex;align-items:center;gap:.5rem">${providerBadge(b.provider)}<span style="font-size:.76rem;color:var(--ink-soft);text-transform:capitalize">${b.line_type}</span></div>
+            <div style="display:flex;align-items:center;gap:.5rem">${providerBadge(b.provider)}<span style="font-size:.76rem;color:var(--ink-soft)">${b.welfare_event_id ? '♡ ' + (b.welfare_events?.event_type || 'Welfare Event').replace(/</g,'') : 'Regular'}</span></div>
             <div style="display:flex;align-items:center;gap:1rem;margin-left:auto">
               <div style="font-weight:700;font-size:.9rem;font-variant-numeric:tabular-nums">Ksh ${Number(b.amount).toLocaleString()}</div>
               ${settlementStatusPill(b.status)}
@@ -3191,14 +3207,72 @@ async function loadSASettlements() {
   }
 }
 
-function openMarkPaidForm(batchId) {
-  const method = prompt('Payout method — type "bank" or "mpesa":', 'mpesa');
-  if (!method || !['bank','mpesa'].includes(method.trim().toLowerCase())) { toast('Enter bank or mpesa'); return; }
-  const reference = prompt('Payment reference (optional):') || '';
-  markSettlementBatchPaid(batchId, method.trim().toLowerCase(), reference);
+let _mspCurrentBatch = null;
+
+async function openMarkPaidForm(batchId) {
+  const { data: batch, error } = await sb.from('settlement_batches')
+    .select('*, organisations(name, disbursement_method, disbursement_bank_name, disbursement_bank_account_number, disbursement_bank_account_name, disbursement_mpesa_number)')
+    .eq('id', batchId).single();
+  if (error || !batch) { toast('Could not load batch: ' + (error?.message || 'not found')); return; }
+  _mspCurrentBatch = batch;
+
+  const summaryEl = document.getElementById('msp-summary');
+  if (summaryEl) {
+    summaryEl.innerHTML = `
+      <div style="font-weight:700;margin-bottom:.2rem">${(batch.organisations?.name||'Organisation').replace(/</g,'')}</div>
+      <div style="color:var(--ink-faint)">${batch.provider} · ${batch.line_type} · ${batch.welfare_event_id ? 'Welfare event' : new Date(batch.settlement_date).toLocaleDateString()}</div>
+      <div style="font-weight:700;font-size:1.2rem;margin-top:.4rem;font-family:'Crimson Pro',serif">Ksh ${Number(batch.amount).toLocaleString()}</div>`;
+  }
+
+  // Destination: welfare batches routed 'direct' use their own recipient
+  // snapshot (captured at request time — see requestWelfareSettlement);
+  // everything else uses the org's normal disbursement details.
+  const destEl = document.getElementById('msp-destination');
+  const org = batch.organisations || {};
+  let destHtml = '';
+  if (batch.payout_destination_type === 'direct' && batch.payout_destination_snapshot) {
+    const snap = batch.payout_destination_snapshot;
+    destHtml = `<div style="font-weight:700;margin-bottom:.2rem">→ Direct to: ${(snap.recipient_name||'—').replace(/</g,'')}</div>
+      <div>${snap.recipient_phone ? 'Phone: ' + snap.recipient_phone : ''}${snap.recipient_bank_name ? '<br>Bank: ' + snap.recipient_bank_name + ' · ' + (snap.recipient_bank_account||'') : ''}</div>`;
+  } else if (org.disbursement_method === 'bank') {
+    destHtml = `<div style="font-weight:700;margin-bottom:.2rem">→ Group's Bank Account</div><div>${org.disbursement_bank_name||'—'} · ${org.disbursement_bank_account_number||'—'} (${org.disbursement_bank_account_name||'—'})</div>`;
+  } else if (org.disbursement_method === 'mpesa') {
+    destHtml = `<div style="font-weight:700;margin-bottom:.2rem">→ Group's M-Pesa</div><div>${org.disbursement_mpesa_number||'—'}</div>`;
+  } else {
+    destHtml = `<div style="color:var(--danger)">⚠ No disbursement details on file for this org — check before paying out.</div>`;
+  }
+  if (destEl) destEl.innerHTML = destHtml;
+
+  const methodEl = document.getElementById('msp-method');
+  if (methodEl) methodEl.value = (batch.payout_destination_type === 'direct' ? (batch.payout_destination_snapshot?.recipient_bank_account ? 'bank' : 'mpesa') : org.disbursement_method) || 'mpesa';
+  const dateEl = document.getElementById('msp-date');
+  if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+  document.getElementById('msp-reference').value = '';
+  document.getElementById('msp-notes').value = '';
+
+  showModal('markSettlementPaid');
 }
 
-async function markSettlementBatchPaid(batchId, method, reference) {
+async function confirmMarkSettlementPaid() {
+  if (!_mspCurrentBatch) return;
+  const method = document.getElementById('msp-method')?.value || 'mpesa';
+  const date = document.getElementById('msp-date')?.value;
+  const reference = document.getElementById('msp-reference')?.value?.trim();
+  const notes = document.getElementById('msp-notes')?.value?.trim();
+  if (!reference) { toast('Enter a payout reference'); return; }
+
+  await markSettlementBatchPaid(_mspCurrentBatch.id, method, reference, date, notes);
+  closeModal('markSettlementPaid');
+  _mspCurrentBatch = null;
+}
+
+// Records that a settlement was paid out — deliberately NEVER touches the
+// org's own bank_balance/contribution records. Settlement is EPH's own
+// internal bookkeeping of money collected on the group's behalf that needs
+// disbursing; the group's own balance only ever moves because the system
+// credited a real contribution or an admin recorded something manually —
+// never because of what happens on this side of the ledger.
+async function markSettlementBatchPaid(batchId, method, reference, date, notes) {
   try {
     const { data: batch, error: fetchErr } = await sb.from('settlement_batches').select('*').eq('id', batchId).single();
     if (fetchErr || !batch) throw new Error(fetchErr?.message || 'Batch not found');
@@ -3206,20 +3280,12 @@ async function markSettlementBatchPaid(batchId, method, reference) {
 
     const { error: updateErr } = await sb.from('settlement_batches').update({
       status: 'paid', paid_at: new Date().toISOString(), paid_by: currentUser.id,
-      payout_method: method, payout_reference: reference || null,
+      payout_method: method, payout_reference: reference || null, notes: notes || null,
     }).eq('id', batchId);
     if (updateErr) throw new Error(updateErr.message);
 
-    if (batch.line_type === 'regular') {
-      const { error: bbErr } = await sb.rpc('update_bank_balance', {
-        p_org_id: batch.org_id, p_amount: batch.amount, p_direction: 'debit',
-        p_date: new Date().toISOString().split('T')[0],
-      });
-      if (bbErr) console.warn('update_bank_balance error (settlement still marked paid):', bbErr.message);
-    }
-
-    try { logActivity('SETTLEMENT PAID', `${batch.provider} · ${batch.line_type} · Ksh ${Number(batch.amount).toLocaleString()} for ${batch.settlement_date}`, 'org', batch.org_id); } catch(e) {}
-    toast('✓ Settlement marked paid');
+    try { logActivity('SETTLEMENT PAID', `${batch.provider} · ${batch.line_type} · Ksh ${Number(batch.amount).toLocaleString()} · ref ${reference}`, 'org', batch.org_id); } catch(e) {}
+    toast('✓ Settlement recorded as paid');
     if (typeof loadSASettlements === 'function') loadSASettlements();
   } catch(e) {
     toast('Error marking paid: ' + e.message);
@@ -3297,6 +3363,63 @@ function providerBadge(provider) {
   return `<span style="background:${bg};color:${fg};font-size:.68rem;font-weight:700;text-transform:capitalize;padding:.22rem .55rem;border-radius:6px">${provider}</span>`;
 }
 
+// Turns a welfare event's collected-so-far total into an actual
+// settlement_batches row — only ever happens on explicit admin request,
+// never automatically. Groups by provider (an event running for days
+// could plausibly have collected via more than one, if the org switched
+// providers mid-event), and snapshots the payout destination from the
+// welfare event's own settings at the moment of request — so a later
+// edit to those recipient details never silently rewrites a settlement
+// that's already been requested.
+async function requestWelfareSettlement(welfareEventId) {
+  if (!currentOrg?.id) return;
+  try {
+    const { data: event, error: evErr } = await sb.from('welfare_events')
+      .select('*').eq('id', welfareEventId).single();
+    if (evErr || !event) throw new Error(evErr?.message || 'Welfare event not found');
+
+    const { data: rows } = await sb.from('payment_requests')
+      .select('provider, allocations')
+      .eq('org_id', currentOrg.id).in('provider', ['sasapay','fingo'])
+      .eq('status', 'approved').eq('payment_type', 'member_contribution');
+
+    const byProvider = {};
+    for (const row of rows || []) {
+      let allocs = [];
+      try { allocs = JSON.parse(row.allocations || '[]'); } catch(e) { continue; }
+      for (const a of allocs) {
+        if (!a.isWelfare || a.eventId !== welfareEventId) continue;
+        byProvider[row.provider] = (byProvider[row.provider] || 0) + Number(a.amount || 0);
+      }
+    }
+
+    const providers = Object.keys(byProvider).filter(p => byProvider[p] > 0);
+    if (!providers.length) { toast('No collected welfare amount found for this event'); return; }
+
+    const snapshot = event.payout_type === 'direct' ? {
+      recipient_name: event.recipient_name, recipient_phone: event.recipient_phone,
+      recipient_bank_name: event.recipient_bank_name, recipient_bank_account: event.recipient_bank_account,
+    } : null;
+
+    const rowsToInsert = providers.map(provider => ({
+      org_id: currentOrg.id, provider, settlement_date: new Date().toISOString().split('T')[0],
+      line_type: 'welfare', amount: Math.round(byProvider[provider] * 100) / 100,
+      welfare_event_id: welfareEventId, requested_at: new Date().toISOString(), requested_by: currentUser.id,
+      payout_destination_type: event.payout_type || 'group_platform',
+      payout_destination_snapshot: snapshot,
+    }));
+
+    const { error: insErr } = await sb.from('settlement_batches').insert(rowsToInsert);
+    if (insErr) throw new Error(insErr.message);
+
+    try { logActivity('WELFARE SETTLEMENT REQUESTED', `${event.event_type} — Ksh ${providers.reduce((s,p)=>s+byProvider[p],0).toLocaleString()}`, 'welfare', welfareEventId); } catch(e) {}
+    toast('✓ Settlement requested — funds will be sent within 24 hours');
+    if (typeof loadOrgSettlements === 'function') loadOrgSettlements();
+  } catch(e) {
+    toast('Error requesting settlement: ' + e.message);
+  }
+}
+
 async function loadOrgSettlements() {
   const el = document.getElementById('org-settlements-list');
   if (!el || !currentOrg?.id) return;
@@ -3305,7 +3428,7 @@ async function loadOrgSettlements() {
   try {
     const since = new Date(); since.setDate(since.getDate() - 60);
     const { data: batches } = await sb.from('settlement_batches')
-      .select('*')
+      .select('*, welfare_events(event_type)')
       .eq('org_id', currentOrg.id)
       .gte('settlement_date', since.toISOString().split('T')[0])
       .order('settlement_date', { ascending: false });
@@ -3327,15 +3450,54 @@ async function loadOrgSettlements() {
     setStat('settle-stat-paid', paidThisMonth);
     setStat('settle-stat-welfare', pendingWelfare);
 
+    const byDate = {};
+    (batches || []).forEach(b => { (byDate[b.settlement_date] = byDate[b.settlement_date] || []).push(b); });
+
+    // Unrequested welfare — events with real money collected that haven't
+    // had settlement requested yet. Never auto-batched; this is purely
+    // informational until the admin clicks Request Settlement.
+    const alreadyRequestedEventIds = new Set((batches || []).filter(b => b.welfare_event_id).map(b => b.welfare_event_id));
+    let unrequestedHtml = '';
+    try {
+      const { data: welfareEvents } = await sb.from('welfare_events').select('id, event_type, event_date').eq('org_id', currentOrg.id);
+      const { data: contribRows } = await sb.from('payment_requests')
+        .select('provider, allocations')
+        .eq('org_id', currentOrg.id).in('provider', ['sasapay','fingo'])
+        .eq('status', 'approved').eq('payment_type', 'member_contribution');
+
+      const collectedByEvent = {};
+      for (const row of contribRows || []) {
+        let allocs = [];
+        try { allocs = JSON.parse(row.allocations || '[]'); } catch(e) { continue; }
+        for (const a of allocs) {
+          if (!a.isWelfare || !a.eventId) continue;
+          collectedByEvent[a.eventId] = (collectedByEvent[a.eventId] || 0) + Number(a.amount || 0);
+        }
+      }
+
+      const unrequested = (welfareEvents || []).filter(ev => collectedByEvent[ev.id] > 0 && !alreadyRequestedEventIds.has(ev.id));
+      if (unrequested.length) {
+        unrequestedHtml = `
+        <div class="card" style="margin-bottom:1.25rem;border:1px solid var(--gold,#c49a30);overflow:hidden">
+          <div style="background:#fff9e6;padding:.7rem 1.25rem;font-weight:700;font-size:.82rem;color:#7a5c00">🔔 Welfare Collections Not Yet Requested</div>
+          ${unrequested.map((ev, i) => `
+            <div style="padding:.85rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;${i < unrequested.length-1 ? 'border-bottom:1px solid var(--border-soft)' : ''}">
+              <div>
+                <div style="font-weight:600;font-size:.85rem">${(ev.event_type||'Welfare Event').replace(/</g,'')}</div>
+                <div style="font-size:.72rem;color:var(--ink-faint)">Ksh ${collectedByEvent[ev.id].toLocaleString()} collected so far</div>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="requestWelfareSettlement('${ev.id}')">Request Settlement</button>
+            </div>`).join('')}
+        </div>`;
+      }
+    } catch(e) { console.warn('Unrequested welfare check failed:', e.message); }
+
     if (!batches?.length) {
-      el.innerHTML = '<div class="card" style="padding:2.5rem;text-align:center;color:var(--ink-faint);font-size:.85rem">No settlements yet for this group.</div>';
+      el.innerHTML = unrequestedHtml || '<div class="card" style="padding:2.5rem;text-align:center;color:var(--ink-faint);font-size:.85rem">No settlements yet for this group.</div>';
       return;
     }
 
-    const byDate = {};
-    batches.forEach(b => { (byDate[b.settlement_date] = byDate[b.settlement_date] || []).push(b); });
-
-    el.innerHTML = Object.entries(byDate).map(([date, dayBatches]) => `
+    el.innerHTML = unrequestedHtml + Object.entries(byDate).map(([date, dayBatches]) => `
       <div class="card" style="margin-bottom:1rem;overflow:hidden;padding:0">
         <div style="padding:.85rem 1.25rem;border-bottom:1px solid var(--border-soft);display:flex;justify-content:space-between;align-items:center">
           <div style="font-weight:700;font-size:.88rem;font-family:'Crimson Pro',serif">${new Date(date).toLocaleDateString('en-KE', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
@@ -3344,7 +3506,7 @@ async function loadOrgSettlements() {
           <div style="padding:.85rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;${i < dayBatches.length-1 ? 'border-bottom:1px solid var(--border-soft)' : ''}">
             <div style="display:flex;align-items:center;gap:.6rem">
               ${providerBadge(b.provider)}
-              <span style="font-size:.78rem;color:var(--ink-soft);text-transform:capitalize">${b.line_type}</span>
+              <span style="font-size:.78rem;color:var(--ink-soft)">${b.welfare_event_id ? '♡ ' + (b.welfare_events?.event_type || 'Welfare Event').replace(/</g,'') : 'Regular'}</span>
             </div>
             <div style="display:flex;align-items:center;gap:1rem">
               <div style="font-weight:700;font-size:.92rem;font-variant-numeric:tabular-nums">Ksh ${Number(b.amount).toLocaleString()}</div>

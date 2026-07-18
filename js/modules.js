@@ -611,6 +611,11 @@ async function saveWelfareEvent() {
     if (found) eventTypeName = found.name;
   }
 
+  const payoutType = document.getElementById('wel-payout-type')?.value || 'group_platform';
+  if (payoutType === 'direct' && !document.getElementById('wel-recipient-name')?.value?.trim()) {
+    toast('Enter the recipient\'s name, or switch back to Group Payment Platform'); return;
+  }
+
   const payload = {
     org_id: currentOrg.id,
     affected_member_id: memberId,
@@ -618,13 +623,30 @@ async function saveWelfareEvent() {
     welfare_type_id: typeVal === '__custom__' ? null : typeVal,
     contribution_per_member: amount,
     event_date: document.getElementById('wel-date').value || null,
-    notes: document.getElementById('wel-notes').value.trim() || null
+    notes: document.getElementById('wel-notes').value.trim() || null,
+    payout_type: payoutType,
+    recipient_name: payoutType === 'direct' ? document.getElementById('wel-recipient-name')?.value?.trim() || null : null,
+    recipient_phone: payoutType === 'direct' ? document.getElementById('wel-recipient-phone')?.value?.trim() || null : null,
+    recipient_bank_name: payoutType === 'direct' ? document.getElementById('wel-recipient-bank-name')?.value?.trim() || null : null,
+    recipient_bank_account: payoutType === 'direct' ? document.getElementById('wel-recipient-bank-account')?.value?.trim() || null : null,
   };
   const { error } = await sb.from('welfare_events').insert(payload);
   if (error) { toast('Error: ' + error.message); return; }
   toast('✓ Welfare event created');
   closeModal('welfareEvent');
   loadWelfare();
+}
+
+// Settlement payout destination toggle — mirrors toggleWelfareScope's
+// pattern exactly (same seg-ctrl component).
+function toggleWelfarePayout(el) {
+  document.querySelectorAll('#wel-payout-seg .seg-opt').forEach(o=>o.classList.remove('active'));
+  el.classList.add('active');
+  const val = el.dataset.val;
+  const hidden = document.getElementById('wel-payout-type');
+  if (hidden) hidden.value = val;
+  const directFields = document.getElementById('wel-direct-payout-fields');
+  if (directFields) directFields.style.display = val === 'direct' ? 'block' : 'none';
 }
 
 function onWelfareTypeChange(val) {

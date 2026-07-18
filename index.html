@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026071615">
+  <link rel="stylesheet" href="style.css?v=2026071616">
 </head>
 <body>
 
@@ -3958,6 +3958,35 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-markSettlementPaid">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title">Record Settlement Payout</div>
+      <button class="modal-close" onclick="closeModal('markSettlementPaid')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="msp-summary" style="background:var(--surface-2);border-radius:8px;padding:.85rem 1rem;margin-bottom:1rem;font-size:.82rem"></div>
+      <div id="msp-destination" style="background:var(--maroon-pale,#fdf0f3);border-radius:8px;padding:.85rem 1rem;margin-bottom:1rem;font-size:.8rem"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Payout Method</label>
+          <select class="form-select" id="msp-method">
+            <option value="mpesa">M-Pesa</option>
+            <option value="bank">Bank Transfer</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Payout Date</label><input class="form-input" type="date" id="msp-date"/></div>
+      </div>
+      <div class="form-group"><label class="form-label">Reference</label><input class="form-input" id="msp-reference" placeholder="M-Pesa code or bank transaction ref"/></div>
+      <div class="form-group"><label class="form-label">Notes (optional)</label><input class="form-input" id="msp-notes" placeholder="Optional"/></div>
+      <div style="font-size:.7rem;color:var(--ink-faint);line-height:1.5">This records a payout made outside the app — it doesn't move money itself. It's structured this way deliberately, so a future direct-API payout can populate the same fields automatically.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('markSettlementPaid')">Cancel</button>
+      <button class="btn btn-primary" id="msp-confirm-btn" onclick="confirmMarkSettlementPaid()">Confirm Payout</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-settlementDetails">
   <div class="modal" style="max-width:640px">
     <div class="modal-header">
@@ -4090,6 +4119,27 @@
       <div class="form-group">
         <label class="form-label">Notes</label>
         <textarea class="form-textarea" id="wel-notes" placeholder="Any context about this event…" style="min-height:70px;resize:vertical"></textarea>
+      </div>
+
+      <!-- Settlement payout destination -->
+      <div class="form-group">
+        <label class="form-label">Settlement Payout Destination</label>
+        <div class="seg-ctrl" id="wel-payout-seg">
+          <div class="seg-opt active" data-val="group_platform" onclick="toggleWelfarePayout(this)">Group Payment Platform</div>
+          <div class="seg-opt" data-val="direct" onclick="toggleWelfarePayout(this)">Pay Directly</div>
+        </div>
+        <input type="hidden" id="wel-payout-type" value="group_platform"/>
+        <div class="field-hint">When this event's welfare settlement is requested, funds are sent here instead of the group's usual account.</div>
+      </div>
+      <div id="wel-direct-payout-fields" style="display:none">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Recipient Name</label><input class="form-input" id="wel-recipient-name" placeholder="e.g. Jane Doe, Welfare Treasurer"/></div>
+          <div class="form-group"><label class="form-label">Phone (M-Pesa)</label><input class="form-input" id="wel-recipient-phone" placeholder="07xxxxxxxx"/></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Bank Name (optional)</label><input class="form-input" id="wel-recipient-bank-name" placeholder="Optional"/></div>
+          <div class="form-group"><label class="form-label">Bank Account (optional)</label><input class="form-input" id="wel-recipient-bank-account" placeholder="Optional"/></div>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -5566,14 +5616,14 @@
 
 
   <!-- GroupYetu360 Scripts — load order matters -->
-  <script src="js/auth.js?v=2026071615"></script>
-  <script src="js/utils.js?v=2026071615"></script>
-  <script src="js/dashboard.js?v=2026071615"></script>
-  <script src="js/members.js?v=2026071615"></script>
-  <script src="js/finance.js?v=2026071615"></script>
-  <script src="js/settings.js?v=2026071615"></script>
-  <script src="js/portal.js?v=2026071615"></script>
-  <script src="js/modules.js?v=2026071615"></script>
+  <script src="js/auth.js?v=2026071616"></script>
+  <script src="js/utils.js?v=2026071616"></script>
+  <script src="js/dashboard.js?v=2026071616"></script>
+  <script src="js/members.js?v=2026071616"></script>
+  <script src="js/finance.js?v=2026071616"></script>
+  <script src="js/settings.js?v=2026071616"></script>
+  <script src="js/portal.js?v=2026071616"></script>
+  <script src="js/modules.js?v=2026071616"></script>
   <script>
     // Bootstrap — runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —
