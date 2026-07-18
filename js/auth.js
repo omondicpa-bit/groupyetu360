@@ -1061,6 +1061,17 @@ async function showOrgPicker() {
   const nameEl = document.getElementById('org-picker-user-name');
   if (nameEl) nameEl.textContent = currentProfile?.full_name || currentUser?.email || 'there';
 
+  // Phone number is now load-bearing for real features — SMS confirmations,
+  // and specifically MGR settlement payouts route directly to a receiver's
+  // account phone. Google sign-in never collects one (regular email/
+  // password signup requires it, Google OAuth doesn't ask at all), so
+  // this is the actual gap being closed here, though the check applies to
+  // anyone missing a phone regardless of how they signed up. Auto-opens
+  // the EXISTING account panel rather than building new UI for this.
+  if (currentProfile && !currentProfile.phone) {
+    try { await showPickerMyAccount(); } catch(e) {}
+  }
+
   try { if (typeof loadNotificationBellBadge === 'function') loadNotificationBellBadge(); } catch(e) {}
 
   // Populate left panel stats from platform settings if available
@@ -1564,6 +1575,11 @@ async function showPickerMyAccount() {
   document.getElementById('picker-full-name').value = currentProfile?.full_name || '';
   document.getElementById('picker-phone').value = currentProfile?.phone || '';
   document.getElementById('picker-email').value = currentUser?.email || '';
+  // Banner reflects live status every time this opens — correct whether
+  // it was auto-triggered (missing phone) or opened manually later once a
+  // phone's already on file.
+  const phoneBanner = document.getElementById('picker-phone-required-banner');
+  if (phoneBanner) phoneBanner.style.display = currentProfile?.phone ? 'none' : 'block';
   // Show 2FA toggle only for admin/treasurer roles
   const twoFaRow = document.getElementById('picker-2fa-row');
   const isElevated = ['admin','treasurer','superadmin'].includes(currentProfile?.role);
