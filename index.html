@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026071610">
+  <link rel="stylesheet" href="style.css?v=2026071611">
 </head>
 <body>
 
@@ -3061,6 +3061,53 @@
         </div>
       </div>
 
+      <!-- ④c2 SasaPay — pooled wallet, also handles subscription/SMS billing -->
+      <div class="ps-accordion">
+        <div class="ps-accordion-header" onclick="toggleAccordion(this)">
+          <div class="ps-acc-left">
+            <div class="ps-acc-icon" style="background:#e8f0fd">🔵</div>
+            <div>
+              <div class="ps-acc-title">SasaPay</div>
+              <div class="ps-acc-sub">Pooled-wallet member contributions (no per-org sub-accounts) + optional platform billing</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:.75rem">
+            <span class="ps-acc-chevron">▼</span>
+          </div>
+        </div>
+        <div class="ps-accordion-body">
+          <div style="background:#fdecea;border:1px solid #f5b3ac;border-radius:6px;padding:.75rem 1rem;font-size:.75rem;color:#7a2018;margin-bottom:1.25rem;line-height:1.6">
+            ⚠️ SasaPay has no signature verification confirmed working yet — the webhook currently logs signature match/mismatch without blocking on it, relying on an amount cross-check as the enforced safety net. Check the webhook logs after your first live test to confirm the signature is matching before this gets tightened.
+          </div>
+          <div class="ps-section-label">API Credentials</div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Client ID <span id="sp-sasapay-client-saved" style="display:none;color:var(--teal);font-size:.68rem;font-weight:700">✓ SAVED</span></label><input class="form-input" type="password" id="sp-sasapay-client-id" placeholder="Client ID (enter to update)" autocomplete="new-password"/></div>
+            <div class="form-group"><label class="form-label">Client Secret <span id="sp-sasapay-secret-saved" style="display:none;color:var(--teal);font-size:.68rem;font-weight:700">✓ SAVED</span></label><input class="form-input" type="password" id="sp-sasapay-client-secret" placeholder="Client Secret (enter to update)" autocomplete="new-password"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Merchant Code</label><input class="form-input" id="sp-sasapay-merchant-code" placeholder="e.g. 16213"/></div>
+            <div class="form-group"><label class="form-label">API Base URL</label><input class="form-input" id="sp-sasapay-base-url" placeholder="https://api.sasapay.app"/></div>
+          </div>
+          <div class="ps-section-label">Platform Billing</div>
+          <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:.65rem 1rem;font-size:.75rem;color:var(--ink-soft);margin-bottom:1rem">
+            ℹ️ Which provider handles subscription and SMS bundle payments platform-wide (separate from member contributions, which are set per-org on each org's Details tab).
+          </div>
+          <div class="form-row single">
+            <div class="form-group"><label class="form-label">Subscription/SMS Billing Provider</label>
+              <select class="form-select" id="sp-subscription-provider">
+                <option value="paystack">Paystack</option>
+                <option value="sasapay">SasaPay</option>
+              </select>
+            </div>
+          </div>
+          <div style="background:#fff9e6;border:1px solid #e6c94a;border-radius:6px;padding:.75rem 1rem;font-size:.75rem;margin-top:.5rem">
+            <div style="font-weight:700;color:#7a5c00;margin-bottom:.35rem">📌 This is your registered SasaPay Callback URL — already set in their dev console</div>
+            <code style="font-size:.72rem;word-break:break-all;color:var(--maroon);background:var(--surface-2);padding:.25rem .5rem;border-radius:4px;display:block">https://eengldzvvgplgzvbutal.supabase.co/functions/v1/sasapay-webhook</code>
+          </div>
+          <div class="ps-save-bar"><button class="btn btn-primary" onclick="saveSupportSettings()">Save Changes</button></div>
+        </div>
+      </div>
+
       <!-- ④c Push Notifications -->
       <div class="ps-accordion">
         <div class="ps-accordion-header" onclick="toggleAccordion(this)">
@@ -5420,14 +5467,14 @@
 
 
   <!-- GroupYetu360 Scripts — load order matters -->
-  <script src="js/auth.js?v=2026071610"></script>
-  <script src="js/utils.js?v=2026071610"></script>
-  <script src="js/dashboard.js?v=2026071610"></script>
-  <script src="js/members.js?v=2026071610"></script>
-  <script src="js/finance.js?v=2026071610"></script>
-  <script src="js/settings.js?v=2026071610"></script>
-  <script src="js/portal.js?v=2026071610"></script>
-  <script src="js/modules.js?v=2026071610"></script>
+  <script src="js/auth.js?v=2026071611"></script>
+  <script src="js/utils.js?v=2026071611"></script>
+  <script src="js/dashboard.js?v=2026071611"></script>
+  <script src="js/members.js?v=2026071611"></script>
+  <script src="js/finance.js?v=2026071611"></script>
+  <script src="js/settings.js?v=2026071611"></script>
+  <script src="js/portal.js?v=2026071611"></script>
+  <script src="js/modules.js?v=2026071611"></script>
   <script>
     // Bootstrap — runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —

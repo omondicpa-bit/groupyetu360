@@ -452,6 +452,24 @@ async function loadSASupport() {
     vapidBadge.style.color = configured ? '#2e7d32' : '#999';
   }
 
+  // SasaPay — same never-render-the-real-secret pattern as everything else
+  setVal('sp-sasapay-merchant-code', s.sasapay_merchant_code || '');
+  setVal('sp-sasapay-base-url', s.sasapay_base_url || 'https://api.sasapay.app');
+  if (s.sasapay_client_id_set) {
+    const scEl = document.getElementById('sp-sasapay-client-id');
+    if (scEl) scEl.placeholder = '(saved — enter new Client ID to update)';
+    const scSavedEl = document.getElementById('sp-sasapay-client-saved');
+    if (scSavedEl) scSavedEl.style.display = '';
+  }
+  if (s.sasapay_client_secret_set) {
+    const ssEl = document.getElementById('sp-sasapay-client-secret');
+    if (ssEl) ssEl.placeholder = '(saved — enter new Client Secret to update)';
+    const ssSavedEl = document.getElementById('sp-sasapay-secret-saved');
+    if (ssSavedEl) ssSavedEl.style.display = '';
+  }
+  const subProvEl = document.getElementById('sp-subscription-provider');
+  if (subProvEl) subProvEl.value = s.subscription_payment_provider || 'paystack';
+
   // Accordion badges
   const payBadge = document.getElementById('sp-paystack-badge');
   if (payBadge) {
@@ -509,6 +527,15 @@ async function saveSupportSettings() {
   if (newFingoSecret) payload.fingo_webhook_secret = newFingoSecret;
   const newVapidPrivate = document.getElementById('sp-vapid-private-key')?.value?.trim();
   if (newVapidPrivate) payload.vapid_private_key = newVapidPrivate;
+
+  // SasaPay
+  payload.sasapay_merchant_code = document.getElementById('sp-sasapay-merchant-code')?.value?.trim() || null;
+  payload.sasapay_base_url = document.getElementById('sp-sasapay-base-url')?.value?.trim() || 'https://api.sasapay.app';
+  payload.subscription_payment_provider = document.getElementById('sp-subscription-provider')?.value || 'paystack';
+  const newSasapayClientId = document.getElementById('sp-sasapay-client-id')?.value?.trim();
+  if (newSasapayClientId) payload.sasapay_client_id = newSasapayClientId;
+  const newSasapayClientSecret = document.getElementById('sp-sasapay-client-secret')?.value?.trim();
+  if (newSasapayClientSecret) payload.sasapay_client_secret = newSasapayClientSecret;
 
   const { error } = await sb.from('platform_settings').upsert(payload);
   if (error) { toast('Error: '+error.message); return; }

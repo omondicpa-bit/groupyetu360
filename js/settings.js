@@ -2436,7 +2436,16 @@ async function submitCartPaystack_impl() {
 
   try {
     const { data: { session } } = await sb.auth.getSession();
-    const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/paystack-charge', {
+    // Which provider handles platform billing — SA-configurable toggle,
+    // read from the safe public view since it's not sensitive.
+    let subscriptionProvider = 'paystack';
+    try {
+      const { data: provRow } = await sb.from('platform_settings_public').select('subscription_payment_provider').maybeSingle();
+      subscriptionProvider = provRow?.subscription_payment_provider || 'paystack';
+    } catch(e) {}
+    const chargeFunctionName = subscriptionProvider === 'sasapay' ? 'sasapay-charge' : 'paystack-charge';
+
+    const res = await fetch(`https://eengldzvvgplgzvbutal.supabase.co/functions/v1/${chargeFunctionName}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
       body: JSON.stringify({ org_id: currentOrg.id, amount: total, phone, email: currentUser.email, payment_type: paymentType, notes, member_id: memberId })
@@ -2449,7 +2458,7 @@ async function submitCartPaystack_impl() {
     if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
     const lbl = document.getElementById('stk-btn-label');
     if (lbl) lbl.textContent = 'Resend Prompt';
-    await logActivity('PAYSTACK CHARGE INITIATED', `Ksh ${total} · phone ${phone} · ${notes}`);
+    await logActivity(`${subscriptionProvider.toUpperCase()} CHARGE INITIATED`, `Ksh ${total} · phone ${phone} · ${notes}`);
 
     // Animate dots
     let dotCount = 0;
