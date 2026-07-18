@@ -137,7 +137,21 @@ serve(async (req) => {
     console.warn('[GY360 SasaPay Webhook] Signature check failed to run (non-fatal):', sigErr.message);
   }
 
-  const resultCode = String(event.ResultCode ?? '');
+  // SasaPay sends TWO different callbacks to the same URL for one payment:
+  // an "IPN" notification first (no ResultCode field at all — confirmed
+  // from real traffic, not assumed), then the actual "C2B Callback
+  // Results" seconds later (always carries ResultCode explicitly). The
+  // IPN is informational only — it confirms money landed in the pooled
+  // wallet, but isn't the definitive per-request result. Treating its
+  // absent ResultCode as "not success" was marking real payments declined
+  // before the actual result callback even arrived. Only the shape that
+  // explicitly carries ResultCode gets acted on here.
+  if (event.ResultCode === undefined || event.ResultCode === null) {
+    console.log('[GY360 SasaPay Webhook] IPN-shaped notification (no ResultCode) — informational only, not the definitive result. Ignoring for status purposes.');
+    return new Response('OK', { status: 200 });
+  }
+
+  const resultCode = String(event.ResultCode);
   const reference = pr.paystack_ref;
 
   if (resultCode !== '0') {
@@ -156,14 +170,16 @@ serve(async (req) => {
   const expectedAmount = Number(pr.amount);
   if (!claimedAmount || Math.abs(claimedAmount - expectedAmount) > 1) {
     console.error(`[GY360 SasaPay Webhook] Amount mismatch — expected ${expectedAmount}, callback claimed ${claimedAmount}. Refusing to credit ref ${reference}.`);
-    await supabase.from('activity_log').insert({
-      org_id: pr.org_id,
-      user_name: 'SasaPay Webhook',
-      user_role: 'system',
-      action: 'WEBHOOK AMOUNT MISMATCH',
-      details: `Ref ${reference}: expected Ksh ${expectedAmount}, callback claimed Ksh ${claimedAmount}. Not credited — needs manual review.`,
-      created_at: new Date().toISOString(),
-    }).catch(() => {});
+    try {
+      await supabase.from('activity_log').insert({
+        org_id: pr.org_id,
+        user_name: 'SasaPay Webhook',
+        user_role: 'system',
+        action: 'WEBHOOK AMOUNT MISMATCH',
+        details: `Ref ${reference}: expected Ksh ${expectedAmount}, callback claimed Ksh ${claimedAmount}. Not credited — needs manual review.`,
+        created_at: new Date().toISOString(),
+      });
+    } catch (logErr: any) { console.warn('[GY360 SasaPay Webhook] activity_log insert failed (non-fatal):', logErr.message); }
     return new Response('OK', { status: 200 });
   }
 
@@ -225,20 +241,24 @@ serve(async (req) => {
       }).eq('id', pr.id);
     }
 
-    await supabase.from('activity_log').insert({
-      org_id: pr.org_id, user_id: null, user_name: 'SasaPay Auto', user_role: 'system',
-      action: 'PAYMENT AUTO-APPROVED',
-      details: `Ksh ${expectedAmount.toLocaleString()} · ${pr.payment_type} · ref: ${reference}`,
-      target_type: 'payment', target_id: pr.id, created_at: new Date().toISOString(),
-    }).catch(() => {});
+    try {
+      await supabase.from('activity_log').insert({
+        org_id: pr.org_id, user_id: null, user_name: 'SasaPay Auto', user_role: 'system',
+        action: 'PAYMENT AUTO-APPROVED',
+        details: `Ksh ${expectedAmount.toLocaleString()} · ${pr.payment_type} · ref: ${reference}`,
+        target_type: 'payment', target_id: pr.id, created_at: new Date().toISOString(),
+      });
+    } catch (logErr: any) { console.warn('[GY360 SasaPay Webhook] activity_log insert failed (non-fatal):', logErr.message); }
 
   } catch (err: any) {
     console.error('[GY360 SasaPay Webhook] Processing error:', err.message);
-    await supabase.from('activity_log').insert({
-      org_id: pr.org_id, user_name: 'SasaPay Webhook', user_role: 'system',
-      action: 'WEBHOOK ERROR', details: `Failed for ref ${reference}: ${err.message}`,
-      created_at: new Date().toISOString(),
-    }).catch(() => {});
+    try {
+      await supabase.from('activity_log').insert({
+        org_id: pr.org_id, user_name: 'SasaPay Webhook', user_role: 'system',
+        action: 'WEBHOOK ERROR', details: `Failed for ref ${reference}: ${err.message}`,
+        created_at: new Date().toISOString(),
+      });
+    } catch (logErr: any) { console.warn('[GY360 SasaPay Webhook] activity_log insert failed (non-fatal):', logErr.message); }
   }
 
   return new Response('OK', { status: 200 });
