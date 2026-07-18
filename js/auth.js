@@ -555,7 +555,11 @@ async function signIn() {
 
   // If org code provided, verify and switch to that org
   if (orgCode) {
-    const { data: org } = await sb.from('organisations')
+    // Uses the safe organisations_public view (id/name/org_code only) —
+    // the raw organisations table now correctly restricts SELECT to a
+    // user's own org(s), which a brand-new user joining by code isn't
+    // yet a member of.
+    const { data: org } = await sb.from('organisations_public')
       .select('id,name').eq('org_code', orgCode).maybeSingle();
     if (!org) {
       window._suppressAuthAutoLoad = false;
@@ -974,8 +978,8 @@ async function pickerJoinOrg() {
     return;
   }
 
-  // Find org by code
-  const { data: org, error } = await sb.from('organisations').select('id,name').eq('org_code', code).maybeSingle();
+  // Find org by code — same safe view as the other lookup, same reason.
+  const { data: org, error } = await sb.from('organisations_public').select('id,name').eq('org_code', code).maybeSingle();
   if (error || !org) {
     if (errEl) { errEl.textContent = 'Organisation not found. Check the code and try again.'; errEl.style.display = 'block'; }
     return;
