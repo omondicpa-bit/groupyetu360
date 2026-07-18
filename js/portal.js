@@ -624,6 +624,18 @@ let _mpRealtimeChannel = null;
 let _mpPollInterval = null;
 
 async function openMemberPaymentModal() {
+  // Neither mode's content should be visible until we actually know which
+  // one applies — show a neutral loading state instead of letting the
+  // browser paint Manual mode's default HTML first (its old default state
+  // had no display:none, Instant's did, which is exactly what caused the
+  // flash of the wrong page before this).
+  const loadingEl = document.getElementById('mp-mode-loading');
+  if (loadingEl) loadingEl.style.display = 'block';
+  const tabsElEarly = document.getElementById('mp-mode-tabs');
+  if (tabsElEarly) tabsElEarly.style.display = 'none';
+  document.getElementById('mp-instant-section')?.style.setProperty('display', 'none');
+  document.getElementById('mp-manual-section')?.style.setProperty('display', 'none');
+
   const dateEl = document.getElementById('mp-pay-date');
   if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
   document.getElementById('mp-grand-total').textContent = 'Ksh 0';
@@ -720,6 +732,8 @@ async function openMemberPaymentModal() {
   const tabsEl = document.getElementById('mp-mode-tabs');
   _mpActiveProvider = await getActiveProviderConfig(currentOrg);
   const hasProvider = !!_mpActiveProvider;
+  const loadingEl2 = document.getElementById('mp-mode-loading');
+  if (loadingEl2) loadingEl2.style.display = 'none';
   if (tabsEl) tabsEl.style.display = hasProvider ? 'flex' : 'none';
   // Orgs without an active provider configured see exactly today's manual flow — no change.
   switchPaymentMode(hasProvider ? 'instant' : 'manual');
