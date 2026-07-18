@@ -1145,7 +1145,25 @@ function listenForContributionConfirmation(paymentRequestId, netAmount, provider
     if (resolved) { clearInterval(_mpPollInterval); return; }
     polls++;
     if (polls > maxPolls) { onResult('timeout'); return; }
-    if (!verifyFunctionName) return; // no active-verify for this provider yet — relying on webhook + Realtime alone
+    if (!verifyFunctionName) {
+      // No provider-side active-verify built for this one yet (SasaPay —
+      // their own status-check API is ambiguous in their docs about
+      // whether it answers directly or fires another callback, not worth
+      // guessing at). Doesn't matter: the webhook already writes the
+      // definitive answer straight into payment_requests.status, so
+      // checking our own row directly is simpler and just as reliable as
+      // asking the provider — and it's what actually fixes a real payment
+      // that succeeded but the UI reported failed, since Realtime alone
+      // isn't a guaranteed delivery mechanism.
+      try {
+        const { data: prRow } = await sb.from('payment_requests').select('status').eq('id', paymentRequestId).maybeSingle();
+        if (prRow?.status === 'approved') onResult('approved');
+        else if (prRow?.status === 'declined') onResult('failed');
+      } catch(e) {
+        console.warn('Self-poll of payment_requests failed (will retry):', e.message);
+      }
+      return;
+    }
     try {
       const { data: { session } } = await sb.auth.getSession();
       const res = await fetch(`https://eengldzvvgplgzvbutal.supabase.co/functions/v1/${verifyFunctionName}`, {
