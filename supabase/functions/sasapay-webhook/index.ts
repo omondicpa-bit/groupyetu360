@@ -101,36 +101,53 @@ serve(async (req) => {
     return new Response('OK', { status: 200 });
   }
 
-  // ── Signature verification — LOG ONLY for now, not enforced ──
+  // ── Signature verification — DIAGNOSTIC MODE, still not enforced ──
   // Per SasaPay's dev console: HMAC-SHA512, header X-SasaPay-Signature,
-  // secret = Client ID (confirmed unusual but that's what's documented —
-  // implemented exactly as specified, not "corrected" to client_secret),
-  // message = "sasapay_transaction_code-merchant_code-account_number-
-  // payment_reference-amount" hyphen-joined. The JSON field names in that
-  // spec (snake_case) don't exactly match the callback payload's actual
-  // field names (PascalCase, confirmed from public docs) — this is my best
-  // interpretation of the mapping, not a certainty, so it logs match/
-  // mismatch rather than blocking on it until confirmed against real
-  // traffic. The amount cross-check below remains the enforced safety net
-  // in the meantime.
+  // secret = Client ID, message = hyphen-joined
+  // "sasapay_transaction_code-merchant_code-account_number-
+  // payment_reference-amount". Three real attempts at guessing the exact
+  // field mapping have all mismatched. Real insight this time: SasaPay
+  // sends TWO different callback shapes to this same URL for one payment
+  // (confirmed from real traffic) — only the IPN shape actually has a
+  // native MerchantCode field; this "C2B Callback Results" shape doesn't.
+  // The signature spec may have been written for the IPN shape, not this
+  // one. Rather than guess a fourth single answer, this computes several
+  // real candidates and logs them in FULL (not truncated, unlike every
+  // previous attempt) — the next real transaction's logs should make the
+  // correct mapping obvious by inspection, rather than another guess.
   try {
     const { data: sigPs } = await supabase.from('platform_settings')
       .select('sasapay_client_id, sasapay_merchant_code').maybeSingle();
     if (sigPs?.sasapay_client_id) {
       const receivedSig = req.headers.get('x-sasapay-signature') || '';
-      const message = [
-        event.TransactionCode ?? '',
-        event.MerchantCode ?? sigPs.sasapay_merchant_code ?? '',
-        event.BillRefNumber ?? '',
-        event.PaymentRequestID ?? event.CheckoutRequestID ?? '',
-        event.TransAmount ?? '',
-      ].join('-');
-      const expectedSig = await hmacSha512Hex(sigPs.sasapay_client_id, message);
-      const sigMatches = receivedSig && timingSafeEqual(receivedSig, expectedSig);
-      if (sigMatches) {
-        console.log('[GY360 SasaPay Webhook] ✓ Signature verified for ref', pr.paystack_ref);
-      } else {
-        console.warn('[GY360 SasaPay Webhook] Signature mismatch (logged, not blocked) — message:', message, 'received:', receivedSig.slice(0,20)+'...', 'expected:', expectedSig.slice(0,20)+'...');
+      const secret = sigPs.sasapay_client_id;
+
+      const candidates: Record<string, string> = {
+        // Original guess: TransactionCode / stored merchant code / BillRefNumber / PaymentRequestID / TransAmount
+        'A (orig, PaymentRequestID)': [event.TransactionCode ?? '', event.MerchantCode ?? sigPs.sasapay_merchant_code ?? '', event.BillRefNumber ?? '', event.PaymentRequestID ?? '', event.TransAmount ?? ''].join('-'),
+        // Same but CheckoutRequestID instead of PaymentRequestID for payment_reference
+        'B (CheckoutRequestID)': [event.TransactionCode ?? '', event.MerchantCode ?? sigPs.sasapay_merchant_code ?? '', event.BillRefNumber ?? '', event.CheckoutRequestID ?? '', event.TransAmount ?? ''].join('-'),
+        // account_number = CustomerMobile instead of BillRefNumber
+        'C (CustomerMobile as account_number)': [event.TransactionCode ?? '', event.MerchantCode ?? sigPs.sasapay_merchant_code ?? '', event.CustomerMobile ?? '', event.PaymentRequestID ?? '', event.TransAmount ?? ''].join('-'),
+        // RequestedAmount instead of TransAmount (this payload has both, may differ in decimal formatting)
+        'D (RequestedAmount)': [event.TransactionCode ?? '', event.MerchantCode ?? sigPs.sasapay_merchant_code ?? '', event.BillRefNumber ?? '', event.PaymentRequestID ?? '', event.RequestedAmount ?? ''].join('-'),
+        // IPN-shape field names, in case this specific event IS the IPN shape
+        'E (IPN shape: TransID/MerchantCode/BillRefNumber/BillRefNumber/TransAmount)': [event.TransID ?? '', event.MerchantCode ?? '', event.BillRefNumber ?? '', event.BillRefNumber ?? '', event.TransAmount ?? ''].join('-'),
+      };
+
+      let anyMatch = false;
+      for (const [label, message] of Object.entries(candidates)) {
+        const expectedSig = await hmacSha512Hex(secret, message);
+        if (receivedSig && timingSafeEqual(receivedSig, expectedSig)) {
+          console.log(`[GY360 SasaPay Webhook] ✓✓✓ SIGNATURE MATCH FOUND — candidate "${label}" — message: "${message}"`);
+          anyMatch = true;
+        }
+      }
+      if (!anyMatch) {
+        console.warn('[GY360 SasaPay Webhook] No candidate matched. Received signature (FULL):', receivedSig || '(none provided)');
+        for (const [label, message] of Object.entries(candidates)) {
+          console.warn(`[GY360 SasaPay Webhook]   candidate "${label}": message="${message}" expected=${await hmacSha512Hex(secret, message)}`);
+        }
       }
     }
   } catch (sigErr: any) {

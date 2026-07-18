@@ -1135,6 +1135,7 @@ async function payInstantContribution() {
 // fast-path for whichever gets there first (e.g. if the webhook does fire).
 function listenForContributionConfirmation(paymentRequestId, netAmount, provider) {
   let resolved = false;
+  let _mpNudgeSent = false;
   // sasapay-verify doesn't exist yet (deliberately deferred — SasaPay's own
   // "check status" endpoint is ambiguous in their docs about whether it
   // responds directly or fires another callback, worth confirming before
@@ -1202,15 +1203,28 @@ function listenForContributionConfirmation(paymentRequestId, netAmount, provider
     polls++;
     if (polls > maxPolls) { onResult('timeout'); return; }
     if (!verifyFunctionName) {
-      // No provider-side active-verify built for this one yet (SasaPay —
-      // their own status-check API is ambiguous in their docs about
-      // whether it answers directly or fires another callback, not worth
-      // guessing at). Doesn't matter: the webhook already writes the
-      // definitive answer straight into payment_requests.status, so
-      // checking our own row directly is simpler and just as reliable as
-      // asking the provider — and it's what actually fixes a real payment
-      // that succeeded but the UI reported failed, since Realtime alone
-      // isn't a guaranteed delivery mechanism.
+      // No true synchronous verify exists for this provider (SasaPay's own
+      // API has no "ask now, get the answer now" endpoint — confirmed,
+      // not assumed: their status-check always just triggers another
+      // webhook delivery rather than answering directly). Checking our own
+      // payment_requests row directly is the reliable path here, since the
+      // webhook already writes the definitive answer there — proven
+      // working in live testing.
+      if (provider === 'sasapay' && polls === 15 && !_mpNudgeSent) {
+        // One-time nudge at the 30s mark: ask SasaPay to redeliver the
+        // result to our webhook, in case the original delivery went
+        // missing. Fire-and-forget — the self-poll below is what actually
+        // catches the answer either way, this just makes a lost webhook
+        // less likely to matter.
+        _mpNudgeSent = true;
+        sb.auth.getSession().then(({ data: { session } }) => {
+          fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/sasapay-verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+            body: JSON.stringify({ payment_request_id: paymentRequestId })
+          }).catch(e => console.warn('SasaPay nudge failed (non-fatal):', e.message));
+        });
+      }
       try {
         const { data: prRow, error: prPollErr } = await sb.from('payment_requests').select('status').eq('id', paymentRequestId).maybeSingle();
         if (prPollErr) console.warn('Self-poll query error:', prPollErr.message);
