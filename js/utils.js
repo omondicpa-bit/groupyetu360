@@ -262,6 +262,13 @@ async function loadSABilling() {
   setEl('sa-bill-stat-expiring', expiringSoon);
   setEl('sa-bill-stat-sms', totalSmsMonth.toLocaleString());
 
+  const pendingBadge = document.getElementById('sa-bill-badge-pending');
+  if (pendingBadge) {
+    pendingBadge.textContent = pending.length ? `${pending.length} pending` : 'Clear';
+    pendingBadge.style.background = pending.length ? '#fff4dc' : '#e8f5e9';
+    pendingBadge.style.color = pending.length ? '#8a6400' : '#2e7d32';
+  }
+
   // Pending payments
   const pendEl = document.getElementById('sa-billing-pending');
   if (pendEl) {

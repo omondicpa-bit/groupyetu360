@@ -415,7 +415,6 @@ function switchFinTab(btn, tabId) {
   document.querySelectorAll('#page-finance > .tab-panel').forEach(p => p.classList.remove('active'));
   const panel = document.getElementById(tabId);
   if (panel) panel.classList.add('active');
-  if (tabId === 'tab-settlements' && typeof loadOrgSettlements === 'function') loadOrgSettlements();
 }
 
 function switchFinSubTab(btn, tabId) {
@@ -2700,6 +2699,13 @@ async function loadCollectionRequestsQueue() {
       .select('*, organisations(name, disbursement_method, disbursement_bank_name, disbursement_bank_account_number, disbursement_bank_account_name, disbursement_mpesa_number, active_payment_provider)')
       .eq('status', 'pending').order('requested_at', { ascending: true });
 
+    const collBadge = document.getElementById('sa-bill-badge-collection');
+    if (collBadge) {
+      collBadge.textContent = reqs?.length ? `${reqs.length} pending` : 'Clear';
+      collBadge.style.background = reqs?.length ? '#fff4dc' : '#e8f5e9';
+      collBadge.style.color = reqs?.length ? '#8a6400' : '#2e7d32';
+    }
+
     if (!reqs?.length) {
       el.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--ink-faint);font-size:.85rem">No pending collection requests.</div>';
       return;
@@ -3140,8 +3146,18 @@ async function loadSASettlements() {
       .order('settlement_date', { ascending: false });
 
     if (!batches?.length) {
+      const settleBadgeEmpty = document.getElementById('sa-bill-badge-settlement');
+      if (settleBadgeEmpty) { settleBadgeEmpty.textContent = 'All settled'; settleBadgeEmpty.style.background = '#e8f5e9'; settleBadgeEmpty.style.color = '#2e7d32'; }
       el.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--ink-faint);font-size:.85rem">No SasaPay or Fingo settlements yet.</div>';
       return;
+    }
+
+    const totalPending = batches.filter(b => b.status === 'pending').reduce((s, b) => s + Number(b.amount), 0);
+    const settleBadge = document.getElementById('sa-bill-badge-settlement');
+    if (settleBadge) {
+      settleBadge.textContent = totalPending > 0 ? `Ksh ${totalPending.toLocaleString()} pending` : 'All settled';
+      settleBadge.style.background = totalPending > 0 ? '#fdecea' : '#e8f5e9';
+      settleBadge.style.color = totalPending > 0 ? '#c0392b' : '#2e7d32';
     }
 
     const byDate = {};
@@ -3150,28 +3166,24 @@ async function loadSASettlements() {
     el.innerHTML = Object.entries(byDate).map(([date, dayBatches]) => {
       const pendingTotal = dayBatches.filter(b => b.status === 'pending').reduce((s, b) => s + Number(b.amount), 0);
       return `
-      <div style="margin-bottom:1rem;border:1px solid var(--border);border-radius:8px;overflow:hidden">
-        <div style="background:var(--surface-2);padding:.7rem 1rem;display:flex;justify-content:space-between;align-items:center">
-          <strong style="font-size:.85rem">${new Date(date).toLocaleDateString('en-KE', { weekday:'short', day:'numeric', month:'short', year:'numeric' })}</strong>
-          <span style="font-size:.75rem;color:${pendingTotal > 0 ? 'var(--danger)' : 'var(--teal)'}">${pendingTotal > 0 ? 'Ksh ' + pendingTotal.toLocaleString() + ' pending' : 'All settled'}</span>
+      <div class="card" style="margin-bottom:1rem;overflow:hidden;padding:0">
+        <div style="padding:.85rem 1.25rem;border-bottom:1px solid var(--border-soft);display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:700;font-size:.88rem;font-family:'Crimson Pro',serif">${new Date(date).toLocaleDateString('en-KE', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
+          <div style="font-size:.75rem;font-weight:600;color:${pendingTotal > 0 ? 'var(--danger)' : 'var(--teal)'}">${pendingTotal > 0 ? 'Ksh ' + pendingTotal.toLocaleString() + ' pending' : '✓ Fully settled'}</div>
         </div>
-        <table style="width:100%;font-size:.8rem;border-collapse:collapse">
-          <tbody>${dayBatches.map(b => `
-            <tr style="border-top:1px solid var(--border-soft)">
-              <td style="padding:.55rem 1rem">${(b.organisations?.name || 'Unknown').replace(/</g,'')}</td>
-              <td style="padding:.55rem;text-transform:capitalize;color:var(--ink-faint);font-size:.72rem">${b.provider}</td>
-              <td style="padding:.55rem;text-transform:capitalize;font-size:.72rem">${b.line_type}</td>
-              <td style="padding:.55rem;text-align:right;font-weight:600">Ksh ${Number(b.amount).toLocaleString()}</td>
-              <td style="padding:.55rem;text-align:center">
-                <span style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:${b.status==='paid'?'#2e7d32':'#c0392b'}">${b.status}</span>
-              </td>
-              <td style="padding:.55rem;text-align:right;white-space:nowrap">
-                <button class="btn btn-secondary btn-sm" onclick="viewSettlementDetails('${b.org_id}','${b.provider}','${b.settlement_date}','${b.line_type}','${(b.organisations?.name||'').replace(/'/g,"")}')">View Details</button>
-                ${b.status === 'pending' ? `<button class="btn btn-primary btn-sm" onclick="openMarkPaidForm('${b.id}')" style="margin-left:.4rem">Mark Paid</button>` : ''}
-              </td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
+        ${dayBatches.map((b, i) => `
+          <div style="padding:.85rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;${i < dayBatches.length-1 ? 'border-bottom:1px solid var(--border-soft)' : ''}">
+            <div style="display:flex;align-items:center;gap:.6rem;min-width:180px">
+              <span style="font-weight:600;font-size:.82rem">${(b.organisations?.name || 'Unknown').replace(/</g,'')}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:.5rem">${providerBadge(b.provider)}<span style="font-size:.76rem;color:var(--ink-soft);text-transform:capitalize">${b.line_type}</span></div>
+            <div style="display:flex;align-items:center;gap:1rem;margin-left:auto">
+              <div style="font-weight:700;font-size:.9rem;font-variant-numeric:tabular-nums">Ksh ${Number(b.amount).toLocaleString()}</div>
+              ${settlementStatusPill(b.status)}
+              <button class="btn btn-secondary btn-sm" onclick="viewSettlementDetails('${b.org_id}','${b.provider}','${b.settlement_date}','${b.line_type}','${(b.organisations?.name||'').replace(/'/g,"")}')">Details</button>
+              ${b.status === 'pending' ? `<button class="btn btn-primary btn-sm" onclick="openMarkPaidForm('${b.id}')">Mark Paid</button>` : ''}
+            </div>
+          </div>`).join('')}
       </div>`;
     }).join('');
   } catch(e) {
@@ -3239,21 +3251,34 @@ async function viewSettlementDetails(orgId, provider, date, lineType, orgName) {
   }
 
   const total = lines.reduce((s, l) => s + l.amount, 0);
-  const rowsHtml = lines.map(l => `
-    <tr style="border-top:1px solid var(--border-soft)">
-      <td style="padding:.5rem">${(memberNames[l.memberId] || 'Unknown member').replace(/</g,'')}</td>
-      <td style="padding:.5rem;color:var(--ink-faint);font-size:.75rem">${(l.typeName||'').replace(/</g,'')}</td>
-      <td style="padding:.5rem;text-align:right;font-weight:600">Ksh ${l.amount.toLocaleString()}</td>
-      <td style="padding:.5rem;color:var(--ink-faint);font-size:.7rem">${l.ref||'—'}</td>
-    </tr>`).join('');
+  const initials = (name) => (name || '?').trim().split(/\s+/).map(w => w[0]).slice(0,2).join('').toUpperCase();
+  const avatarColors = ['#800020','#1a56c4','#6a2fd0','#2e7d32','#c49a30'];
+  const colorFor = (str) => avatarColors[[...(str||'')].reduce((a,c)=>a+c.charCodeAt(0),0) % avatarColors.length];
+
+  const rowsHtml = lines.map(l => {
+    const name = memberNames[l.memberId] || 'Unknown member';
+    return `
+    <div style="display:flex;align-items:center;gap:.75rem;padding:.7rem 0;border-bottom:1px solid var(--border-soft)">
+      <div style="width:36px;height:36px;border-radius:50%;background:${colorFor(name)};color:#fff;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;flex-shrink:0">${initials(name)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name.replace(/</g,'')}</div>
+        <div style="font-size:.72rem;color:var(--ink-faint)">${(l.typeName||'Contribution').replace(/</g,'')}${l.ref ? ' · ' + l.ref : ''}</div>
+      </div>
+      <div style="font-weight:700;font-size:.88rem;font-variant-numeric:tabular-nums;white-space:nowrap">Ksh ${l.amount.toLocaleString()}</div>
+    </div>`;
+  }).join('');
 
   const modalHtml = `
-    <div style="font-weight:700;margin-bottom:.3rem">${orgName || 'Organisation'} — ${new Date(date).toLocaleDateString()}</div>
-    <div style="font-size:.75rem;color:var(--ink-faint);margin-bottom:.75rem;text-transform:capitalize">${provider} · ${lineType} · ${lines.length} transaction${lines.length===1?'':'s'} · Ksh ${total.toLocaleString()} total</div>
-    <table style="width:100%;font-size:.8rem;border-collapse:collapse">
-      <thead><tr style="text-align:left;border-bottom:1px solid var(--border)"><th style="padding:.5rem">Member</th><th style="padding:.5rem">For</th><th style="padding:.5rem;text-align:right">Amount</th><th style="padding:.5rem">Ref</th></tr></thead>
-      <tbody>${rowsHtml || '<tr><td colspan="4" style="padding:1rem;text-align:center;color:var(--ink-faint)">No transactions found</td></tr>'}</tbody>
-    </table>`;
+    <div style="text-align:center;padding:1.5rem 1rem 1.25rem;background:linear-gradient(135deg,var(--maroon-pale,#fdf0f3),#fff);border-radius:10px;margin-bottom:1.25rem">
+      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.3rem">${(orgName || 'Organisation').replace(/</g,'')} · ${new Date(date).toLocaleDateString('en-KE',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</div>
+      <div style="font-family:'Crimson Pro',serif;font-size:2.1rem;font-weight:700;color:var(--maroon)">Ksh ${total.toLocaleString()}</div>
+      <div style="margin-top:.5rem;display:flex;justify-content:center;gap:.5rem">
+        ${providerBadge(provider)}
+        <span style="background:var(--surface-2);color:var(--ink-soft);font-size:.68rem;font-weight:700;text-transform:capitalize;padding:.22rem .55rem;border-radius:6px">${lineType}</span>
+        <span style="background:var(--surface-2);color:var(--ink-soft);font-size:.68rem;font-weight:700;padding:.22rem .55rem;border-radius:6px">${lines.length} txn${lines.length===1?'':'s'}</span>
+      </div>
+    </div>
+    <div>${rowsHtml || '<div style="padding:2rem 1rem;text-align:center;color:var(--ink-faint);font-size:.85rem">No transactions found</div>'}</div>`;
 
   const bodyEl = document.getElementById('modal-settlement-details-body');
   if (bodyEl) bodyEl.innerHTML = modalHtml;
@@ -3261,6 +3286,17 @@ async function viewSettlementDetails(orgId, provider, date, lineType, orgName) {
 }
 
 // Org-admin read-only view — same data, no mark-paid action available.
+function settlementStatusPill(status) {
+  return status === 'paid'
+    ? `<span style="display:inline-flex;align-items:center;gap:.3rem;background:#e8f5e9;color:#2e7d32;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:.28rem .65rem;border-radius:99px">● Paid</span>`
+    : `<span style="display:inline-flex;align-items:center;gap:.3rem;background:#fdecea;color:#c0392b;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:.28rem .65rem;border-radius:99px">● Pending</span>`;
+}
+function providerBadge(provider) {
+  const colors = { sasapay: ['#e8f0fd','#1a56c4'], fingo: ['#efe8fd','#6a2fd0'] };
+  const [bg, fg] = colors[provider] || ['#f0f0f0','#666'];
+  return `<span style="background:${bg};color:${fg};font-size:.68rem;font-weight:700;text-transform:capitalize;padding:.22rem .55rem;border-radius:6px">${provider}</span>`;
+}
+
 async function loadOrgSettlements() {
   const el = document.getElementById('org-settlements-list');
   if (!el || !currentOrg?.id) return;
@@ -3274,8 +3310,25 @@ async function loadOrgSettlements() {
       .gte('settlement_date', since.toISOString().split('T')[0])
       .order('settlement_date', { ascending: false });
 
+    // Summary stats
+    const monthStart = new Date(); monthStart.setDate(1);
+    const monthStartStr = monthStart.toISOString().split('T')[0];
+    let pendingRegular = 0, paidThisMonth = 0, pendingWelfare = 0;
+    (batches || []).forEach(b => {
+      const amt = Number(b.amount);
+      if (b.status === 'pending') {
+        if (b.line_type === 'welfare') pendingWelfare += amt; else pendingRegular += amt;
+      } else if (b.status === 'paid' && b.paid_at >= monthStartStr) {
+        paidThisMonth += amt;
+      }
+    });
+    const setStat = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = 'Ksh ' + val.toLocaleString(); };
+    setStat('settle-stat-pending', pendingRegular);
+    setStat('settle-stat-paid', paidThisMonth);
+    setStat('settle-stat-welfare', pendingWelfare);
+
     if (!batches?.length) {
-      el.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--ink-faint);font-size:.85rem">No settlements yet for this group.</div>';
+      el.innerHTML = '<div class="card" style="padding:2.5rem;text-align:center;color:var(--ink-faint);font-size:.85rem">No settlements yet for this group.</div>';
       return;
     }
 
@@ -3283,19 +3336,22 @@ async function loadOrgSettlements() {
     batches.forEach(b => { (byDate[b.settlement_date] = byDate[b.settlement_date] || []).push(b); });
 
     el.innerHTML = Object.entries(byDate).map(([date, dayBatches]) => `
-      <div style="margin-bottom:1rem;border:1px solid var(--border);border-radius:8px;overflow:hidden">
-        <div style="background:var(--surface-2);padding:.7rem 1rem"><strong style="font-size:.85rem">${new Date(date).toLocaleDateString('en-KE', { weekday:'short', day:'numeric', month:'short', year:'numeric' })}</strong></div>
-        <table style="width:100%;font-size:.8rem;border-collapse:collapse">
-          <tbody>${dayBatches.map(b => `
-            <tr style="border-top:1px solid var(--border-soft)">
-              <td style="padding:.55rem 1rem;text-transform:capitalize;color:var(--ink-faint);font-size:.72rem">${b.provider}</td>
-              <td style="padding:.55rem;text-transform:capitalize;font-size:.72rem">${b.line_type}</td>
-              <td style="padding:.55rem;text-align:right;font-weight:600">Ksh ${Number(b.amount).toLocaleString()}</td>
-              <td style="padding:.55rem;text-align:center"><span style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:${b.status==='paid'?'#2e7d32':'#c0392b'}">${b.status}</span></td>
-              <td style="padding:.55rem;text-align:right"><button class="btn btn-secondary btn-sm" onclick="viewSettlementDetails('${b.org_id}','${b.provider}','${b.settlement_date}','${b.line_type}','${(currentOrg.name||'').replace(/'/g,"")}')">View Details</button></td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
+      <div class="card" style="margin-bottom:1rem;overflow:hidden;padding:0">
+        <div style="padding:.85rem 1.25rem;border-bottom:1px solid var(--border-soft);display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:700;font-size:.88rem;font-family:'Crimson Pro',serif">${new Date(date).toLocaleDateString('en-KE', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
+        </div>
+        ${dayBatches.map((b, i) => `
+          <div style="padding:.85rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;${i < dayBatches.length-1 ? 'border-bottom:1px solid var(--border-soft)' : ''}">
+            <div style="display:flex;align-items:center;gap:.6rem">
+              ${providerBadge(b.provider)}
+              <span style="font-size:.78rem;color:var(--ink-soft);text-transform:capitalize">${b.line_type}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:1rem">
+              <div style="font-weight:700;font-size:.92rem;font-variant-numeric:tabular-nums">Ksh ${Number(b.amount).toLocaleString()}</div>
+              ${settlementStatusPill(b.status)}
+              <button class="btn btn-secondary btn-sm" onclick="viewSettlementDetails('${b.org_id}','${b.provider}','${b.settlement_date}','${b.line_type}','${(currentOrg.name||'').replace(/'/g,"")}')">Details</button>
+            </div>
+          </div>`).join('')}
       </div>`).join('');
   } catch(e) {
     el.innerHTML = '<div style="padding:1rem;color:var(--danger);font-size:.8rem">Error: ' + e.message + '</div>';
