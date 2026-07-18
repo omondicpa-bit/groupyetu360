@@ -106,10 +106,12 @@ async function loadMyProfile() {
   // Reset member ID — will be set fresh for this org
   window._myMemberId = null;
   document.getElementById('my-profile-org').textContent = currentOrg.name;
-  // Load payment methods
-  renderPaymentMethods(currentOrg, 'mp-payment-methods', false);
+  // Manual payment details deliberately don't render here anymore — only
+  // inside the payment modal's "Report a Payment" tab now, per the
+  // explicit decision to keep members' default path toward instant pay
+  // rather than exposing paybill/till/phone details on the profile page
+  // itself, where they'd bypass the modal (and instant pay) entirely.
   document.getElementById('mp-shares-amount').textContent = 'Ksh 300';
-// payment methods rendered via renderPaymentMethods in mp-payment-methods
   // Show org balance if enabled
   const balCard = document.getElementById('org-balance-card');
   if (balCard && currentOrg?.show_balance_to_members && currentOrg?.bank_balance) {

@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026071617">
+  <link rel="stylesheet" href="style.css?v=2026071618">
 </head>
 <body>
 
@@ -3412,10 +3412,12 @@
         <div style="display:flex;flex-direction:column;gap:1rem">
           <div class="card" style="animation:portalFadeUp .4s ease .3s both">
             <div class="card-header">
-              <div class="card-title">💳 How to Pay</div>
-              <div class="card-sub">Send payment using any method below</div>
+              <div class="card-title">⚡ Ready to Pay?</div>
+              <div class="card-sub">Confirmed instantly — no need to report a reference afterward</div>
             </div>
-            <div class="card-body" id="mp-payment-methods"><div class="loading"><div class="spinner"></div></div></div>
+            <div class="card-body" id="mp-payment-methods">
+              <button class="btn btn-primary" style="width:100%" onclick="showModal('memberPayment')">Make a Payment →</button>
+            </div>
             <div style="padding:.75rem 1.25rem;border-top:1px solid var(--border);background:var(--surface-2)" id="mp-savings-tier-panel">
               <div style="font-size:.75rem;color:var(--ink-soft);line-height:1.8">
                 <span id="mp-savings-tier-label">Savings/mo:</span> <strong id="mp-savings-tier">—</strong> &nbsp;·&nbsp; Reg. fee: <span id="mp-reg-status">—</span>
@@ -4430,9 +4432,6 @@
     </div>
     <div class="modal-body" style="padding-bottom:.5rem">
 
-      <!-- Where to pay -->
-      <div id="mp-payment-details-box" style="margin-bottom:1.1rem"></div>
-
       <!-- Status alert (arrears, pending) -->
       <div id="mp-status-alert" style="display:none;margin-bottom:1rem"></div>
 
@@ -4539,6 +4538,13 @@
 
       <!-- MANUAL / REPORT-A-PAYMENT (existing flow) -->
       <div id="mp-manual-section">
+
+      <!-- Where to pay — only shown here now (Report a Payment tab), not
+           on Pay Instantly, and not on the Profile page anymore either.
+           Deliberate: keeps the default path toward instant pay, per the
+           explicit decision to encourage autopay rather than let members
+           see manual payment details as an equally-easy default option. -->
+      <div id="mp-payment-details-box" style="margin-bottom:1.1rem"></div>
 
       <!-- STEP 1: Enter amount you're paying -->
       <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:1rem;margin-bottom:1rem">
@@ -5616,14 +5622,14 @@
 
 
   <!-- GroupYetu360 Scripts — load order matters -->
-  <script src="js/auth.js?v=2026071617"></script>
-  <script src="js/utils.js?v=2026071617"></script>
-  <script src="js/dashboard.js?v=2026071617"></script>
-  <script src="js/members.js?v=2026071617"></script>
-  <script src="js/finance.js?v=2026071617"></script>
-  <script src="js/settings.js?v=2026071617"></script>
-  <script src="js/portal.js?v=2026071617"></script>
-  <script src="js/modules.js?v=2026071617"></script>
+  <script src="js/auth.js?v=2026071618"></script>
+  <script src="js/utils.js?v=2026071618"></script>
+  <script src="js/dashboard.js?v=2026071618"></script>
+  <script src="js/members.js?v=2026071618"></script>
+  <script src="js/finance.js?v=2026071618"></script>
+  <script src="js/settings.js?v=2026071618"></script>
+  <script src="js/portal.js?v=2026071618"></script>
+  <script src="js/modules.js?v=2026071618"></script>
   <script>
     // Bootstrap — runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —
