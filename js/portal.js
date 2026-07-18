@@ -1212,10 +1212,8 @@ function listenForContributionConfirmation(paymentRequestId, netAmount, provider
       // that succeeded but the UI reported failed, since Realtime alone
       // isn't a guaranteed delivery mechanism.
       try {
-        console.log('[GY360 self-poll] tick', polls, '— checking payment_request', paymentRequestId);
         const { data: prRow, error: prPollErr } = await sb.from('payment_requests').select('status').eq('id', paymentRequestId).maybeSingle();
-        if (prPollErr) console.warn('[GY360 self-poll] query returned an error:', prPollErr.message, prPollErr.code);
-        console.log('[GY360 self-poll] result:', JSON.stringify(prRow));
+        if (prPollErr) console.warn('Self-poll query error:', prPollErr.message);
         if (prRow?.status === 'approved') onResult('approved');
         else if (prRow?.status === 'declined') onResult('failed');
       } catch(e) {
