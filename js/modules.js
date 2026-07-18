@@ -1183,6 +1183,10 @@ async function sendSms() {
     recipientUserIds = allMembers.filter(m => m.user_id && m.status === 'arrears').map(m => m.user_id);
   } else if (recipientType === 'custom') {
     if (!_customSelectedMemberIds.size) { toast('Select at least one member first'); return; }
+    console.log('[GY360 debug] selected IDs:', [..._customSelectedMemberIds]);
+    console.log('[GY360 debug] allMembers count:', allMembers.length);
+    const matchedMembers = allMembers.filter(m => _customSelectedMemberIds.has(m.id));
+    console.log('[GY360 debug] matched member objects:', JSON.stringify(matchedMembers.map(m => ({ id: m.id, name: m.full_name, phone: m.phone }))));
     rawPhones = allMembers.filter(m => m.phone && _customSelectedMemberIds.has(m.id)).map(m => m.phone);
     recipientUserIds = allMembers.filter(m => m.user_id && _customSelectedMemberIds.has(m.id)).map(m => m.user_id);
   }
