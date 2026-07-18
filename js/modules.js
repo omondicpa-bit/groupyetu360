@@ -255,6 +255,25 @@ async function sendMeetingReminders() {
       );
 
       if (sent > 0) await trackSmsUsage(currentOrg.id, sent);
+
+      // Push alongside the SMS — same non-blocking, additive pattern as
+      // the general bulk-SMS flow.
+      const meetingRecipientUserIds = activeMembers.filter(m => m.user_id).map(m => m.user_id);
+      if (meetingRecipientUserIds.length) {
+        sb.auth.getSession().then(({ data: { session } }) => {
+          fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/send-group-notification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+            body: JSON.stringify({
+              org_id: currentOrg.id,
+              user_ids: meetingRecipientUserIds,
+              title: `${currentOrg.name} — Meeting Reminder`,
+              body: `${meetDate} at ${meeting.meeting_time||'8:30 PM'} (${meeting.venue||'Online'})`,
+              url: '/#meetings',
+            })
+          }).catch(e => console.warn('Meeting reminder push failed (non-fatal):', e.message));
+        });
+      }
     }
 
     if (statusEl) {
@@ -1148,16 +1167,24 @@ async function sendSms() {
   const recipientType = document.getElementById('sms-recipients').value;
 
   // Get raw phone numbers based on recipient type (sendSMS() will format them)
+  // Also collect user_ids from the SAME filtered set — these are who gets
+  // push-notified alongside the SMS, additive not a replacement, since not
+  // every member has the app installed.
   let rawPhones = [];
+  let recipientUserIds = [];
   if (recipientType === 'all') {
     rawPhones = allMembers.filter(m => m.phone).map(m => m.phone);
+    recipientUserIds = allMembers.filter(m => m.user_id).map(m => m.user_id);
   } else if (recipientType === 'active') {
     rawPhones = allMembers.filter(m => m.phone && m.status === 'active').map(m => m.phone);
+    recipientUserIds = allMembers.filter(m => m.user_id && m.status === 'active').map(m => m.user_id);
   } else if (recipientType === 'arrears') {
     rawPhones = allMembers.filter(m => m.phone && m.status === 'arrears').map(m => m.phone);
+    recipientUserIds = allMembers.filter(m => m.user_id && m.status === 'arrears').map(m => m.user_id);
   } else if (recipientType === 'custom') {
     if (!_customSelectedMemberIds.size) { toast('Select at least one member first'); return; }
     rawPhones = allMembers.filter(m => m.phone && _customSelectedMemberIds.has(m.id)).map(m => m.phone);
+    recipientUserIds = allMembers.filter(m => m.user_id && _customSelectedMemberIds.has(m.id)).map(m => m.user_id);
   }
 
   if (!rawPhones.length) { toast('No phone numbers found for selected recipients'); return; }
@@ -1197,6 +1224,25 @@ async function sendSms() {
     });
 
     if (sent > 0) await trackSmsUsage(currentOrg.id, sent);
+
+    // Push notification alongside the SMS — fire-and-forget, deliberately
+    // non-blocking. If this fails for any reason, the SMS (the real,
+    // guaranteed-delivery channel) has already gone out regardless; push
+    // is purely additive.
+    if (recipientUserIds.length) {
+      sb.auth.getSession().then(({ data: { session } }) => {
+        fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/send-group-notification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+          body: JSON.stringify({
+            org_id: currentOrg.id,
+            user_ids: recipientUserIds,
+            title: currentOrg?.name || 'Group Update',
+            body: body.length > 120 ? body.slice(0, 117) + '...' : body,
+          })
+        }).catch(e => console.warn('Group push notification failed (non-fatal):', e.message));
+      });
+    }
 
     if (failed > 0) {
       toast(`SMS sent to ${sent} recipients. ${failed} failed.`);
