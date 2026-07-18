@@ -769,19 +769,27 @@ function switchPaymentMode(mode) {
 // Supports paying for another member, or splitting one M-Pesa charge across
 // several beneficiaries in a single go (e.g. a member's own subscription +
 // their spouse's, common in groups like KPA that require a combined amount
-// per household). Each row is independent: its own member, its own
-// contribution type (or welfare event), its own amount.
+// per household). Each row is one person; each row can now hold MULTIPLE
+// items (contribution type/welfare event + amount), matching what the
+// manual "Report a Payment" flow already allows — deliberately kept plain
+// here though: no smart-split, no suggested amounts, just add an item and
+// type a number.
 let _mpBeneficiaryRows = [];
 let _mpOrgMembers = [];
 let _mpWelfareEventsCache = [];
 let _mpOpenSearchRowId = null;
 let _mpRowIdCounter = 0;
+let _mpItemIdCounter = 0;
+
+function newBeneficiaryItem() {
+  return { itemId: 'item' + (_mpItemIdCounter++), typeId: '', typeName: '', isWelfare: false, eventId: null, amount: '' };
+}
 
 function initBeneficiaryRows(selfMemberId, selfName) {
-  _mpRowIdCounter = 0;
+  _mpRowIdCounter = 0; _mpItemIdCounter = 0;
   _mpBeneficiaryRows = [{
     id: 'row' + (_mpRowIdCounter++), memberId: selfMemberId, memberName: 'Myself',
-    typeId: '', typeName: '', isWelfare: false, eventId: null, amount: ''
+    items: [newBeneficiaryItem()]
   }];
   renderBeneficiaryRows();
 }
@@ -789,9 +797,29 @@ function initBeneficiaryRows(selfMemberId, selfName) {
 function addBeneficiaryRow() {
   _mpBeneficiaryRows.push({
     id: 'row' + (_mpRowIdCounter++), memberId: null, memberName: '',
-    typeId: '', typeName: '', isWelfare: false, eventId: null, amount: ''
+    items: [newBeneficiaryItem()]
   });
   renderBeneficiaryRows();
+}
+
+function addBeneficiaryItem(rowId) {
+  const row = _mpBeneficiaryRows.find(r => r.id === rowId);
+  if (row) row.items.push(newBeneficiaryItem());
+  renderBeneficiaryRows();
+}
+
+function removeBeneficiaryItem(rowId, itemId) {
+  const row = _mpBeneficiaryRows.find(r => r.id === rowId);
+  if (!row) return;
+  if (row.items.length <= 1) {
+    // Last item in this row — remove the whole row instead of leaving an
+    // empty one hanging around (unless it's the only row left at all).
+    removeBeneficiaryRow(rowId);
+    return;
+  }
+  row.items = row.items.filter(i => i.itemId !== itemId);
+  renderBeneficiaryRows();
+  recalcInstantFee();
 }
 
 function removeBeneficiaryRow(rowId) {
@@ -823,7 +851,7 @@ function renderBeneficiaryRows() {
   if (!container) return;
   container.innerHTML = _mpBeneficiaryRows.map(row => {
     const initials = row.memberName ? row.memberName.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase() : '?';
-    const showRemove = _mpBeneficiaryRows.length > 1;
+    const showRemoveRow = _mpBeneficiaryRows.length > 1;
     return `
     <div class="mp-bene-row" data-row-id="${row.id}">
       <div class="mp-bene-top">
@@ -832,15 +860,20 @@ function renderBeneficiaryRows() {
           <div class="mp-bene-name">${row.memberName || 'Select member…'}</div>
         </div>
         <div class="mp-bene-chevron">▼</div>
-        ${showRemove ? `<button class="mp-bene-remove" onclick="event.stopPropagation();removeBeneficiaryRow('${row.id}')">✕</button>` : ''}
+        ${showRemoveRow ? `<button class="mp-bene-remove" onclick="event.stopPropagation();removeBeneficiaryRow('${row.id}')">✕</button>` : ''}
         ${_mpOpenSearchRowId === row.id ? renderBeneficiarySearchPanel(row.id) : ''}
       </div>
-      <div class="mp-bene-fields">
-        <select class="form-select mp-bene-type" onchange="updateBeneficiaryType('${row.id}', this)">
-          ${typeOptionsHtml(row.typeId, row.isWelfare, row.eventId)}
-        </select>
-        <input class="form-input mp-bene-amount" type="number" placeholder="Amount" value="${row.amount||''}"
-          oninput="updateBeneficiaryAmount('${row.id}', this.value)"/>
+      <div style="display:flex;flex-direction:column;gap:.4rem">
+        ${row.items.map(item => `
+          <div class="mp-bene-fields" style="align-items:center">
+            <select class="form-select mp-bene-type" onchange="updateBeneficiaryType('${row.id}','${item.itemId}', this)">
+              ${typeOptionsHtml(item.typeId, item.isWelfare, item.eventId)}
+            </select>
+            <input class="form-input mp-bene-amount" type="number" placeholder="Amount" value="${item.amount||''}"
+              oninput="updateBeneficiaryAmount('${row.id}','${item.itemId}', this.value)"/>
+            ${row.items.length > 1 ? `<button type="button" onclick="removeBeneficiaryItem('${row.id}','${item.itemId}')" style="background:none;border:none;color:var(--ink-faint);font-size:1rem;cursor:pointer;padding:0 .3rem" title="Remove this item">✕</button>` : ''}
+          </div>`).join('')}
+        <button type="button" onclick="addBeneficiaryItem('${row.id}')" style="align-self:flex-start;background:none;border:none;color:var(--teal);font-size:.75rem;font-weight:600;cursor:pointer;padding:.15rem 0">+ Add another item for ${row.memberName || 'this person'}</button>
       </div>
     </div>`;
   }).join('');
@@ -894,27 +927,29 @@ function selectBeneficiaryMember(rowId, memberId, memberName) {
   renderBeneficiaryRows();
 }
 
-function updateBeneficiaryType(rowId, selectEl) {
+function updateBeneficiaryType(rowId, itemId, selectEl) {
   const row = _mpBeneficiaryRows.find(r => r.id === rowId);
-  if (!row) return;
+  const item = row?.items.find(i => i.itemId === itemId);
+  if (!item) return;
   const opt = selectEl.selectedOptions[0];
-  row.typeId = selectEl.value;
-  row.typeName = opt?.textContent?.trim() || 'Contribution';
-  row.isWelfare = opt?.dataset?.welfare === 'true';
-  row.eventId = row.isWelfare ? selectEl.value : null;
+  item.typeId = selectEl.value;
+  item.typeName = opt?.textContent?.trim() || 'Contribution';
+  item.isWelfare = opt?.dataset?.welfare === 'true';
+  item.eventId = item.isWelfare ? selectEl.value : null;
   recalcInstantFee();
 }
 
-function updateBeneficiaryAmount(rowId, value) {
+function updateBeneficiaryAmount(rowId, itemId, value) {
   const row = _mpBeneficiaryRows.find(r => r.id === rowId);
-  if (row) row.amount = value;
+  const item = row?.items.find(i => i.itemId === itemId);
+  if (item) item.amount = value;
   recalcInstantFee();
 }
 
 async function recalcInstantFee() {
   const breakdownEl = document.getElementById('mp-fee-breakdown');
   const capWarningEl = document.getElementById('mp-cap-warning');
-  const net = _mpBeneficiaryRows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
+  const net = _mpBeneficiaryRows.reduce((s, r) => s + r.items.reduce((si, i) => si + (parseFloat(i.amount) || 0), 0), 0);
   if (!net || net <= 0) {
     if (breakdownEl) breakdownEl.style.display = 'none';
     if (capWarningEl) capWarningEl.style.display = 'none';
@@ -977,10 +1012,12 @@ async function payInstantContribution() {
 
   for (const row of _mpBeneficiaryRows) {
     if (!row.memberId) { toast('Select who each row is for'); return; }
-    if (!row.typeId) { toast('Select what each contribution is for'); return; }
-    if (!row.amount || parseFloat(row.amount) <= 0) { toast('Enter an amount for each person'); return; }
+    for (const item of row.items) {
+      if (!item.typeId) { toast(`Select what each item is for (${row.memberName || 'a row'})`); return; }
+      if (!item.amount || parseFloat(item.amount) <= 0) { toast(`Enter an amount for every item (${row.memberName || 'a row'})`); return; }
+    }
   }
-  const net = _mpBeneficiaryRows.reduce((s, r) => s + parseFloat(r.amount), 0);
+  const net = _mpBeneficiaryRows.reduce((s, r) => s + r.items.reduce((si, i) => si + parseFloat(i.amount), 0), 0);
   if (!phone || phone.replace(/[^0-9]/g,'').length < 9) { toast('Enter a valid M-Pesa number'); return; }
   const cap = currentOrg?.max_contribution_amount;
   if (cap && net > cap) { toast(`Maximum total right now is Ksh ${Number(cap).toLocaleString()}`); return; }
@@ -996,16 +1033,19 @@ async function payInstantContribution() {
       : calculateGrossCharge(net, platformFeePercent, paystackFeePercent);
   }
 
-  // Each row carries its own memberId now — this is what lets paying for
+  // Each row carries its own memberId — this is what lets paying for
   // another member (or splitting between myself and my spouse in one go)
-  // land on the right person's ledger. creditMemberContribution() groups by
-  // memberId server-side and processes each beneficiary independently.
-  const allocations = _mpBeneficiaryRows.map(row => ({
+  // land on the right person's ledger. Each row can now hold multiple
+  // items (contribution type/welfare event + amount) too, flattened here
+  // into individual allocation entries that all still carry that row's
+  // memberId. creditMemberContribution() groups by memberId server-side
+  // and processes each beneficiary independently either way.
+  const allocations = _mpBeneficiaryRows.flatMap(row => row.items.map(item => ({
     memberId: row.memberId,
-    typeName: row.typeName,
-    amount: parseFloat(row.amount),
-    ...(row.isWelfare ? { isWelfare: true, eventId: row.eventId } : { typeId: row.typeId })
-  }));
+    typeName: item.typeName,
+    amount: parseFloat(item.amount),
+    ...(item.isWelfare ? { isWelfare: true, eventId: item.eventId } : { typeId: item.typeId })
+  })));
 
   if (payBtn) payBtn.disabled = true;
   phoneEl.disabled = true;

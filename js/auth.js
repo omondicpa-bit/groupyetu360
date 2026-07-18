@@ -77,6 +77,16 @@ async function init() {
       if (!session) return;
       if (window._suppressAuthAutoLoad) return;
       if (event === 'INITIAL_SESSION' && currentProfile) return;
+      // Supabase re-fires SIGNED_IN (not just TOKEN_REFRESHED) when a tab
+      // regains focus or the app resumes from background and refreshes its
+      // session token — this is normal, documented Supabase behavior, not
+      // a real new login. Without this guard, every one of those redundant
+      // refires re-ran the full "user just logged in" flow, which forces
+      // the org picker back open and discards whatever page was actually
+      // active — exactly the "keeps going back to picker" symptom. Only
+      // skip when it's genuinely the same already-loaded user; a real
+      // switch to a different account still needs to go through normally.
+      if (event === 'SIGNED_IN' && currentProfile && currentUser && session.user.id === currentUser.id) return;
       // Guard: if this fires for a different user than the one currently signed in,
       // it means a signUp() call (e.g. admin inviting a member) triggered this as a
       // side effect. Do NOT switch the current admin's session.
