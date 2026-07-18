@@ -111,7 +111,7 @@ serve(async (req) => {
     }
 
     const { data: ps } = await supabase.from('platform_settings')
-      .select('sasapay_client_id, sasapay_client_secret, sasapay_merchant_code, sasapay_base_url, platform_fee_percent, paystack_fee_percent')
+      .select('sasapay_client_id, sasapay_client_secret, sasapay_merchant_code, sasapay_base_url, sasapay_fee_percent, sasapay_platform_fee_percent')
       .maybeSingle();
 
     if (!ps?.sasapay_client_id || !ps?.sasapay_client_secret || !ps?.sasapay_merchant_code) {
@@ -136,12 +136,16 @@ serve(async (req) => {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
-      // SasaPay's own fee (0.2%, per Felix's negotiated rate) uses
-      // paystack_fee_percent's slot conceptually but reads the actual
-      // rate — reuses the same platform_fee_percent (EPH's margin) column
-      // since that applies platform-wide regardless of provider.
-      const sasapayFeePercent = 0.2;
-      const calc = calculateGrossCharge(netAmount, ps.platform_fee_percent ?? 0.5, sasapayFeePercent);
+      // SasaPay's own fee and EPH's markup are both read from real
+      // Settings fields now — see calculation below.
+      // Both rates now real, dedicated Settings fields — SasaPay's own fee
+      // was previously hardcoded here, and EPH's markup was silently
+      // reusing Paystack's shared column. Separated because SasaPay's
+      // pooled-wallet + manual settlement model carries real disbursement
+      // overhead Paystack's automatic settlement doesn't.
+      const sasapayFeePercent = ps.sasapay_fee_percent != null ? Number(ps.sasapay_fee_percent) : 0.2;
+      const platformFeePercent = ps.sasapay_platform_fee_percent != null ? Number(ps.sasapay_platform_fee_percent) : 1.3;
+      const calc = calculateGrossCharge(netAmount, platformFeePercent, sasapayFeePercent);
       finalAmount = calc.gross;
       console.log('[GY360 SasaPay] Server-computed charge:', JSON.stringify(calc));
     } else {

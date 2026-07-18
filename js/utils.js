@@ -455,6 +455,8 @@ async function loadSASupport() {
   // SasaPay — same never-render-the-real-secret pattern as everything else
   setVal('sp-sasapay-merchant-code', s.sasapay_merchant_code || '');
   setVal('sp-sasapay-base-url', s.sasapay_base_url || 'https://api.sasapay.app');
+  setVal('sp-sasapay-fee-percent', s.sasapay_fee_percent != null ? s.sasapay_fee_percent : '0.2');
+  setVal('sp-sasapay-platform-fee-percent', s.sasapay_platform_fee_percent != null ? s.sasapay_platform_fee_percent : '1.3');
   if (s.sasapay_client_id_set) {
     const scEl = document.getElementById('sp-sasapay-client-id');
     if (scEl) scEl.placeholder = '(saved — enter new Client ID to update)';
@@ -531,6 +533,8 @@ async function saveSupportSettings() {
   // SasaPay
   payload.sasapay_merchant_code = document.getElementById('sp-sasapay-merchant-code')?.value?.trim() || null;
   payload.sasapay_base_url = document.getElementById('sp-sasapay-base-url')?.value?.trim() || 'https://api.sasapay.app';
+  payload.sasapay_fee_percent = parseFloat(document.getElementById('sp-sasapay-fee-percent')?.value) || 0.2;
+  payload.sasapay_platform_fee_percent = parseFloat(document.getElementById('sp-sasapay-platform-fee-percent')?.value) || 1.3;
   payload.subscription_payment_provider = document.getElementById('sp-subscription-provider')?.value || 'paystack';
   const newSasapayClientId = document.getElementById('sp-sasapay-client-id')?.value?.trim();
   if (newSasapayClientId) payload.sasapay_client_id = newSasapayClientId;
@@ -871,18 +875,22 @@ async function getPlatformFeeRates() {
   let platformFeePercent = 0.5;
   let paystackFeePercent = 1.5;
   let fingoFeeMultiplier = 2.0;
+  let sasapayFeePercent = 0.2;
+  let sasapayPlatformFeePercent = 1.3;
   try {
     const { data } = await sb.from('platform_settings_public')
-      .select('platform_fee_percent,paystack_fee_percent,fingo_fee_multiplier').maybeSingle();
+      .select('platform_fee_percent,paystack_fee_percent,fingo_fee_multiplier,sasapay_fee_percent,sasapay_platform_fee_percent').maybeSingle();
     if (data) {
       if (data.platform_fee_percent != null) platformFeePercent = Number(data.platform_fee_percent);
       if (data.paystack_fee_percent != null) paystackFeePercent = Number(data.paystack_fee_percent);
       if (data.fingo_fee_multiplier != null) fingoFeeMultiplier = Number(data.fingo_fee_multiplier);
+      if (data.sasapay_fee_percent != null) sasapayFeePercent = Number(data.sasapay_fee_percent);
+      if (data.sasapay_platform_fee_percent != null) sasapayPlatformFeePercent = Number(data.sasapay_platform_fee_percent);
     }
   } catch(e) {
     console.warn('getPlatformFeeRates: falling back to defaults —', e.message);
   }
-  return { platformFeePercent, paystackFeePercent, fingoFeeMultiplier };
+  return { platformFeePercent, paystackFeePercent, fingoFeeMultiplier, sasapayFeePercent, sasapayPlatformFeePercent };
 }
 
 /**
