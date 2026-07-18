@@ -1161,10 +1161,13 @@ function loadSmsTemplate(t) {
 }
 
 async function sendSms() {
+  console.log('[GY360 debug] sendSms() called');
   if (!canDo('sendSms')) { toast('⚠ Only admins can send SMS messages.'); return; }
   const body = document.getElementById('sms-body').value.trim();
   if (!body) { toast('Please enter a message'); return; }
   const recipientType = document.getElementById('sms-recipients').value;
+  console.log('[GY360 debug] recipientType read from dropdown:', JSON.stringify(recipientType));
+  console.log('[GY360 debug] _customSelectedMemberIds at this moment:', [..._customSelectedMemberIds]);
 
   // Get raw phone numbers based on recipient type (sendSMS() will format them)
   // Also collect user_ids from the SAME filtered set — these are who gets
