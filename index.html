@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026071612">
+  <link rel="stylesheet" href="style.css?v=2026071613">
 </head>
 <body>
 
@@ -2322,12 +2322,14 @@
             <div class="form-row">
               <div class="form-group"><label class="form-label">Paystack Subaccount Code</label><input class="form-input" id="od-paystack-subaccount" placeholder="ACCT_…"/></div>
               <div class="form-group"><label class="form-label">Fingo Sub-Merchant Internal ID</label><input class="form-input" id="od-fingo-submerchant" placeholder="SM-…"/></div>
+              <div class="form-group" style="grid-column:1/-1;font-size:.72rem;color:var(--ink-faint);padding-top:.2rem">SasaPay needs no reference here — it's a pooled wallet shared by every org (no per-org sub-account exists). Just select it as Active Provider once configured in the SasaPay accordion above.</div>
             </div>
             <div class="form-row">
               <div class="form-group"><label class="form-label">Active Provider</label>
                 <select class="form-select" id="od-active-provider">
                   <option value="paystack">Paystack</option>
                   <option value="fingo">Fingo</option>
+                  <option value="sasapay">SasaPay</option>
                 </select>
               </div>
               <div class="form-group"><label class="form-label">Max Contribution Amount (Ksh)</label><input class="form-input" type="number" id="od-max-contribution" placeholder="e.g. 15000"/></div>
@@ -4780,12 +4782,14 @@
           <div class="form-row">
             <div class="form-group"><label class="form-label">Paystack Subaccount Code</label><input class="form-input" id="od-paystack-subaccount" placeholder="ACCT_…"/></div>
             <div class="form-group"><label class="form-label">Fingo Sub-Merchant ID</label><input class="form-input" id="od-fingo-submerchant" placeholder="SM-…"/></div>
+          <div style="font-size:.7rem;color:var(--ink-faint);margin-bottom:.5rem">SasaPay needs no reference — pooled wallet, shared across orgs.</div>
           </div>
           <div class="form-row">
             <div class="form-group"><label class="form-label">Active Provider</label>
               <select class="form-select" id="od-active-provider">
                 <option value="paystack">Paystack</option>
                 <option value="fingo">Fingo</option>
+                <option value="sasapay">SasaPay</option>
               </select>
             </div>
             <div class="form-group"><label class="form-label">Max Contribution (Ksh)</label><input class="form-input" type="number" id="od-max-contribution" placeholder="e.g. 15000"/></div>
@@ -5475,14 +5479,14 @@
 
 
   <!-- GroupYetu360 Scripts — load order matters -->
-  <script src="js/auth.js?v=2026071612"></script>
-  <script src="js/utils.js?v=2026071612"></script>
-  <script src="js/dashboard.js?v=2026071612"></script>
-  <script src="js/members.js?v=2026071612"></script>
-  <script src="js/finance.js?v=2026071612"></script>
-  <script src="js/settings.js?v=2026071612"></script>
-  <script src="js/portal.js?v=2026071612"></script>
-  <script src="js/modules.js?v=2026071612"></script>
+  <script src="js/auth.js?v=2026071613"></script>
+  <script src="js/utils.js?v=2026071613"></script>
+  <script src="js/dashboard.js?v=2026071613"></script>
+  <script src="js/members.js?v=2026071613"></script>
+  <script src="js/finance.js?v=2026071613"></script>
+  <script src="js/settings.js?v=2026071613"></script>
+  <script src="js/portal.js?v=2026071613"></script>
+  <script src="js/modules.js?v=2026071613"></script>
   <script>
     // Bootstrap — runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —

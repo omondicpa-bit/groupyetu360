@@ -2722,7 +2722,7 @@ async function loadCollectionRequestsQueue() {
             </div>
           </div>
           <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:.75rem;margin-bottom:.6rem;font-size:.72rem;color:var(--ink-soft)">
-            ℹ️ Create this org's sub-account on <strong>both</strong> Paystack and Fingo dashboards manually, then paste both codes below — pre-provisioning both means switching providers later is a config change, not a new setup step.
+            ℹ️ Create this org's sub-account on <strong>both</strong> Paystack and Fingo dashboards manually, then paste both codes below — pre-provisioning both means switching providers later is a config change, not a new setup step. SasaPay needs no reference here at all — it's a pooled wallet shared by every org.
           </div>
           <div class="form-row">
             <div class="form-group"><label class="form-label">Paystack Subaccount Code</label><input class="form-input" id="sa-req-paystack-${r.id}" placeholder="ACCT_…"/></div>
@@ -2733,6 +2733,7 @@ async function loadCollectionRequestsQueue() {
               <select class="form-select" id="sa-req-active-${r.id}">
                 <option value="paystack">Paystack</option>
                 <option value="fingo">Fingo</option>
+                <option value="sasapay">SasaPay</option>
               </select>
             </div>
           </div>
@@ -2753,7 +2754,9 @@ async function approveCollectionRequest(requestId, orgId) {
   const fingoId = document.getElementById(`sa-req-fingo-${requestId}`)?.value?.trim();
   const activeProvider = document.getElementById(`sa-req-active-${requestId}`)?.value || 'paystack';
 
-  if (!paystackCode && !fingoId) { toast('Enter at least one provider account reference'); return; }
+  // SasaPay needs no reference at all (pooled wallet, no per-org
+  // sub-account exists) — only Paystack/Fingo genuinely require one, and
+  // only when THAT specific provider is the one being activated.
   if (activeProvider === 'paystack' && !paystackCode) { toast('Paystack is selected as active but has no subaccount code'); return; }
   if (activeProvider === 'fingo' && !fingoId) { toast('Fingo is selected as active but has no sub-merchant ID'); return; }
 

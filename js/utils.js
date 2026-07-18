@@ -985,10 +985,23 @@ function calculateFingoGrossCharge(netAmount, feeMultiplier) {
  * org_payment_providers rather than the legacy paystack_subaccount_code
  * column directly — this is what lets SA switch an org's active provider
  * at any time without a schema change or re-provisioning.
+ *
+ * SasaPay is a special case: it has no per-org sub-account at all (pooled
+ * wallet, confirmed with SasaPay directly — every org shares one merchant
+ * wallet). No org_payment_providers row will ever exist for it, by design,
+ * so it's short-circuited here rather than made to look for one that will
+ * never come. sasapay-charge itself validates platform-level credentials
+ * server-side and fails cleanly if SasaPay isn't configured yet — this
+ * function doesn't need to duplicate that check.
  */
 async function getActiveProviderConfig(org) {
   if (!org?.id) return null;
   const activeProvider = org.active_payment_provider || 'paystack';
+
+  if (activeProvider === 'sasapay') {
+    return { provider: 'sasapay', accountRef: null };
+  }
+
   try {
     const { data } = await sb.from('org_payment_providers')
       .select('provider, provider_account_ref')
