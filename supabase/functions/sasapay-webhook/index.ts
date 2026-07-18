@@ -30,6 +30,11 @@ const SASAPAY_TRUSTED_IPS = [
   '155.12.30.40', '155.12.30.58',
 ];
 
+// Kept in place though currently unused — SasaPay documents HMAC-SHA512
+// signing, but no real callback has ever actually included the signature
+// header (confirmed across multiple live transactions). If their team
+// confirms signing gets enabled, these are ready to wire back in
+// immediately rather than needing to be rewritten from scratch.
 async function hmacSha512Hex(secret: string, message: string): Promise<string> {
   const encoder = new TextEncoder();
   const cryptoKey = await crypto.subtle.importKey(
@@ -101,57 +106,20 @@ serve(async (req) => {
     return new Response('OK', { status: 200 });
   }
 
-  // ── Signature verification — DIAGNOSTIC MODE, still not enforced ──
-  // Per SasaPay's dev console: HMAC-SHA512, header X-SasaPay-Signature,
-  // secret = Client ID, message = hyphen-joined
-  // "sasapay_transaction_code-merchant_code-account_number-
-  // payment_reference-amount". Three real attempts at guessing the exact
-  // field mapping have all mismatched. Real insight this time: SasaPay
-  // sends TWO different callback shapes to this same URL for one payment
-  // (confirmed from real traffic) — only the IPN shape actually has a
-  // native MerchantCode field; this "C2B Callback Results" shape doesn't.
-  // The signature spec may have been written for the IPN shape, not this
-  // one. Rather than guess a fourth single answer, this computes several
-  // real candidates and logs them in FULL (not truncated, unlike every
-  // previous attempt) — the next real transaction's logs should make the
-  // correct mapping obvious by inspection, rather than another guess.
-  try {
-    const { data: sigPs } = await supabase.from('platform_settings')
-      .select('sasapay_client_id, sasapay_merchant_code').maybeSingle();
-    if (sigPs?.sasapay_client_id) {
-      const receivedSig = req.headers.get('x-sasapay-signature') || '';
-      const secret = sigPs.sasapay_client_id;
-
-      const candidates: Record<string, string> = {
-        // Original guess: TransactionCode / stored merchant code / BillRefNumber / PaymentRequestID / TransAmount
-        'A (orig, PaymentRequestID)': [event.TransactionCode ?? '', event.MerchantCode ?? sigPs.sasapay_merchant_code ?? '', event.BillRefNumber ?? '', event.PaymentRequestID ?? '', event.TransAmount ?? ''].join('-'),
-        // Same but CheckoutRequestID instead of PaymentRequestID for payment_reference
-        'B (CheckoutRequestID)': [event.TransactionCode ?? '', event.MerchantCode ?? sigPs.sasapay_merchant_code ?? '', event.BillRefNumber ?? '', event.CheckoutRequestID ?? '', event.TransAmount ?? ''].join('-'),
-        // account_number = CustomerMobile instead of BillRefNumber
-        'C (CustomerMobile as account_number)': [event.TransactionCode ?? '', event.MerchantCode ?? sigPs.sasapay_merchant_code ?? '', event.CustomerMobile ?? '', event.PaymentRequestID ?? '', event.TransAmount ?? ''].join('-'),
-        // RequestedAmount instead of TransAmount (this payload has both, may differ in decimal formatting)
-        'D (RequestedAmount)': [event.TransactionCode ?? '', event.MerchantCode ?? sigPs.sasapay_merchant_code ?? '', event.BillRefNumber ?? '', event.PaymentRequestID ?? '', event.RequestedAmount ?? ''].join('-'),
-        // IPN-shape field names, in case this specific event IS the IPN shape
-        'E (IPN shape: TransID/MerchantCode/BillRefNumber/BillRefNumber/TransAmount)': [event.TransID ?? '', event.MerchantCode ?? '', event.BillRefNumber ?? '', event.BillRefNumber ?? '', event.TransAmount ?? ''].join('-'),
-      };
-
-      let anyMatch = false;
-      for (const [label, message] of Object.entries(candidates)) {
-        const expectedSig = await hmacSha512Hex(secret, message);
-        if (receivedSig && timingSafeEqual(receivedSig, expectedSig)) {
-          console.log(`[GY360 SasaPay Webhook] ✓✓✓ SIGNATURE MATCH FOUND — candidate "${label}" — message: "${message}"`);
-          anyMatch = true;
-        }
-      }
-      if (!anyMatch) {
-        console.warn('[GY360 SasaPay Webhook] No candidate matched. Received signature (FULL):', receivedSig || '(none provided)');
-        for (const [label, message] of Object.entries(candidates)) {
-          console.warn(`[GY360 SasaPay Webhook]   candidate "${label}": message="${message}" expected=${await hmacSha512Hex(secret, message)}`);
-        }
-      }
-    }
-  } catch (sigErr: any) {
-    console.warn('[GY360 SasaPay Webhook] Signature check failed to run (non-fatal):', sigErr.message);
+  // ── Signature verification ──
+  // SasaPay's dev console documents HMAC-SHA512 signing via an
+  // X-SasaPay-Signature header. Confirmed directly, not guessed: across
+  // multiple real transactions, on both callback shapes they send, that
+  // header has never once been present. This isn't a field-mapping
+  // problem — there's no signature to match against at all. Logged once,
+  // clearly, so it's obvious in the logs without repeating on every call;
+  // the amount cross-check below remains the real, enforced safety net.
+  // Worth a direct question to SasaPay's team: is signing actually enabled
+  // for this merchant account, or is there a setup step still needed on
+  // their side?
+  const receivedSig = req.headers.get('x-sasapay-signature');
+  if (!receivedSig) {
+    console.warn('[GY360 SasaPay Webhook] No X-SasaPay-Signature header present on this callback — signing may not be enabled for this merchant account. Relying on amount cross-check only.');
   }
 
   // SasaPay sends TWO different callbacks to the same URL for one payment:
