@@ -415,6 +415,7 @@ function switchFinTab(btn, tabId) {
   document.querySelectorAll('#page-finance > .tab-panel').forEach(p => p.classList.remove('active'));
   const panel = document.getElementById(tabId);
   if (panel) panel.classList.add('active');
+  if (tabId === 'tab-settlements' && typeof loadOrgSettlements === 'function') loadOrgSettlements();
 }
 
 function switchFinSubTab(btn, tabId) {
@@ -3047,5 +3048,256 @@ async function loadBroadcastHistory() {
     </table>`;
   } catch(e) {
     el.innerHTML = '<div style="padding:.75rem;color:var(--danger);font-size:.75rem">Could not load: ' + e.message + '</div>';
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   SETTLEMENTS — unified for SasaPay + Fingo (both pooled-wallet, no
+   auto-disbursement; Paystack isn't included, its subaccount model
+   settles per-org automatically). Grouped by settlement_date, one line
+   each for regular vs welfare per org per provider per day. SA syncs new
+   batches from approved payment_requests, marks them paid when the real
+   payout happens; org admins get a read-only view of the same data.
+════════════════════════════════════════════════════ */
+
+// Reconciles settlement_batches against approved SasaPay/Fingo
+// member_contribution payments. Safe to call often — existing PAID
+// batches are never touched (locked once paid, matching how a real
+// settlement record should behave), existing PENDING batches get their
+// amount refreshed (in case more transactions landed for that date since
+// the last sync), and genuinely new (org, provider, date, line) combos
+// get created fresh.
+async function syncSettlementBatches() {
+  const since = new Date(); since.setDate(since.getDate() - 60);
+  const sinceStr = since.toISOString().split('T')[0];
+
+  const { data: rows, error: rowsErr } = await sb.from('payment_requests')
+    .select('org_id, provider, payment_date, allocations')
+    .in('provider', ['sasapay', 'fingo'])
+    .eq('status', 'approved')
+    .eq('payment_type', 'member_contribution')
+    .gte('payment_date', sinceStr);
+  if (rowsErr) { console.warn('syncSettlementBatches: could not load payment_requests —', rowsErr.message); return; }
+
+  const groups = {};
+  for (const row of rows || []) {
+    let allocs = [];
+    try { allocs = JSON.parse(row.allocations || '[]'); } catch(e) { continue; }
+    for (const a of allocs) {
+      const lineType = a.isWelfare ? 'welfare' : 'regular';
+      const key = `${row.org_id}|${row.provider}|${row.payment_date}|${lineType}`;
+      groups[key] = (groups[key] || 0) + Number(a.amount || 0);
+    }
+  }
+
+  const { data: existing } = await sb.from('settlement_batches')
+    .select('org_id,provider,settlement_date,line_type,status,amount')
+    .gte('settlement_date', sinceStr);
+  const existingMap = {};
+  (existing || []).forEach(b => {
+    existingMap[`${b.org_id}|${b.provider}|${b.settlement_date}|${b.line_type}`] = b;
+  });
+
+  const toInsert = [];
+  const toUpdate = [];
+  for (const [key, amount] of Object.entries(groups)) {
+    const [org_id, provider, settlement_date, line_type] = key.split('|');
+    const roundedAmount = Math.round(amount * 100) / 100;
+    const existingBatch = existingMap[key];
+    if (!existingBatch) {
+      toInsert.push({ org_id, provider, settlement_date, line_type, amount: roundedAmount });
+    } else if (existingBatch.status === 'pending' && Number(existingBatch.amount) !== roundedAmount) {
+      toUpdate.push({ org_id, provider, settlement_date, line_type, amount: roundedAmount });
+    }
+  }
+
+  if (toInsert.length) {
+    const { error } = await sb.from('settlement_batches').insert(toInsert);
+    if (error) console.warn('syncSettlementBatches insert error:', error.message);
+  }
+  for (const u of toUpdate) {
+    await sb.from('settlement_batches').update({ amount: u.amount })
+      .eq('org_id', u.org_id).eq('provider', u.provider)
+      .eq('settlement_date', u.settlement_date).eq('line_type', u.line_type);
+  }
+  console.log(`syncSettlementBatches: ${toInsert.length} new, ${toUpdate.length} refreshed`);
+}
+
+// SA view — syncs first, then renders every batch from the last 60 days
+// grouped by date, most recent first.
+async function loadSASettlements() {
+  const el = document.getElementById('sa-settlements-list');
+  if (!el) return;
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>Syncing…</div>';
+
+  try {
+    await syncSettlementBatches();
+
+    const since = new Date(); since.setDate(since.getDate() - 60);
+    const { data: batches } = await sb.from('settlement_batches')
+      .select('*, organisations(name)')
+      .gte('settlement_date', since.toISOString().split('T')[0])
+      .order('settlement_date', { ascending: false });
+
+    if (!batches?.length) {
+      el.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--ink-faint);font-size:.85rem">No SasaPay or Fingo settlements yet.</div>';
+      return;
+    }
+
+    const byDate = {};
+    batches.forEach(b => { (byDate[b.settlement_date] = byDate[b.settlement_date] || []).push(b); });
+
+    el.innerHTML = Object.entries(byDate).map(([date, dayBatches]) => {
+      const pendingTotal = dayBatches.filter(b => b.status === 'pending').reduce((s, b) => s + Number(b.amount), 0);
+      return `
+      <div style="margin-bottom:1rem;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+        <div style="background:var(--surface-2);padding:.7rem 1rem;display:flex;justify-content:space-between;align-items:center">
+          <strong style="font-size:.85rem">${new Date(date).toLocaleDateString('en-KE', { weekday:'short', day:'numeric', month:'short', year:'numeric' })}</strong>
+          <span style="font-size:.75rem;color:${pendingTotal > 0 ? 'var(--danger)' : 'var(--teal)'}">${pendingTotal > 0 ? 'Ksh ' + pendingTotal.toLocaleString() + ' pending' : 'All settled'}</span>
+        </div>
+        <table style="width:100%;font-size:.8rem;border-collapse:collapse">
+          <tbody>${dayBatches.map(b => `
+            <tr style="border-top:1px solid var(--border-soft)">
+              <td style="padding:.55rem 1rem">${(b.organisations?.name || 'Unknown').replace(/</g,'')}</td>
+              <td style="padding:.55rem;text-transform:capitalize;color:var(--ink-faint);font-size:.72rem">${b.provider}</td>
+              <td style="padding:.55rem;text-transform:capitalize;font-size:.72rem">${b.line_type}</td>
+              <td style="padding:.55rem;text-align:right;font-weight:600">Ksh ${Number(b.amount).toLocaleString()}</td>
+              <td style="padding:.55rem;text-align:center">
+                <span style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:${b.status==='paid'?'#2e7d32':'#c0392b'}">${b.status}</span>
+              </td>
+              <td style="padding:.55rem;text-align:right;white-space:nowrap">
+                <button class="btn btn-secondary btn-sm" onclick="viewSettlementDetails('${b.org_id}','${b.provider}','${b.settlement_date}','${b.line_type}','${(b.organisations?.name||'').replace(/'/g,"")}')">View Details</button>
+                ${b.status === 'pending' ? `<button class="btn btn-primary btn-sm" onclick="openMarkPaidForm('${b.id}')" style="margin-left:.4rem">Mark Paid</button>` : ''}
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = '<div style="padding:1rem;color:var(--danger);font-size:.8rem">Error: ' + e.message + '</div>';
+  }
+}
+
+function openMarkPaidForm(batchId) {
+  const method = prompt('Payout method — type "bank" or "mpesa":', 'mpesa');
+  if (!method || !['bank','mpesa'].includes(method.trim().toLowerCase())) { toast('Enter bank or mpesa'); return; }
+  const reference = prompt('Payment reference (optional):') || '';
+  markSettlementBatchPaid(batchId, method.trim().toLowerCase(), reference);
+}
+
+async function markSettlementBatchPaid(batchId, method, reference) {
+  try {
+    const { data: batch, error: fetchErr } = await sb.from('settlement_batches').select('*').eq('id', batchId).single();
+    if (fetchErr || !batch) throw new Error(fetchErr?.message || 'Batch not found');
+    if (batch.status === 'paid') { toast('Already marked paid'); return; }
+
+    const { error: updateErr } = await sb.from('settlement_batches').update({
+      status: 'paid', paid_at: new Date().toISOString(), paid_by: currentUser.id,
+      payout_method: method, payout_reference: reference || null,
+    }).eq('id', batchId);
+    if (updateErr) throw new Error(updateErr.message);
+
+    if (batch.line_type === 'regular') {
+      const { error: bbErr } = await sb.rpc('update_bank_balance', {
+        p_org_id: batch.org_id, p_amount: batch.amount, p_direction: 'debit',
+        p_date: new Date().toISOString().split('T')[0],
+      });
+      if (bbErr) console.warn('update_bank_balance error (settlement still marked paid):', bbErr.message);
+    }
+
+    try { logActivity('SETTLEMENT PAID', `${batch.provider} · ${batch.line_type} · Ksh ${Number(batch.amount).toLocaleString()} for ${batch.settlement_date}`, 'org', batch.org_id); } catch(e) {}
+    toast('✓ Settlement marked paid');
+    if (typeof loadSASettlements === 'function') loadSASettlements();
+  } catch(e) {
+    toast('Error marking paid: ' + e.message);
+  }
+}
+
+async function viewSettlementDetails(orgId, provider, date, lineType, orgName) {
+  const { data: rows } = await sb.from('payment_requests')
+    .select('id, allocations, mpesa_ref, approved_at')
+    .eq('org_id', orgId).eq('provider', provider).eq('payment_date', date)
+    .eq('status', 'approved').eq('payment_type', 'member_contribution');
+
+  const lines = [];
+  for (const row of rows || []) {
+    let allocs = [];
+    try { allocs = JSON.parse(row.allocations || '[]'); } catch(e) { continue; }
+    for (const a of allocs) {
+      const isWelfareLine = !!a.isWelfare;
+      if ((lineType === 'welfare') !== isWelfareLine) continue;
+      lines.push({ memberId: a.memberId, typeName: a.typeName, amount: Number(a.amount || 0), ref: row.mpesa_ref, time: row.approved_at });
+    }
+  }
+
+  const memberIds = [...new Set(lines.map(l => l.memberId).filter(Boolean))];
+  let memberNames = {};
+  if (memberIds.length) {
+    const { data: members } = await sb.from('members').select('id, full_name').in('id', memberIds);
+    (members || []).forEach(m => { memberNames[m.id] = m.full_name; });
+  }
+
+  const total = lines.reduce((s, l) => s + l.amount, 0);
+  const rowsHtml = lines.map(l => `
+    <tr style="border-top:1px solid var(--border-soft)">
+      <td style="padding:.5rem">${(memberNames[l.memberId] || 'Unknown member').replace(/</g,'')}</td>
+      <td style="padding:.5rem;color:var(--ink-faint);font-size:.75rem">${(l.typeName||'').replace(/</g,'')}</td>
+      <td style="padding:.5rem;text-align:right;font-weight:600">Ksh ${l.amount.toLocaleString()}</td>
+      <td style="padding:.5rem;color:var(--ink-faint);font-size:.7rem">${l.ref||'—'}</td>
+    </tr>`).join('');
+
+  const modalHtml = `
+    <div style="font-weight:700;margin-bottom:.3rem">${orgName || 'Organisation'} — ${new Date(date).toLocaleDateString()}</div>
+    <div style="font-size:.75rem;color:var(--ink-faint);margin-bottom:.75rem;text-transform:capitalize">${provider} · ${lineType} · ${lines.length} transaction${lines.length===1?'':'s'} · Ksh ${total.toLocaleString()} total</div>
+    <table style="width:100%;font-size:.8rem;border-collapse:collapse">
+      <thead><tr style="text-align:left;border-bottom:1px solid var(--border)"><th style="padding:.5rem">Member</th><th style="padding:.5rem">For</th><th style="padding:.5rem;text-align:right">Amount</th><th style="padding:.5rem">Ref</th></tr></thead>
+      <tbody>${rowsHtml || '<tr><td colspan="4" style="padding:1rem;text-align:center;color:var(--ink-faint)">No transactions found</td></tr>'}</tbody>
+    </table>`;
+
+  const bodyEl = document.getElementById('modal-settlement-details-body');
+  if (bodyEl) bodyEl.innerHTML = modalHtml;
+  showModal('settlementDetails');
+}
+
+// Org-admin read-only view — same data, no mark-paid action available.
+async function loadOrgSettlements() {
+  const el = document.getElementById('org-settlements-list');
+  if (!el || !currentOrg?.id) return;
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>Loading…</div>';
+
+  try {
+    const since = new Date(); since.setDate(since.getDate() - 60);
+    const { data: batches } = await sb.from('settlement_batches')
+      .select('*')
+      .eq('org_id', currentOrg.id)
+      .gte('settlement_date', since.toISOString().split('T')[0])
+      .order('settlement_date', { ascending: false });
+
+    if (!batches?.length) {
+      el.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--ink-faint);font-size:.85rem">No settlements yet for this group.</div>';
+      return;
+    }
+
+    const byDate = {};
+    batches.forEach(b => { (byDate[b.settlement_date] = byDate[b.settlement_date] || []).push(b); });
+
+    el.innerHTML = Object.entries(byDate).map(([date, dayBatches]) => `
+      <div style="margin-bottom:1rem;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+        <div style="background:var(--surface-2);padding:.7rem 1rem"><strong style="font-size:.85rem">${new Date(date).toLocaleDateString('en-KE', { weekday:'short', day:'numeric', month:'short', year:'numeric' })}</strong></div>
+        <table style="width:100%;font-size:.8rem;border-collapse:collapse">
+          <tbody>${dayBatches.map(b => `
+            <tr style="border-top:1px solid var(--border-soft)">
+              <td style="padding:.55rem 1rem;text-transform:capitalize;color:var(--ink-faint);font-size:.72rem">${b.provider}</td>
+              <td style="padding:.55rem;text-transform:capitalize;font-size:.72rem">${b.line_type}</td>
+              <td style="padding:.55rem;text-align:right;font-weight:600">Ksh ${Number(b.amount).toLocaleString()}</td>
+              <td style="padding:.55rem;text-align:center"><span style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:${b.status==='paid'?'#2e7d32':'#c0392b'}">${b.status}</span></td>
+              <td style="padding:.55rem;text-align:right"><button class="btn btn-secondary btn-sm" onclick="viewSettlementDetails('${b.org_id}','${b.provider}','${b.settlement_date}','${b.line_type}','${(currentOrg.name||'').replace(/'/g,"")}')">View Details</button></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`).join('');
+  } catch(e) {
+    el.innerHTML = '<div style="padding:1rem;color:var(--danger);font-size:.8rem">Error: ' + e.message + '</div>';
   }
 }

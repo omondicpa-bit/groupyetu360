@@ -307,6 +307,7 @@ async function loadSABilling() {
 
   if (typeof loadCollectionRequestsQueue === 'function') loadCollectionRequestsQueue();
   if (typeof loadBroadcastHistory === 'function') loadBroadcastHistory();
+  if (typeof loadSASettlements === 'function') loadSASettlements();
 }
 
 async function approvePayment(paymentId, orgId, paymentType, amount) {
