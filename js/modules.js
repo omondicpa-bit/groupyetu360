@@ -1016,8 +1016,18 @@ function filterCustomMemberList(query) {
 }
 
 function toggleCustomMember(memberId, checked) {
-  if (checked) _customSelectedMemberIds.add(memberId);
-  else _customSelectedMemberIds.delete(memberId);
+  if (checked) {
+    _customSelectedMemberIds.add(memberId);
+    // Auto-select "Custom" the moment a member is checked — this is
+    // exactly the gap that caused a real bug: recipientType stayed empty
+    // even with members selected, because nothing ever set it. Checking a
+    // member now sets it directly, so that mismatch can't happen again
+    // regardless of what order someone does things in.
+    const recipEl = document.getElementById('sms-recipients');
+    if (recipEl && recipEl.value !== 'custom') recipEl.value = 'custom';
+  } else {
+    _customSelectedMemberIds.delete(memberId);
+  }
   updateCustomSelectionCount();
 }
 
@@ -1026,6 +1036,10 @@ function toggleAllCustomMembers(selectAll) {
     .filter(row => row.style.display !== 'none')
     .map(row => row.querySelector('input').dataset.memberId);
   visibleIds.forEach(id => selectAll ? _customSelectedMemberIds.add(id) : _customSelectedMemberIds.delete(id));
+  if (selectAll && visibleIds.length) {
+    const recipEl = document.getElementById('sms-recipients');
+    if (recipEl && recipEl.value !== 'custom') recipEl.value = 'custom';
+  }
   renderCustomMemberList();
   updateCustomSelectionCount();
 }
@@ -1161,13 +1175,10 @@ function loadSmsTemplate(t) {
 }
 
 async function sendSms() {
-  console.log('[GY360 debug] sendSms() called');
   if (!canDo('sendSms')) { toast('⚠ Only admins can send SMS messages.'); return; }
   const body = document.getElementById('sms-body').value.trim();
   if (!body) { toast('Please enter a message'); return; }
   const recipientType = document.getElementById('sms-recipients').value;
-  console.log('[GY360 debug] recipientType read from dropdown:', JSON.stringify(recipientType));
-  console.log('[GY360 debug] _customSelectedMemberIds at this moment:', [..._customSelectedMemberIds]);
 
   // Get raw phone numbers based on recipient type (sendSMS() will format them)
   // Also collect user_ids from the SAME filtered set — these are who gets
@@ -1186,10 +1197,6 @@ async function sendSms() {
     recipientUserIds = allMembers.filter(m => m.user_id && m.status === 'arrears').map(m => m.user_id);
   } else if (recipientType === 'custom') {
     if (!_customSelectedMemberIds.size) { toast('Select at least one member first'); return; }
-    console.log('[GY360 debug] selected IDs:', [..._customSelectedMemberIds]);
-    console.log('[GY360 debug] allMembers count:', allMembers.length);
-    const matchedMembers = allMembers.filter(m => _customSelectedMemberIds.has(m.id));
-    console.log('[GY360 debug] matched member objects:', JSON.stringify(matchedMembers.map(m => ({ id: m.id, name: m.full_name, phone: m.phone }))));
     rawPhones = allMembers.filter(m => m.phone && _customSelectedMemberIds.has(m.id)).map(m => m.phone);
     recipientUserIds = allMembers.filter(m => m.user_id && _customSelectedMemberIds.has(m.id)).map(m => m.user_id);
   }
