@@ -1737,10 +1737,13 @@ async function loadMGRCycleDetail(roundId) {
           ${r.start_date ? '· Started ' + new Date(r.start_date).toLocaleDateString('en-GB',{month:'short',year:'numeric'}) : ''}
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:.5rem">
+      <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
         <span class="mgr-method-pill ${methodClass}">${methodLabel}</span>
         <span class="badge ${r.status === 'active' ? 'badge-green' : 'badge-grey'}">${r.status}</span>
-        <button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteRound('${r.id}','${r.name.replace(/'/g,"&apos;")}')">✕</button>
+        ${r.status === 'active'
+          ? `<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="closeMGRCycle('${r.id}','${r.name.replace(/'/g,"&apos;")}')">Close Cycle</button>`
+          : `<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="reopenMGRCycle('${r.id}','${r.name.replace(/'/g,"&apos;")}')">Reopen Cycle</button>
+             <button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteRound('${r.id}','${r.name.replace(/'/g,"&apos;")}')">Delete Cycle</button>`}
       </div>
     </div>
     <div class="slot-grid">${slotCards || '<div style="padding:1rem;color:var(--ink-faint);font-size:.8rem">No members in this cycle yet</div>'}</div>
@@ -2206,7 +2209,34 @@ async function loadMGRCycleHistory(roundId) {
   }).join('');
 }
 
+async function closeMGRCycle(id, name) {
+  if (!confirm(`Close "${name}"?\n\nThis marks the cycle as closed. Members will no longer be able to contribute or receive payouts through it. The cycle's data is preserved for records.`)) return;
+
+  const { error } = await sb.from('savings_rounds').update({ status: 'closed' }).eq('id', id);
+  if (error) { toast('Error: ' + error.message); return; }
+  await logActivity('MGR CYCLE CLOSED', `Rotating savings cycle "${name}" closed`);
+  toast(`✓ Cycle "${name}" closed`);
+  await loadMGR();
+  if (_currentMGRDetailRoundId === id) await loadMGRCycleDetail(id);
+}
+
+async function reopenMGRCycle(id, name) {
+  if (!confirm(`Reopen "${name}"? Members will be able to contribute and receive payouts again.`)) return;
+
+  const { error } = await sb.from('savings_rounds').update({ status: 'active' }).eq('id', id);
+  if (error) { toast('Error: ' + error.message); return; }
+  await logActivity('MGR CYCLE REOPENED', `Rotating savings cycle "${name}" reopened`);
+  toast(`✓ Cycle "${name}" reopened`);
+  await loadMGR();
+  if (_currentMGRDetailRoundId === id) await loadMGRCycleDetail(id);
+}
+
 async function deleteRound(id, name) {
+  // Guard: only closed cycles can be deleted — a small extra safety net even
+  // though the button is only rendered for closed cycles.
+  const round = allRounds.find(r => r.id === id);
+  if (round && round.status !== 'closed') { toast('Close the cycle before deleting it'); return; }
+
   if (!confirm(`Delete cycle "${name}"? This will remove all slots, contributions and disbursement records. This cannot be undone.`)) return;
   await sb.from('round_disbursements').delete().eq('round_id', id);
   await sb.from('round_contributions').delete().eq('round_id', id);
@@ -2455,7 +2485,10 @@ async function loadTBOverview(poolId) {
         </div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap">
           <span class="badge ${pool.status==='active'?'badge-green':'badge-grey'}" style="font-size:.62rem">${(pool.status||'active').toUpperCase()}</span>
-          ${pool.status === 'active' ? `<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="closeTBPool('${pool.id}','${h(pool.name)}')">Close Pool</button>` : ''}
+          ${pool.status === 'active'
+            ? `<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="closeTBPool('${pool.id}','${h(pool.name)}')">Close Pool</button>`
+            : `<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="reopenTBPool('${pool.id}','${h(pool.name)}')">Reopen Pool</button>
+               <button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteTBPool('${pool.id}','${h(pool.name)}')">Delete Pool</button>`}
         </div>
       </div>
     </div>
@@ -2803,6 +2836,51 @@ async function closeTBPool(poolId, poolName) {
   if (error) { toast('Error: ' + error.message); return; }
   await logActivity('TB POOL CLOSED', `Table banking pool "${poolName}" closed`);
   toast(`✓ Pool "${poolName}" closed`);
+  await loadTableBanking();
+  if (_currentTBDetailPoolId === poolId) await loadTBOverview(poolId);
+}
+
+async function reopenTBPool(poolId, poolName) {
+  if (!confirm(`Reopen "${poolName}"? Members will be able to contribute and take loans again.`)) return;
+
+  const { error } = await sb.from('table_banking_pools')
+    .update({ status: 'active' })
+    .eq('id', poolId);
+
+  if (error) { toast('Error: ' + error.message); return; }
+  await logActivity('TB POOL REOPENED', `Table banking pool "${poolName}" reopened`);
+  toast(`✓ Pool "${poolName}" reopened`);
+  await loadTableBanking();
+  if (_currentTBDetailPoolId === poolId) await loadTBOverview(poolId);
+}
+
+async function deleteTBPool(poolId, poolName) {
+  // Guard: only closed pools can be deleted — a small extra safety net even
+  // though the button is only rendered for closed pools.
+  const pool = allTBPools.find(p => p.id === poolId);
+  if (pool && pool.status !== 'closed') { toast('Close the pool before deleting it'); return; }
+
+  const { data: activeLoans } = await sb.from('table_banking_loans')
+    .select('id').eq('pool_id', poolId).eq('status', 'active');
+  if (activeLoans?.length) {
+    toast(`Cannot delete — ${activeLoans.length} active loan(s) still outstanding in this pool`);
+    return;
+  }
+
+  if (!confirm(`Permanently delete "${poolName}"?\n\nThis removes all contributions, loans and repayment records for this pool. This cannot be undone.`)) return;
+
+  const { data: loans } = await sb.from('table_banking_loans').select('id').eq('pool_id', poolId);
+  const loanIds = (loans || []).map(l => l.id);
+  if (loanIds.length) {
+    await sb.from('table_banking_repayments').delete().in('loan_id', loanIds);
+  }
+  await sb.from('table_banking_loans').delete().eq('pool_id', poolId);
+  await sb.from('table_banking_contributions').delete().eq('pool_id', poolId);
+  await sb.from('table_banking_pools').delete().eq('id', poolId);
+
+  await logActivity('TB POOL DELETED', `Table banking pool "${poolName}" permanently deleted`);
+  toast(`Pool "${poolName}" deleted`);
+  if (_currentTBDetailPoolId === poolId) backToTBPoolList();
   await loadTableBanking();
 }
 

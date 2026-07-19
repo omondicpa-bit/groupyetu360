@@ -3302,18 +3302,22 @@ async function viewSettlementDetails(orgId, provider, date, lineType, orgName, r
     // not per-date, so we go straight to round_contributions for that
     // specific slot rather than re-deriving from payment_requests
     // allocations the way every other line type does.
-    const { data: contribs } = await sb.from('round_contributions')
+    let slotQuery = sb.from('round_contributions')
       .select('contributor_member_id, amount, mpesa_ref, payment_date, provider')
-      .eq('slot_id', roundSlotId).eq('status', 'paid').eq('provider', provider);
+      .eq('slot_id', roundSlotId).eq('status', 'paid');
+    slotQuery = provider ? slotQuery.eq('provider', provider) : slotQuery.in('provider', ['sasapay','fingo']);
+    const { data: contribs } = await slotQuery;
     lines = (contribs || []).map(c => ({
       memberId: c.contributor_member_id, typeName: 'MGR Contribution',
       amount: Number(c.amount || 0), ref: c.mpesa_ref, time: c.payment_date,
     }));
   } else {
-    const { data: rows } = await sb.from('payment_requests')
+    let rowQuery = sb.from('payment_requests')
       .select('id, allocations, mpesa_ref, approved_at')
-      .eq('org_id', orgId).eq('provider', provider).eq('payment_date', date)
+      .eq('org_id', orgId).eq('payment_date', date)
       .eq('status', 'approved').eq('payment_type', 'member_contribution');
+    rowQuery = provider ? rowQuery.eq('provider', provider) : rowQuery.in('provider', ['sasapay','fingo']);
+    const { data: rows } = await rowQuery;
 
     for (const row of rows || []) {
       let allocs = [];
@@ -3357,8 +3361,8 @@ async function viewSettlementDetails(orgId, provider, date, lineType, orgName, r
       <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.3rem">${(orgName || 'Organisation').replace(/</g,'')} · ${new Date(date).toLocaleDateString('en-KE',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</div>
       <div style="font-family:'Crimson Pro',serif;font-size:2.1rem;font-weight:700;color:var(--maroon)">Ksh ${total.toLocaleString()}</div>
       <div style="margin-top:.5rem;display:flex;justify-content:center;gap:.5rem">
-        ${providerBadge(provider)}
-        <span style="background:var(--surface-2);color:var(--ink-soft);font-size:.68rem;font-weight:700;text-transform:capitalize;padding:.22rem .55rem;border-radius:6px">${lineType}</span>
+        ${provider ? providerBadge(provider) : ''}
+        ${lineType ? `<span style="background:var(--surface-2);color:var(--ink-soft);font-size:.68rem;font-weight:700;text-transform:capitalize;padding:.22rem .55rem;border-radius:6px">${lineType}</span>` : ''}
         <span style="background:var(--surface-2);color:var(--ink-soft);font-size:.68rem;font-weight:700;padding:.22rem .55rem;border-radius:6px">${lines.length} txn${lines.length===1?'':'s'}</span>
       </div>
     </div>
@@ -3483,8 +3487,22 @@ async function loadOrgSettlements() {
     setStat('settle-stat-paid', paidThisMonth);
     setStat('settle-stat-welfare', pendingWelfare);
 
+    // Group rows by what's actually being settled, merging provider batches
+    // together — a group should see "Ksh X pending for Tuesday", not a
+    // separate line for each provider that contributed to it. The provider
+    // split is SA's internal bookkeeping, not something groups need to see.
     const byDate = {};
-    (batches || []).forEach(b => { (byDate[b.settlement_date] = byDate[b.settlement_date] || []).push(b); });
+    (batches || []).forEach(b => {
+      const lineKey = b.round_slot_id ? 'mgr:' + b.round_slot_id
+        : b.welfare_event_id ? 'welfare:' + b.welfare_event_id
+        : 'type:' + (b.line_type || 'regular');
+      const dateGroup = byDate[b.settlement_date] = byDate[b.settlement_date] || {};
+      const g = dateGroup[lineKey] = dateGroup[lineKey] || {
+        ...b, amount: 0, allPaid: true
+      };
+      g.amount += Number(b.amount || 0);
+      if (b.status !== 'paid') g.allPaid = false;
+    });
 
     // Unrequested welfare — events with real money collected that haven't
     // had settlement requested yet. Never auto-batched; this is purely
@@ -3530,24 +3548,26 @@ async function loadOrgSettlements() {
       return;
     }
 
-    el.innerHTML = unrequestedHtml + Object.entries(byDate).map(([date, dayBatches]) => `
+    el.innerHTML = unrequestedHtml + Object.entries(byDate).map(([date, dateGroup]) => {
+      const rows = Object.values(dateGroup);
+      return `
       <div class="card" style="margin-bottom:1rem;overflow:hidden;padding:0">
         <div style="padding:.85rem 1.25rem;border-bottom:1px solid var(--border-soft);display:flex;justify-content:space-between;align-items:center">
           <div style="font-weight:700;font-size:.88rem;font-family:'Crimson Pro',serif">${new Date(date).toLocaleDateString('en-KE', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
         </div>
-        ${dayBatches.map((b, i) => `
-          <div style="padding:.85rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;${i < dayBatches.length-1 ? 'border-bottom:1px solid var(--border-soft)' : ''}">
+        ${rows.map((b, i) => `
+          <div style="padding:.85rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;${i < rows.length-1 ? 'border-bottom:1px solid var(--border-soft)' : ''}">
             <div style="display:flex;align-items:center;gap:.6rem">
-              ${providerBadge(b.provider)}
               <span style="font-size:.78rem;color:var(--ink-soft)">${settlementLineLabel(b)}</span>
             </div>
             <div style="display:flex;align-items:center;gap:1rem">
               <div style="font-weight:700;font-size:.92rem;font-variant-numeric:tabular-nums">Ksh ${Number(b.amount).toLocaleString()}</div>
-              ${settlementStatusPill(b.status)}
-              <button class="btn btn-secondary btn-sm" onclick="viewSettlementDetails('${b.org_id}','${b.provider}','${b.settlement_date}','${b.line_type}','${(currentOrg.name||'').replace(/'/g,"")}','${b.round_slot_id||''}')">Details</button>
+              ${settlementStatusPill(b.allPaid ? 'paid' : 'pending')}
+              <button class="btn btn-secondary btn-sm" onclick="viewSettlementDetails('${b.org_id}','','${b.settlement_date}','${b.line_type||''}','${(currentOrg.name||'').replace(/'/g,"")}','${b.round_slot_id||''}')">Details</button>
             </div>
           </div>`).join('')}
-      </div>`).join('');
+      </div>`;
+    }).join('');
   } catch(e) {
     el.innerHTML = '<div style="padding:1rem;color:var(--danger);font-size:.8rem">Error: ' + e.message + '</div>';
   }
