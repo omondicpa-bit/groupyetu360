@@ -1,4 +1,4 @@
-// GroupYetu360 — js/auth.js
+// GroupYetu360 - js/auth.js
 // Auto-split from index.html
 // globals: window.sb, window.currentOrg, window.currentUser, window.currentProfile etc.
 
@@ -24,11 +24,11 @@ let attState = {};
 // param that WE set on every redirectTo/emailRedirectTo URL (see registerAccount(),
 // joinOrg(), sendPasswordReset(), saveInviteAdmin(), members.js invite functions).
 // Earlier versions tried to infer intent from Supabase's own hash `type` param and/or
-// whether a `profiles` row existed yet — both were unreliable (hash format varies by
+// whether a `profiles` row existed yet - both were unreliable (hash format varies by
 // auth flow type; profile existence depended on a client-side insert that silently
-// failed under RLS before email confirmation — see CHANGELOG.md, "Registration flow —
+// failed under RLS before email confirmation - see CHANGELOG.md, "Registration flow —
 // complete overhaul"). Declaring intent ourselves removes that ambiguity entirely.
-let _urlIntent = null; // 'confirm' | 'reset' | 'invite' | null — captured once at load
+let _urlIntent = null; // 'confirm' | 'reset' | 'invite' | null - captured once at load
 const _PENDING_INTENT_KEY = 'gy360_pending_intent';
 
 function _clearPendingIntent() {
@@ -40,15 +40,15 @@ async function init() {
   _urlIntent = urlParams.get('intent');
 
   if (_urlIntent) {
-    // Persist BEFORE clearing the URL — the URL alone can't survive a refresh,
+    // Persist BEFORE clearing the URL - the URL alone can't survive a refresh,
     // and reset/invite need the user to stay on the set-password screen across
     // one. Without this, refreshing mid-flow lost all trace of why a session
-    // existed and fell straight through to loadProfileAndOrg() — logging an
+    // existed and fell straight through to loadProfileAndOrg() - logging an
     // invited member straight into the app without ever setting a password.
     try { sessionStorage.setItem(_PENDING_INTENT_KEY, _urlIntent); } catch(e) {}
     history.replaceState(null, '', window.location.pathname + (window.location.hash || ''));
   } else {
-    // No intent in the URL this load — check if one is still pending from
+    // No intent in the URL this load - check if one is still pending from
     // earlier in this tab (e.g. a refresh during the set-password screen).
     try { _urlIntent = sessionStorage.getItem(_PENDING_INTENT_KEY) || null; } catch(e) {}
   }
@@ -70,7 +70,7 @@ async function init() {
 
   sb.auth.onAuthStateChange(async (event, session) => {
     // Some auth flows (PKCE code exchange in particular) don't resolve the session
-    // synchronously — getSession() above can return null even though a confirm/reset/
+    // synchronously - getSession() above can return null even though a confirm/reset/
     // invite link was just clicked, with the real session arriving here moments later.
     // So intent-based routing has to be handled in BOTH places, not just at load.
     if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'PASSWORD_RECOVERY') {
@@ -79,11 +79,11 @@ async function init() {
       if (event === 'INITIAL_SESSION' && currentProfile) return;
       // Supabase re-fires SIGNED_IN (not just TOKEN_REFRESHED) when a tab
       // regains focus or the app resumes from background and refreshes its
-      // session token — this is normal, documented Supabase behavior, not
+      // session token - this is normal, documented Supabase behavior, not
       // a real new login. Without this guard, every one of those redundant
       // refires re-ran the full "user just logged in" flow, which forces
       // the org picker back open and discards whatever page was actually
-      // active — exactly the "keeps going back to picker" symptom. Only
+      // active - exactly the "keeps going back to picker" symptom. Only
       // skip when it's genuinely the same already-loaded user; a real
       // switch to a different account still needs to go through normally.
       if (event === 'SIGNED_IN' && currentProfile && currentUser && session.user.id === currentUser.id) return;
@@ -123,10 +123,10 @@ async function init() {
 }
 
 async function loadProfileAndOrg() {
-  // Guard: prevent concurrent execution — onAuthStateChange can fire INITIAL_SESSION
+  // Guard: prevent concurrent execution - onAuthStateChange can fire INITIAL_SESSION
   // and SIGNED_IN almost simultaneously before currentProfile is set
   if (window._loadProfileInProgress) {
-    console.log('[GY360] loadProfileAndOrg already in progress — skipping duplicate call');
+    console.log('[GY360] loadProfileAndOrg already in progress - skipping duplicate call');
     return;
   }
   window._loadProfileInProgress = true;
@@ -174,7 +174,7 @@ async function _loadProfileAndOrgInner() {
     })();
   }
   if (!profile) {
-    // No profile yet — try to auto-link via invite metadata or portal_email
+    // No profile yet - try to auto-link via invite metadata or portal_email
     try {
       const email = currentUser.email;
       const meta = currentUser.user_metadata || {};
@@ -183,7 +183,7 @@ async function _loadProfileAndOrgInner() {
       let inviteOrgId = meta.invite_org_id || null;
       let inviteMemberId = meta.invite_member_id || null;
 
-      // Priority 2: fallback — look up members table by portal_email
+      // Priority 2: fallback - look up members table by portal_email
       if (!inviteOrgId) {
         const { data: memberRow } = await sb.from('members')
           .select('id,org_id,portal_email').eq('portal_email', email).maybeSingle();
@@ -232,13 +232,13 @@ async function _loadProfileAndOrgInner() {
     return;
   }
 
-  // Pending approval — show waiting screen
+  // Pending approval - show waiting screen
   if (profile.role === 'pending') {
     showPendingScreen();
     return;
   }
 
-  // Declined — show message and sign out
+  // Declined - show message and sign out
   if (profile.role === 'declined') {
     handleDeclinedRole();
     return;
@@ -256,15 +256,15 @@ async function _loadProfileAndOrgInner() {
   } catch(e) { /* user_orgs table may not exist yet */ }
 
   if (!profile.org_id || userOrgCount >= 1) {
-    // Always show picker — single or multiple orgs
+    // Always show picker - single or multiple orgs
     showOrgPicker();
     return;
   }
 
-  // Single org — go straight in
+  // Single org - go straight in
   const { data: org } = await sb.from('organisations').select('*').eq('id', profile.org_id).single();
   currentOrg = org;
-  // Resolve per-org role from user_orgs — don't trust profiles.role for org-specific role
+  // Resolve per-org role from user_orgs - don't trust profiles.role for org-specific role
   let resolvedRole = profile.role || 'member';
   // Superadmins acting as org admins should be treated as 'admin' in the org context
   if (resolvedRole === 'superadmin') resolvedRole = 'admin';
@@ -332,7 +332,7 @@ async function searchOrgsForJoin(q) {
   if (q.length < 2) { resultsEl.innerHTML = ''; return; }
   resultsEl.innerHTML = '<div style="font-size:.75rem;color:var(--ink-faint);padding:.5rem">Searching…</div>';
   try {
-    // Use REST API directly with anon key — no auth required since orgs are public
+    // Use REST API directly with anon key - no auth required since orgs are public
     const res = await fetch(
       SUPABASE_URL + '/rest/v1/organisations?select=id,name,reg_number,plan,status&name=ilike.*' + encodeURIComponent(q) + '*&status=eq.active&limit=5',
       { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
@@ -377,7 +377,7 @@ async function joinOrg() {
   if (joinBtn) { if (joinBtn.disabled) return; joinBtn.disabled = true; }
 
   // Create auth account. profiles/user_orgs/pending_members are created server-side by
-  // the handle_new_user() trigger (see v3f_registration_overhaul.sql) — NOT here. This
+  // the handle_new_user() trigger (see v3f_registration_overhaul.sql) - NOT here. This
   // used to run these as client-side upserts immediately after signUp(), but with email
   // confirmation ON there is no active session yet at this point, so every one of those
   // writes was silently blocked by RLS (profiles_insert requires auth.uid() = id, and
@@ -524,7 +524,7 @@ async function signInWithGoogle() {
       if (errEl) { errEl.textContent = error.message; errEl.classList.add('show'); }
       toast('Google sign-in error: ' + error.message);
     }
-    // Supabase redirects the browser — no further code needed here
+    // Supabase redirects the browser - no further code needed here
   } catch(e) {
     toast('Google sign-in unavailable. Please enable Google OAuth in your Supabase dashboard.');
     console.error('Google OAuth error:', e);
@@ -542,7 +542,7 @@ async function signIn() {
   // Suppress the onAuthStateChange listener's auto-load while we check whether this
   // account needs 2FA. Without this, signInWithPassword() immediately fires SIGNED_IN,
   // which was racing ahead and loading the real app UI for a moment before this function
-  // got to the 2FA check below and yanked it back to show the OTP screen — that flash
+  // got to the 2FA check below and yanked it back to show the OTP screen - that flash
   // was the "looks like it's logging in" bug. Cleared further down once we know which
   // path we're actually on.
   window._suppressAuthAutoLoad = true;
@@ -590,13 +590,13 @@ async function signIn() {
     _pendingOrgId = org.id;
   }
 
-  // Check if this user needs 2FA — only for founder/admin/treasurer roles
+  // Check if this user needs 2FA - only for founder/admin/treasurer roles
   const { data: profile } = await sb.from('profiles')
     .select('role,full_name,org_id,two_fa_enabled')
     .eq('id', data.user.id).maybeSingle();
 
   // 2FA is account-level (profile.two_fa_enabled), for admin/treasurer/superadmin roles.
-  // Superadmin is included deliberately (Jul 2026 security decision) — platform admin
+  // Superadmin is included deliberately (Jul 2026 security decision) - platform admin
   // access is the highest-value target on the system and must be 2FA-capable.
   const isElevatedRole = ['admin','treasurer','superadmin'].includes(profile?.role);
   const twoFAEnabled = isElevatedRole && (profile?.two_fa_enabled === true);
@@ -607,7 +607,7 @@ async function signIn() {
     _2faProfile = profile;
     await sb.auth.signOut();
 
-    // Send OTP via Edge Function — generated and stored server-side, emailed via Resend
+    // Send OTP via Edge Function - generated and stored server-side, emailed via Resend
     try {
       const otpRes = await fetch(`${FUNCTIONS_URL}/send-2fa-otp`, {
         method: 'POST',
@@ -636,7 +636,7 @@ async function signIn() {
     startResendCooldown(30);
     return;
   }
-  // No 2FA needed — the auth listener was suppressed above, so we drive the load
+  // No 2FA needed - the auth listener was suppressed above, so we drive the load
   // ourselves here instead of relying on the SIGNED_IN event.
   window._suppressAuthAutoLoad = false;
   currentUser = data.user;
@@ -687,7 +687,7 @@ async function verify2FA() {
     return;
   }
 
-  // Code correct — sign back in with original credentials
+  // Code correct - sign back in with original credentials
   window._suppressAuthAutoLoad = true;
   const loginPass = document.getElementById('login-password').value;
   const { data: signInData, error } = await sb.auth.signInWithPassword({ email: loginEmail, password: loginPass });
@@ -751,7 +751,7 @@ function cancel2FA() {
 // signIn defined above
 
 // ── Account-only registration (Step 1) ──
-// ── Password strength (min 6 chars, upper, lower, number) — shared by registration
+// ── Password strength (min 6 chars, upper, lower, number) - shared by registration
 // and any future password-set flows so the rule is consistent everywhere.
 function validatePasswordStrength(pw) {
   const checks = {
@@ -811,12 +811,12 @@ async function registerAccount() {
 
   sucEl.textContent = 'Creating your account…'; sucEl.classList.add('show');
 
-  // profiles row is created server-side by the handle_new_user() trigger — NOT here.
+  // profiles row is created server-side by the handle_new_user() trigger - NOT here.
   // This used to upsert to profiles immediately after signUp(), but with email
   // confirmation ON there is no active session yet at this point (authData.session
   // is null until the user actually confirms), so profiles_insert's RLS check
   // (auth.uid() = id) silently blocked every one of these inserts. Registration
-  // *looked* successful but the profile never existed — which is also why the old
+  // *looked* successful but the profile never existed - which is also why the old
   // confirm-link routing (which checked "does a profile exist?") always misfired.
   const { data: authData, error: authErr } = await sb.auth.signUp({
     email, password,
@@ -829,7 +829,7 @@ async function registerAccount() {
 
   sucEl.textContent = '✓ Account created! Check your email to confirm and get started.';
   sucEl.classList.add('show');
-  // Do NOT auto sign-in — user must confirm email first (Supabase "Confirm email" is ON)
+  // Do NOT auto sign-in - user must confirm email first (Supabase "Confirm email" is ON)
   // They will be redirected back to the app after clicking the confirmation link.
 }
 
@@ -897,7 +897,7 @@ async function pickerCreateOrg() {
   if (sucEl) { sucEl.style.display = 'none'; }
 
   if (!orgName) { if (errEl) { errEl.textContent = 'Please enter a group name'; errEl.style.display = 'block'; } return; }
-  if (!currentUser?.id) { if (errEl) { errEl.textContent = 'Session error — please sign in again'; errEl.style.display = 'block'; } return; }
+  if (!currentUser?.id) { if (errEl) { errEl.textContent = 'Session error - please sign in again'; errEl.style.display = 'block'; } return; }
 
   // Double-submit guard: a fast double-click/double-tap (very plausible on
   // mobile) previously fired this twice before the first call returned,
@@ -954,7 +954,7 @@ async function pickerCreateOrg() {
           status: 'pending',
           notes: 'New group registration payment'
         });
-        toast('✓ Group created on Starter. Payment submitted — ' + (typeof PLAN_LABELS!=='undefined'?PLAN_LABELS[plan]:plan) + ' will be activated after verification.');
+        toast('✓ Group created on Starter. Payment submitted - ' + (typeof PLAN_LABELS!=='undefined'?PLAN_LABELS[plan]:plan) + ' will be activated after verification.');
       } catch(e) { console.error('Payment request failed:', e); }
     } else {
       // Promo OFF + no ref: just notify them
@@ -978,7 +978,7 @@ async function pickerJoinOrg() {
     return;
   }
 
-  // Find org by code — same safe view as the other lookup, same reason.
+  // Find org by code - same safe view as the other lookup, same reason.
   const { data: org, error } = await sb.from('organisations_public').select('id,name').eq('org_code', code).maybeSingle();
   if (error || !org) {
     if (errEl) { errEl.textContent = 'Organisation not found. Check the code and try again.'; errEl.style.display = 'block'; }
@@ -1008,7 +1008,7 @@ async function pickerJoinOrg() {
 ════════════════════════════════════════════════ */
 
 let _userOrgs = []; // all orgs this user belongs to
-var currentOrgRole = 'member'; // role in the CURRENT org (from user_orgs, not profiles) — var for global scope
+var currentOrgRole = 'member'; // role in the CURRENT org (from user_orgs, not profiles) - var for global scope
 
 async function loadUserOrgs() {
   if (!currentUser?.id) return [];
@@ -1018,7 +1018,7 @@ async function loadUserOrgs() {
       .select('org_id, role')
       .eq('user_id', currentUser.id);
     if (rows?.length) {
-      // Step 2: fetch each org individually — avoids RLS join restriction where
+      // Step 2: fetch each org individually - avoids RLS join restriction where
       // policy on organisations checks profiles.org_id (single-org) not user_orgs (multi-org)
       const orgResults = await Promise.all(
         rows.map(r => sb.from('organisations').select('*').eq('id', r.org_id).maybeSingle())
@@ -1061,7 +1061,7 @@ async function showOrgPicker() {
   const nameEl = document.getElementById('org-picker-user-name');
   if (nameEl) nameEl.textContent = currentProfile?.full_name || currentUser?.email || 'there';
 
-  // Phone number is now load-bearing for real features — SMS confirmations,
+  // Phone number is now load-bearing for real features - SMS confirmations,
   // and specifically MGR settlement payouts route directly to a receiver's
   // account phone. Google sign-in never collects one (regular email/
   // password signup requires it, Google OAuth doesn't ask at all), so
@@ -1142,7 +1142,7 @@ function planHasFeature(org, requiredPlan) {
   return PLAN_ORDER.indexOf(effective) >= PLAN_ORDER.indexOf(requiredPlan);
 }
 
-// Called on app load and org switch — checks expiry and downgrades if lapsed
+// Called on app load and org switch - checks expiry and downgrades if lapsed
 async function checkSubscriptionStatus() {
   if (!currentOrg?.id || currentOrg.plan === 'starter') return;
   const expires = currentOrg.subscription_expires;
@@ -1162,7 +1162,7 @@ async function checkSubscriptionStatus() {
 // Fetch platform settings (promo toggle, payment mode, payment details)
 // SECURITY: this runs on every login for every role. platform_settings itself is now
 // locked to superadmin-only SELECT at the RLS level, so regular users query the
-// platform_settings_public VIEW instead — it only exposes non-sensitive columns
+// platform_settings_public VIEW instead - it only exposes non-sensitive columns
 // (no API keys, no Paystack secret, no Daraja credentials).
 let _platformSettings = {};
 async function loadPlatformSettings() {
@@ -1211,7 +1211,7 @@ function showBanner(html, type='info') {
 // showUpgradePrompt() is defined in portal.js (canonical full-page upgrade UX).
 
 async function selectOrg(orgId) {
-  // Reset member cache — crucial for multi-org so My Profile/Contributions reload fresh
+  // Reset member cache - crucial for multi-org so My Profile/Contributions reload fresh
   window._myMemberId = null;
 
   // Update active org in profile
@@ -1219,7 +1219,7 @@ async function selectOrg(orgId) {
   const { data: org } = await sb.from('organisations').select('*').eq('id', orgId).single();
   currentOrg = org;
 
-  // DO NOT re-fetch the raw profiles row here — it stores the global role which can
+  // DO NOT re-fetch the raw profiles row here - it stores the global role which can
   // differ from the per-org role in user_orgs (e.g. a user whose profiles.role = 'superadmin'
   // but is 'admin' in a specific org). Re-fetching it caused the brief superadmin flash.
   // currentProfile is already correctly set from the initial login flow.
@@ -1233,7 +1233,7 @@ async function selectOrg(orgId) {
       // Patch currentProfile.role so all downstream checks read the correct per-org role
       if (currentProfile) currentProfile = { ...currentProfile, role: uoRow.role };
     } else {
-      // No user_orgs row yet — upsert one using what we know and use it
+      // No user_orgs row yet - upsert one using what we know and use it
       const fallbackRole = currentProfile?.role || 'member';
       currentOrgRole = ['superadmin','admin','officer','treasurer','member'].includes(fallbackRole)
         ? (fallbackRole === 'superadmin' ? 'admin' : fallbackRole)
@@ -1356,14 +1356,14 @@ async function registerNewOrg() {
 
   // Double-submit guard, at the source rather than per-button: this function
   // has two independent entry points (pickerCreateOrg() and a direct "Create
-  // Organisation" button elsewhere in the app) — a flag here protects both at
+  // Organisation" button elsewhere in the app) - a flag here protects both at
   // once, regardless of which UI triggered it. This is what actually caused
-  // the duplicate "Hills" orgs — see CHANGELOG.md, 7 Jul 2026 entry.
+  // the duplicate "Hills" orgs - see CHANGELOG.md, 7 Jul 2026 entry.
   if (window._registeringOrg) return;
   window._registeringOrg = true;
 
   const orgCode = 'GY' + Math.random().toString(36).toUpperCase().slice(2,6);
-  // Always create on Starter — pickerCreateOrg handles paid plan activation separately
+  // Always create on Starter - pickerCreateOrg handles paid plan activation separately
   const { data: org, error: orgErr } = await sb.from('organisations')
     .insert({ name, plan: 'starter', status:'active', org_code: orgCode, subscription_status:'active', sms_bundle: 0 })
     .select().single();
@@ -1436,10 +1436,10 @@ function toggleSidebar() {
 function showPasswordResetScreen(intent) {
   // intent: 'reset' (forgot-password) or 'invite' (brand-new member/admin setting
   // their first password). Both need a live session just long enough to call
-  // updateUser({password}) — setNewPassword() below signs out immediately after.
+  // updateUser({password}) - setNewPassword() below signs out immediately after.
   //
   // NOTE: this panel renders on the SAME white card as login/register (not a dark
-  // background) — a previous version of this function used inline white-text-on-
+  // background) - a previous version of this function used inline white-text-on-
   // dark-tint styling copied from elsewhere, which made typed characters nearly
   // invisible against the white card. Fixed by just using plain class="form-input"
   // like every other working input on this screen, with no inline color overrides.
@@ -1483,7 +1483,7 @@ function showPasswordResetScreen(intent) {
 }
 
 async function showEmailConfirmedScreen() {
-  // Self-registered user clicked confirmation link — email confirmed, prompt login.
+  // Self-registered user clicked confirmation link - email confirmed, prompt login.
   // Always sign out here: this screen must never leave a live session sitting around,
   // since whoever opens the confirmation link (often a different device than the one
   // used to register) should be required to log in deliberately, not get carried
@@ -1517,7 +1517,7 @@ async function showEmailConfirmedScreen() {
   const hEl = document.getElementById('auth-form-heading');
   const sEl = document.getElementById('auth-form-sub');
   if (hEl) hEl.textContent = 'Email confirmed';
-  if (sEl) sEl.textContent = "You're all set — sign in to get started.";
+  if (sEl) sEl.textContent = "You're all set - sign in to get started.";
 }
 
 function showPasswordSetConfirmedScreen() {
@@ -1557,7 +1557,7 @@ async function setNewPassword() {
   if (error) { if(errEl){errEl.textContent=error.message;errEl.style.display='block';} return; }
   if(sucEl){sucEl.textContent='✓ Password set! Signing you out so you can log in fresh…';sucEl.style.display='block';}
   // Deliberate, predictable behaviour: never leave a live session sitting on this
-  // screen — sign out and require a normal login rather than silently continuing
+  // screen - sign out and require a normal login rather than silently continuing
   // into the app. This is what closes the "refresh logs me straight in" bug.
   window._suppressAuthAutoLoad = true;
   window._suppressAuthScreenOnce = true;
@@ -1567,7 +1567,7 @@ async function setNewPassword() {
   setTimeout(() => showPasswordSetConfirmedScreen(), 900);
 }
 
-// ── Workspace Picker — My Account panel ──
+// ── Workspace Picker - My Account panel ──
 async function showPickerMyAccount() {
   const panel = document.getElementById('picker-my-account');
   if (!panel) return;
@@ -1575,7 +1575,7 @@ async function showPickerMyAccount() {
   document.getElementById('picker-full-name').value = currentProfile?.full_name || '';
   document.getElementById('picker-phone').value = currentProfile?.phone || '';
   document.getElementById('picker-email').value = currentUser?.email || '';
-  // Banner reflects live status every time this opens — correct whether
+  // Banner reflects live status every time this opens - correct whether
   // it was auto-triggered (missing phone) or opened manually later once a
   // phone's already on file.
   const phoneBanner = document.getElementById('picker-phone-required-banner');
@@ -1703,7 +1703,7 @@ function updateTopbarActions(page) {
     return;
   }
 
-  // Member portal pages — show Make Payment
+  // Member portal pages - show Make Payment
   const memberPages = ['my_profile','my_contributions','my_meetings','my_notices','my_account','faq'];
   if (memberPages.includes(page) || role === 'member') {
     topbar.innerHTML = `
@@ -1712,7 +1712,7 @@ function updateTopbarActions(page) {
     return;
   }
 
-  // Admin pages — contextual actions per page
+  // Admin pages - contextual actions per page
   if (isAdmin) {
     switch(page) {
       case 'members':
@@ -1744,7 +1744,7 @@ function updateTopbarActions(page) {
         topbar.innerHTML = `<button class="topbar-btn" onclick="showModal('createRound')">+ New Cycle</button>`;
         break;
       case 'table_banking':
-        // No topbar buttons here — the in-page hero already has identical
+        // No topbar buttons here - the in-page hero already has identical
         // New Pool/Issue Loan buttons; having both was a real, visible
         // duplication (same two buttons appearing in two separate bars).
         topbar.innerHTML = '';
@@ -1753,7 +1753,7 @@ function updateTopbarActions(page) {
         topbar.innerHTML = `<span id="topbar-approvals-count" style="font-size:.78rem;color:var(--ink-faint)"></span>`;
         break;
       default:
-        // Dashboard and other pages — no clutter
+        // Dashboard and other pages - no clutter
         topbar.innerHTML = `
           <button class="topbar-btn outline" onclick="openRecordPaymentModal()">+ Record Payment</button>
           <button class="topbar-btn" onclick="showModal('addMember')">+ Add Member</button>`;
@@ -1942,7 +1942,7 @@ const pageTitles = {
   projects: ['Projects & Investments', 'Active investments'],
   messages: ['Messages', 'SMS communication'],
   settings: ['Settings', 'Organisation configuration'],
-  superadmin: ['Platform Control', 'EPH Technologies — Super Admin'],
+  superadmin: ['Platform Control', 'EPH Technologies - Super Admin'],
 };
 
 let currentPage = 'dashboard';
@@ -2084,6 +2084,7 @@ function showPage(id) {
   const info = pageTitles[id] || [id, ''];
   document.getElementById('page-title').textContent = info[0];
   document.getElementById('page-sub').textContent = info[1] || currentOrg?.name || '';
+  document.title = 'GroupYetu360 - ' + info[0];
   const loaders = { members: loadMembers, finance: loadFinance, meetings: loadMeetings, welfare: loadWelfare, projects: loadProjects, mgr: loadMGR, table_banking: loadTableBanking, messages: loadMessages, settings: ()=>typeof loadSettings==='function'&&loadSettings(), superadmin: ()=>typeof loadSuperAdmin==='function'&&loadSuperAdmin(), sa_org_detail: ()=>{}, sa_members: ()=>typeof loadSAMembers==='function'&&loadSAMembers(), sa_finance: ()=>typeof loadSAFinance==='function'&&loadSAFinance(), sa_organisations: ()=>typeof loadSAOrganisations==='function'&&loadSAOrganisations(), my_profile: ()=>typeof loadMyProfile==='function'&&loadMyProfile(), my_contributions: ()=>typeof loadMyContributions==='function'&&loadMyContributions(), approvals: ()=>typeof loadApprovals==='function'&&loadApprovals(), my_account: ()=>typeof loadMyAccount==='function'&&loadMyAccount(), billing: ()=>typeof loadBilling==='function'&&loadBilling(), support: ()=>typeof loadSupport==='function'&&loadSupport(), sa_billing: ()=>typeof loadSABilling==='function'&&loadSABilling(), sa_support: ()=>typeof loadSASupport==='function'&&loadSASupport(), sa_activity: ()=>typeof loadSAActivity==='function'&&loadSAActivity(), my_meetings: ()=>typeof loadMyMeetings==='function'&&loadMyMeetings(), my_notices: ()=>typeof loadMyNotices==='function'&&loadMyNotices(), settlements: ()=>typeof loadOrgSettlements==='function'&&loadOrgSettlements() };
   if (loaders[id]) loaders[id]();
   updateTopbarActions(id);

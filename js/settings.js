@@ -1,4 +1,4 @@
-// ── GLOBAL CART ALIASES — always available regardless of parse order ─────────
+// ── GLOBAL CART ALIASES - always available regardless of parse order ─────────
 window.addSMSToCart = function(btn) {
   document.querySelectorAll('.pay-pill.sms').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -69,7 +69,7 @@ function updateBillingHero(org) {
   if (nameEl) nameEl.textContent = planNames[plan] || plan;
   if (metaEl) metaEl.textContent = planMeta[plan] || '';
   if (bfMem)  bfMem.textContent  = '👥 Up to ' + planMembers[plan] + ' members';
-  if (bfSms)  bfSms.textContent  = '💬 Bulk SMS — pay as you go · Ksh 1.50/SMS';
+  if (bfSms)  bfSms.textContent  = '💬 Bulk SMS - pay as you go · Ksh 1.50/SMS';
   if (bfFeat) bfFeat.textContent = '✓ ' + (planFeatures[plan]||'');
 
   if (expires && expEl) {
@@ -86,7 +86,7 @@ function updateBillingHero(org) {
   }
 }
 
-// GroupYetu360 — js/settings.js
+// GroupYetu360 - js/settings.js
 // Auto-split from index.html
 // globals: window.sb, window.currentOrg, window.currentUser, window.currentProfile etc.
 
@@ -116,7 +116,7 @@ async function loadSettings() {
 
   const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val||'';}
   setVal('settings-name', currentOrg.name);
-  setVal('settings-org-code', currentOrg.org_code || 'Not set — contact support');
+  setVal('settings-org-code', currentOrg.org_code || 'Not set - contact support');
   loadPaymentMethodsSettings(currentOrg);
   setVal('settings-reg', currentOrg.reg_number);
   setVal('settings-paybill', currentOrg.paybill);
@@ -139,7 +139,7 @@ async function loadSettings() {
   }
   setVal('settings-bank-date', currentOrg.bank_balance_updated);
   // Load 2FA setting
-  // 2FA is managed at account level — not org level
+  // 2FA is managed at account level - not org level
 
 
   const { data } = await sb.from('contribution_types').select('*').eq('org_id', currentOrg.id).order('name');
@@ -210,7 +210,7 @@ async function saveInviteAdmin() {
   if (!name||!email||!password) { toast('Please fill all fields'); return; }
   if (password.length < 6) { toast('Password must be at least 6 characters'); return; }
   // profiles/user_orgs are created server-side by the handle_new_user() trigger via
-  // the admin_invite_org_id/admin_invite_role metadata below — NOT via a client-side
+  // the admin_invite_org_id/admin_invite_role metadata below - NOT via a client-side
   // upsert here. There is no active session for this new account until they confirm
   // their email, so a client-side write at this point would be silently blocked by
   // RLS (same root cause documented for registerAccount()/joinOrg()).
@@ -222,7 +222,7 @@ async function saveInviteAdmin() {
     }
   });
   if (authErr) { toast('Error: '+authErr.message); return; }
-  toast(name + ' added as ' + role + ' — confirmation email sent');
+  toast(name + ' added as ' + role + ' - confirmation email sent');
   closeModal('inviteAdmin');
   loadTeamMembers();
 }
@@ -403,7 +403,7 @@ async function executeShareout() {
   }
 
   await logActivity('SHAREOUT', `${reason}. ${processed} members processed. Savings:${inclSav} Shares:${inclShr} Dividend:${inclDiv}`);
-  toast(`✓ Shareout complete — ${processed} members processed`);
+  toast(`✓ Shareout complete - ${processed} members processed`);
   closeModal('shareout');
   loadMembers();
   prefetchData();
@@ -438,7 +438,7 @@ async function toggleWithdrawWindow() {
   if (btn) btn.textContent = newState ? 'Close' : 'Open';
   if (label) label.textContent = newState ? 'OPEN' : 'Closed';
   if (dot) dot.classList.toggle('open', newState);
-  toast(`Withdraw window ${newState ? 'opened — members can now request withdrawals' : 'closed'}`);
+  toast(`Withdraw window ${newState ? 'opened - members can now request withdrawals' : 'closed'}`);
   await logActivity(newState?'WITHDRAW OPEN':'WITHDRAW CLOSE', `Withdraw window ${newState?'opened':'closed'} by admin`);
   // Refresh withdrawal requests panel + member portal card
   if (typeof loadWithdrawalRequests === 'function') loadWithdrawalRequests();
@@ -684,7 +684,7 @@ async function loadSuperAdmin() {
   set('sa-sms-month', smsSentThisMonth.toLocaleString());
   set('sa-trials', trialOrgs.length);
   set('sa-sms-balance-total', 'Ksh balance: ' + totalSmsBalance.toLocaleString() + ' SMS');
-  set('sa-last-updated', 'EPH Technologies — GroupYetu360 · Updated ' + new Date().toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' }));
+  set('sa-last-updated', 'EPH Technologies - GroupYetu360 · Updated ' + new Date().toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' }));
 
   // New orgs this month badge
   const newBadge = document.getElementById('sa-orgs-new');
@@ -848,7 +848,7 @@ function _renderSAOrgRow(o) {
   </tr>`;
 }
 
-// Dashboard preview — most recently created orgs, capped at 8, no filters (search/filter live on the full page)
+// Dashboard preview - most recently created orgs, capped at 8, no filters (search/filter live on the full page)
 function filterSAOrgs(q) {
   const countEl = document.getElementById('sa-org-count');
   if (countEl) countEl.textContent = _saOrgs.length + ' total';
@@ -863,10 +863,10 @@ function filterSAOrgs(q) {
   tbody.innerHTML = preview.map(_renderSAOrgRow).join('');
 }
 
-// Full Organisations page — search + plan/status filters, full list
+// Full Organisations page - search + plan/status filters, full list
 async function loadSAOrganisations() {
   if (!_saOrgs.length) {
-    // Standalone entry — populate cache if the dashboard hasn't loaded it yet
+    // Standalone entry - populate cache if the dashboard hasn't loaded it yet
     const [orgsRes, membersRes] = await Promise.all([
       sb.from('organisations').select('*').order('created_at', { ascending: false }),
       sb.from('members').select('id,org_id'),
@@ -1042,7 +1042,7 @@ async function saViewUser(userId) {
   setEl('sau-phone', u.phone || '—');
   setEl('sau-role', u.role || 'member');
 
-  // 2FA toggle — only show for admin/treasurer roles
+  // 2FA toggle - only show for admin/treasurer roles
   const twoFaRow = document.getElementById('sau-2fa-row');
   const twoFaCb = document.getElementById('sau-2fa-enabled');
   const isElevated = ['admin','treasurer'].includes(u.role);
@@ -1205,7 +1205,7 @@ async function saUpdateUserAccount() {
     }
     if (document.getElementById('sau-sa-email')) document.getElementById('sau-sa-email').value = '';
     if (document.getElementById('sau-sa-password')) document.getElementById('sau-sa-password').value = '';
-    await logActivity('SA ACCOUNT UPDATE', `Superadmin updated auth for user ${userId}${newEmail?' — email changed':''}${newPassword?' — password reset':''}`);
+    await logActivity('SA ACCOUNT UPDATE', `Superadmin updated auth for user ${userId}${newEmail?' - email changed':''}${newPassword?' - password reset':''}`);
     // Refresh user list
     await loadSAMembers();
   } catch(e) { if (statusEl) { statusEl.textContent = '✗ ' + e.message; statusEl.style.color = 'var(--danger)'; } }
@@ -1408,12 +1408,12 @@ async function openOrgDetail(orgId) {
   sv('od-bank-balance-edit', org.bank_balance||0);
 
   // Settings tab
-  // Daraja removed — Fingo + Paystack are the only two payment providers now.
+  // Daraja removed - Fingo + Paystack are the only two payment providers now.
   sv('od-max-contribution', org.max_contribution_amount);
   sv('od-active-provider', org.active_payment_provider || 'paystack');
 
   // Provider account refs now live in org_payment_providers, not the legacy
-  // paystack_subaccount_code column directly — this is what lets SA switch
+  // paystack_subaccount_code column directly - this is what lets SA switch
   // an org's active provider at any time without touching a schema field.
   try {
     const { data: providerRows } = await sb.from('org_payment_providers')
@@ -1430,10 +1430,10 @@ async function openOrgDetail(orgId) {
   const destEl = document.getElementById('od-disb-destination');
   if (destEl) {
     destEl.textContent = 'Destination: ' + (org.disbursement_method === 'bank'
-      ? `Bank — ${org.disbursement_bank_name || '—'} · ${org.disbursement_bank_account_number || '—'} (${org.disbursement_bank_account_name || '—'})`
+      ? `Bank - ${org.disbursement_bank_name || '—'} · ${org.disbursement_bank_account_number || '—'} (${org.disbursement_bank_account_name || '—'})`
       : org.disbursement_method === 'mpesa'
-        ? `M-Pesa — ${org.disbursement_mpesa_number || '—'}`
-        : 'Not set — org has not submitted disbursement details yet');
+        ? `M-Pesa - ${org.disbursement_mpesa_number || '—'}`
+        : 'Not set - org has not submitted disbursement details yet');
   }
   const disbMethodEl = document.getElementById('sa-disb-method');
   if (disbMethodEl && org.disbursement_method) disbMethodEl.value = org.disbursement_method;
@@ -1470,7 +1470,7 @@ async function openOrgDetail(orgId) {
       </div>`).join('') : '<div style="color:var(--ink-faint);font-size:.8rem">No admin users linked</div>';
   }
 
-  // Support tab — prefill reset email
+  // Support tab - prefill reset email
   const resetEl = document.getElementById('od-reset-email');
   const primaryAdmin = (profiles||[]).find(p=>['admin'].includes(p.role));
   if (resetEl && primaryAdmin?.email) resetEl.value = primaryAdmin.email;
@@ -1593,7 +1593,7 @@ async function addSMSCredit(count) {
   const newCount = current + count;
   await sb.from('organisations').update({sms_bundle: newCount}).eq('id',currentDetailOrgId);
   if (bundleEl) bundleEl.value = newCount;
-  toast(`✓ +${count} SMS credit added — total: ${newCount}`);
+  toast(`✓ +${count} SMS credit added - total: ${newCount}`);
   await logActivity('SMS CREDIT ADDED', `Added ${count} SMS to ${currentDetailOrgId}`, 'organisation', currentDetailOrgId);
 }
 
@@ -1622,9 +1622,9 @@ async function sendMessageToOrgAdmin() {
   const org = _saOrgs.find(o=>o.id===currentDetailOrgId);
   if (!org) return;
 
-  // Get admin/treasurer/officer contacts for THIS org — role lives on
+  // Get admin/treasurer/officer contacts for THIS org - role lives on
   // user_orgs, never on profiles.role (profiles.role is platform-wide
-  // account status only: member/admin/superadmin/pending — see HANDOVER.md).
+  // account status only: member/admin/superadmin/pending - see HANDOVER.md).
   // This was the actual bug: the old query filtered profiles.role for
   // 'admin'/'officer'/'treasurer', which those rows never contain as an
   // org-scoped value, so it always came back empty regardless of how many
@@ -1638,7 +1638,7 @@ async function sendMessageToOrgAdmin() {
   const phones = (profiles||[]).map(p=>p.phone).filter(Boolean);
   if (!phones.length) { toast('Admin(s) found, but none have a phone number on file'); return; }
 
-  // This used to be a stub ("SMS feature coming soon") — now actually sends,
+  // This used to be a stub ("SMS feature coming soon") - now actually sends,
   // reusing the same sendSMS()/send-sms-celcom path every org's own Messages
   // page uses. currentOrg is swapped to this org while viewing its detail
   // page, so the SMS bundle/org_id context resolves correctly.
@@ -1652,7 +1652,7 @@ async function sendMessageToOrgAdmin() {
     document.getElementById('od-admin-message').value = '';
     try { await logActivity('SA MESSAGE TO ADMIN', `Sent SMS to ${result.sent} admin(s) of ${org.name}: "${msg}"`, 'organisation', currentDetailOrgId); } catch(e) {}
   } else {
-    toast('⚠ Failed to send — check SMS provider configuration in Platform Settings');
+    toast('⚠ Failed to send - check SMS provider configuration in Platform Settings');
   }
 }
 
@@ -1697,8 +1697,8 @@ async function saViewMember(memberId, orgId) {
       try { await loadOrgFinancialProfile(); } catch(e) {}
     }
   }
-  // Open the standard member detail modal — it now includes the superadmin account panel.
-  // currentOrg is intentionally NOT restored here — the modal stays open after this function
+  // Open the standard member detail modal - it now includes the superadmin account panel.
+  // currentOrg is intentionally NOT restored here - the modal stays open after this function
   // returns, and actions inside it (Send Invite, Save Changes, etc.) still need currentOrg
   // to point at the org being viewed. Restoring it early caused those actions to silently
   // send an empty org_id. It gets naturally replaced next time SA opens a different org.
@@ -1724,7 +1724,7 @@ async function extendSubscription(months) {
   // Also set status to active
   const subStatusEl = document.getElementById('od-sub-status');
   if (subStatusEl) subStatusEl.value = 'active';
-  toast('Expiry extended to ' + newExpiry + ' — click Save Changes to apply');
+  toast('Expiry extended to ' + newExpiry + ' - click Save Changes to apply');
 }
 
 async function unlockBankBalance() {
@@ -1734,7 +1734,7 @@ async function unlockBankBalance() {
   toast('Bank balance unlocked for editing');
 }
 
-// Daraja removed from the platform — kept as a no-op in case any lingering
+// Daraja removed from the platform - kept as a no-op in case any lingering
 // onclick/onchange reference wasn't caught during cleanup.
 function toggleDarajaSection() {}
 
@@ -1758,10 +1758,10 @@ async function saveOrgDetail() {
     subscription_expires: gv('od-sub-expiry'),
     sms_bundle: parseInt(document.getElementById('od-sms-bundle')?.value) || 0
   };
-  // (Daraja credentials removed — Fingo + Paystack are the only two payment providers now)
+  // (Daraja credentials removed - Fingo + Paystack are the only two payment providers now)
   // Provider account refs (Paystack subaccount, Fingo sub-merchant, active
   // provider) are saved separately via saveOrgProviderSettings() into
-  // org_payment_providers — not written here, to keep this one save action
+  // org_payment_providers - not written here, to keep this one save action
   // scoped to general org details rather than payment routing.
   const maxContribRaw = document.getElementById('od-max-contribution')?.value;
   updates.max_contribution_amount = maxContribRaw ? parseFloat(maxContribRaw) : null;
@@ -1783,12 +1783,12 @@ async function deleteOrg() {
     try { await sb.from(table).delete().eq(col, id); } catch(e) { console.warn(table, e.message); }
   };
   try {
-    // 1. Attendance — FK to meetings
+    // 1. Attendance - FK to meetings
     const { data: mtgs } = await sb.from('meetings').select('id').eq('org_id', id);
     if (mtgs?.length) {
       try { await sb.from('attendance').delete().in('meeting_id', mtgs.map(m=>m.id)); } catch(e) {}
     }
-    // 2. Rotating savings — child tables first
+    // 2. Rotating savings - child tables first
     let rounds = [];
     try {
       const { data: rData } = await sb.from('savings_rounds').select('id').eq('org_id', id);
@@ -1812,23 +1812,23 @@ async function deleteOrg() {
     }
     // 6. Meetings
     await del('meetings');
-    // 7. Members (FK to profiles via portal_email — no constraint, safe to delete)
+    // 7. Members (FK to profiles via portal_email - no constraint, safe to delete)
     await del('members');
-    // 8. user_orgs — removes user membership links
+    // 8. user_orgs - removes user membership links
     await del('user_orgs');
-    // 9. Profiles — unlink from org first (set org_id to null via raw SQL workaround)
+    // 9. Profiles - unlink from org first (set org_id to null via raw SQL workaround)
     // We can't null org_id directly due to FK, so just delete profiles for this org
-    // (users can re-join another org — their auth account remains)
+    // (users can re-join another org - their auth account remains)
     const { data: orgProfiles } = await sb.from('profiles').select('id').eq('org_id', id);
     if (orgProfiles?.length) {
-      // For each profile, check if they have other orgs — if yes keep profile, just null org_id
+      // For each profile, check if they have other orgs - if yes keep profile, just null org_id
       for (const p of orgProfiles) {
         const { data: otherOrgs } = await sb.from('user_orgs').select('org_id').eq('user_id', p.id).neq('org_id', id);
         if (otherOrgs?.length) {
-          // User has other orgs — set their active org to the first other one
+          // User has other orgs - set their active org to the first other one
           await sb.from('profiles').update({ org_id: otherOrgs[0].org_id }).eq('id', p.id);
         } else {
-          // No other orgs — null out their org
+          // No other orgs - null out their org
           try { await sb.from('profiles').update({ org_id: null, role: 'member' }).eq('id', p.id); } catch(e) {}
         }
       }
@@ -1849,7 +1849,7 @@ async function deleteOrg() {
 // ── MEMBER PORTAL ACCESS ──
 // Members of existing orgs (like ADA) access their portal by:
 // 1. Going to the login page
-// 2. Registering with their email — they will be prompted to select their org
+// 2. Registering with their email - they will be prompted to select their org
 // 3. Admin then sets their role to 'member' in Supabase
 // This is handled automatically by the org picker flow
 
@@ -1883,7 +1883,7 @@ async function loadApprovals() {
   const approved = (all||[]).filter(r => r.status === 'approved');
   const declined = (all||[]).filter(r => r.status === 'declined');
 
-  // Count pending member payments only — subscription/SMS bundle payments are SA-only
+  // Count pending member payments only - subscription/SMS bundle payments are SA-only
   let pendingPayCount = 0;
   try {
     const { data: pendingPays } = await sb.from('payment_requests')
@@ -1960,7 +1960,7 @@ async function openApproveModal(pendingId, userId, name, phone, email) {
   document.getElementById('approve-member-info').innerHTML =
     `👤 <strong>${name}</strong> · ${phone||'No phone'} · ${email||'No email'}`;
   // Populate existing members dropdown
-  const memberOpts = '<option value="">— Create as new member —</option>' +
+  const memberOpts = '<option value="">- Create as new member -</option>' +
     allMembers.map(m => `<option value="${m.id}">${h(m.full_name)} (#${m.member_number||'—'})</option>`).join('');
   document.getElementById('approve-link-member').innerHTML = memberOpts;
   // Pre-fill member number
@@ -1984,7 +1984,7 @@ async function approveMember() {
   const { data: pending } = await sb.from('pending_members').select('*').eq('id', currentPendingId).single();
 
   if (!linkMemberId) {
-    // Create new member record — include user_id to link auth account immediately
+    // Create new member record - include user_id to link auth account immediately
     const { data: newMember, error: memberErr } = await sb.from('members').insert({
       org_id: currentOrg.id,
       full_name: pending.full_name,
@@ -1999,7 +1999,7 @@ async function approveMember() {
     if (memberErr) { toast('Error creating member: ' + memberErr.message); return; }
     memberId = newMember.id;
   } else {
-    // Linking to existing member — update their user_id and portal_email
+    // Linking to existing member - update their user_id and portal_email
     await sb.from('members').update({
       user_id: currentPendingUserId || null,
       portal_email: pending.email || null
@@ -2131,7 +2131,7 @@ function updatePromoToggleUI() {
 }
 
 // loadSASupport() and saveSupportSettings() are defined in utils.js (load order: utils first).
-// Do not duplicate here — edits must be made in utils.js.
+// Do not duplicate here - edits must be made in utils.js.
 
 // loadSABilling(), approvePayment(), rejectPayment() are defined in utils.js (canonical, sms_bundle_N aware).
 // Do not duplicate here.
@@ -2321,8 +2321,8 @@ function refreshCartUI() {
   let itemsHTML = '';
   if (hasPlan) {
     const label = _billingCart.planIsFree
-      ? `${PLAN_LABELS[_billingCart.plan]} plan — Free trial`
-      : `${PLAN_LABELS[_billingCart.plan]} plan — 1 year`;
+      ? `${PLAN_LABELS[_billingCart.plan]} plan - Free trial`
+      : `${PLAN_LABELS[_billingCart.plan]} plan - 1 year`;
     const amt = _billingCart.planIsFree ? 'FREE' : `Ksh ${_billingCart.planAmount.toLocaleString()}`;
     itemsHTML += `<div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border);font-size:.82rem">
       <span>🚀 ${label}</span>
@@ -2338,7 +2338,7 @@ function refreshCartUI() {
   if (itemsEl) itemsEl.innerHTML = itemsHTML;
 
   const total = (_billingCart.planIsFree ? 0 : _billingCart.planAmount) + _billingCart.smsAmount;
-  if (totalEl) totalEl.textContent = total === 0 ? 'Ksh 0 — Free!' : `Ksh ${total.toLocaleString()}`;
+  if (totalEl) totalEl.textContent = total === 0 ? 'Ksh 0 - Free!' : `Ksh ${total.toLocaleString()}`;
 
   const promoDays = parseInt(_platformSettings['promo_days'] || '60');
   const expDate = new Date(); expDate.setDate(expDate.getDate() + promoDays);
@@ -2358,7 +2358,7 @@ function refreshCartUI() {
   const stkBtn = document.getElementById('stk-btn-label');
   if (stkBtn) stkBtn.textContent = `Send Ksh ${total.toLocaleString()} Prompt`;
 
-  // Pre-fill phone from profile — keep local 07XXXXXXXXX format
+  // Pre-fill phone from profile - keep local 07XXXXXXXXX format
   const phoneEl = document.getElementById('cart-paystack-phone');
   if (phoneEl && !phoneEl.value && currentProfile?.phone) {
     let ph = currentProfile.phone.toString().replace(/\s+/g,'');
@@ -2381,7 +2381,7 @@ function setupPaymentTabs() {
   if (!tabsEl) return;
 
   if (paystackEnabled && manualEnabled) {
-    // Both enabled — show tabs
+    // Both enabled - show tabs
     tabsEl.style.display = 'flex';
     if (tabPs)  { tabPs.style.display  = ''; }
     if (tabMan) { tabMan.style.display = ''; }
@@ -2391,7 +2391,7 @@ function setupPaymentTabs() {
     tabsEl.style.display = 'none';
     switchPayTab_impl('paystack');
   } else {
-    // Only manual (or nothing — fallback to manual)
+    // Only manual (or nothing - fallback to manual)
     tabsEl.style.display = 'none';
     switchPayTab_impl('manual');
   }
@@ -2446,7 +2446,7 @@ async function submitCartPaystack_impl() {
 
   try {
     const { data: { session } } = await sb.auth.getSession();
-    // Which provider handles platform billing — SA-configurable toggle,
+    // Which provider handles platform billing - SA-configurable toggle,
     // read from the safe public view since it's not sensitive.
     let subscriptionProvider = 'paystack';
     try {
@@ -2486,7 +2486,7 @@ async function submitCartPaystack_impl() {
         clearInterval(_stkPollInterval);
         clearInterval(dotAnim);
         if (pendEl) pendEl.style.display = 'none';
-        if (statusEl) { statusEl.textContent = '⏱ Timed out — check Payment History or try again'; statusEl.style.color = 'var(--warning)'; }
+        if (statusEl) { statusEl.textContent = '⏱ Timed out - check Payment History or try again'; statusEl.style.color = 'var(--warning)'; }
         return;
       }
       try {
@@ -2552,7 +2552,7 @@ async function submitCartPayment_impl() {
     const items = [];
     if (_billingCart.plan && !_billingCart.planIsFree) items.push(`subscription_${_billingCart.plan}`);
     if (_billingCart.sms > 0) items.push(`sms_bundle_${_billingCart.sms}`);
-    const notes = items.join(' + ') + (currentOrg.subscription_status === 'trial' ? ' (mid-trial upgrade — trial cancelled)' : '');
+    const notes = items.join(' + ') + (currentOrg.subscription_status === 'trial' ? ' (mid-trial upgrade - trial cancelled)' : '');
 
     // Look up member_id for current user in this org
     let memberId = null;
@@ -2622,11 +2622,11 @@ async function loadPaymentHistory() {
 }
 
 /* ════════════════════════════════════════════════════
-   COLLECTION ACTIVATION — org-side request flow
+   COLLECTION ACTIVATION - org-side request flow
    Any org without an active payment provider yet sees a dashboard prompt to
    add disbursement details and request instant collection. SA reviews the
    request, manually creates sub-accounts on both Paystack and Fingo, and
-   approves — see settings.js's SA-side handleCollectionRequest() for the
+   approves - see settings.js's SA-side handleCollectionRequest() for the
    other half of this flow.
 ════════════════════════════════════════════════════ */
 function saveDisbursementDetails() {
@@ -2689,7 +2689,7 @@ async function requestCollectionActivation() {
     if (reqErr) throw new Error(reqErr.message);
 
     try { logActivity('COLLECTION ACTIVATION REQUESTED', `${currentOrg.name} requested instant M-Pesa collection`, 'org', currentOrg.id); } catch(e) {}
-    toast('✓ Request submitted — your GroupYetu360 admin will review it shortly.');
+    toast('✓ Request submitted - your GroupYetu360 admin will review it shortly.');
     if (typeof loadCollectionActivationCard === 'function') loadCollectionActivationCard(currentOrg.id);
   } catch(e) {
     toast('Error submitting request: ' + e.message);
@@ -2698,7 +2698,7 @@ async function requestCollectionActivation() {
 }
 
 /* ════════════════════════════════════════════════════
-   COLLECTION ACTIVATION — SA-side review queue
+   COLLECTION ACTIVATION - SA-side review queue
 ════════════════════════════════════════════════════ */
 async function loadCollectionRequestsQueue() {
   const el = document.getElementById('sa-collection-requests-list');
@@ -2739,7 +2739,7 @@ async function loadCollectionRequestsQueue() {
             </div>
           </div>
           <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:.75rem;margin-bottom:.6rem;font-size:.72rem;color:var(--ink-soft)">
-            ℹ️ Create this org's sub-account on <strong>both</strong> Paystack and Fingo dashboards manually, then paste both codes below — pre-provisioning both means switching providers later is a config change, not a new setup step. SasaPay needs no reference here at all — it's a pooled wallet shared by every org.
+            ℹ️ Create this org's sub-account on <strong>both</strong> Paystack and Fingo dashboards manually, then paste both codes below - pre-provisioning both means switching providers later is a config change, not a new setup step. SasaPay needs no reference here at all - it's a pooled wallet shared by every org.
           </div>
           <div class="form-row">
             <div class="form-group"><label class="form-label">Paystack Subaccount Code</label><input class="form-input" id="sa-req-paystack-${r.id}" placeholder="ACCT_…"/></div>
@@ -2772,7 +2772,7 @@ async function approveCollectionRequest(requestId, orgId) {
   const activeProvider = document.getElementById(`sa-req-active-${requestId}`)?.value || 'paystack';
 
   // SasaPay needs no reference at all (pooled wallet, no per-org
-  // sub-account exists) — only Paystack/Fingo genuinely require one, and
+  // sub-account exists) - only Paystack/Fingo genuinely require one, and
   // only when THAT specific provider is the one being activated.
   if (activeProvider === 'paystack' && !paystackCode) { toast('Paystack is selected as active but has no subaccount code'); return; }
   if (activeProvider === 'fingo' && !fingoId) { toast('Fingo is selected as active but has no sub-merchant ID'); return; }
@@ -2795,7 +2795,7 @@ async function approveCollectionRequest(requestId, orgId) {
     }).eq('id', requestId);
     if (reqErr) throw new Error(reqErr.message);
 
-    try { logActivity('COLLECTION ACTIVATED', `Instant collection approved — active provider: ${activeProvider}`, 'org', orgId); } catch(e) {}
+    try { logActivity('COLLECTION ACTIVATED', `Instant collection approved - active provider: ${activeProvider}`, 'org', orgId); } catch(e) {}
     toast('✓ Collection activated');
     loadCollectionRequestsQueue();
   } catch(e) {
@@ -2817,8 +2817,8 @@ async function declineCollectionRequest(requestId) {
 }
 
 /* ════════════════════════════════════════════════════
-   MANUAL DISBURSEMENT — SA records that a real payout was made via
-   Paystack/Fingo's own dashboard or API. Deliberately manual — the actual
+   MANUAL DISBURSEMENT - SA records that a real payout was made via
+   Paystack/Fingo's own dashboard or API. Deliberately manual - the actual
    transfer happens outside this app; this just logs it and debits
    bank_balance accordingly. Automating the transfer itself is separate,
    future work (per the "prove it works before automating" pattern already
@@ -2918,7 +2918,7 @@ async function loadOrgDisbursementHistory(orgId) {
 
 
 /* ════════════════════════════════════════════════════
-   BROADCAST COMPOSER — SA-only platform-wide push notifications
+   BROADCAST COMPOSER - SA-only platform-wide push notifications
 ════════════════════════════════════════════════════ */
 let _bcAllOrgs = [];
 let _bcAllMembers = [];
@@ -2962,7 +2962,7 @@ function toggleBroadcastOrgSelection(orgId, checked) {
 }
 
 async function loadBroadcastMemberList() {
-  // Sourced from profiles, not members — members has one row per org per
+  // Sourced from profiles, not members - members has one row per org per
   // person, so anyone in several groups would show up as several separate
   // checkboxes for the same underlying account. profiles.id IS the real
   // user identity (= auth.uid()), one row per person, always.
@@ -3068,7 +3068,7 @@ async function loadBroadcastHistory() {
 }
 
 /* ════════════════════════════════════════════════════
-   SETTLEMENTS — unified for SasaPay + Fingo (both pooled-wallet, no
+   SETTLEMENTS - unified for SasaPay + Fingo (both pooled-wallet, no
    auto-disbursement; Paystack isn't included, its subaccount model
    settles per-org automatically). Grouped by settlement_date, one line
    each for regular vs welfare per org per provider per day. SA syncs new
@@ -3077,13 +3077,13 @@ async function loadBroadcastHistory() {
 ════════════════════════════════════════════════════ */
 
 // Reconciles settlement_batches against approved SasaPay/Fingo/Paystack
-// member_contribution payments. Safe to call often — existing PAID
+// member_contribution payments. Safe to call often - existing PAID
 // batches are never touched (locked once paid, matching how a real
 // settlement record should behave), existing PENDING batches get their
 // amount refreshed (in case more transactions landed for that date since
 // the last sync), and genuinely new (org, provider, date, line) combos
 // get created fresh.
-// Auto-batches REGULAR contributions only — welfare is deliberately
+// Auto-batches REGULAR contributions only - welfare is deliberately
 // excluded here. Welfare events can run for days, so daily auto-batching
 // doesn't make sense for them; they're only turned into a settlement_batch
 // when the admin explicitly clicks "Request Settlement" on that specific
@@ -3105,8 +3105,8 @@ async function syncSettlementBatches() {
     let allocs = [];
     try { allocs = JSON.parse(row.allocations || '[]'); } catch(e) { continue; }
     for (const a of allocs) {
-      if (a.isWelfare) continue; // welfare — admin requests settlement explicitly, per event
-      if (a.isMGR) continue;     // MGR — auto-created server-side the moment a round completes, never date-batched
+      if (a.isWelfare) continue; // welfare - admin requests settlement explicitly, per event
+      if (a.isMGR) continue;     // MGR - auto-created server-side the moment a round completes, never date-batched
       const lineType = a.isTB ? 'table_banking' : 'regular';
       const key = `${row.org_id}|${row.provider}|${row.payment_date}|${lineType}`;
       groups[key] = (groups[key] || 0) + Number(a.amount || 0);
@@ -3147,7 +3147,7 @@ async function syncSettlementBatches() {
   console.log(`syncSettlementBatches: ${toInsert.length} new, ${toUpdate.length} refreshed`);
 }
 
-// SA view — syncs first, then renders every batch from the last 60 days
+// SA view - syncs first, then renders every batch from the last 60 days
 // grouped by date, most recent first.
 async function loadSASettlements() {
   const el = document.getElementById('sa-settlements-list');
@@ -3227,7 +3227,7 @@ async function openMarkPaidForm(batchId) {
   }
 
   // Destination: welfare batches routed 'direct' use their own recipient
-  // snapshot (captured at request time — see requestWelfareSettlement);
+  // snapshot (captured at request time - see requestWelfareSettlement);
   // everything else uses the org's normal disbursement details.
   const destEl = document.getElementById('msp-destination');
   const org = batch.organisations || {};
@@ -3241,7 +3241,7 @@ async function openMarkPaidForm(batchId) {
   } else if (org.disbursement_method === 'mpesa') {
     destHtml = `<div style="font-weight:700;margin-bottom:.2rem">→ Group's M-Pesa</div><div>${org.disbursement_mpesa_number||'—'}</div>`;
   } else {
-    destHtml = `<div style="color:var(--danger)">⚠ No disbursement details on file for this org — check before paying out.</div>`;
+    destHtml = `<div style="color:var(--danger)">⚠ No disbursement details on file for this org - check before paying out.</div>`;
   }
   if (destEl) destEl.innerHTML = destHtml;
 
@@ -3268,7 +3268,7 @@ async function confirmMarkSettlementPaid() {
   _mspCurrentBatch = null;
 }
 
-// Records that a settlement was paid out — deliberately NEVER touches the
+// Records that a settlement was paid out - deliberately NEVER touches the
 // org's own bank_balance/contribution records. Settlement is EPH's own
 // internal bookkeeping of money collected on the group's behalf that needs
 // disbursing; the group's own balance only ever moves because the system
@@ -3298,7 +3298,7 @@ async function viewSettlementDetails(orgId, provider, date, lineType, orgName, r
   let lines = [];
 
   if (roundSlotId) {
-    // MGR — genuinely different query path. Settlement here is per-slot,
+    // MGR - genuinely different query path. Settlement here is per-slot,
     // not per-date, so we go straight to round_contributions for that
     // specific slot rather than re-deriving from payment_requests
     // allocations the way every other line type does.
@@ -3373,7 +3373,7 @@ async function viewSettlementDetails(orgId, provider, date, lineType, orgName, r
   showModal('settlementDetails');
 }
 
-// Org-admin read-only view — same data, no mark-paid action available.
+// Org-admin read-only view - same data, no mark-paid action available.
 function settlementStatusPill(status) {
   return status === 'paid'
     ? `<span style="display:inline-flex;align-items:center;gap:.3rem;background:#e8f5e9;color:#2e7d32;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:.28rem .65rem;border-radius:99px">● Paid</span>`
@@ -3385,7 +3385,7 @@ function providerBadge(provider) {
   return `<span style="background:${bg};color:${fg};font-size:.68rem;font-weight:700;text-transform:capitalize;padding:.22rem .55rem;border-radius:6px">${provider}</span>`;
 }
 
-// One label covering all four settlement line types — welfare and MGR are
+// One label covering all four settlement line types - welfare and MGR are
 // identified by their linked event/slot (not a special line_type string,
 // consistent with how welfare already worked before MGR/TB existed); TB
 // and regular are identified by line_type directly.
@@ -3394,18 +3394,18 @@ function settlementLineLabel(b) {
   if (b.round_slot_id) {
     const roundName = b.round_slots?.savings_rounds?.name || 'MGR Round';
     const slotNum = b.round_slots?.slot_number;
-    return '🔄 ' + roundName.replace(/</g,'') + (slotNum ? ' — Round ' + slotNum : '');
+    return '🔄 ' + roundName.replace(/</g,'') + (slotNum ? ' - Round ' + slotNum : '');
   }
   if (b.line_type === 'table_banking') return '🏦 Table Banking';
   return 'Regular';
 }
 
 // Turns a welfare event's collected-so-far total into an actual
-// settlement_batches row — only ever happens on explicit admin request,
+// settlement_batches row - only ever happens on explicit admin request,
 // never automatically. Groups by provider (an event running for days
 // could plausibly have collected via more than one, if the org switched
 // providers mid-event), and snapshots the payout destination from the
-// welfare event's own settings at the moment of request — so a later
+// welfare event's own settings at the moment of request - so a later
 // edit to those recipient details never silently rewrites a settlement
 // that's already been requested.
 async function requestWelfareSettlement(welfareEventId) {
@@ -3449,8 +3449,8 @@ async function requestWelfareSettlement(welfareEventId) {
     const { error: insErr } = await sb.from('settlement_batches').insert(rowsToInsert);
     if (insErr) throw new Error(insErr.message);
 
-    try { logActivity('WELFARE SETTLEMENT REQUESTED', `${event.event_type} — Ksh ${providers.reduce((s,p)=>s+byProvider[p],0).toLocaleString()}`, 'welfare', welfareEventId); } catch(e) {}
-    toast('✓ Settlement requested — funds will be sent within 24 hours');
+    try { logActivity('WELFARE SETTLEMENT REQUESTED', `${event.event_type} - Ksh ${providers.reduce((s,p)=>s+byProvider[p],0).toLocaleString()}`, 'welfare', welfareEventId); } catch(e) {}
+    toast('✓ Settlement requested - funds will be sent within 24 hours');
     if (typeof loadOrgSettlements === 'function') loadOrgSettlements();
   } catch(e) {
     toast('Error requesting settlement: ' + e.message);
@@ -3488,7 +3488,7 @@ async function loadOrgSettlements() {
     setStat('settle-stat-welfare', pendingWelfare);
 
     // Group rows by what's actually being settled, merging provider batches
-    // together — a group should see "Ksh X pending for Tuesday", not a
+    // together - a group should see "Ksh X pending for Tuesday", not a
     // separate line for each provider that contributed to it. The provider
     // split is SA's internal bookkeeping, not something groups need to see.
     const byDate = {};
@@ -3504,7 +3504,7 @@ async function loadOrgSettlements() {
       if (b.status !== 'paid') g.allPaid = false;
     });
 
-    // Unrequested welfare — events with real money collected that haven't
+    // Unrequested welfare - events with real money collected that haven't
     // had settlement requested yet. Never auto-batched; this is purely
     // informational until the admin clicks Request Settlement.
     const alreadyRequestedEventIds = new Set((batches || []).filter(b => b.welfare_event_id).map(b => b.welfare_event_id));

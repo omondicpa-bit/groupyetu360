@@ -21,7 +21,7 @@ html{scroll-behavior:smooth}
 body{font-family:'Inter',sans-serif;background:var(--surface-2);color:var(--ink);font-size:14px;line-height:1.5}
 
 /* ══════════════════════════════════════════════════
-   AUTH SCREEN — MAROON + TEAL SPLIT + ANIMATIONS
+   AUTH SCREEN - MAROON + TEAL SPLIT + ANIMATIONS
 ══════════════════════════════════════════════════ */
 
 /* ── Keyframe animations ── */
@@ -42,7 +42,7 @@ body{font-family:'Inter',sans-serif;background:var(--surface-2);color:var(--ink)
   background:#030d0a;position:relative;overflow:hidden
 }
 
-/* ── Left — deep maroon brand panel ── */
+/* ── Left - deep maroon brand panel ── */
 .auth-left{
   flex:0 0 42%;display:flex;flex-direction:column;justify-content:space-between;
   padding:3rem 3rem 2.5rem;
@@ -101,7 +101,7 @@ body{font-family:'Inter',sans-serif;background:var(--surface-2);color:var(--ink)
   animation:fadeSlideRight .6s ease 1s both
 }
 
-/* Feature list — staggered slide-in */
+/* Feature list - staggered slide-in */
 .auth-features{display:flex;flex-direction:column;gap:1rem}
 .auth-feat{
   display:flex;align-items:flex-start;gap:.85rem;
@@ -128,7 +128,7 @@ body{font-family:'Inter',sans-serif;background:var(--surface-2);color:var(--ink)
   letter-spacing:.08em;animation:fadeSlideUp .5s ease 2s both
 }
 
-/* ── Right — teal-tinted surface with FLOATING card ── */
+/* ── Right - teal-tinted surface with FLOATING card ── */
 .auth-right{
   flex:1;display:flex;align-items:center;justify-content:center;
   background:var(--surface-2);padding:2.5rem;
@@ -204,7 +204,7 @@ body{font-family:'Inter',sans-serif;background:var(--surface-2);color:var(--ink)
 
 .auth-panel{display:none}.auth-panel.active{animation:fadeSlideUp .25s ease;display:block}
 
-/* ── Inputs — teal focus ── */
+/* ── Inputs - teal focus ── */
 .auth-box .form-input,
 .auth-box .form-select{
   border:1.5px solid var(--border-dk);
@@ -226,7 +226,7 @@ body{font-family:'Inter',sans-serif;background:var(--surface-2);color:var(--ink)
   animation:inputFocusLine .2s ease forwards
 }
 
-/* ── Primary button — teal ── */
+/* ── Primary button - teal ── */
 .auth-box .btn-primary{
   background:var(--teal);padding:.82rem;font-size:.85rem;
   letter-spacing:.04em;border-radius:4px;
@@ -1050,7 +1050,7 @@ tr:hover td{background:var(--maroon-pale)}
 @media(max-width:700px){.msg-layout{grid-template-columns:1fr}}
 
 /* ════════════════════════════════════════════════
-   MEMBER PORTAL — GY360 SHOWCASE EXPERIENCE
+   MEMBER PORTAL - GY360 SHOWCASE EXPERIENCE
 ════════════════════════════════════════════════ */
 
 /* ── Core animations ── */
@@ -1254,7 +1254,7 @@ tr:hover td{background:var(--maroon-pale)}
 
 
 #support-fab{position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;touch-action:none;user-select:none;-webkit-user-select:none}
-/* Hide FAB on member mobile — they have Help tab in bottom nav */
+/* Hide FAB on member mobile - they have Help tab in bottom nav */
 body.member-mob-active #support-fab{display:none !important}
 .fab-main{
   width:54px;height:54px;border-radius:50%;cursor:pointer;
@@ -1351,14 +1351,14 @@ body.member-mob-active #support-fab{display:none !important}
 @keyframes pickerFadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
 @keyframes orgCardIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 
-/* ── ORG PICKER — Split teal/maroon layout ── */
+/* ── ORG PICKER - Split teal/maroon layout ── */
 .org-picker-screen{
   position:fixed;inset:0;z-index:9000;
   background:#1a0008;
   display:none;align-items:stretch;justify-content:stretch
 }
 
-/* LEFT PANEL — Teal */
+/* LEFT PANEL - Teal */
 .org-picker-left{
   width:40%;min-width:260px;
   background:linear-gradient(160deg,#042e22 0%,#063d2e 40%,#0a5c44 75%,#1a7a5a 100%);
@@ -1391,7 +1391,7 @@ body.member-mob-active #support-fab{display:none !important}
 }
 
 
-/* RIGHT PANEL — White, navy + gold accents */
+/* RIGHT PANEL - White, navy + gold accents */
 .org-picker-right{
   flex:1;
   background:#ffffff;
@@ -1592,7 +1592,7 @@ body.hero-page-active .content{padding-top:0}
 
 
 /* ════════════════════════════════════════════════════════════════════════
-   MOBILE / PWA — screens ≤ 600px
+   MOBILE / PWA - screens ≤ 600px
    Sidebar becomes a full-height drawer, replaced by bottom tab bar
    ════════════════════════════════════════════════════════════════════════ */
 
@@ -1672,7 +1672,7 @@ body.hero-page-active .content{padding-top:0}
   .card-body{padding:.75rem 1rem}
   .card-title{font-size:.88rem}
 
-  /* ── Tables — horizontal scroll ── */
+  /* ── Tables - horizontal scroll ── */
   .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
   table{min-width:500px}
 
@@ -1686,7 +1686,7 @@ body.hero-page-active .content{padding-top:0}
     padding-bottom:80px; /* clear fixed bottom nav */
   }
 
-  /* ── Forms — prevent iOS zoom on focus ── */
+  /* ── Forms - prevent iOS zoom on focus ── */
   .form-input,.form-select,.form-textarea{font-size:16px !important}
 
   /* ── Grid overrides ── */
@@ -1702,7 +1702,7 @@ body.hero-page-active .content{padding-top:0}
   .dash-hero{padding:1rem}
   .dash-hero-stats{flex-direction:column;gap:.4rem}
 
-  /* ── Finance tabs — scroll horizontally ── */
+  /* ── Finance tabs - scroll horizontally ── */
   .fin-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;padding-bottom:2px}
   .fin-tab{white-space:nowrap;flex-shrink:0;font-size:.72rem;padding:.45rem .75rem}
 
@@ -1713,7 +1713,7 @@ body.hero-page-active .content{padding-top:0}
   .pay-pill-group{gap:.4rem}
   .pay-pill{font-size:.72rem;padding:5px 10px}
 
-  /* ── Reg plan grid — 2 cols on mobile ── */
+  /* ── Reg plan grid - 2 cols on mobile ── */
   .reg-plan-grid{grid-template-columns:repeat(2,1fr)}
 }
 
@@ -1727,7 +1727,7 @@ body.hero-page-active .content{padding-top:0}
 }
 
 /* ═══════════════════════════════════════════════════
-   MEMBER MOBILE APP UI — shows only on ≤768px
+   MEMBER MOBILE APP UI - shows only on ≤768px
    Desktop member HTML (.mob-hide) hidden on mobile
    Mobile member HTML (.mob-only) hidden on desktop
    ═══════════════════════════════════════════════════ */
@@ -1743,7 +1743,7 @@ body.hero-page-active .content{padding-top:0}
   body.member-mob-active .topbar{display:none !important}
   body.member-mob-active .main{margin-left:0 !important;padding:0 !important}
   body.member-mob-active .page.active{padding:0 0 72px 0 !important}
-  /* Sidebar slides in via pull tab — don't fully hide it */
+  /* Sidebar slides in via pull tab - don't fully hide it */
   body.member-mob-active .sidebar{transform:translateX(-100%)}
   body.member-mob-active .sidebar.mob-open{transform:translateX(0)}
 
@@ -1854,7 +1854,7 @@ body.mob-dark #mob-home-shell .mh-header::after{
   min-height:100px;
 }
 .mh-qa-card:active{transform:scale(.96);box-shadow:0 1px 3px rgba(15,110,86,.15)}
-/* Alternate card — slightly darker teal for visual rhythm */
+/* Alternate card - slightly darker teal for visual rhythm */
 .mh-qa-card:nth-child(even){background:var(--teal-dk)}
 .mh-qa-card.mh-qa-teal{background:var(--teal)}
 .mh-qa-card.mh-qa-teal:nth-child(even){background:var(--teal-dk)}
@@ -2012,7 +2012,7 @@ body.mob-dark #mob-home-shell .mh-header::after{
 .mh-form-hint{font-size:.68rem;color:var(--ink-faint)}
 
 /* ═══════════════════════════════════════════
-   MEMBER MOBILE HOME — FINTECH REDESIGN
+   MEMBER MOBILE HOME - FINTECH REDESIGN
    ═══════════════════════════════════════════ */
 
 /* ── Header icon buttons (theme + profile) ── */
@@ -2082,12 +2082,12 @@ body.mob-dark #mob-home-shell .mh-header::after{
   border-top:1px solid rgba(255,255,255,.12);
 }
 
-/* Card colour variants — member */
+/* Card colour variants - member */
 #mob-card-finance{background:linear-gradient(135deg,var(--teal-dk),var(--teal))}
 #mob-card-meeting{background:linear-gradient(135deg,#1a3a5c,#1e5fa8)}
 #mob-card-group{background:linear-gradient(135deg,var(--maroon-dk),var(--maroon))}
 
-/* Card colour variants — admin */
+/* Card colour variants - admin */
 #adm-card-finance{background:linear-gradient(135deg,var(--teal-dk),var(--teal));box-shadow:0 3px 12px rgba(15,110,86,.2)}
 #adm-card-members{background:linear-gradient(135deg,var(--maroon-dk),var(--maroon));box-shadow:0 3px 12px rgba(128,0,32,.2)}
 #adm-card-meeting{background:linear-gradient(135deg,#1e1b4b,#3730a3);box-shadow:0 3px 12px rgba(55,48,163,.2)}
@@ -2197,7 +2197,7 @@ body.mob-dark #mob-home-shell .mh-header::after{
   -webkit-overflow-scrolling:touch;
 }
 
-/* Admin shell — identical containment to member home shell */
+/* Admin shell - identical containment to member home shell */
 #adm-mob-shell{
   overflow:hidden;
   display:flex;
@@ -2340,7 +2340,7 @@ body.mob-dark .mob-nav-item.active{color:#1D9E75}
 /* ── my_profile page: no outer scroll on mobile (home shell manages its own) ── */
 @media(max-width:768px){
   body.member-mob-active #page-my_profile{overflow:hidden}
-  /* Cards scroll strip — tighter on small screens */
+  /* Cards scroll strip - tighter on small screens */
   .mob-cards-scroll{padding:.15rem .05rem .35rem}
   /* Action label smaller */
   .mob-action-label{font-size:.6rem}
@@ -2368,7 +2368,7 @@ body.mob-dark .mob-nav-item.active{color:#1D9E75}
   background:#f1f5f9;
 }
 
-/* Hero balance card — maroon */
+/* Hero balance card - maroon */
 .fin-mob-hero-card{
   background:linear-gradient(135deg,var(--maroon-dk),var(--maroon));
   border-radius:14px;padding:.85rem 1rem .75rem;
@@ -2454,7 +2454,7 @@ body.mob-dark .mob-nav-item.active{color:#1D9E75}
 #fin-mob-tab-content .card-header{padding:.65rem .9rem}
 #fin-mob-tab-content .card-title{font-size:.8rem}
 
-/* Dark mode — finance mobile */
+/* Dark mode - finance mobile */
 body.mob-dark #fin-mob-shell .mh-header{background:#1e293b;border-bottom-color:#334155}
 body.mob-dark #fin-mob-shell .mh-inner{color:#f1f5f9}
 body.mob-dark #fin-mob-shell .mh-greeting{color:#94a3b8}
@@ -2478,7 +2478,7 @@ body.mob-dark #fin-mob-tab-content .card-title{color:#e2e8f0}
 body.mob-dark #fin-mob-tab-content table thead tr{background:#162032}
 body.mob-dark #fin-mob-tab-content table tbody tr{border-bottom-color:#334155}
 
-/* Finance mobile — kill topbar/sidebar/padding */
+/* Finance mobile - kill topbar/sidebar/padding */
 @media(max-width:768px){
   body.finance-mob-active .topbar{display:none !important}
   body.finance-mob-active .main{margin-left:0 !important;padding:0 !important}
@@ -2541,7 +2541,7 @@ body.mob-dark #fin-mob-tab-content table tbody tr{border-bottom-color:#334155}
 }
 
 /* ═══════════════════════════════════════════
-   FOUNDER BADGE — member detail modal
+   FOUNDER BADGE - member detail modal
    ═══════════════════════════════════════════ */
 .md-founder-badge{
   display:inline-flex;align-items:center;gap:.35rem;
@@ -2554,7 +2554,7 @@ body.mob-dark #fin-mob-tab-content table tbody tr{border-bottom-color:#334155}
   box-shadow:0 2px 8px rgba(128,0,32,.25);
 }
 
-/* ── Add Member modal — mobile compact ── */
+/* ── Add Member modal - mobile compact ── */
 @media(max-width:768px){
   #modal-addMember .modal{
     max-width:100% !important;

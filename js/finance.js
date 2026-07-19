@@ -1,9 +1,9 @@
-// GroupYetu360 — js/finance.js
+// GroupYetu360 - js/finance.js
 // Auto-split from index.html
 // globals: window.sb, window.currentOrg, window.currentUser, window.currentProfile etc.
 
 // ── XSS SANITISATION ──
-// h() is also defined in members.js — whichever loads first wins, both are identical
+// h() is also defined in members.js - whichever loads first wins, both are identical
 if (typeof h !== 'function') {
   window.h = function h(str) {
     if (!str && str !== 0) return '';
@@ -22,7 +22,7 @@ async function loadFinance() {
 
   // ── Role gating for finance page ──
   const canRecord = canDo('recordPayment');
-  // Record Payment tab — hide for officer/member
+  // Record Payment tab - hide for officer/member
   const recordTab = document.querySelector('.fin-tab.record');
   if (recordTab) recordTab.style.display = canRecord ? '' : 'none';
   // Record Payment topbar button
@@ -33,14 +33,14 @@ async function loadFinance() {
     const el = document.getElementById(id);
     if (el && !canRecord) el.style.display = 'none';
   });
-  // Delete transaction buttons — rendered later, handled via event delegation below
+  // Delete transaction buttons - rendered later, handled via event delegation below
   document.querySelectorAll('.txn-delete-btn').forEach(b => { b.style.display = canRecord ? '' : 'none'; });
 
   // Hero org name
   const heroOrg = document.getElementById('fin-hero-org');
-  if (heroOrg) heroOrg.textContent = currentOrg.name + ' — ' + new Date().getFullYear() + ' Financial Year';
+  if (heroOrg) heroOrg.textContent = currentOrg.name + ' - ' + new Date().getFullYear() + ' Financial Year';
 
-  // Dynamic finance controls — hide shareout/withdraw if no member savings
+  // Dynamic finance controls - hide shareout/withdraw if no member savings
   const fp = orgFinProfile;
   const shareoutBtn = document.getElementById('fin-shareout-btn');
   const withdrawPill = document.getElementById('fin-withdraw-pill');
@@ -57,7 +57,7 @@ async function loadFinance() {
   if (wDot) wDot.classList.toggle('open', isOpen);
   // Load withdrawal requests panel
   loadWithdrawalRequests();
-  // Always re-fetch bank_balance from DB — never rely on stale in-memory value
+  // Always re-fetch bank_balance from DB - never rely on stale in-memory value
   try {
     const { data: freshOrg } = await sb.from('organisations')
       .select('bank_balance,bank_balance_updated,bank_balance_locked').eq('id', currentOrg.id).single();
@@ -97,10 +97,10 @@ async function loadFinance() {
     netEl.style.color = net >= 0 ? 'var(--success)' : 'var(--danger)';
   }
 
-  // ── Balance breakdown — dynamic based on org type ──
+  // ── Balance breakdown - dynamic based on org type ──
   const hasMemberBalances = fp.hasShares || fp.hasSavings;
 
-  // Member balances card — only show if org has shares or savings types
+  // Member balances card - only show if org has shares or savings types
   const memberCard = document.getElementById('fin-member-card');
   const memberEl = document.getElementById('fin-member-balance');
   const memberLabel = document.getElementById('fin-member-label');
@@ -129,11 +129,11 @@ async function loadFinance() {
     }
   }
 
-  // Admin balance card — always show, but label changes by org type
+  // Admin balance card - always show, but label changes by org type
   // Bank balance: always use DB value (freshly fetched above via re-fetch at top of loadFinance).
   // The bank_balance column is updated atomically by the update_bank_balance RPC on every
   // payment approval, expense, and income entry. The locked flag only controls whether
-  // SA can manually override — it does NOT gate the auto-increment anymore.
+  // SA can manually override - it does NOT gate the auto-increment anymore.
   const bankBalance = (currentOrg?.bank_balance != null)
     ? currentOrg.bank_balance
     : net;
@@ -148,7 +148,7 @@ async function loadFinance() {
 
   if (adminEl) {
     if (!hasMemberBalances) {
-      // Welfare / subscription only — admin balance = total bank balance
+      // Welfare / subscription only - admin balance = total bank balance
       adminEl.textContent = 'Ksh ' + Math.abs(bankBalance).toLocaleString();
       adminEl.style.color = 'var(--teal)';
       if (adminCard) adminCard.style.borderTopColor = 'var(--teal)';
@@ -160,7 +160,7 @@ async function loadFinance() {
       adminEl.style.color = adminBalance < 0 ? 'var(--danger)' : 'var(--success)';
       if (adminCard) adminCard.style.borderTopColor = adminBalance < 0 ? 'var(--danger)' : 'var(--gold)';
       if (adminNote) adminNote.textContent = adminBalance < 0
-        ? '⚠ Negative — member funds used for group expenses'
+        ? '⚠ Negative - member funds used for group expenses'
         : 'Group-retained earnings above member balances';
     }
   }
@@ -224,7 +224,7 @@ async function saveTransaction() {
   if (!amount) { toast('Please enter an amount'); return; }
   const { error } = await sb.from('transactions').insert(payload);
   if (error) { toast('Error: ' + error.message); return; }
-  // Update member balance — use income_type to determine what to update
+  // Update member balance - use income_type to determine what to update
   if (memberId && typeId) {
     const contribType = allContribTypes.find(t => t.id === typeId);
     const incomeType = contribType?.income_type || (contribType?.is_member_income !== false ? 'member_savings' : 'admin_income');
@@ -491,8 +491,8 @@ async function saveFine(){
   const{error}=await sb.from('fines').insert({org_id:currentOrg.id,member_id:memberId,reason,amount,status:'pending',notes:notes||null,issued_date:date||new Date().toISOString().split('T')[0],issued_by:currentUser.id});
   if(error){toast('Error: '+error.message);return;}
   const member=allMembers.find(m=>m.id===memberId);
-  await logActivity('FINE ISSUED',`Fined ${member?.full_name||'member'} Ksh ${amount.toLocaleString()} — ${reason}`,'member',memberId);
-  toast(`✓ Fine of Ksh ${amount.toLocaleString()} issued — PENDING`);
+  await logActivity('FINE ISSUED',`Fined ${member?.full_name||'member'} Ksh ${amount.toLocaleString()} - ${reason}`,'member',memberId);
+  toast(`✓ Fine of Ksh ${amount.toLocaleString()} issued - PENDING`);
   clearFineForm();loadFinesLedger();
 }
 
@@ -516,11 +516,11 @@ async function loadFinesLedger(){
     const initials=(f.members?.full_name||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
     const dateStr=f.issued_date||f.created_at?.split('T')[0]||'—';
     const paidInfo=f.paid_date?' · '+f.paid_date:'';
-    const badge={pending:'<span class="badge badge-warn">⏳ Pending</span>',paid:'<span class="badge badge-green">✓ Paid</span>',recovered:'<span class="badge badge-maroon">↩ Recovered</span>',waived:'<span class="badge badge-grey">— Waived</span>'}[f.status]||f.status;
+    const badge={pending:'<span class="badge badge-warn">⏳ Pending</span>',paid:'<span class="badge badge-green">✓ Paid</span>',recovered:'<span class="badge badge-maroon">↩ Recovered</span>',waived:'<span class="badge badge-grey">- Waived</span>'}[f.status]||f.status;
     const memberBal=Number(f.members?.shares_balance||0)+Number(f.members?.savings_balance||0);
     const canRecover=hasMemberBal&&f.status==='pending'&&memberBal>=Number(f.amount);
     const actions=f.status==='pending'
-      ?`<div style="display:flex;gap:.35rem;flex-wrap:wrap"><button class="btn btn-primary btn-sm" style="font-size:.68rem;background:var(--teal)" onclick="markFinePaid('${f.id}')">✓ Mark Paid</button>${canRecover?`<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="recoverFineFromBalance('${f.id}')">↩ Recover</button>`:''}<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="waiveFine('${f.id}')">— Waive</button><button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteFine('${f.id}')">✕</button></div>`
+      ?`<div style="display:flex;gap:.35rem;flex-wrap:wrap"><button class="btn btn-primary btn-sm" style="font-size:.68rem;background:var(--teal)" onclick="markFinePaid('${f.id}')">✓ Mark Paid</button>${canRecover?`<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="recoverFineFromBalance('${f.id}')">↩ Recover</button>`:''}<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="waiveFine('${f.id}')">- Waive</button><button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteFine('${f.id}')">✕</button></div>`
       :`<span style="font-size:.72rem;color:var(--ink-faint)">${f.recovery_method?'via '+f.recovery_method:''}${paidInfo}</span>`;
     return `<tr><td style="font-size:.78rem;color:var(--ink-faint);white-space:nowrap">${dateStr}</td><td><div style="display:flex;align-items:center;gap:.55rem"><div style="width:28px;height:28px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:var(--maroon);flex-shrink:0">${h(initials)}</div><div><div style="font-size:.82rem;font-weight:600">${h(f.members?.full_name)||'—'}</div><div style="font-size:.67rem;color:var(--ink-faint)">#${h(f.members?.member_number)||'—'}</div></div></div></td><td style="font-size:.8rem;color:var(--ink-soft);max-width:200px">${h(f.reason)}${f.notes?`<div style="font-size:.7rem;color:var(--ink-faint)">${h(f.notes)}</div>`:''}</td><td><strong style="color:var(--maroon)">Ksh ${Number(f.amount).toLocaleString()}</strong></td><td>${badge}</td><td>${actions}</td></tr>`;
   }).join('')}</tbody></table></div>`;
@@ -531,7 +531,7 @@ async function markFinePaid(fineId){
   if(!fine)return;
   const today=new Date().toISOString().split('T')[0];
   await sb.from('fines').update({status:'paid',paid_date:today,recovery_method:'cash',approved_by:currentUser.id}).eq('id',fineId);
-  await sb.from('expenses').insert({org_id:currentOrg.id,category:'Fine',description:`Fine paid: ${fine.reason} — ${fine.members?.full_name||'member'}`,amount:fine.amount,expense_date:today,entry_type:'income',recorded_by:currentUser.id});
+  await sb.from('expenses').insert({org_id:currentOrg.id,category:'Fine',description:`Fine paid: ${fine.reason} - ${fine.members?.full_name||'member'}`,amount:fine.amount,expense_date:today,entry_type:'income',recorded_by:currentUser.id});
   await updateBankBalance(currentOrg.id,fine.amount,'credit');
   try{
     const{data:reqs}=await sb.from('payment_requests').select('id,allocations').eq('member_id',fine.member_id).eq('status','pending');
@@ -556,7 +556,7 @@ async function recoverFineFromBalance(fineId){
   const currentBal=method==='shares'?sharesBal:savingsBal;
   await sb.from('members').update({[balField]:currentBal-fineAmt}).eq('id',fine.member_id);
   await sb.from('fines').update({status:'recovered',paid_date:new Date().toISOString().split('T')[0],recovery_method:method,approved_by:currentUser.id}).eq('id',fineId);
-  await sb.from('expenses').insert({org_id:currentOrg.id,category:'Fine',description:`Fine recovered from ${method}: ${fine.reason} — ${fine.members?.full_name||'member'}`,amount:fineAmt,expense_date:new Date().toISOString().split('T')[0],entry_type:'income',recorded_by:currentUser.id});
+  await sb.from('expenses').insert({org_id:currentOrg.id,category:'Fine',description:`Fine recovered from ${method}: ${fine.reason} - ${fine.members?.full_name||'member'}`,amount:fineAmt,expense_date:new Date().toISOString().split('T')[0],entry_type:'income',recorded_by:currentUser.id});
   await updateBankBalance(currentOrg.id,fineAmt,'credit');
   await logActivity('FINE RECOVERED',`Recovered: ${fine.members?.full_name||'member'} Ksh ${fineAmt.toLocaleString()}`);
   toast(`✓ Ksh ${fineAmt.toLocaleString()} recovered from ${fine.members?.full_name}'s ${method}`);
@@ -582,7 +582,7 @@ async function loadMemberPendingFines(memberId){
     if(noticeEl){
       if(!pending.length){noticeEl.style.display='none';return;}
       noticeEl.style.display='block';
-      noticeEl.innerHTML=`<div style="background:var(--maroon-pale);border:1px solid var(--maroon-muted);border-left:4px solid var(--maroon);padding:.85rem 1rem;border-radius:4px"><div style="font-size:.85rem;font-weight:700;color:var(--maroon);margin-bottom:.5rem">⚠ Outstanding Fine${pending.length!==1?'s':''} — Ksh ${total.toLocaleString()}</div>${pending.map(f=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:.35rem 0;border-bottom:1px solid rgba(128,0,32,.1)"><div><div style="font-size:.82rem;color:var(--ink-soft)">${h(f.reason)}</div><div style="font-size:.7rem;color:var(--ink-faint)">${f.issued_date||''}</div></div><strong style="color:var(--maroon);margin-left:.75rem;flex-shrink:0">Ksh ${Number(f.amount).toLocaleString()}</strong></div>`).join('')}<div style="margin-top:.75rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem"><span style="font-size:.75rem;color:var(--ink-faint)">Pay via M-Pesa to your group payment details and inform your admin.</span><button class="btn btn-primary btn-sm" onclick="openFinePaymentModal()" style="background:var(--maroon);font-size:.78rem;flex-shrink:0">💳 Pay Fine</button></div></div>`;
+      noticeEl.innerHTML=`<div style="background:var(--maroon-pale);border:1px solid var(--maroon-muted);border-left:4px solid var(--maroon);padding:.85rem 1rem;border-radius:4px"><div style="font-size:.85rem;font-weight:700;color:var(--maroon);margin-bottom:.5rem">⚠ Outstanding Fine${pending.length!==1?'s':''} - Ksh ${total.toLocaleString()}</div>${pending.map(f=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:.35rem 0;border-bottom:1px solid rgba(128,0,32,.1)"><div><div style="font-size:.82rem;color:var(--ink-soft)">${h(f.reason)}</div><div style="font-size:.7rem;color:var(--ink-faint)">${f.issued_date||''}</div></div><strong style="color:var(--maroon);margin-left:.75rem;flex-shrink:0">Ksh ${Number(f.amount).toLocaleString()}</strong></div>`).join('')}<div style="margin-top:.75rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem"><span style="font-size:.75rem;color:var(--ink-faint)">Pay via M-Pesa to your group payment details and inform your admin.</span><button class="btn btn-primary btn-sm" onclick="openFinePaymentModal()" style="background:var(--maroon);font-size:.78rem;flex-shrink:0">💳 Pay Fine</button></div></div>`;
     }
   }catch(e){console.log('Fines load skipped:',e.message);}
 }
@@ -616,7 +616,7 @@ async function submitFinePayment(){
   const{error}=await sb.from('payment_requests').insert({org_id:currentOrg.id,member_id:memberId,amount:total,mpesa_ref:mpesaRef,payment_date:payDate,allocations:JSON.stringify(allocations),status:'pending',requested_at:new Date().toISOString(),notes:`Fine payment. ${fineItems.map(f=>f.reason+': Ksh '+f.amount).join(', ')}`});
   if(error){toast('Error: '+error.message);return;}
   document.getElementById('modal-fine-payment-inline')?.classList.remove('open');
-  toast(`✓ Fine payment of Ksh ${total.toLocaleString()} submitted — awaiting admin approval`);
+  toast(`✓ Fine payment of Ksh ${total.toLocaleString()} submitted - awaiting admin approval`);
   loadMyContributions();loadMyProfile();
 }
 
@@ -747,7 +747,7 @@ async function approvePaymentRequest(requestId) {
   if (fetchErr || !req) { toast('Error fetching request'); return; }
 
   // SECURITY: Subscription and SMS bundle payments must only be approved by SA via webhook.
-  // Org admins cannot approve their own subscription payments — hard block.
+  // Org admins cannot approve their own subscription payments - hard block.
   const _safeType = req.payment_type || '';
   if (_safeType === 'subscription' || _safeType.startsWith('subscription_') || _safeType.startsWith('sms_bundle')) {
     toast('⚠ Subscription and SMS bundle payments are processed automatically. Contact platform support if there is an issue.');
@@ -767,7 +767,7 @@ async function approvePaymentRequest(requestId) {
   const memberUpdates = {};
 
   // Split allocations: welfare-tagged vs everything else. This split is the
-  // actual fix — welfare contributions used to get silently folded into the
+  // actual fix - welfare contributions used to get silently folded into the
   // same summary transaction as shares/savings, with no welfare_event_id set
   // anywhere (the paid/unpaid tracker was reading a column nothing wrote to),
   // and the FULL payment total (including welfare) was credited to
@@ -808,13 +808,13 @@ async function approvePaymentRequest(requestId) {
       mpesa_ref: req.mpesa_ref || null,
       transaction_date: req.payment_date || new Date().toISOString().split('T')[0],
       welfare_event_id: alloc.eventId,
-      notes: `Welfare contribution — ${alloc.typeName}. Ref: ${req.mpesa_ref||'—'}.`,
+      notes: `Welfare contribution - ${alloc.typeName}. Ref: ${req.mpesa_ref||'—'}.`,
       recorded_by: currentUser.id
     });
     if (!welErr) successCount++;
   }
 
-  // Accumulate per-allocation member balance updates — only for regular
+  // Accumulate per-allocation member balance updates - only for regular
   // (non-welfare) allocations. Welfare money doesn't touch shares/savings
   // balances or bank_balance; it's tracked entirely through
   // welfare_event_id-tagged transactions, kept independent by design.
@@ -833,7 +833,7 @@ async function approvePaymentRequest(requestId) {
     await sb.from('members').update(memberUpdates).eq('id', req.member_id);
   }
 
-  // Update bank balance — ONLY for the non-welfare portion. This is the other
+  // Update bank balance - ONLY for the non-welfare portion. This is the other
   // half of the independence fix: welfare contributions no longer touch the
   // everyday bank_balance at all, in either direction.
   if (regularTotal > 0) {
@@ -841,7 +841,7 @@ async function approvePaymentRequest(requestId) {
       await updateBankBalance(currentOrg.id, regularTotal, 'credit');
     } catch(e) {
       console.error('Bank balance update FAILED:', e.message);
-      toast('⚠ Payment approved but bank balance update failed — check Finance page and refresh.');
+      toast('⚠ Payment approved but bank balance update failed - check Finance page and refresh.');
     }
   }
 
@@ -849,7 +849,7 @@ async function approvePaymentRequest(requestId) {
   const fineAllocs=allocations.filter(a=>a.isFine&&a.fineId);
   for(const fa of fineAllocs){
     await sb.from('fines').update({status:'paid',paid_date:req.payment_date||new Date().toISOString().split('T')[0],recovery_method:'cash',approved_by:currentUser.id}).eq('id',fa.fineId);
-    await sb.from('expenses').insert({org_id:currentOrg.id,category:'Fine',description:`Fine paid: ${fa.reason||'fine'} — ${memberData?.full_name||'member'}`,amount:fa.amount,expense_date:req.payment_date||new Date().toISOString().split('T')[0],entry_type:'income',recorded_by:currentUser.id});
+    await sb.from('expenses').insert({org_id:currentOrg.id,category:'Fine',description:`Fine paid: ${fa.reason||'fine'} - ${memberData?.full_name||'member'}`,amount:fa.amount,expense_date:req.payment_date||new Date().toISOString().split('T')[0],entry_type:'income',recorded_by:currentUser.id});
   }
 
   // Mark request as approved
@@ -861,7 +861,7 @@ async function approvePaymentRequest(requestId) {
 
   await logActivity('PAYMENT APPROVED', `Approved Ksh ${Number(req.amount).toLocaleString()} from ${memberData?.full_name || 'member'}${fineAllocs.length?' (fine resolved)':''}`);
   const fineMsg=fineAllocs.length?` · ${fineAllocs.length} fine${fineAllocs.length!==1?'s':''} resolved`:'';
-  toast(`✓ Payment approved — Ksh ${Number(req.amount).toLocaleString()} for ${memberData?.full_name || 'member'}${fineMsg}`);
+  toast(`✓ Payment approved - Ksh ${Number(req.amount).toLocaleString()} for ${memberData?.full_name || 'member'}${fineMsg}`);
   await loadPendingPayments();
   await loadApprovals();
   loadDashboard();
@@ -928,7 +928,7 @@ async function autoLinkAdminMember() {
   }
 
   if (!match) {
-    // No member record found — create one for the founder
+    // No member record found - create one for the founder
     const { data: newMember, error: createErr } = await sb.from('members').insert({
       org_id: currentOrg.id,
       full_name: currentProfile?.full_name || myEmail,
@@ -938,7 +938,7 @@ async function autoLinkAdminMember() {
       status: 'active',
       registration_paid: true,
       join_date: new Date().toISOString().split('T')[0],
-      notes: 'Founding member — auto-created'
+      notes: 'Founding member - auto-created'
     }).select().single();
 
     if (createErr) {
@@ -946,12 +946,12 @@ async function autoLinkAdminMember() {
       return;
     }
     match = newMember;
-    toast('✓ Created you as Member #001 — reloading...');
+    toast('✓ Created you as Member #001 - reloading...');
   } else {
-    // Found existing — link it
+    // Found existing - link it
     const { error } = await sb.from('members').update({ portal_email: myEmail }).eq('id', match.id);
     if (error) { toast('Error: ' + error.message); return; }
-    toast('✓ Linked to ' + match.full_name + ' — reloading...');
+    toast('✓ Linked to ' + match.full_name + ' - reloading...');
   }
 
   window._myMemberId = match.id;
@@ -960,7 +960,7 @@ async function autoLinkAdminMember() {
 }
 
 /* ══════════════════════════════════════════════════
-   WITHDRAWAL REQUESTS — ADMIN SIDE
+   WITHDRAWAL REQUESTS - ADMIN SIDE
 ══════════════════════════════════════════════════ */
 
 async function loadWithdrawalRequests() {
@@ -1021,7 +1021,7 @@ async function loadWithdrawalRequests() {
   }
 }
 
-// Approve withdrawal: double entry — debit member balance + debit bank balance + log expense
+// Approve withdrawal: double entry - debit member balance + debit bank balance + log expense
 async function approveWithdrawal(requestId, memberId, amount) {
   if (!canDo('saveExpense')) { toast('⚠ Permission denied'); return; }
   if (!confirm(`Confirm payment of Ksh ${Number(amount).toLocaleString()} to member?`)) return;
@@ -1041,7 +1041,7 @@ async function approveWithdrawal(requestId, memberId, amount) {
       return;
     }
 
-    // 2. Deduct from member balances — savings first, then shares
+    // 2. Deduct from member balances - savings first, then shares
     const memberUpdates = {};
     let remaining = amount;
     if (savings >= remaining) {
@@ -1061,7 +1061,7 @@ async function approveWithdrawal(requestId, memberId, amount) {
     await sb.from('expenses').insert({
       org_id:       currentOrg.id,
       category:     'Withdrawal',
-      description:  `Member withdrawal — ${member.full_name}`,
+      description:  `Member withdrawal - ${member.full_name}`,
       amount,
       expense_date: new Date().toISOString().split('T')[0],
       entry_type:   'expense',
@@ -1076,7 +1076,7 @@ async function approveWithdrawal(requestId, memberId, amount) {
     }).eq('id', requestId);
 
     await logActivity('WITHDRAWAL APPROVED',
-      `Withdrawal of Ksh ${amount} approved for ${member.full_name} — savings: -${savings - (memberUpdates.savings_balance||0)}, shares: -${shares - (memberUpdates.shares_balance||shares)}`);
+      `Withdrawal of Ksh ${amount} approved for ${member.full_name} - savings: -${savings - (memberUpdates.savings_balance||0)}, shares: -${shares - (memberUpdates.shares_balance||shares)}`);
 
     toast(`✓ Withdrawal of Ksh ${Number(amount).toLocaleString()} confirmed for ${member.full_name}`);
     loadWithdrawalRequests();
