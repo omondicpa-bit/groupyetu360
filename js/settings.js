@@ -3105,31 +3105,33 @@ async function syncSettlementBatches() {
     let allocs = [];
     try { allocs = JSON.parse(row.allocations || '[]'); } catch(e) { continue; }
     for (const a of allocs) {
-      if (a.isWelfare) continue; // welfare handled entirely separately, on request
-      const key = `${row.org_id}|${row.provider}|${row.payment_date}`;
+      if (a.isWelfare) continue; // welfare — admin requests settlement explicitly, per event
+      if (a.isMGR) continue;     // MGR — auto-created server-side the moment a round completes, never date-batched
+      const lineType = a.isTB ? 'table_banking' : 'regular';
+      const key = `${row.org_id}|${row.provider}|${row.payment_date}|${lineType}`;
       groups[key] = (groups[key] || 0) + Number(a.amount || 0);
     }
   }
 
   const { data: existing } = await sb.from('settlement_batches')
-    .select('org_id,provider,settlement_date,status,amount')
-    .eq('line_type', 'regular')
+    .select('org_id,provider,settlement_date,line_type,status,amount')
+    .in('line_type', ['regular', 'table_banking'])
     .gte('settlement_date', sinceStr);
   const existingMap = {};
   (existing || []).forEach(b => {
-    existingMap[`${b.org_id}|${b.provider}|${b.settlement_date}`] = b;
+    existingMap[`${b.org_id}|${b.provider}|${b.settlement_date}|${b.line_type}`] = b;
   });
 
   const toInsert = [];
   const toUpdate = [];
   for (const [key, amount] of Object.entries(groups)) {
-    const [org_id, provider, settlement_date] = key.split('|');
+    const [org_id, provider, settlement_date, line_type] = key.split('|');
     const roundedAmount = Math.round(amount * 100) / 100;
     const existingBatch = existingMap[key];
     if (!existingBatch) {
-      toInsert.push({ org_id, provider, settlement_date, line_type: 'regular', amount: roundedAmount });
+      toInsert.push({ org_id, provider, settlement_date, line_type, amount: roundedAmount });
     } else if (existingBatch.status === 'pending' && Number(existingBatch.amount) !== roundedAmount) {
-      toUpdate.push({ org_id, provider, settlement_date, amount: roundedAmount });
+      toUpdate.push({ org_id, provider, settlement_date, line_type, amount: roundedAmount });
     }
   }
 
@@ -3140,7 +3142,7 @@ async function syncSettlementBatches() {
   for (const u of toUpdate) {
     await sb.from('settlement_batches').update({ amount: u.amount })
       .eq('org_id', u.org_id).eq('provider', u.provider)
-      .eq('settlement_date', u.settlement_date).eq('line_type', 'regular');
+      .eq('settlement_date', u.settlement_date).eq('line_type', u.line_type);
   }
   console.log(`syncSettlementBatches: ${toInsert.length} new, ${toUpdate.length} refreshed`);
 }
@@ -3157,7 +3159,7 @@ async function loadSASettlements() {
 
     const since = new Date(); since.setDate(since.getDate() - 60);
     const { data: batches } = await sb.from('settlement_batches')
-      .select('*, organisations(name), welfare_events(event_type)')
+      .select('*, organisations(name), welfare_events(event_type), round_slots(slot_number, member_id, savings_rounds(name))')
       .gte('settlement_date', since.toISOString().split('T')[0])
       .order('settlement_date', { ascending: false });
 
@@ -3192,11 +3194,11 @@ async function loadSASettlements() {
             <div style="display:flex;align-items:center;gap:.6rem;min-width:180px">
               <span style="font-weight:600;font-size:.82rem">${(b.organisations?.name || 'Unknown').replace(/</g,'')}</span>
             </div>
-            <div style="display:flex;align-items:center;gap:.5rem">${providerBadge(b.provider)}<span style="font-size:.76rem;color:var(--ink-soft)">${b.welfare_event_id ? '♡ ' + (b.welfare_events?.event_type || 'Welfare Event').replace(/</g,'') : 'Regular'}</span></div>
+            <div style="display:flex;align-items:center;gap:.5rem">${providerBadge(b.provider)}<span style="font-size:.76rem;color:var(--ink-soft)">${settlementLineLabel(b)}</span></div>
             <div style="display:flex;align-items:center;gap:1rem;margin-left:auto">
               <div style="font-weight:700;font-size:.9rem;font-variant-numeric:tabular-nums">Ksh ${Number(b.amount).toLocaleString()}</div>
               ${settlementStatusPill(b.status)}
-              <button class="btn btn-secondary btn-sm" onclick="viewSettlementDetails('${b.org_id}','${b.provider}','${b.settlement_date}','${b.line_type}','${(b.organisations?.name||'').replace(/'/g,"")}')">Details</button>
+              <button class="btn btn-secondary btn-sm" onclick="viewSettlementDetails('${b.org_id}','${b.provider}','${b.settlement_date}','${b.line_type}','${(b.organisations?.name||'').replace(/'/g,"")}','${b.round_slot_id||''}')">Details</button>
               ${b.status === 'pending' ? `<button class="btn btn-primary btn-sm" onclick="openMarkPaidForm('${b.id}')">Mark Paid</button>` : ''}
             </div>
           </div>`).join('')}
@@ -3292,20 +3294,36 @@ async function markSettlementBatchPaid(batchId, method, reference, date, notes) 
   }
 }
 
-async function viewSettlementDetails(orgId, provider, date, lineType, orgName) {
-  const { data: rows } = await sb.from('payment_requests')
-    .select('id, allocations, mpesa_ref, approved_at')
-    .eq('org_id', orgId).eq('provider', provider).eq('payment_date', date)
-    .eq('status', 'approved').eq('payment_type', 'member_contribution');
+async function viewSettlementDetails(orgId, provider, date, lineType, orgName, roundSlotId) {
+  let lines = [];
 
-  const lines = [];
-  for (const row of rows || []) {
-    let allocs = [];
-    try { allocs = JSON.parse(row.allocations || '[]'); } catch(e) { continue; }
-    for (const a of allocs) {
-      const isWelfareLine = !!a.isWelfare;
-      if ((lineType === 'welfare') !== isWelfareLine) continue;
-      lines.push({ memberId: a.memberId, typeName: a.typeName, amount: Number(a.amount || 0), ref: row.mpesa_ref, time: row.approved_at });
+  if (roundSlotId) {
+    // MGR — genuinely different query path. Settlement here is per-slot,
+    // not per-date, so we go straight to round_contributions for that
+    // specific slot rather than re-deriving from payment_requests
+    // allocations the way every other line type does.
+    const { data: contribs } = await sb.from('round_contributions')
+      .select('contributor_member_id, amount, mpesa_ref, payment_date, provider')
+      .eq('slot_id', roundSlotId).eq('status', 'paid').eq('provider', provider);
+    lines = (contribs || []).map(c => ({
+      memberId: c.contributor_member_id, typeName: 'MGR Contribution',
+      amount: Number(c.amount || 0), ref: c.mpesa_ref, time: c.payment_date,
+    }));
+  } else {
+    const { data: rows } = await sb.from('payment_requests')
+      .select('id, allocations, mpesa_ref, approved_at')
+      .eq('org_id', orgId).eq('provider', provider).eq('payment_date', date)
+      .eq('status', 'approved').eq('payment_type', 'member_contribution');
+
+    for (const row of rows || []) {
+      let allocs = [];
+      try { allocs = JSON.parse(row.allocations || '[]'); } catch(e) { continue; }
+      for (const a of allocs) {
+        if (lineType === 'welfare' && !a.isWelfare) continue;
+        if (lineType === 'table_banking' && !a.isTB) continue;
+        if (lineType === 'regular' && (a.isWelfare || a.isTB || a.isMGR)) continue;
+        lines.push({ memberId: a.memberId, typeName: a.typeName, amount: Number(a.amount || 0), ref: row.mpesa_ref, time: row.approved_at });
+      }
     }
   }
 
@@ -3361,6 +3379,21 @@ function providerBadge(provider) {
   const colors = { sasapay: ['#e8f0fd','#1a56c4'], fingo: ['#efe8fd','#6a2fd0'] };
   const [bg, fg] = colors[provider] || ['#f0f0f0','#666'];
   return `<span style="background:${bg};color:${fg};font-size:.68rem;font-weight:700;text-transform:capitalize;padding:.22rem .55rem;border-radius:6px">${provider}</span>`;
+}
+
+// One label covering all four settlement line types — welfare and MGR are
+// identified by their linked event/slot (not a special line_type string,
+// consistent with how welfare already worked before MGR/TB existed); TB
+// and regular are identified by line_type directly.
+function settlementLineLabel(b) {
+  if (b.welfare_event_id) return '♡ ' + (b.welfare_events?.event_type || 'Welfare Event').replace(/</g,'');
+  if (b.round_slot_id) {
+    const roundName = b.round_slots?.savings_rounds?.name || 'MGR Round';
+    const slotNum = b.round_slots?.slot_number;
+    return '🔄 ' + roundName.replace(/</g,'') + (slotNum ? ' — Round ' + slotNum : '');
+  }
+  if (b.line_type === 'table_banking') return '🏦 Table Banking';
+  return 'Regular';
 }
 
 // Turns a welfare event's collected-so-far total into an actual
@@ -3428,7 +3461,7 @@ async function loadOrgSettlements() {
   try {
     const since = new Date(); since.setDate(since.getDate() - 60);
     const { data: batches } = await sb.from('settlement_batches')
-      .select('*, welfare_events(event_type)')
+      .select('*, welfare_events(event_type), round_slots(slot_number, member_id, savings_rounds(name))')
       .eq('org_id', currentOrg.id)
       .gte('settlement_date', since.toISOString().split('T')[0])
       .order('settlement_date', { ascending: false });
@@ -3506,12 +3539,12 @@ async function loadOrgSettlements() {
           <div style="padding:.85rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;${i < dayBatches.length-1 ? 'border-bottom:1px solid var(--border-soft)' : ''}">
             <div style="display:flex;align-items:center;gap:.6rem">
               ${providerBadge(b.provider)}
-              <span style="font-size:.78rem;color:var(--ink-soft)">${b.welfare_event_id ? '♡ ' + (b.welfare_events?.event_type || 'Welfare Event').replace(/</g,'') : 'Regular'}</span>
+              <span style="font-size:.78rem;color:var(--ink-soft)">${settlementLineLabel(b)}</span>
             </div>
             <div style="display:flex;align-items:center;gap:1rem">
               <div style="font-weight:700;font-size:.92rem;font-variant-numeric:tabular-nums">Ksh ${Number(b.amount).toLocaleString()}</div>
               ${settlementStatusPill(b.status)}
-              <button class="btn btn-secondary btn-sm" onclick="viewSettlementDetails('${b.org_id}','${b.provider}','${b.settlement_date}','${b.line_type}','${(currentOrg.name||'').replace(/'/g,"")}')">Details</button>
+              <button class="btn btn-secondary btn-sm" onclick="viewSettlementDetails('${b.org_id}','${b.provider}','${b.settlement_date}','${b.line_type}','${(currentOrg.name||'').replace(/'/g,"")}','${b.round_slot_id||''}')">Details</button>
             </div>
           </div>`).join('')}
       </div>`).join('');

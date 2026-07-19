@@ -104,6 +104,9 @@ export async function creditMemberContribution(supabase: any, pr: any, reference
     let successCount = 0;
     let grandRegularTotal = 0;
     let grandWelfareTotal = 0;
+    let grandTBTotal = 0;
+    let grandMGRTotal = 0;
+    const touchedMGRSlots = new Set<string>(); // dedupe — same slot could appear across multiple beneficiaries in one split payment
 
     const { data: orgRow } = await supabase.from('organisations').select('name').eq('id', orgId).maybeSingle();
     const orgName = orgRow?.name || 'your group';
@@ -113,11 +116,17 @@ export async function creditMemberContribution(supabase: any, pr: any, reference
 
     for (const [memberId, memberAllocs] of byMember.entries()) {
       const welfareAllocs = memberAllocs.filter((a: any) => a.isWelfare && a.eventId);
-      const regularAllocs = memberAllocs.filter((a: any) => !(a.isWelfare && a.eventId));
+      const tbAllocs = memberAllocs.filter((a: any) => a.isTB && a.poolId);
+      const mgrAllocs = memberAllocs.filter((a: any) => a.isMGR && a.slotId);
+      const regularAllocs = memberAllocs.filter((a: any) => !(a.isWelfare && a.eventId) && !(a.isTB && a.poolId) && !(a.isMGR && a.slotId));
       const regularTotal = regularAllocs.reduce((s: number, a: any) => s + Number(a.amount || 0), 0);
       const welfareTotal = welfareAllocs.reduce((s: number, a: any) => s + Number(a.amount || 0), 0);
+      const tbTotal = tbAllocs.reduce((s: number, a: any) => s + Number(a.amount || 0), 0);
+      const mgrTotal = mgrAllocs.reduce((s: number, a: any) => s + Number(a.amount || 0), 0);
       grandRegularTotal += regularTotal;
       grandWelfareTotal += welfareTotal;
+      grandTBTotal += tbTotal;
+      grandMGRTotal += mgrTotal;
 
       const paidByAnother = memberId !== pr.member_id;
       const attribution = paidByAnother ? ' (paid on their behalf by another member)' : '';
@@ -161,6 +170,49 @@ export async function creditMemberContribution(supabase: any, pr: any, reference
         else console.error('[GY360] welfare transaction insert failed:', welErr.message);
       }
 
+      // Table Banking — own table, same as manual recording, tagged with
+      // provider so it's identifiable for settlement. Never touches
+      // bank_balance, matching how the manual TB flow already works —
+      // TB money is tracked in its own pool, not the group's general funds.
+      for (const alloc of tbAllocs) {
+        const { error: tbErr } = await supabase.from('table_banking_contributions').insert({
+          pool_id: alloc.poolId,
+          org_id: orgId,
+          member_id: memberId,
+          amount: Number(alloc.amount),
+          payment_date: pr.payment_date || today,
+          mpesa_ref: reference,
+          provider: pr.provider,
+          recorded_by: null,
+        });
+        if (!tbErr) successCount++;
+        else console.error('[GY360] table banking contribution insert failed:', tbErr.message);
+      }
+
+      // MGR — own table (round_contributions), same shape as manual
+      // recording, tagged with provider. Never touches bank_balance — this
+      // money is destined for a specific round receiver via settlement,
+      // not the group's own funds. status is 'paid' immediately since this
+      // IS the actual payment confirmation, same trust level as a manually
+      // recorded one.
+      for (const alloc of mgrAllocs) {
+        const { error: mgrErr } = await supabase.from('round_contributions').insert({
+          round_id: alloc.roundId,
+          slot_id: alloc.slotId,
+          org_id: orgId,
+          contributor_member_id: memberId,
+          amount: Number(alloc.amount),
+          method: 'mobile_money',
+          mpesa_ref: reference,
+          payment_date: pr.payment_date || today,
+          status: 'paid',
+          provider: pr.provider,
+          recorded_by: null,
+        });
+        if (!mgrErr) { successCount++; touchedMGRSlots.add(alloc.slotId); }
+        else console.error('[GY360] MGR round_contributions insert failed:', mgrErr.message);
+      }
+
       // Member balance updates — per beneficiary, regular allocations only
       const memberUpdates: any = {};
       for (const alloc of regularAllocs) {
@@ -184,7 +236,7 @@ export async function creditMemberContribution(supabase: any, pr: any, reference
       let thisNetAmount = 0, typeLabel = 'Contribution', newBalance = 0;
       if (member?.phone || member?.user_id) {
         typeLabel = memberAllocs.map((a: any) => a.typeName).join(' + ') || 'Contribution';
-        thisNetAmount = regularTotal + welfareTotal;
+        thisNetAmount = regularTotal + welfareTotal + tbTotal + mgrTotal;
         newBalance = (memberUpdates.shares_balance ?? member?.shares_balance ?? 0)
           + (memberUpdates.savings_balance ?? member?.savings_balance ?? 0);
       }
@@ -211,6 +263,87 @@ export async function creditMemberContribution(supabase: any, pr: any, reference
           `Ksh ${thisNetAmount.toLocaleString()} — ${typeLabel} — ${orgName}`,
           '/#finance'
         );
+      }
+    }
+
+    // MGR round-completion check — ported from the client-side
+    // checkAndAutoCompleteSlot()'s detection logic, but this side only
+    // ever creates a settlement_batch for the API-sourced portion; it
+    // deliberately doesn't touch the existing direct/group_account/
+    // treasurer completion behaviors, which stay exactly as they were —
+    // those are for money that never came through us at all. A round can
+    // be completed by a mix of sources; this only settles the slice that
+    // actually landed in our pooled wallet, which could be less than the
+    // round's full value, or even zero (in which case nothing is created).
+    for (const slotId of touchedMGRSlots) {
+      try {
+        const { data: slot } = await supabase.from('round_slots')
+          .select('id, round_id, member_id, received').eq('id', slotId).maybeSingle();
+        if (!slot || slot.received) continue;
+
+        const { data: round } = await supabase.from('savings_rounds')
+          .select('*').eq('id', slot.round_id).maybeSingle();
+        if (!round || !Array.isArray(round.pool_members)) continue;
+
+        const expectedContributors = round.pool_members.filter((id: string) => id !== slot.member_id);
+        if (!expectedContributors.length) continue;
+
+        const { data: paidRows } = await supabase.from('round_contributions')
+          .select('contributor_member_id, amount, provider').eq('slot_id', slotId).eq('status', 'paid');
+        const paidIds = new Set((paidRows || []).map((r: any) => r.contributor_member_id));
+        const allPaid = expectedContributors.every((id: string) => paidIds.has(id));
+        if (!allPaid) continue;
+
+        // Round is complete — mark received, same as the manual path does.
+        const potAmount = expectedContributors.length * Number(round.amount_per_member || 0);
+        await supabase.from('round_slots').update({
+          received: true, received_date: today, amount_received: potAmount,
+        }).eq('id', slotId);
+
+        await supabase.from('round_disbursements').insert({
+          round_id: slot.round_id, slot_id: slotId, org_id: orgId,
+          receiving_member_id: slot.member_id, amount: potAmount, method: 'mixed',
+          disbursement_date: today, disbursed_by: null,
+          notes: 'Auto-completed: mix of instant-pay and other recorded contributions',
+        });
+
+        // Only the API-sourced portion needs settling — sum contributions
+        // that actually carry a provider tag, regardless of round total.
+        const apiSourcedTotal = (paidRows || [])
+          .filter((r: any) => r.provider)
+          .reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+
+        if (apiSourcedTotal > 0) {
+          const { data: receiverMember } = await supabase.from('members')
+            .select('phone, full_name').eq('id', slot.member_id).maybeSingle();
+
+          // One settlement batch per provider actually used, mirroring
+          // welfare's pattern — a round could plausibly have used more
+          // than one provider across its lifetime if the org switched.
+          const byProvider: Record<string, number> = {};
+          for (const r of paidRows || []) {
+            if (!r.provider) continue;
+            byProvider[r.provider] = (byProvider[r.provider] || 0) + Number(r.amount || 0);
+          }
+          for (const [provider, amount] of Object.entries(byProvider)) {
+            const { error: settleErr } = await supabase.from('settlement_batches').insert({
+              org_id: orgId, provider, settlement_date: today,
+              line_type: 'mgr',
+              amount, round_slot_id: slotId,
+              payout_destination_type: 'direct',
+              payout_destination_snapshot: {
+                recipient_name: receiverMember?.full_name || null,
+                recipient_phone: receiverMember?.phone || null,
+              },
+            });
+            if (settleErr) console.error('[GY360] MGR settlement_batches insert failed:', settleErr.message);
+          }
+          console.log(`[GY360] MGR round complete — settlement created for slot ${slotId}, Ksh ${apiSourcedTotal} across ${Object.keys(byProvider).length} provider(s)`);
+        } else {
+          console.log(`[GY360] MGR round complete for slot ${slotId} — Ksh 0 came through our APIs, nothing to settle`);
+        }
+      } catch (mgrCompleteErr: any) {
+        console.error('[GY360] MGR completion check failed for slot', slotId, ':', mgrCompleteErr.message);
       }
     }
 
@@ -282,7 +415,7 @@ export async function creditMemberContribution(supabase: any, pr: any, reference
       user_name: 'Paystack Auto',
       user_role: 'system',
       action: 'MEMBER CONTRIBUTION AUTO-APPROVED',
-      details: `Ksh ${grandRegularTotal.toLocaleString()}${grandWelfareTotal ? ' + Ksh ' + grandWelfareTotal.toLocaleString() + ' welfare' : ''}${byMember.size > 1 ? ' · split across ' + byMember.size + ' members' : ''} · ref: ${reference}`,
+      details: `Ksh ${grandRegularTotal.toLocaleString()}${grandWelfareTotal ? ' + Ksh ' + grandWelfareTotal.toLocaleString() + ' welfare' : ''}${grandTBTotal ? ' + Ksh ' + grandTBTotal.toLocaleString() + ' table banking' : ''}${grandMGRTotal ? ' + Ksh ' + grandMGRTotal.toLocaleString() + ' MGR' : ''}${byMember.size > 1 ? ' · split across ' + byMember.size + ' members' : ''} · ref: ${reference}`,
       target_type: 'payment',
       target_id: pr.id,
       created_at: new Date().toISOString(),

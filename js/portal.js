@@ -748,6 +748,47 @@ async function openMemberPaymentModal() {
     // checkboxes, rather than querying twice — same data, one source.
     _mpWelfareEventsCache = welfareEvents || [];
 
+    // Table Banking pools — org-wide selectable, like welfare, gated by
+    // plan same as everywhere else TB appears.
+    _mpTBPoolsCache = [];
+    if (planHas('table_banking')) {
+      const { data: tbPools } = await sb.from('table_banking_pools')
+        .select('id,name').eq('org_id', currentOrg.id).eq('status', 'active');
+      _mpTBPoolsCache = tbPools || [];
+    }
+
+    // MGR obligations — deliberately scoped to the CURRENT logged-in
+    // member's own unpaid slots only, not selectable for "pay for another
+    // member" the way regular contributions/welfare are. Each member
+    // normally pays their own MGR contribution personally; unlike a
+    // household subscription, there isn't a common real-world case for
+    // paying someone else's rotating-savings turn. Same obligation-
+    // detection logic as the dashboard's "upcoming MGR" card.
+    _mpMyMGRObligations = [];
+    if (window._myMemberId) {
+      const { data: myCycles } = await sb.from('savings_rounds')
+        .select('*').eq('org_id', currentOrg.id).eq('status', 'active');
+      const relevantCycles = (myCycles || []).filter(c =>
+        Array.isArray(c.pool_members) && c.pool_members.includes(window._myMemberId)
+      );
+      for (const cycle of relevantCycles) {
+        const { data: slots } = await sb.from('round_slots')
+          .select('id,member_id,slot_number').eq('round_id', cycle.id).eq('received', false)
+          .order('slot_number').limit(1);
+        const currentSlot = slots?.[0];
+        if (!currentSlot || currentSlot.member_id === window._myMemberId) continue; // no active slot, or I'm the receiver
+        const { data: myContrib } = await sb.from('round_contributions')
+          .select('id').eq('slot_id', currentSlot.id).eq('contributor_member_id', window._myMemberId)
+          .eq('status', 'paid').maybeSingle();
+        if (myContrib) continue; // already paid
+        _mpMyMGRObligations.push({
+          slotId: currentSlot.id, roundId: cycle.id,
+          label: `${cycle.name} — Round ${currentSlot.slot_number}`,
+          amount: Number(cycle.amount_per_member || 0),
+        });
+      }
+    }
+
     // Org member list for "pay for another member" search — loaded once per
     // modal open. Small enough per-org that a full list is fine; no need for
     // server-side search on every keystroke.
@@ -793,12 +834,14 @@ function switchPaymentMode(mode) {
 let _mpBeneficiaryRows = [];
 let _mpOrgMembers = [];
 let _mpWelfareEventsCache = [];
+let _mpTBPoolsCache = [];
+let _mpMyMGRObligations = [];
 let _mpOpenSearchRowId = null;
 let _mpRowIdCounter = 0;
 let _mpItemIdCounter = 0;
 
 function newBeneficiaryItem() {
-  return { itemId: 'item' + (_mpItemIdCounter++), typeId: '', typeName: '', isWelfare: false, eventId: null, amount: '' };
+  return { itemId: 'item' + (_mpItemIdCounter++), kind: 'regular', typeId: '', typeName: '', eventId: null, poolId: null, slotId: null, roundId: null, amount: '' };
 }
 
 function initBeneficiaryRows(selfMemberId, selfName) {
@@ -845,17 +888,36 @@ function removeBeneficiaryRow(rowId) {
   recalcInstantFee();
 }
 
-function typeOptionsHtml(selectedTypeId, selectedIsWelfare, selectedEventId) {
+function typeOptionsHtml(item, isSelf) {
   let html = '<option value="">Select…</option>';
   for (const t of _mpContribTypes) {
-    const sel = (!selectedIsWelfare && t.id === selectedTypeId) ? 'selected' : '';
-    html += `<option value="${t.id}" data-welfare="false" ${sel}>${(t.name||'Contribution').replace(/</g,'')}</option>`;
+    const sel = (item.kind === 'regular' && t.id === item.typeId) ? 'selected' : '';
+    html += `<option value="${t.id}" data-kind="regular" ${sel}>${(t.name||'Contribution').replace(/</g,'')}</option>`;
   }
   if (_mpWelfareEventsCache.length) {
     html += '<optgroup label="Welfare">';
     for (const w of _mpWelfareEventsCache) {
-      const sel = (selectedIsWelfare && w.id === selectedEventId) ? 'selected' : '';
-      html += `<option value="${w.id}" data-welfare="true" ${sel}>${(w.event_type||'Welfare').replace(/</g,'')}</option>`;
+      const sel = (item.kind === 'welfare' && w.id === item.eventId) ? 'selected' : '';
+      html += `<option value="${w.id}" data-kind="welfare" ${sel}>${(w.event_type||'Welfare').replace(/</g,'')}</option>`;
+    }
+    html += '</optgroup>';
+  }
+  if (_mpTBPoolsCache.length) {
+    html += '<optgroup label="Table Banking">';
+    for (const p of _mpTBPoolsCache) {
+      const sel = (item.kind === 'tb' && p.id === item.poolId) ? 'selected' : '';
+      html += `<option value="${p.id}" data-kind="tb" ${sel}>${(p.name||'Pool').replace(/</g,'')}</option>`;
+    }
+    html += '</optgroup>';
+  }
+  // MGR — only offered when this row is paying for yourself, per the
+  // earlier scoping decision (each member pays their own turn personally;
+  // no common real-world case for paying someone else's).
+  if (isSelf && _mpMyMGRObligations.length) {
+    html += '<optgroup label="Rotating Savings (MGR)">';
+    for (const o of _mpMyMGRObligations) {
+      const sel = (item.kind === 'mgr' && o.slotId === item.slotId) ? 'selected' : '';
+      html += `<option value="${o.slotId}" data-kind="mgr" data-round-id="${o.roundId}" ${sel}>${o.label.replace(/</g,'')}</option>`;
     }
     html += '</optgroup>';
   }
@@ -883,7 +945,7 @@ function renderBeneficiaryRows() {
         ${row.items.map(item => `
           <div class="mp-bene-fields" style="align-items:center">
             <select class="form-select mp-bene-type" onchange="updateBeneficiaryType('${row.id}','${item.itemId}', this)">
-              ${typeOptionsHtml(item.typeId, item.isWelfare, item.eventId)}
+              ${typeOptionsHtml(item, row.memberId === window._myMemberId)}
             </select>
             <input class="form-input mp-bene-amount" type="number" placeholder="Amount" value="${item.amount||''}"
               oninput="updateBeneficiaryAmount('${row.id}','${item.itemId}', this.value)"/>
@@ -948,10 +1010,13 @@ function updateBeneficiaryType(rowId, itemId, selectEl) {
   const item = row?.items.find(i => i.itemId === itemId);
   if (!item) return;
   const opt = selectEl.selectedOptions[0];
-  item.typeId = selectEl.value;
+  item.kind = opt?.dataset?.kind || 'regular';
   item.typeName = opt?.textContent?.trim() || 'Contribution';
-  item.isWelfare = opt?.dataset?.welfare === 'true';
-  item.eventId = item.isWelfare ? selectEl.value : null;
+  item.typeId = item.kind === 'regular' ? selectEl.value : '';
+  item.eventId = item.kind === 'welfare' ? selectEl.value : null;
+  item.poolId = item.kind === 'tb' ? selectEl.value : null;
+  item.slotId = item.kind === 'mgr' ? selectEl.value : null;
+  item.roundId = item.kind === 'mgr' ? (opt?.dataset?.roundId || null) : null;
   recalcInstantFee();
 }
 
@@ -1029,7 +1094,8 @@ async function payInstantContribution() {
   for (const row of _mpBeneficiaryRows) {
     if (!row.memberId) { toast('Select who each row is for'); return; }
     for (const item of row.items) {
-      if (!item.typeId) { toast(`Select what each item is for (${row.memberName || 'a row'})`); return; }
+      const itemIdentifier = item.kind === 'welfare' ? item.eventId : item.kind === 'tb' ? item.poolId : item.kind === 'mgr' ? item.slotId : item.typeId;
+      if (!itemIdentifier) { toast(`Select what each item is for (${row.memberName || 'a row'})`); return; }
       if (!item.amount || parseFloat(item.amount) <= 0) { toast(`Enter an amount for every item (${row.memberName || 'a row'})`); return; }
     }
   }
@@ -1052,16 +1118,18 @@ async function payInstantContribution() {
   // Each row carries its own memberId — this is what lets paying for
   // another member (or splitting between myself and my spouse in one go)
   // land on the right person's ledger. Each row can now hold multiple
-  // items (contribution type/welfare event + amount) too, flattened here
-  // into individual allocation entries that all still carry that row's
-  // memberId. creditMemberContribution() groups by memberId server-side
-  // and processes each beneficiary independently either way.
-  const allocations = _mpBeneficiaryRows.flatMap(row => row.items.map(item => ({
-    memberId: row.memberId,
-    typeName: item.typeName,
-    amount: parseFloat(item.amount),
-    ...(item.isWelfare ? { isWelfare: true, eventId: item.eventId } : { typeId: item.typeId })
-  })));
+  // items (contribution type/welfare event/TB pool/MGR round + amount)
+  // too, flattened here into individual allocation entries that all still
+  // carry that row's memberId. creditMemberContribution() groups by
+  // memberId server-side and processes each beneficiary independently
+  // either way.
+  const allocations = _mpBeneficiaryRows.flatMap(row => row.items.map(item => {
+    const base = { memberId: row.memberId, typeName: item.typeName, amount: parseFloat(item.amount) };
+    if (item.kind === 'welfare') return { ...base, isWelfare: true, eventId: item.eventId };
+    if (item.kind === 'tb') return { ...base, isTB: true, poolId: item.poolId };
+    if (item.kind === 'mgr') return { ...base, isMGR: true, slotId: item.slotId, roundId: item.roundId };
+    return { ...base, typeId: item.typeId };
+  }));
 
   if (payBtn) payBtn.disabled = true;
   phoneEl.disabled = true;
