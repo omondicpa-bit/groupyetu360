@@ -1744,9 +1744,10 @@ function updateTopbarActions(page) {
         topbar.innerHTML = `<button class="topbar-btn" onclick="showModal('createRound')">+ New Cycle</button>`;
         break;
       case 'table_banking':
-        topbar.innerHTML = `
-          <button class="topbar-btn outline" onclick="showModal('tbNewPool')">+ New Pool</button>
-          <button class="topbar-btn" onclick="showModal('tbNewLoan')">+ Issue Loan</button>`;
+        // No topbar buttons here — the in-page hero already has identical
+        // New Pool/Issue Loan buttons; having both was a real, visible
+        // duplication (same two buttons appearing in two separate bars).
+        topbar.innerHTML = '';
         break;
       case 'approvals':
         topbar.innerHTML = `<span id="topbar-approvals-count" style="font-size:.78rem;color:var(--ink-faint)"></span>`;
@@ -1916,6 +1917,7 @@ function populateSelects() {
 // ── NAVIGATION ──
 const pageTitles = {
   dashboard: ['Dashboard', ''],
+  table_banking: ['Table Banking', 'Pool contributions and member loans'],
   sa_members: ['All Members', 'Platform-wide member directory'],
   sa_finance: ['Revenue', 'Subscription & billing overview'],
   sa_organisations: ['Organisations', 'Every organisation on the platform'],
