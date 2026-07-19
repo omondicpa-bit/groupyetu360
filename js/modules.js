@@ -2243,10 +2243,12 @@ async function loadTableBanking() {
     allTBPools = [];
   }
 
-  // Populate pool selects
+  // Populate pool selects — these two are genuine form fields (which pool
+  // to record a contribution/loan into), not primary navigation, so they
+  // stay as dropdowns unlike the Overview tab's browsing pattern.
   const poolOpts = '<option value="">Select pool…</option>' +
     allTBPools.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-  ['tb-pool-select','tb-rec-pool','tb-loan-pool'].forEach(id => {
+  ['tb-rec-pool','tb-loan-pool'].forEach(id => {
     const el = document.getElementById(id); if (el) el.innerHTML = poolOpts;
   });
 
@@ -2264,7 +2266,7 @@ async function loadTableBanking() {
   });
 
   if (!allTBPools.length) {
-    document.getElementById('tb-overview-content').innerHTML = `
+    document.getElementById('tb-pool-list').innerHTML = `
       <div style="text-align:center;padding:3rem">
         <div style="font-size:2rem;margin-bottom:.75rem">🏦</div>
         <div style="font-size:.9rem;font-weight:700;color:var(--ink);margin-bottom:.4rem">No table banking pools yet</div>
@@ -2282,11 +2284,12 @@ async function loadTableBanking() {
   const poolIds = allTBPools.map(p => p.id);
 
   const [contribRes, loanRes] = await Promise.all([
-    sb.from('table_banking_contributions').select('amount').in('pool_id', poolIds),
+    sb.from('table_banking_contributions').select('pool_id,amount').in('pool_id', poolIds),
     sb.from('table_banking_loans').select('*,members(full_name)').in('pool_id', poolIds).eq('status','active')
   ]);
 
-  const totalContrib = (contribRes.data||[]).reduce((s,c)=>s+Number(c.amount||0),0);
+  const allContribs = contribRes.data || [];
+  const totalContrib = allContribs.reduce((s,c)=>s+Number(c.amount||0),0);
   const activeLoans = loanRes.data || [];
   const totalLoaned = activeLoans.reduce((s,l)=>s+Number(l.principal||0),0);
   const totalRepaid = activeLoans.reduce((s,l)=>s+Number(l.total_repaid||0),0);
@@ -2317,14 +2320,52 @@ async function loadTableBanking() {
   const repayLoanEl = document.getElementById('tb-repay-loan');
   if (repayLoanEl) repayLoanEl.innerHTML = loanOpts;
 
-  // Show first pool overview
-  if (allTBPools.length) {
-    const poolSel = document.getElementById('tb-pool-select');
-    if (poolSel && !poolSel.value) {
-      poolSel.value = allTBPools[0].id;
-      await loadTBOverview(allTBPools[0].id);
-    }
-  }
+  // Render the pool list — this is now the default landing view for the
+  // Overview tab, replacing the old auto-select-first-pool behavior.
+  // Clicking a card is what opens its detail view.
+  const contribByPool = {};
+  allContribs.forEach(c => { contribByPool[c.pool_id] = (contribByPool[c.pool_id]||0) + Number(c.amount||0); });
+  const loansByPool = {};
+  activeLoans.forEach(l => { (loansByPool[l.pool_id] = loansByPool[l.pool_id] || []).push(l); });
+
+  document.getElementById('tb-pool-list').innerHTML = allTBPools.map(p => {
+    const poolLoans = loansByPool[p.id] || [];
+    const poolLoaned = poolLoans.reduce((s,l)=>s+Number(l.principal||0),0);
+    const poolRepaid = poolLoans.reduce((s,l)=>s+Number(l.total_repaid||0),0);
+    const poolBal = (contribByPool[p.id]||0) - poolLoaned + poolRepaid;
+    const memberCount = (p.pool_members||[]).length;
+    return `
+      <div class="card" style="margin-bottom:.85rem;cursor:pointer;transition:box-shadow .15s" onclick="openTBPoolDetail('${p.id}')" onmouseover="this.style.boxShadow='0 2px 10px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow=''">
+        <div style="padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+          <div>
+            <div style="font-weight:700;font-size:.9rem;display:flex;align-items:center;gap:.5rem">
+              ${h(p.name)}
+              <span class="badge ${p.status==='active'?'badge-green':'badge-grey'}" style="font-size:.6rem">${(p.status||'active').toUpperCase()}</span>
+            </div>
+            <div style="font-size:.75rem;color:var(--ink-faint);margin-top:.2rem">${memberCount} member${memberCount!==1?'s':''} · ${poolLoans.length} active loan${poolLoans.length!==1?'s':''} · ${p.interest_rate||10}% interest/mo</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-weight:700;font-size:1rem;color:var(--teal)">Ksh ${poolBal.toLocaleString()}</div>
+            <div style="font-size:.68rem;color:var(--ink-faint)">Pool Balance</div>
+          </div>
+          <div style="font-size:1.2rem;color:var(--ink-faint)">→</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+let _currentTBDetailPoolId = null;
+function openTBPoolDetail(poolId) {
+  _currentTBDetailPoolId = poolId;
+  document.getElementById('tb-pool-list-view').style.display = 'none';
+  document.getElementById('tb-pool-detail-view').style.display = 'block';
+  loadTBOverview(poolId);
+}
+
+function backToTBPoolList() {
+  _currentTBDetailPoolId = null;
+  document.getElementById('tb-pool-detail-view').style.display = 'none';
+  document.getElementById('tb-pool-list-view').style.display = 'block';
 }
 
 async function loadTBOverview(poolId) {
@@ -2560,9 +2601,8 @@ async function saveTBContribution() {
   document.getElementById('tb-rec-amount').value = '';
   document.getElementById('tb-rec-ref').value = '';
   await loadTableBanking();
-  // Refresh overview if this pool is currently selected
-  const poolSel = document.getElementById('tb-pool-select');
-  if (poolSel?.value === poolId) await loadTBOverview(poolId);
+  // Refresh detail view if this pool is currently open
+  if (_currentTBDetailPoolId === poolId) await loadTBOverview(poolId);
 }
 
 function calcLoanRepayment() {
