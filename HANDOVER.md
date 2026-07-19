@@ -1,231 +1,95 @@
-# GroupYetu360 — Handover Summary
-_Read this first if picking up a new session. Full technical detail for everything below is in CHANGELOG.md — this is the "what do I need to know before touching anything" version._
-
-**As of:** 16 Jul 2026, end of session · **Code state:** app SW v5.30, cache-bust v=2026071604
-
----
-
-## Standing working agreements (Felix's rules — always apply these without being reminded)
-
-- **Repo path:** the app repo lives at `C:\Users\Felix\groupyetu360`. Every PowerShell/git push block uses this exact path, never a placeholder.
-- **Always include the FULL exact execution steps** when delivering files — for regular JS/HTML, the copy + git add/commit/push block; for Supabase Edge Function files, ALSO `supabase functions deploy <function-name>` for every changed top-level function, run BEFORE git push. **Never** include `supabase functions deploy _shared` — shared module files aren't their own deployable function; they get bundled automatically into whichever function imports them.
-- **File freshness:** if Felix re-uploads a file, check whether a newer version was already delivered earlier in the same conversation before editing — use whichever is actually most recent, don't assume the latest upload is automatically the latest content. (This bit us once already — an old pre-SMS-cleanup `index.html` got re-uploaded and nearly shipped a regression alongside a new feature.)
-- Both this file and CHANGELOG.md should be updated at the end of every session's substantive work — not just when explicitly asked. (Slipped on this mid-session once — several rounds of live-testing fixes went undocumented until asked again. Don't let that gap recur.)
+# GroupYetu360 — Handover
+**Last updated:** 19 July 2026 (SasaPay integration, settlements, MGR/TB, security session)
+**Repo path:** `C:\Users\Felix\groupyetu360`
 
 ---
 
-## Multi-Provider Payment Infrastructure — Fingo + Paystack side by side (NEW, this session, NOT YET LIVE)
+## ⚠️ STANDING RULES — read this section every session, no exceptions
 
-Built proper provider abstraction rather than bolting Fingo onto the Paystack-specific schema: `org_payment_providers` table holds both a Paystack subaccount code AND a Fingo sub-merchant ID per org (both pre-provisioned at approval time, so switching an org's active provider later is a config flip, not new setup). `organisations.active_payment_provider` (SA-changeable at any time, per Felix's explicit confirmation) decides which one actually handles that org's collections.
+These exist specifically so Felix never has to repeat himself. Any new Claude instance picking up this project should treat this section as binding.
 
-**New org-side flow:** dashboard prompt (admin-only) to add disbursement details (bank OR M-Pesa — Felix confirmed both, since Paystack/Fingo both support either) and request activation. **New SA-side flow:** a Collection Requests queue (under Billing) — SA manually creates both providers' sub-accounts externally, pastes both codes, picks the active one, approves. **New SA-side manual disbursement recorder** — logs a real payout made outside the app and debits `bank_balance` accordingly; deliberately manual, matching the same "prove it before automating" pattern used for Fingo sub-merchant creation itself. Automating the actual payout transfer is separate future work.
+### Deployment discipline
+1. **Every file delivery includes the full exact PowerShell block** — `copy` commands with the real path (`C:\Users\Felix\groupyetu360\...`, never a placeholder), `git add .`, `git commit -m "..."`, `git push`. Never assume Felix knows the destination path.
+2. **`index.html`'s cache-bust query string (`?v=...`) MUST be bumped on every delivery that touches a JS file it loads**, even if `index.html` itself wasn't otherwise edited. This was the direct cause of at least two "my changes aren't showing up" incidents this session. If you edit `portal.js`/`modules.js`/`settings.js`/`auth.js`/`utils.js` and don't also bump and re-deliver `index.html`, the browser will keep serving the old file indefinitely.
+3. **Every Edge Function that receives an external webhook (not called by our own client) needs `--no-verify-jwt` on deploy** — `supabase functions deploy <name> --no-verify-jwt`. Confirmed root cause: Supabase's gateway rejects any request without a valid Supabase auth token *before your code even runs*, and external services (SasaPay, Paystack, Fingo) never send one. This silently broke Paystack's and Fingo's webhooks for the entire project history before it was found — they were only ever "working" because the active-verify polling fallback was quietly doing the real job. Functions needing this flag: `paystack-webhook`, `fingo-webhook`, `sasapay-webhook`. Apply it to any new webhook-receiving function by default.
+4. **Before editing any file, check whether it was already modified earlier in the same session** (compare what's in `/mnt/user-data/outputs/` against `/mnt/user-data/uploads/`) rather than assuming the original upload is current. This has caused real regressions when a stale upload silently reverted an earlier fix.
 
-**Fingo's fee model required new math, not a copy of Paystack's:** Fingo charges a tiered flat fee per amount band (not a percentage) — `calculateFingoGrossCharge()` in `utils.js` converges iteratively since the gross amount can cross into a higher fee band than the net amount alone would suggest (verified: Ksh 100 net → Ksh 110 gross, not the naively-expected Ksh 104, because Ksh 104 itself falls in a higher band). EPH's margin for Fingo is a **multiplier** on Fingo's own published fee (Felix: "double their fee so we earn the same as them"), stored as `platform_settings.fingo_fee_multiplier` (default 2.0) — a fundamentally different mechanism from Paystack's percentage-based model, not a reused formula.
+### Financial/architecture principles (do not deviate without asking)
+5. **Settlement never touches a group's own records.** `settlement_batches` is EPH's own internal ledger of money collected via SasaPay/Fingo that needs disbursing to a group. A group's `bank_balance`/`transactions` only ever move because the system credited a real contribution or an admin manually recorded something — never because of what happens on the settlement side. This was explicitly corrected mid-session after an earlier design mistakenly had "Mark Paid" debit `bank_balance`.
+6. **Settlement only ever reflects money that actually came through our APIs** (`provider IN ('sasapay','fingo')`). Anything paid manually/directly is the group's own business, tracked by its own records, never counted toward what SA owes to disburse.
+7. **Three different settlement triggers, by design, not inconsistency:**
+   - **Regular contributions & Table Banking** — auto-batched daily via `syncSettlementBatches()`.
+   - **Welfare** — never auto-batched. Admin explicitly clicks "Request Settlement" per event (events can run for days).
+   - **MGR (rotating savings)** — never auto-batched, never admin-requested either. Created automatically, server-side, the instant a round reports fully paid (mix of API + manual sources allowed) — for the API-sourced portion only, which could be less than the round's full value or zero. Punctuality matters more here than anywhere else (a real person is owed money on a specific date), so it's the one flow with no manual trigger step at all.
+8. **Manual payment details (paybill/till/phone) only ever appear inside the "Report a Payment" tab of the payment modal** — never on the Profile page, never in the "Pay Instantly" tab. This is a deliberate business decision to keep the default path toward instant pay, since GroupYetu360's revenue comes from instant-pay fees.
+9. **MGR settlement destination is always the receiver's own member phone number** — auto-derived, never a manual entry form, since the receiver is always a known existing member. Welfare settlement, by contrast, can route to a non-member recipient (bereaved family, etc.) with name/phone/bank captured at event creation, defaulting to the group's normal platform.
+10. **Phone numbers are load-bearing, not optional.** Regular signup requires and validates one; Google OAuth sign-in does not collect one at all. Any user with no phone on file gets auto-prompted (via the existing "My Account" panel on the workspace picker) the moment they land there, since MGR settlement and SMS confirmations both depend on it.
 
-**Fingo has no automatic settlement split** (unlike Paystack's `transaction_charge`/`bearer`) — confirmed against their actual API spec, not assumed. `subMerchantId` is metadata/tagging only; the full gross amount lands in EPH's own Fingo account, and moving the org's share out is what the manual disbursement recorder above is for.
-
-**All three new Fingo Edge Functions were built against Fingo's actual published OpenAPI spec and webhook docs (docs.fingopay.io)** — endpoints, field names, phone/amount formats, and the HMAC-SHA256 webhook signature scheme (`X-Fingo-Signature: t=..., v1=...`, different from Paystack's SHA-512-no-timestamp scheme) were all fetched and confirmed, not guessed. `fingo-charge` recomputes the fee server-side from `allocations` exactly like `paystack-charge` does — same "never trust the client for money-routing fields" discipline, and it looks up the org's sub-merchant ID itself from `org_payment_providers` rather than trusting a client-supplied value.
-
-**⚠️ NOT YET LIVE — before any real Fingo test:**
-1. Run `v3g_multi_provider_infrastructure.sql`.
-2. `platform_settings.fingo_api_key` and `fingo_webhook_secret` need real values — get these from the Fingo dashboard.
-3. Register `fingo-webhook`'s URL with Fingo (their dashboard, not something this app configures).
-4. A real Collection Request needs to go through the new SA queue for at least one test org (or migrate one manually) before any Fingo charge can succeed — `fingo-charge` requires an `org_payment_providers` row to exist.
-
-**Also decided this session, not yet built:** whether/how to surface Safaricom's own separate network fee (confirmed real via a live M-Pesa confirmation SMS showing a Ksh 5 charge Paystack's own support confirmed is because their STK collection is Paybill-routed, not Till-routed) — Felix chose option (b): a disclaimer on checkout rather than trying to predict Safaricom's exact fee band. Not yet implemented in the UI.
-
----
-
-## Bug fixes from live testing, same session (all shipped)
-
-- **`paystack-verify` was calling the wrong Paystack endpoint** — `/transaction/verify/:reference` (for Initialize Transaction) instead of `/charge/:reference` (Check Pending Charge, the correct one for a Charge-API payment). Caused instant false "Payment Failed" before the customer could even enter their PIN. Fixed to the correct endpoint.
-- **Instant-pay checkout rebuilt for multi-beneficiary support** — "pay for another member" (search any member in the org, no relationship restriction) and splitting one charge across several beneficiaries in a single M-Pesa prompt (e.g. KPA's combined household subscription + forced savings). Required restructuring `creditMemberContribution()` to group allocations by beneficiary member rather than assuming the payer is always the sole beneficiary.
-- **Real confirmation SMS wired in** — sends via Celcom directly from the crediting function (server-to-server, can't route through the authenticated `send-sms-celcom` endpoint since there's no user JWT in that context) once a contribution is credited, to the correct beneficiary, with their own portion's amount/balance — not the combined charge if it was a split payment.
-- Fixed a real accounting bug: the first live test's transaction fell into `approvePaymentRequest()`'s generic "no allocations" fallback (wrong amount — gross instead of net — and no contribution type), because the instant-pay flow never populated `allocations`. Now builds the exact same `allocations` shape the manual flow already produces, so it flows through the same tested crediting logic instead of the fallback.
-- Fixed a member-facing "205" leak — the pending-payment dashboard banner summed the raw gross `payment_requests.amount`; now sums the net `allocations` total instead, falling back to `amount` only for legacy manual-flow rows.
-- "Bank Balance" renamed to "Account Balance" everywhere in the UI (label only, `bank_balance` column/RPC untouched).
+### Working style Felix has been explicit about
+11. **Never guess twice at the same bug.** When a fix doesn't work, get real diagnostic evidence (console logs, DB queries, actual page source) before proposing another fix — this project has a documented history of wasted cycles from confident-but-wrong guesses (Paystack webhook status codes, SasaPay signature field mapping, this session's unresolved TB spacing bug).
+12. **Full, complete builds in one pass are preferred over incremental small ones** — Felix would rather get the whole feature (schema + backend + UI + edge cases) in one delivery than piecemeal check-ins, provided the scope was actually confirmed first for genuinely large/ambiguous features.
+13. **Confirm architecture before building anything non-trivial or ambiguous** — this project's most successful large builds (SasaPay pooled-wallet model, settlement redesign, MGR/TB integration) all started with Claude restating its understanding back to Felix before writing code, and Felix has responded well to this pattern specifically.
+14. **"Modern, flawless fintech UI" is the explicit visual bar** — not just functional, genuinely polished (see: Settlement Details modal redesign, SA Billing's collapsible-card rework).
 
 ---
 
-## Paystack Subaccounts — Member Contributions (NEW, this session, NOT YET LIVE)
+## Architecture overview
 
-Built the first version of member self-service contributions: members can now pay their chama directly via M-Pesa STK Push from the app (previously the only path was "pay externally, then self-report the M-Pesa reference for admin approval" — that manual flow is untouched and still the default for any org without a Paystack subaccount configured).
+**Stack:** Supabase (Postgres/Auth/Edge Functions), GitHub Pages (static hosting for the web app), Android via Bubblewrap/TWA (GitHub Actions CI build → Play Store).
 
-**Why Paystack, given the cost:** SasaPay and Fingo are both still stuck in onboarding (KYB "awaiting review" as of this session). Paystack's `paystack-charge`/`paystack-webhook` are already live, integrated, and secured (from the 8 Jul audit) — Felix chose to launch on the more expensive rail now (Paystack's 1.5% + EPH's 0.5%) rather than wait, with an explicit plan to swap the underlying rail once SasaPay/Fingo clear. Paystack **Subaccounts** feature provides the per-org routing (each org gets its own subaccount code, money splits automatically) — same shape as Fingo's sub-merchant model.
+**Payment providers, live:**
+- **Paystack** — per-org subaccounts, auto-settles within 24h on their side. Not part of the settlement_batches system (nothing for us to settle).
+- **Fingo** — pooled wallet, no per-org routing. Manual disbursement recorder existed before settlement_batches; now largely superseded by it.
+- **SasaPay** — pooled wallet, no per-org routing at all (confirmed directly with their team — sub-shops need separate PSP licensing we don't have). This is the newest, most actively developed integration this session.
 
-**Fee model — the important part:** the org must always receive the **exact** amount a member types in, never a fee-shaved figure. This is a gross-up calculation (`calculateGrossCharge()` in `utils.js`), not a naive "add 2%" — verified to guarantee the org's subaccount receives the net amount exactly, by construction (the flat `transaction_charge` sent to Paystack IS the fee, so `gross − transaction_charge = net` always, with zero rounding drift).
-
-**⚠️ NOT YET LIVE — three things still needed before this can be tested with real money:**
-
-1. **`paystack-charge` Edge Function needs new fields added** (`subaccount`, `transaction_charge`, `bearer`) — not done yet, Felix needs to paste the real source so this gets added precisely rather than guessed at.
-2. **`paystack-webhook` almost certainly needs a new branch too — found by reading the existing code, not assumed:** the crediting logic that runs when a payment is confirmed (`approvePayment()` in `utils.js`, and whatever the webhook's server-side equivalent is) parses `payment_type` by prefix (`subscription_`, `sms_bundle_`) to decide what to credit. A new type introduced this session, `member_contribution`, matches neither branch — meaning as built, a real payment could succeed on Paystack's side (member charged, org's M-Pesa credited via the subaccount split) while the actual `transactions` row (what the treasurer's ledger and welfare tracking actually read) never gets created. **This must be checked/fixed in `paystack-webhook` before any live test** — otherwise money moves but the app's own records don't reflect it.
-3. **`v3f_paystack_subaccounts.sql` needs to be run** (adds `paystack_subaccount_code`/`max_contribution_amount` to `organisations`, `platform_fee_percent`/`paystack_fee_percent` to `platform_settings`) — and `platform_settings_public`'s column list needs the two new fee-percent columns added manually if that view has an explicit SELECT list rather than `SELECT *` (member-facing fee breakdown reads from the public view, not the SA-only table).
-
-**Also worth doing before a live test, not blocking:** have `paystack-charge` **recompute** `transaction_charge` server-side from `platform_settings` rather than trusting the client-supplied value outright — the client-side calculation is for showing the member the right number, not for the Edge Function to take on faith. A tampered client could otherwise under-report the fee split. Low urgency (this affects EPH's margin, not member/org money — the org still always gets the amount it should), but worth closing before this scales.
-
-**Confirmed NOT a new security hole:** the existing `paystack-charge` caller-auth + org-membership check (from the 8 Jul audit) is inherited unchanged by this new payment type — just make sure whoever edits the function to add the three new fields doesn't touch that check.
-
-**Files changed:** `utils.js`, `portal.js`, `settings.js`, `index.html`, new `v3f_paystack_subaccounts.sql`.
+**Key tables added/extended this session:** `settlement_batches`, `org_payment_providers`, `collection_activation_requests`, `welfare_events` (payout_type/recipient_* columns), `round_contributions`/`table_banking_contributions` (provider column), `organisations_public` (view), `push_subscriptions`, `notification_log`, `broadcast_log`.
 
 ---
 
-## SMS Leopard / Africa's Talking — removed, Celcom is now the sole provider
+## What's genuinely open right now
 
-Both were dead weight in production — SMS Leopard's sender ID never got approved, and both were stuck "SA-only-functional" from the Supabase free-plan Edge Function DNS restriction, so neither ever provided real fallback for orgs. Removed from `utils.js` (`sendSMS()` routing, `loadSASupport()`/`saveSupportSettings()`), `modules.js` (SMS status check), and `index.html` (SMS Integration accordion, and a stale "Bulk SMS (Africa's Talking)" org-feature label that had been wrong for a while — Celcom's been the real provider since before this session). The `sendSMS()` branch structure was kept deliberately so a future replacement/backup provider is a small addition, not a rewrite. DB columns (`sms_leopard_*`, `at_*`) left in place, inert — not dropped as a drive-by.
+### 🔴 Unresolved bug — needs fresh eyes with a screenshot
+**Table Banking page has a large blank vertical gap right after the app's top bar, before any content renders.** Extensively diagnosed this session with no resolution:
+- Confirmed NOT caused by: the `.tb-hero`/`.tb-stats` unstyled-class bug (fixed, TB now reuses proven `.mgr-hero`/`.mgr-stats`), duplicate topbar buttons (fixed, removed), missing `pageTitles` entry (fixed, added), `.topbar` itself (verified 56px, white, correct), `.content` padding (verified 0, correct), `.page` class (verified simple show/hide, no extra spacing), `.tabs`/`.tab` (verified properly styled), deployment/cache-bust mismatch (verified — raw page source matches the built HTML exactly, byte for byte), and browser profile issues (tried Incognito, same result).
+- MGR's own page, structurally near-identical (same hero pattern, same page/content/topbar treatment), displays with no issue — the difference between the two pages was never found despite direct side-by-side comparison.
+- **Next step:** this needs actual visual inspection (screenshot) to resolve — static code analysis has been exhausted without success. Whoever picks this up next should NOT re-check any of the items above; start from "what does DevTools' Elements panel show as the actual rendered box between `.topbar` and `.mgr-hero` on the TB page specifically" with a real screenshot in hand.
 
-**⚠️ Caught mid-session:** a re-uploaded copy of `index.html` this session turned out to predate this fix (still had all three providers) — reapplied it before layering the Paystack feature on top, so this delivery includes both fixes together. See "Standing working agreements" above for why.
+### 🔴 SasaPay signature verification — external, not a code fix
+Confirmed across multiple real transactions: SasaPay's `X-SasaPay-Signature` header is **never actually sent**, on either of their two callback shapes (the "C2B Callback Results" and the separate "IPN" notification). Their dev console documents HMAC-SHA512 signing; it's simply not arriving. This has been formally reported to their technical team (email drafted, sent by Felix) with a specific transaction reference to look up. **Do not attempt to re-guess the field mapping again** — the header itself is absent, confirmed via full (untruncated) log inspection, not a mapping problem. Waiting on their response. The amount-cross-check remains the only enforced defense in the meantime.
 
-**Also:** the old Africa's Talking Edge Function (`send-sms`) is no longer called by any client code as of this fix, but that doesn't delete it from Supabase — it was never in the 3 functions secured by the 8 Jul audit, so if it never had caller auth either, it's still sitting on a guessable URL. **Recommend `supabase functions delete send-sms`** once confirmed nothing else depends on it.
+### 🟡 sasapay-verify is a "nudge," not a true verify
+SasaPay's API has no synchronous "check now, get the answer now" endpoint — their only status-check endpoint always just triggers another webhook delivery rather than answering directly. `sasapay-verify` reflects this honestly: it prompts a redelivery at the 30-second mark if nothing's resolved, while the actual confirmation still comes from a self-poll of our own database (proven reliable in live testing).
 
----
+### 🟡 IP whitelist for SasaPay — log-only, not enforced
+Deliberately not blocking on this yet — no confidence that Supabase's Edge Function runtime reliably exposes SasaPay's true origin IP rather than an internal proxy IP. Revisit once there's real log data showing what IP actually shows up in practice.
 
-## Play Store — closed-testing release pushed (v1.0.1, versionCode 3)
+### 🟡 Known pre-existing bug, unrelated to this session's work
+Mobile's Finance tab buttons (`onclick="finMobSwitchTab(...)"`) call a function that doesn't exist anywhere in the codebase. Found while building Settlements; not touched since it wasn't in scope at the time.
 
-Bumped `twa-manifest.json` and rebuilt via Bubblewrap to give Google a visible "iterated on feedback" signal before the 14-day window closed. Release notes covered the welfare/security/SMS fixes above (all already live anyway, since this is a TWA — the native wrapper just loads the live site; this release was about optics for the Play Store review, not new wrapped functionality).
+### ⚪ Needs a status check, not necessarily a build
+- Play Store production approval — submitted a while back, current status unknown.
+- Fingo's settlement flow — the settlement system covers both providers structurally, but recent real-world testing has been SasaPay-specific; Fingo's path through it hasn't been confirmed end-to-end.
 
-**Known Windows/Bubblewrap issue hit and worked around:** `bubblewrap build` failed with `Could not find or load main class ... SdkManagerCli` — a known Bubblewrap-on-Windows bug, not a project issue. Fixed by pointing `~/.bubblewrap/config.json` at Android Studio's own SDK/JDK instead of Bubblewrap's bundled (broken) installer.
-
----
-
-## Payment rail research — CBK PSP directory reviewed, no switch made yet
-
-Pulled the actual current CBK-authorized PSP directory while SasaPay/Fingo onboarding drags. Two names worth following up if either stalls further: **Wakandi Kenya Limited** (CBK authorization explicitly scoped to SACCOs/informal groups — exact niche match, but may be a competing core-banking product rather than an open third-party API, needs direct confirmation) and **PayHero Kenya** (not itself CBK-licensed — rides on a partner, needs that partner named and verified — but has the closest actual product fit: multi-tenant by design, real developer docs, markets directly to SaaS platforms like GY360). Pesapal was also assessed and ruled out for now — its public rate (~2.9–3.5%) is worse than Paystack's 1.5%, the thing Felix was trying to get away from. Outreach emails drafted for Wakandi/PayHero/Pesawise/Kasapay, not yet confirmed sent.
-
----
-
-## Welfare module — was silently broken, now fixed and made independent from bank_balance
-
-The Welfare feature (event tracking, paid/unpaid member list, progress bar) already existed with good UI, but `approvePaymentRequest()` never actually set `welfare_event_id` on transactions — the tracker was always reading a column nothing wrote to. Fixed, and while fixing it: welfare money no longer touches `bank_balance` at all (tracked entirely via `welfare_event_id`-tagged transactions instead), closing an event now requires a real disbursement record (reuses `expenses`, tagged with `welfare_event_id` — no new parallel table), and events can now be open-ended (no fixed per-member amount) alongside the existing fixed-levy model. Full detail in CHANGELOG.md's top entry.
-
-**⚠️ Needs Felix to run `v3i_welfare_module_fix.sql`** before any of this works — adds `expenses.welfare_event_id` and `welfare_events.closed_by`/`closed_at`.
-
-**⚠️ Superadmin bypass added to yesterday's 3 secured Edge Functions** (`paystack-charge`, `daraja-stk`, `send-sms-celcom`) — SA has no `user_orgs` row for any org, so the membership check added in the security audit would have blocked SA's own support actions. Found by inspection, not yet confirmed via Felix's own curl/Postman test — worth closing that loop.
+### Parked, by Felix's own choice
+- MGR/Table Banking collection workarounds beyond what's built — the core instant-pay + settlement integration is done; anything further wasn't specified.
+- CBK PSP outreach (Wakandi, PayHero, Pesawise, Kasapay) — likely moot now that SasaPay is live, never formally closed out either way.
 
 ---
 
-## Security audit — 3 unauthenticated Edge Functions fixed, MUST BE REDEPLOYED
+## This session's major builds (chronological)
 
-Full detail: `SECURITY_AUDIT_2026-07-08.md` and CHANGELOG.md's top entry. Short version: `paystack-charge`, `daraja-stk`, and `send-sms-celcom` had **no caller authentication at all** — anyone with the function URL could trigger real M-Pesa charges or send SMS at the platform's expense, with no login. All three now verify the caller and their org membership, matching the pattern `admin-user-update` already used correctly.
-
-**⚠️ CRITICAL: Edge Functions do not go live by pushing to GitHub.** They need `supabase functions deploy <name>` run for each of the 6 changed functions, or none of these fixes actually take effect in production, no matter how confident the code push looks.
-
-**Not fixed, needs a product decision:** `send-sms-celcom` checks org membership now, but sending and SMS-bundle deduction are still two separate non-atomic steps — a client could theoretically skip the deduction call. Needs a decision on whether to hard-block sending at zero balance before this gets restructured.
-
-**RLS policies on financial tables** (`transactions`, `expenses`, `payment_requests`, `organisations`) — not yet re-verified this session. Query is at the bottom of the audit doc, needs to be run and reviewed before considering this audit fully closed.
-
----
-
-## Bank balance frozen bug (ADA) — root cause was a PRIOR session's own advice
-
-`update_bank_balance()` had two overloaded versions in the DB — a broken one (checked `bank_balance_locked`, blocking real transaction updates) and a correct one (no lock check). Client calls were resolving to the broken one. The lock itself is legitimate and well-designed (makes the Settings balance field read-only after first set) — it was never meant to block the automatic RPC, only manual re-entry. Fixed by dropping the broken overload, not by removing the manual-set feature. Also fixed `updateBankBalance()` silently swallowing errors — now surfaces a toast on any failure.
-
-**⚠️ ADA's balance needs a manual one-time correction, not yet applied.** Run `diagnostic_ada_missed_balance.sql` first, review the numbers with Felix (ideally cross-checked against ADA's real bank/M-Pesa statement), before writing any corrected value.
-
-**If a similar "balance frozen" report comes in for another org:** check `SELECT oid, pg_get_function_identity_arguments(oid) FROM pg_proc WHERE proname='update_bank_balance'` returns exactly one row first — if it's back to two, something recreated the broken overload.
+1. **SasaPay integration from scratch** — production credentials, charge/webhook/verify functions, dedicated fee configuration (0.2% SasaPay + 1.3% EPH markup, both real Settings fields, not hardcoded), pooled-wallet architecture (no per-org sub-account, confirmed with their team).
+2. **Multiple real SasaPay bugs found and fixed via evidence, not guessing:** Supabase gateway JWT rejection (the `--no-verify-jwt` discovery, which also revealed Paystack/Fingo's webhooks had silently never worked), a false-decline caused by misreading their dual-callback-shape design (the IPN notification carries no `ResultCode` and was being misread as failure), a `.catch()` chain that isn't valid on this Supabase client version in this Deno runtime.
+3. **Unified settlement system** — built, then significantly corrected: bank_balance decoupling, per-provider/per-line-type structure, welfare's event-based (not date-based) grouping with admin-requested settlement, MGR's round-completion-triggered auto-settlement.
+4. **MGR & Table Banking brought into instant-pay checkout** — new selectable items in the multi-item beneficiary system, server-side crediting into their own real tables (`round_contributions`/`table_banking_contributions`), MGR's completion-check ported server-side to trigger auto-settlement.
+5. **Real security finding:** `organisations` table had `USING (true)` on its SELECT policy — any authenticated user could read every group's bank balance, disbursement account, and provider subaccount codes via the raw API. Fixed with a proper own-org-or-superadmin policy plus a narrow `organisations_public` view for the legitimate join-by-code lookup flow.
+6. **Two real, separate bugs behind one bug report** — "auto-checkout page only allows one contribution item" was fixed by redesigning the beneficiary-row data model to support multiple items per person; "app always returns to picker on tab focus" was a missing guard against Supabase's routine `SIGNED_IN` refire on token refresh.
+7. **A genuinely pre-existing, dormant bug found via user testing** — the SMS "Custom recipients" option had never worked since the feature was built: the picker's own code always tried to set the recipient dropdown to `"custom"`, but that option never existed in the `<select>` at all. One missing `<option>` tag, silently broken from day one.
+8. **Table Banking UI overhaul** — fixed a real unstyled-CSS-class bug (`.tb-hero`/`.tb-stats` had zero CSS backing anywhere), redesigned Pool Overview from a dropdown-select into a proper list → detail navigation pattern, removed genuine duplicate buttons between the global topbar and the in-page hero. One remaining spacing issue not resolved — see Open Items above.
+9. **Phone number now enforced as a real requirement** — Google OAuth sign-in was the actual gap (regular signup already validates one); auto-prompts via existing account panel infrastructure rather than new UI.
+10. **Push notifications extended to bulk SMS and meeting reminders** — additive to SMS, never a replacement, matching the pattern already used for payment confirmations.
 
 ---
 
-## Business direction — SasaPay group-deposits pivot under discussion (not yet built)
-
-Felix is exploring a second revenue line beyond subscriptions: onboarding each group under EPH's own SasaPay merchant account with a dedicated paybill, adding a small markup (~0.5%) on member contributions, disclosed transparently at the point of payment. SasaPay has confirmed this model works on their end. **Deliberately going slow** — no code for this yet. Before building: get SasaPay's actual API docs for the per-group-paybill/markup product, confirm webhook signature verification, settlement timing, and KYC requirements per group. This is a genuine shift from "software vendor" to "handles pooled group funds" — meaningfully more liability, needs its own security-first design pass before any implementation starts.
-
-## Registration/auth screens — second round of real bugs fixed, read before touching auth.js again
-
-The overhaul from 5 Jul (intent-based routing, DB trigger for profile creation) was structurally correct, but this session found two more concrete bugs in it:
-
-1. **Reset/invite screens had invisible text** — inline dark-theme styling was used on a form that renders on the same white card as login/register, which needs the opposite (dark text, light background). Fixed by matching the existing `.form-input` class everyone else uses. Also added the same live password-checklist registration has.
-2. **A refresh mid-reset/invite silently logged people in without setting a password** — the `?intent=` URL param was being stripped on first load, so any refresh before the flow completed lost the routing signal entirely, while a valid session (from the email link) was still active. Fixed by persisting intent in `sessionStorage`, cleared only once the flow genuinely completes.
-
-**If a future bug shows up in this area:** check both of these mechanisms specifically (inline style vs. shared CSS class; URL-param vs. sessionStorage persistence) before assuming the intent-routing architecture itself is wrong — it isn't, these were implementation bugs within it.
-
-## `profiles.email` — added this session, was missing since before this whole thread started
-
-`profiles` never had an `email` column. This silently broke three unrelated things (SA member-detail view, `openOrgDetail()`, and briefly the registration trigger itself, which is the only one of the three that failed loudly since a trigger exception aborts the whole transaction). Run `v3g_add_profiles_email.sql` if not already done — adds the column, backfills every existing user from `auth.users`, and updates the trigger. **No JS changes were needed for SA to see phone/email** — that UI already existed and already expected this column.
-
-## Duplicate-org creation — root cause found and fixed
-
-Two identical "Hills" orgs in the activity log, created one second apart by the same user, were a **double-submit bug**, not suspicious activity: `registerNewOrg()` had no guard against being called twice in quick succession (a fast double-click/double-tap). Fixed with a flag inside the function itself, since it's called from two independent places in the UI. Deliberately did **not** add a database-level uniqueness constraint on org name — legitimately different chamas can share common names, so hard-blocking would reject real registrations. If Felix wants SA-facing duplicate-name detection (flagged, not blocked) as a follow-up, that's small and separate.
-
-## Registration now requires a phone number
-
-`reg-phone` and `join-phone` are mandatory with format validation (reuses the existing `formatPhone()` E.164 normalizer already used for SMS, via a new `isValidKenyanPhone()` helper). **Format validation only, not live verification** — actually confirming the number is reachable would need an OTP-based check using the existing Celcom SMS function, a new table, and costs one SMS credit per attempt. Flagged as a next step, not built this round since it wasn't confirmed as wanted given the cost.
-
-## ⚠️ Reported but not fixed this session — needs real diagnostic data first
-
-- **SA feels slow to load, especially on mobile.** `loadSAMembers()` fetches ALL profiles/user_orgs/members/orgs with `select('*')` and no pagination on every load — a plausible contributor as user count grows, but not confirmed against actual timing evidence. Get Network-tab load times for the specific slow screen before treating this as the fix.
-- `join-password` (join-existing-org flow) only checks length ≥ 6, not the full strength rules (upper/lower/number) registration and reset now enforce — minor inconsistency, not fixed since it wasn't explicitly flagged.
-
----
-
-## Deploy mechanism changed today — read this before troubleshooting any future deploy issue
-
-GitHub Pages was switched from **"Deploy from a branch"** to **"GitHub Actions"** as the deploy source (Settings → Pages). This was because two workflow runs got permanently stuck in "Queued" for hours and could not even be cancelled — GitHub's own backend lost track of them. The new Actions-based workflow (`.github/workflows/static.yml`) includes a `concurrency` guard so overlapping deploys queue safely instead of racing each other, which is what caused several of that day's runs to fail with "Deployment failed, try again later."
-
-**The workflow deliberately does NOT upload the whole repo.** A staging step (`rsync` with excludes) copies only actual web assets into `_site/` before upload — Android/Gradle build files, `supabase/` (SQL source, not runtime-needed), `*.sql` migration scripts, and `CHANGELOG.md`/`HANDOVER.md` are excluded. The changelog/handover exclusion is deliberate and important: those files contain real member names and internal incident detail, and would otherwise be publicly reachable at a guessable URL if deployed. **They stay in git/GitHub for reference, just not on the live site.**
-
-If a future deploy fails: check the Actions tab first (`.github/workflows/static.yml`), not GitHub Pages legacy settings — the mechanism is now Actions-based end to end.
-
----
-
-## Registration/reset/invite — completely overhauled this session, read before touching auth.js/utils.js/portal.js
-
-**Two separate root causes, found in sequence — both real, both now fixed:**
-
-1. **The DB trigger (`v3f_registration_overhaul.sql`) 500'd on every signup at first** — it assumed `profiles` had an `email` column; it doesn't (`profiles` has `id, org_id, role, full_name, phone, id_number, created_at, two_fa_enabled` — confirmed via `information_schema.columns`). Corrected version removes every `profiles.email` reference. ⚠️ `settings.js`'s `openOrgDetail()` makes the same wrong assumption and degrades silently rather than crashing — **not fixed yet**, flagged for next session.
-
-2. **Even after the trigger worked, confirm/reset links still misbehaved** — because a completely separate, older function `handleAuthRedirect()` in `utils.js` ran *before* `init()` in the page bootstrap, checked the URL hash for `type=signup`/`type=recovery` (the old fragile mechanism), and — if it matched — showed its own hardcoded password form and **skipped `init()` entirely**, meaning the whole new `?intent=` routing never got a chance to execute. This function never signed anyone out either, which is why refreshing silently logged people in. **Removed entirely** — `init()` now runs directly and is the only auth-bootstrap code path. Also removed a duplicate copy of the same bootstrap sequence that was sitting in `portal.js` (leftover from an old "auto-split from index.html" refactor).
-
-**If a future "confirm/reset link does something weird" bug shows up again:** check for any OTHER stray legacy auth-handling code first (grep for `location.hash`, `type=signup`, `type=recovery` across all `.js` files) before assuming the bug is in `auth.js`'s `init()` itself — this exact failure mode (a second, forgotten handler intercepting first) is exactly what cost an extra round this session.
-
-**Root cause of the original bug (the one that started this whole thread):** `profiles` table's INSERT policy requires `auth.uid() = id`. Since `signUp()` with email confirmation ON doesn't create a session until the link is clicked, every client-side attempt to write a `profiles` row immediately after `signUp()` was silently blocked by RLS — for every registration, not intermittently.
-
-**Permanent fix, not a patch:**
-- Every `signUp()`/`resetPasswordForEmail()` call now carries an explicit `?intent=confirm|reset|invite` on its redirect URL. `init()` in `auth.js` routes strictly off that param.
-- All `profiles`/`user_orgs`/`pending_members` creation moved into a `SECURITY DEFINER` trigger on `auth.users` (`v3f_registration_overhaul.sql`).
-- Every auth screen signs the user out afterward and shows an explicit "please log in" screen.
-- Fixed two more real bugs found while tracing this: forgot-password was redirecting to the marketing site instead of the app; adding a brand-new member with "send portal invite" checked was silently sending nothing at all.
-
-**⚠️ Needs verification at start of next session:**
-- Confirm `v3f_registration_overhaul.sql` (corrected version, no `email` column) has been run.
-- Paste `email_template_reset_password.html` into Supabase Dashboard → Auth → Email Templates → Reset Password.
-- Full test checklist: register → confirm link → should land on "Email confirmed!" (not reset-password), refresh should NOT log in. Forgot-password → correct domain → set password → signs out, shows "Password set!" screen.
-
-**⚠️ Known limitation, not fixed this session:** admin-invited members still receive Supabase's "Confirm signup" wording, not true "Invite" wording — requires moving invites to a server-side Edge Function using Supabase's native invite API. Real, bigger follow-up.
-
-**⚠️ Product decision made without explicit sign-off, easy to reverse:** invited members now see "Password set — please log in" instead of auto-entering the app after setting their first password, for consistency with reset-password. One-line change in `setNewPassword()` if auto-login is preferred instead.
-
----
-
-## Where things stand otherwise
-
-**Confirmed working, deployed and tested this session:**
-- Delete User (`delete_user_completely()`) — final fix: `pending_members.user_id` is `NOT NULL`, so the function was trying to null it and failing, rolling back the entire deletion silently. Now deletes those rows outright instead of nulling them (their `reviewed_by` handling elsewhere is unaffected — that's still correctly nulled, not deleted, since it's a different person's audit trail). Confirmed working — Atinda's account fully deletes now.
-- All other 12 FK-reference columns checked and confirmed nullable — no other NOT NULL surprises waiting in that catalog.
-
-**Still outstanding from earlier in the day, not re-verified this entry:**
-- Confirm the ~10 ADA members whose access was accidentally wiped earlier are still showing correct access, and whether any need their **role** manually restored (see CHANGELOG.md for names — role data for anyone who was admin/treasurer within ADA specifically could not be recovered).
-
-## Architecture notes still worth knowing (see memory for full detail)
-
-- `profiles.role` = platform-wide account status. `user_orgs.role` = actual per-org permission. Never conflate the two.
-- `platform_settings` is superadmin-only via RLS (intentional — holds API secrets). Non-sensitive fields should read `platform_settings_public` instead.
-- SA's `currentOrg` is a placeholder object with no `.id` field except when actively viewing a specific org.
-- Full FK catalog for anything pointing at `profiles.id`/`auth.users.id` is documented in CHANGELOG.md.
-- **New as of this session:** `profiles`/`user_orgs`/`pending_members` row creation at signup time is now handled by a DB trigger (`handle_new_user()`), not client-side JS. If a future "new user isn't getting linked correctly" bug shows up, check the trigger and its metadata fields first, not the client code.
-
-## Not built, explicitly deferred (asked about, not forgotten)
-
-- Saving a custom SMS audience as a named, reusable sub-group — bigger feature, needs a new table, deferred by Felix.
-- Self-service CSV import for member data — intentional white-glove sales-tool decision, not a gap.
-- SMS Leopard / Africa's Talking still SA-only-functional (Supabase free-plan Edge Function DNS restriction) — Celcom is the working primary.
-- Moving invite emails to a proper server-side Edge Function for correct "You've been invited" wording (see limitation above).
-
-## Also in flight, not app-code related
-
-- **Google Play closed testing:** 14-day clock running, started ~1 Jul — check tester count hasn't dipped below 12.
-- **Marketing:** Blog #2 ("Chama Management Software checklist") was scheduled for Mon 6 Jul — confirm it actually got pushed.
-- Twitter/X — check whether it's live and whether the Blog #1 tweet was sent.
-
----
-
-_This file and CHANGELOG.md should both be updated with every session's work — this one stays short and current-state-focused, CHANGELOG.md keeps full technical detail per change. Both are excluded from the live deploy artifact (see deploy section above) so they can safely contain full internal detail._
+## Contact / escalation notes
+- SasaPay signature issue: awaiting their technical team's response to the email sent (transaction ref `SPEJ7TFHC2N3L2P`, merchant 16213).
