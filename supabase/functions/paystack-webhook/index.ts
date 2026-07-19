@@ -111,12 +111,51 @@ serve(async (req) => {
       console.error('[GY360 Webhook] No pending payment_request found for ref:', reference);
       return new Response('OK', { status: 200 });
     }
-    // Use pr2
-    return await processPayment(supabase, pr2, reference, amountKes, data);
+    return await claimAndProcess(supabase, pr2, reference, amountKes, data);
   }
 
-  return await processPayment(supabase, pr, reference, amountKes, data);
+  return await claimAndProcess(supabase, pr, reference, amountKes, data);
 });
+
+// ── Atomic claim ────────────────────────────────────────────────────────
+// Paystack can and does retry webhook delivery, and the client separately
+// polls paystack-verify every ~2s while the STK prompt is open — both paths
+// used to just SELECT-check status='pending' and credit, trusting "whichever
+// gets there first wins". That's not actually safe: the row was only ever
+// marked 'approved' at the very end of creditMemberContribution, well after
+// every transaction/balance/SMS side effect had already fired, so two or
+// three near-simultaneous calls could all read 'pending' before any of them
+// wrote 'approved' — and all three would fully process the same payment.
+// This UPDATE...WHERE status='pending' is a single, row-locked Postgres
+// statement: only one concurrent caller can ever match the WHERE clause and
+// flip it to 'processing'; every other caller gets 0 rows back and bails out
+// here, before touching anything. This is what actually closes the race —
+// the status filter alone never did.
+async function claimPaymentRequest(supabase: any, pr: any) {
+  const { data: claimed, error } = await supabase
+    .from('payment_requests')
+    .update({ status: 'processing' })
+    .eq('id', pr.id)
+    .eq('status', 'pending')
+    .select()
+    .maybeSingle();
+
+  if (error) {
+    console.error('[GY360 Webhook] Claim failed (DB error):', error.message);
+    return null;
+  }
+  if (!claimed) {
+    console.log('[GY360 Webhook] Payment already claimed by another call, skipping ref:', pr.paystack_ref || pr.mpesa_ref);
+    return null;
+  }
+  return claimed;
+}
+
+async function claimAndProcess(supabase: any, pr: any, reference: string, amountKes: number, paystackData: any) {
+  const claimed = await claimPaymentRequest(supabase, pr);
+  if (!claimed) return new Response('OK', { status: 200 });
+  return await processPayment(supabase, claimed, reference, amountKes, paystackData);
+}
 
 async function processPayment(supabase: any, pr: any, reference: string, amountKes: number, paystackData: any) {
   const orgId = pr.org_id;
@@ -214,6 +253,7 @@ async function processPayment(supabase: any, pr: any, reference: string, amountK
 
   } catch(err: any) {
     console.error('[GY360 Webhook] Processing error:', err.message);
+    await supabase.from('payment_requests').update({ status: 'pending' }).eq('id', pr.id).eq('status', 'processing');
     await supabase.from('activity_log').insert({
       org_id: orgId,
       user_name: 'Paystack Webhook',
@@ -231,6 +271,14 @@ async function processPayment(supabase: any, pr: any, reference: string, amountK
 // so paystack-charge's server-side verify path and this webhook both use
 // exactly the same logic, rather than two copies that can silently drift.
 async function processMemberContribution(supabase: any, pr: any, reference: string, amountKes: number) {
-  await creditMemberContribution(supabase, pr, reference);
+  const result = await creditMemberContribution(supabase, pr, reference);
+  // creditMemberContribution sets status='approved' itself on success but
+  // swallows its own errors internally (logs + returns {success:false}
+  // rather than throwing) — so a failure here needs the same revert-to-
+  // 'pending' treatment as the subscription/SMS path above, or the claim
+  // above leaves this row stuck in 'processing' forever with no retry.
+  if (!result?.success) {
+    await supabase.from('payment_requests').update({ status: 'pending' }).eq('id', pr.id).eq('status', 'processing');
+  }
   return new Response('OK', { status: 200 });
 }

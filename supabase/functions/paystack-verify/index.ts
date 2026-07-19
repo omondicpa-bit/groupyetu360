@@ -10,8 +10,14 @@
 //
 // This is called by the client on a fast poll (every ~2s) instead of
 // passively watching payment_requests.status. The webhook stays in place
-// as a second, idempotent path — whichever gets there first wins, since
-// both check status='pending' before crediting anything.
+// as a second path — both now use an atomic UPDATE...WHERE status='pending'
+// claim (see claimPaymentRequest in paystack-webhook, and the inline claim
+// below) before crediting anything, so whichever of them — or whichever
+// overlapping poll — actually wins the row is the only one that processes
+// the payment. A plain status check here was not enough on its own: it's a
+// read, and the row wasn't marked 'approved' until the very end of
+// creditMemberContribution, leaving a real window for near-simultaneous
+// calls to all read 'pending' and all credit the same payment.
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -128,7 +134,30 @@ serve(async (req) => {
 
     if (paystackStatus === 'success') {
       if (pr.payment_type === 'member_contribution') {
-        await creditMemberContribution(supabase, pr, reference);
+        // Atomic claim — see paystack-webhook's claimPaymentRequest() for the
+        // full rationale. The check at line 98 above is a read; multiple
+        // overlapping polls (this endpoint is hit every ~2s while the STK
+        // prompt is open) or a poll racing the webhook could all pass it
+        // before any of them had credited anything. This UPDATE...WHERE
+        // status='pending' is what actually makes only one caller proceed.
+        const { data: claimed, error: claimErr } = await supabase
+          .from('payment_requests')
+          .update({ status: 'processing' })
+          .eq('id', pr.id)
+          .eq('status', 'pending')
+          .select()
+          .maybeSingle();
+
+        if (claimErr) {
+          console.error('[GY360 Verify] Claim failed (DB error):', claimErr.message);
+        } else if (!claimed) {
+          console.log('[GY360 Verify] Payment already claimed by another call, skipping ref:', reference);
+        } else {
+          const result = await creditMemberContribution(supabase, claimed, reference);
+          if (!result?.success) {
+            await supabase.from('payment_requests').update({ status: 'pending' }).eq('id', pr.id).eq('status', 'processing');
+          }
+        }
       } else {
         // Subscription/SMS billing isn't broken (the webhook already handles
         // it reliably per Felix) — this endpoint only actively credits
@@ -149,7 +178,7 @@ serve(async (req) => {
         status: 'declined',
         paystack_status: paystackStatus,
         notes: (pr.notes || '') + ` | Paystack reported: ${paystackStatus}`,
-      }).eq('id', pr.id);
+      }).eq('id', pr.id).eq('status', 'pending');
       return new Response(JSON.stringify({ status: 'declined' }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });

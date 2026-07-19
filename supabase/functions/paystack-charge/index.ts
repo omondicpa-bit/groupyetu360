@@ -158,6 +158,7 @@ serve(async (req) => {
       member_id: member_id || null,
       payment_type: payment_type || 'subscription',
       amount: finalAmount,
+      provider: 'paystack',
       mpesa_ref: ref,
       paystack_ref: ref,
       paystack_status: 'pending',

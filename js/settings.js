@@ -3076,7 +3076,7 @@ async function loadBroadcastHistory() {
    payout happens; org admins get a read-only view of the same data.
 ════════════════════════════════════════════════════ */
 
-// Reconciles settlement_batches against approved SasaPay/Fingo
+// Reconciles settlement_batches against approved SasaPay/Fingo/Paystack
 // member_contribution payments. Safe to call often — existing PAID
 // batches are never touched (locked once paid, matching how a real
 // settlement record should behave), existing PENDING batches get their
@@ -3094,7 +3094,7 @@ async function syncSettlementBatches() {
 
   const { data: rows, error: rowsErr } = await sb.from('payment_requests')
     .select('org_id, provider, payment_date, allocations')
-    .in('provider', ['sasapay', 'fingo'])
+    .in('provider', ['sasapay', 'fingo', 'paystack'])
     .eq('status', 'approved')
     .eq('payment_type', 'member_contribution')
     .gte('payment_date', sinceStr);
@@ -3166,7 +3166,7 @@ async function loadSASettlements() {
     if (!batches?.length) {
       const settleBadgeEmpty = document.getElementById('sa-bill-badge-settlement');
       if (settleBadgeEmpty) { settleBadgeEmpty.textContent = 'All settled'; settleBadgeEmpty.style.background = '#e8f5e9'; settleBadgeEmpty.style.color = '#2e7d32'; }
-      el.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--ink-faint);font-size:.85rem">No SasaPay or Fingo settlements yet.</div>';
+      el.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--ink-faint);font-size:.85rem">No settlements yet.</div>';
       return;
     }
 
@@ -3305,7 +3305,7 @@ async function viewSettlementDetails(orgId, provider, date, lineType, orgName, r
     let slotQuery = sb.from('round_contributions')
       .select('contributor_member_id, amount, mpesa_ref, payment_date, provider')
       .eq('slot_id', roundSlotId).eq('status', 'paid');
-    slotQuery = provider ? slotQuery.eq('provider', provider) : slotQuery.in('provider', ['sasapay','fingo']);
+    slotQuery = provider ? slotQuery.eq('provider', provider) : slotQuery.in('provider', ['sasapay','fingo','paystack']);
     const { data: contribs } = await slotQuery;
     lines = (contribs || []).map(c => ({
       memberId: c.contributor_member_id, typeName: 'MGR Contribution',
@@ -3316,7 +3316,7 @@ async function viewSettlementDetails(orgId, provider, date, lineType, orgName, r
       .select('id, allocations, mpesa_ref, approved_at')
       .eq('org_id', orgId).eq('payment_date', date)
       .eq('status', 'approved').eq('payment_type', 'member_contribution');
-    rowQuery = provider ? rowQuery.eq('provider', provider) : rowQuery.in('provider', ['sasapay','fingo']);
+    rowQuery = provider ? rowQuery.eq('provider', provider) : rowQuery.in('provider', ['sasapay','fingo','paystack']);
     const { data: rows } = await rowQuery;
 
     for (const row of rows || []) {
@@ -3380,7 +3380,7 @@ function settlementStatusPill(status) {
     : `<span style="display:inline-flex;align-items:center;gap:.3rem;background:#fdecea;color:#c0392b;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:.28rem .65rem;border-radius:99px">● Pending</span>`;
 }
 function providerBadge(provider) {
-  const colors = { sasapay: ['#e8f0fd','#1a56c4'], fingo: ['#efe8fd','#6a2fd0'] };
+  const colors = { sasapay: ['#e8f0fd','#1a56c4'], fingo: ['#efe8fd','#6a2fd0'], paystack: ['#e6f6ee','#0f9d58'] };
   const [bg, fg] = colors[provider] || ['#f0f0f0','#666'];
   return `<span style="background:${bg};color:${fg};font-size:.68rem;font-weight:700;text-transform:capitalize;padding:.22rem .55rem;border-radius:6px">${provider}</span>`;
 }
@@ -3417,7 +3417,7 @@ async function requestWelfareSettlement(welfareEventId) {
 
     const { data: rows } = await sb.from('payment_requests')
       .select('provider, allocations')
-      .eq('org_id', currentOrg.id).in('provider', ['sasapay','fingo'])
+      .eq('org_id', currentOrg.id).in('provider', ['sasapay','fingo','paystack'])
       .eq('status', 'approved').eq('payment_type', 'member_contribution');
 
     const byProvider = {};
@@ -3513,7 +3513,7 @@ async function loadOrgSettlements() {
       const { data: welfareEvents } = await sb.from('welfare_events').select('id, event_type, event_date').eq('org_id', currentOrg.id);
       const { data: contribRows } = await sb.from('payment_requests')
         .select('provider, allocations')
-        .eq('org_id', currentOrg.id).in('provider', ['sasapay','fingo'])
+        .eq('org_id', currentOrg.id).in('provider', ['sasapay','fingo','paystack'])
         .eq('status', 'approved').eq('payment_type', 'member_contribution');
 
       const collectedByEvent = {};
