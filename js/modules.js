@@ -1571,56 +1571,29 @@ async function loadMGR() {
     .order('created_at', {ascending: false});
   allRounds = rounds || [];
 
-  // Stats
   const active = allRounds.filter(r => r.status === 'active');
-  const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  setEl('mgr-stat-active', active.length);
 
-  // Count total slots (rounds completed)
-  let totalSlots = 0, totalDisbursed = 0, nextReceiver = '—';
+  // Total disbursed — for the hero's one-line summary only
+  let totalDisbursed = 0;
   if (allRounds.length) {
-    const { data: slots } = await sb.from('round_slots')
-      .select('*,members(full_name)')
-      .in('round_id', allRounds.map(r => r.id))
-      .order('slot_number');
-    totalSlots = (slots || []).filter(s => s.received).length;
-
-    // Next unreceived slot across active rounds
-    const nextSlot = (slots || []).find(s => !s.received && active.find(r => r.id === s.round_id));
-    if (nextSlot) nextReceiver = nextSlot.members?.full_name?.split(' ')[0] || '—';
-
-    // Total disbursed
     const { data: disb } = await sb.from('round_disbursements')
       .select('amount')
       .in('round_id', allRounds.map(r => r.id));
     totalDisbursed = (disb || []).reduce((s, d) => s + Number(d.amount || 0), 0);
   }
 
-  setEl('mgr-stat-rounds', totalSlots);
-  setEl('mgr-stat-disbursed', totalDisbursed > 0 ? 'Ksh ' + totalDisbursed.toLocaleString() : '—');
-  setEl('mgr-stat-next', nextReceiver);
-
   // Hero sub
   const heroSub = document.getElementById('mgr-hero-sub');
   if (heroSub) heroSub.textContent = active.length
-    ? `${active.length} active cycle${active.length !== 1 ? 's' : ''} · ${allRounds.length} total`
+    ? `${active.length} active cycle${active.length !== 1 ? 's' : ''} · ${allRounds.length} total · Ksh ${totalDisbursed.toLocaleString()} disbursed`
     : 'No active cycles — create your first merry-go-round';
 
-  // Populate cycle dropdowns
-  const cycleOpts = '<option value="">Select cycle…</option>' +
-    allRounds.map(r => `<option value="${r.id}">${r.name} (${r.status})</option>`).join('');
-  ['mgr-rec-cycle', 'mgr-dis-cycle'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = cycleOpts;
-  });
-
-  // Render overview
-  renderMGROverview(allRounds);
-  await loadMGRHistory();
+  // Render the compact cycle list — clicking a card opens its detail view
+  await renderMGRCycleList(allRounds);
 }
 
-async function renderMGROverview(rounds) {
-  const listEl = document.getElementById('mgr-rounds-list');
+async function renderMGRCycleList(rounds) {
+  const listEl = document.getElementById('mgr-cycle-list');
   if (!listEl) return;
 
   if (!rounds.length) {
@@ -1633,21 +1606,15 @@ async function renderMGROverview(rounds) {
     return;
   }
 
-  // Load all slots for these rounds
+  // Load all slots for these rounds — just enough to show progress on each card
   const { data: allSlots } = await sb.from('round_slots')
-    .select('*,members(full_name,phone)')
-    .in('round_id', rounds.map(r => r.id))
-    .order('slot_number');
-
-  const { data: allContribs } = await sb.from('round_contributions')
-    .select('slot_id,contributor_member_id,amount,status')
+    .select('round_id,received')
     .in('round_id', rounds.map(r => r.id));
 
-  listEl.innerHTML = rounds.map((r, ri) => {
+  listEl.innerHTML = rounds.map(r => {
     const slots = (allSlots || []).filter(s => s.round_id === r.id);
     const totalMembers = slots.length;
     const received = slots.filter(s => s.received).length;
-    const currentSlot = slots.find(s => !s.received);
     const methodLabel = r.collection_method === 'treasurer' ? '🏛 Treasurer Collects'
       : r.collection_method === 'group_account' ? '🏦 Group Account'
       : '📲 Members Pay Directly';
@@ -1655,57 +1622,129 @@ async function renderMGROverview(rounds) {
       : r.collection_method === 'group_account' ? 'mgr-method-group'
       : 'mgr-method-direct';
 
-    const slotCards = slots.map((s, si) => {
-      const contribs = (allContribs || []).filter(c => c.slot_id === s.id);
-      const paidCount = contribs.filter(c => c.status === 'paid').length;
-      const pct = totalMembers > 0 ? Math.round((paidCount / (totalMembers - 1)) * 100) : 0;
-      const isActive = !s.received && s.id === currentSlot?.id;
-      const numClass = s.received ? 'done' : isActive ? 'active-num' : 'pending';
-      const cardClass = s.received ? 'received' : isActive ? 'active-slot' : '';
-      const scheduledDate = s.scheduled_date
-        ? new Date(s.scheduled_date).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'})
-        : '—';
-
-      return `<div class="slot-card ${cardClass}">
-        <div class="slot-header">
-          <div class="slot-num ${numClass}">${s.slot_number}</div>
-          <div class="slot-name">${s.members?.full_name || '—'}</div>
-          ${isActive ? '<span class="badge badge-green" style="font-size:.58rem">Current</span>' : ''}
-          ${s.received ? '<span class="badge badge-grey" style="font-size:.58rem">✓ Received</span>' : ''}
-        </div>
-        <div class="slot-body">
-          ${!s.received ? `
-          <div class="slot-contrib-bar">
-            <div class="slot-contrib-fill" style="width:${pct}%"></div>
+    return `
+      <div class="card" style="margin-bottom:.85rem;cursor:pointer;transition:box-shadow .15s" onclick="openMGRCycleDetail('${r.id}')" onmouseover="this.style.boxShadow='0 2px 10px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow=''">
+        <div style="padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+          <div>
+            <div style="font-weight:700;font-size:.9rem;display:flex;align-items:center;gap:.5rem">
+              ${h(r.name)}
+              <span class="mgr-method-pill ${methodClass}" style="font-size:.6rem">${methodLabel}</span>
+              <span class="badge ${r.status==='active'?'badge-green':'badge-grey'}" style="font-size:.6rem">${(r.status||'active').toUpperCase()}</span>
+            </div>
+            <div style="font-size:.75rem;color:var(--ink-faint);margin-top:.2rem">Ksh ${Number(r.amount_per_member).toLocaleString()} per member · ${r.frequency} · ${received}/${totalMembers} rounds complete</div>
           </div>
-          <div class="slot-contrib-text">
-            <span>${paidCount} of ${totalMembers > 0 ? totalMembers - 1 : 0} paid</span>
-            <span>${pct}%</span>
-          </div>` : `<div class="slot-received-badge">✓ Received ${s.received_date ? new Date(s.received_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : ''}</div>`}
-          <div class="slot-date">📅 ${scheduledDate}</div>
+          <div style="font-size:1.2rem;color:var(--ink-faint)">→</div>
         </div>
       </div>`;
-    }).join('');
+  }).join('');
+}
 
-    return `<div class="round-card" style="animation-delay:${ri*0.05}s">
-      <div class="round-card-header">
-        <div>
-          <div class="round-card-title">${r.name}</div>
-          <div class="round-card-meta">
-            Ksh ${Number(r.amount_per_member).toLocaleString()} per member · ${r.frequency}
-            · ${received}/${totalMembers} rounds complete
-            ${r.start_date ? '· Started ' + new Date(r.start_date).toLocaleDateString('en-GB',{month:'short',year:'numeric'}) : ''}
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:.5rem">
-          <span class="mgr-method-pill ${methodClass}">${methodLabel}</span>
-          <span class="badge ${r.status === 'active' ? 'badge-green' : 'badge-grey'}">${r.status}</span>
-          <button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteRound('${r.id}','${r.name.replace(/'/g,"&apos;")}')">✕</button>
-        </div>
+let _currentMGRDetailRoundId = null;
+function openMGRCycleDetail(roundId) {
+  _currentMGRDetailRoundId = roundId;
+  document.getElementById('mgr-cycle-list-view').style.display = 'none';
+  document.getElementById('mgr-cycle-detail-view').style.display = 'block';
+
+  // Reset to the Record Contribution sub-tab every time a cycle is opened
+  const tabs = document.querySelectorAll('#mgr-cycle-detail-view .mgr-tabs .mgr-tab');
+  const panels = document.querySelectorAll('#mgr-cycle-detail-view .tab-panel');
+  tabs.forEach((t,i) => t.classList.toggle('active', i === 0));
+  panels.forEach((p,i) => p.classList.toggle('active', i === 0));
+
+  // Clear stale form state from any previously-viewed cycle
+  ['mgr-rec-amount','mgr-rec-ref','mgr-dis-amount','mgr-dis-ref','mgr-dis-notes'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('mgr-contrib-status').style.display = 'none';
+
+  loadMGRCycleDetail(roundId);
+  loadRoundSlotsForRecord(roundId);
+  loadDisbursementSlots(roundId);
+}
+
+function backToMGRCycleList() {
+  _currentMGRDetailRoundId = null;
+  document.getElementById('mgr-cycle-detail-view').style.display = 'none';
+  document.getElementById('mgr-cycle-list-view').style.display = 'block';
+}
+
+async function loadMGRCycleDetail(roundId) {
+  const contentEl = document.getElementById('mgr-cycle-overview-content');
+  if (!contentEl || !roundId) return;
+  contentEl.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+  const r = allRounds.find(x => x.id === roundId);
+  if (!r) return;
+
+  const { data: slots } = await sb.from('round_slots')
+    .select('*,members(full_name,phone)')
+    .eq('round_id', roundId)
+    .order('slot_number');
+
+  const { data: contribs } = await sb.from('round_contributions')
+    .select('slot_id,contributor_member_id,amount,status')
+    .eq('round_id', roundId);
+
+  const totalMembers = (slots || []).length;
+  const received = (slots || []).filter(s => s.received).length;
+  const currentSlot = (slots || []).find(s => !s.received);
+  const methodLabel = r.collection_method === 'treasurer' ? '🏛 Treasurer Collects'
+    : r.collection_method === 'group_account' ? '🏦 Group Account'
+    : '📲 Members Pay Directly';
+  const methodClass = r.collection_method === 'treasurer' ? 'mgr-method-treasurer'
+    : r.collection_method === 'group_account' ? 'mgr-method-group'
+    : 'mgr-method-direct';
+
+  const slotCards = (slots || []).map(s => {
+    const slotContribs = (contribs || []).filter(c => c.slot_id === s.id);
+    const paidCount = slotContribs.filter(c => c.status === 'paid').length;
+    const pct = totalMembers > 0 ? Math.round((paidCount / (totalMembers - 1)) * 100) : 0;
+    const isActive = !s.received && s.id === currentSlot?.id;
+    const numClass = s.received ? 'done' : isActive ? 'active-num' : 'pending';
+    const cardClass = s.received ? 'received' : isActive ? 'active-slot' : '';
+    const scheduledDate = s.scheduled_date
+      ? new Date(s.scheduled_date).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'})
+      : '—';
+
+    return `<div class="slot-card ${cardClass}">
+      <div class="slot-header">
+        <div class="slot-num ${numClass}">${s.slot_number}</div>
+        <div class="slot-name">${s.members?.full_name || '—'}</div>
+        ${isActive ? '<span class="badge badge-green" style="font-size:.58rem">Current</span>' : ''}
+        ${s.received ? '<span class="badge badge-grey" style="font-size:.58rem">✓ Received</span>' : ''}
       </div>
-      <div class="slot-grid">${slotCards || '<div style="padding:1rem;color:var(--ink-faint);font-size:.8rem">No members in this cycle yet</div>'}</div>
+      <div class="slot-body">
+        ${!s.received ? `
+        <div class="slot-contrib-bar">
+          <div class="slot-contrib-fill" style="width:${pct}%"></div>
+        </div>
+        <div class="slot-contrib-text">
+          <span>${paidCount} of ${totalMembers > 0 ? totalMembers - 1 : 0} paid</span>
+          <span>${pct}%</span>
+        </div>` : `<div class="slot-received-badge">✓ Received ${s.received_date ? new Date(s.received_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : ''}</div>`}
+        <div class="slot-date">📅 ${scheduledDate}</div>
+      </div>
     </div>`;
   }).join('');
+
+  contentEl.innerHTML = `<div class="round-card">
+    <div class="round-card-header">
+      <div>
+        <div class="round-card-title">${h(r.name)}</div>
+        <div class="round-card-meta">
+          Ksh ${Number(r.amount_per_member).toLocaleString()} per member · ${r.frequency}
+          · ${received}/${totalMembers} rounds complete
+          ${r.start_date ? '· Started ' + new Date(r.start_date).toLocaleDateString('en-GB',{month:'short',year:'numeric'}) : ''}
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.5rem">
+        <span class="mgr-method-pill ${methodClass}">${methodLabel}</span>
+        <span class="badge ${r.status === 'active' ? 'badge-green' : 'badge-grey'}">${r.status}</span>
+        <button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteRound('${r.id}','${r.name.replace(/'/g,"&apos;")}')">✕</button>
+      </div>
+    </div>
+    <div class="slot-grid">${slotCards || '<div style="padding:1rem;color:var(--ink-faint);font-size:.8rem">No members in this cycle yet</div>'}</div>
+  </div>`;
 }
 
 async function showModal_createRound_prep() {
@@ -1824,7 +1863,7 @@ async function saveRound() {
 async function loadRoundSlotsForRecord(roundId) {
   const slotSel = document.getElementById('mgr-rec-slot');
   if (!slotSel) return;
-  if (!roundId) { slotSel.innerHTML = '<option value="">Select cycle first…</option>'; return; }
+  if (!roundId) { slotSel.innerHTML = '<option value="">No cycle selected</option>'; return; }
 
   const { data: slots } = await sb.from('round_slots')
     .select('*,members(full_name)')
@@ -1907,8 +1946,9 @@ async function saveRoundContribution() {
   const method = document.getElementById('mgr-rec-method').value;
   const ref = document.getElementById('mgr-rec-ref').value.trim();
   const date = document.getElementById('mgr-rec-date').value;
-  const roundId = document.getElementById('mgr-rec-cycle').value;
+  const roundId = _currentMGRDetailRoundId;
 
+  if (!roundId) { toast('Open a cycle first'); return; }
   if (!slotId) { toast('Please select a round'); return; }
   if (!memberId) { toast('Please select a member'); return; }
   if (!amount || amount <= 0) { toast('Please enter an amount'); return; }
@@ -1950,6 +1990,11 @@ async function saveRoundContribution() {
 
   await loadContribStatusForSlot(slotId);
   await loadMGR();
+  if (_currentMGRDetailRoundId === roundId) {
+    await loadMGRCycleDetail(roundId);
+    await loadRoundSlotsForRecord(roundId);
+    await loadDisbursementSlots(roundId);
+  }
 }
 
 // Check if all members in a cycle have paid for a slot — if so, auto-mark as received
@@ -2036,7 +2081,7 @@ async function checkAndAutoCompleteSlot(slotId, roundId, round, date) {
 async function loadDisbursementSlots(roundId) {
   const slotSel = document.getElementById('mgr-dis-slot');
   if (!slotSel) return;
-  if (!roundId) { slotSel.innerHTML = '<option value="">Select cycle first…</option>'; return; }
+  if (!roundId) { slotSel.innerHTML = '<option value="">No cycle selected</option>'; return; }
 
   const { data: slots } = await sb.from('round_slots')
     .select('*,members(full_name)')
@@ -2067,8 +2112,9 @@ async function saveDisbursement() {
   const method = document.getElementById('mgr-dis-method').value;
   const ref = document.getElementById('mgr-dis-ref').value.trim();
   const notes = document.getElementById('mgr-dis-notes').value.trim();
-  const roundId = document.getElementById('mgr-dis-cycle').value;
+  const roundId = _currentMGRDetailRoundId;
 
+  if (!roundId) { toast('Open a cycle first'); return; }
   if (!slotId) { toast('Please select a round/receiver'); return; }
   if (!amount || amount <= 0) { toast('Please enter the disbursement amount'); return; }
 
@@ -2107,35 +2153,41 @@ async function saveDisbursement() {
   toast('✓ Disbursement recorded — slot marked as received');
   clearMgrDisForm();
   await loadMGR();
+  if (_currentMGRDetailRoundId === roundId) {
+    await loadMGRCycleDetail(roundId);
+    await loadRoundSlotsForRecord(roundId);
+    await loadDisbursementSlots(roundId);
+  }
 }
 
-async function loadMGRHistory() {
-  if (!allRounds.length) return;
-  const tbody = document.getElementById('mgr-history-table');
-  if (!tbody) return;
+async function loadMGRCycleHistory(roundId) {
+  roundId = roundId || _currentMGRDetailRoundId;
+  const tbody = document.getElementById('mgr-cycle-history-table');
+  if (!tbody || !roundId) return;
 
   const { data: slots } = await sb.from('round_slots')
-    .select('*,members(full_name),savings_rounds(name,amount_per_member,collection_method)')
-    .in('round_id', allRounds.map(r => r.id))
+    .select('*,members(full_name)')
+    .eq('round_id', roundId)
     .eq('received', true)
     .order('received_date', {ascending: false});
 
   const { data: disbs } = await sb.from('round_disbursements')
     .select('*')
-    .in('round_id', allRounds.map(r => r.id));
+    .eq('round_id', roundId);
 
   if (!slots?.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--ink-faint)">No completed rounds yet</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--ink-faint)">No completed rounds yet</td></tr>';
     return;
   }
 
+  const round = allRounds.find(r => r.id === roundId);
+  const method = round?.collection_method || 'treasurer';
+  const methodLabel = method === 'group_account' ? 'Group Account'
+    : method === 'direct' ? 'Members directly'
+    : 'Treasurer';
+
   tbody.innerHTML = slots.map(s => {
     const disb = (disbs || []).find(d => d.slot_id === s.id);
-    const round = allRounds.find(r => r.id === s.round_id);
-    const method = round?.collection_method || 'treasurer';
-    const methodLabel = method === 'group_account' ? 'Group Account'
-      : method === 'direct' ? 'Members directly'
-      : 'Treasurer';
     const dateStr = s.received_date
       ? new Date(s.received_date).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'})
       : '—';
@@ -2143,7 +2195,6 @@ async function loadMGRHistory() {
       : method === 'direct' ? `~${((allMembers.length-1)*Number(round?.amount_per_member||0)).toLocaleString()}`
       : '—';
     return `<tr>
-      <td>${s.savings_rounds?.name || '—'}</td>
       <td style="text-align:center">#${s.slot_number}</td>
       <td><strong>${s.members?.full_name || '—'}</strong></td>
       <td>${dateStr}</td>
@@ -2162,6 +2213,7 @@ async function deleteRound(id, name) {
   await sb.from('round_slots').delete().eq('round_id', id);
   await sb.from('savings_rounds').delete().eq('id', id);
   toast('Cycle deleted');
+  if (_currentMGRDetailRoundId === id) backToMGRCycleList();
   await loadMGR();
 }
 
@@ -2243,22 +2295,6 @@ async function loadTableBanking() {
     allTBPools = [];
   }
 
-  // Populate pool selects — these two are genuine form fields (which pool
-  // to record a contribution/loan into), not primary navigation, so they
-  // stay as dropdowns unlike the Overview tab's browsing pattern.
-  const poolOpts = '<option value="">Select pool…</option>' +
-    allTBPools.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-  ['tb-rec-pool','tb-loan-pool'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.innerHTML = poolOpts;
-  });
-
-  // Member selects
-  const memberOpts = '<option value="">Select member…</option>' +
-    allMembers.map(m => `<option value="${m.id}">${m.full_name}</option>`).join('');
-  ['tb-rec-member','tb-loan-member'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.innerHTML = memberOpts;
-  });
-
   // Set dates
   const today = new Date().toISOString().split('T')[0];
   ['tb-rec-date','tb-loan-date','tb-pool-date','tb-repay-date'].forEach(id => {
@@ -2273,14 +2309,12 @@ async function loadTableBanking() {
         <div style="font-size:.8rem;color:var(--ink-faint);margin-bottom:1.25rem">Create your first pool to start tracking contributions and loans</div>
         <button class="btn btn-primary" onclick="showModal('tbNewPool')" style="background:var(--teal);width:auto">+ Create First Pool</button>
       </div>`;
-    ['tb-stat-pool','tb-stat-loans','tb-stat-outstanding','tb-stat-interest'].forEach(id => {
-      const el = document.getElementById(id); if (el) el.textContent = '—';
-    });
     document.getElementById('tb-hero-sub').textContent = 'No pools yet — create one to get started';
     return;
   }
 
-  // Load stats across all pools
+  // Load stats across all pools — for the hero's one-line summary only;
+  // per-pool figures live inside each pool's own detail view.
   const poolIds = allTBPools.map(p => p.id);
 
   const [contribRes, loanRes] = await Promise.all([
@@ -2293,36 +2327,12 @@ async function loadTableBanking() {
   const activeLoans = loanRes.data || [];
   const totalLoaned = activeLoans.reduce((s,l)=>s+Number(l.principal||0),0);
   const totalRepaid = activeLoans.reduce((s,l)=>s+Number(l.total_repaid||0),0);
-  const outstanding = totalLoaned - totalRepaid;
-
-  // Interest earned (simplified: repaid - principal portions)
-  let interestEarned = 0;
-  try {
-    const { data: repayments } = await sb.from('table_banking_repayments').select('interest_paid').in('loan_id', activeLoans.map(l=>l.id));
-    interestEarned = (repayments||[]).reduce((s,r)=>s+Number(r.interest_paid||0),0);
-  } catch(e) {}
-
   const poolBalance = totalContrib - totalLoaned + totalRepaid;
 
-  const setEl = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
-  setEl('tb-stat-pool', 'Ksh ' + poolBalance.toLocaleString());
-  setEl('tb-stat-loans', activeLoans.length);
-  setEl('tb-stat-outstanding', 'Ksh ' + outstanding.toLocaleString());
-  setEl('tb-stat-interest', 'Ksh ' + interestEarned.toLocaleString());
-  setEl('tb-hero-sub', `${allTBPools.length} pool${allTBPools.length!==1?'s':''} · ${activeLoans.length} active loan${activeLoans.length!==1?'s':''}`);
+  document.getElementById('tb-hero-sub').textContent =
+    `${allTBPools.length} pool${allTBPools.length!==1?'s':''} · Ksh ${poolBalance.toLocaleString()} total balance`;
 
-  // Load repay loan select
-  const loanOpts = '<option value="">Select loan…</option>' +
-    activeLoans.map(l => {
-      const bal = Number(l.principal||0) - Number(l.total_repaid||0);
-      return `<option value="${l.id}">${l.members?.full_name||'—'} — Ksh ${bal.toLocaleString()} outstanding</option>`;
-    }).join('');
-  const repayLoanEl = document.getElementById('tb-repay-loan');
-  if (repayLoanEl) repayLoanEl.innerHTML = loanOpts;
-
-  // Render the pool list — this is now the default landing view for the
-  // Overview tab, replacing the old auto-select-first-pool behavior.
-  // Clicking a card is what opens its detail view.
+  // Render the pool list — clicking a card opens its detail view.
   const contribByPool = {};
   allContribs.forEach(c => { contribByPool[c.pool_id] = (contribByPool[c.pool_id]||0) + Number(c.amount||0); });
   const loansByPool = {};
@@ -2359,7 +2369,29 @@ function openTBPoolDetail(poolId) {
   _currentTBDetailPoolId = poolId;
   document.getElementById('tb-pool-list-view').style.display = 'none';
   document.getElementById('tb-pool-detail-view').style.display = 'block';
+
+  // Reset to the Loans sub-tab every time a pool is opened
+  const tabs = document.querySelectorAll('#tb-pool-detail-view .tabs .tab');
+  const panels = document.querySelectorAll('#tb-pool-detail-view .tab-panel');
+  tabs.forEach((t,i) => t.classList.toggle('active', i === 0));
+  panels.forEach((p,i) => p.classList.toggle('active', i === 0));
+
+  // Member pickers for this pool's forms (org members — same pool as before)
+  const memberOpts = '<option value="">Select member…</option>' +
+    allMembers.map(m => `<option value="${m.id}">${m.full_name}</option>`).join('');
+  const recMemberEl = document.getElementById('tb-rec-member');
+  if (recMemberEl) recMemberEl.innerHTML = memberOpts;
+
+  // Clear stale form state from any previously-viewed pool
+  ['tb-rec-amount','tb-rec-ref','tb-repay-amount','tb-repay-ref'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const splitEl = document.getElementById('tb-repay-split');
+  if (splitEl) splitEl.style.display = 'none';
+
   loadTBOverview(poolId);
+  loadTBDetailLoans(poolId);
+  populateTBRepayLoanSelect(poolId);
 }
 
 function backToTBPoolList() {
@@ -2513,14 +2545,14 @@ async function loadTBOverview(poolId) {
 }
 
 
-async function loadTBLoans() {
+async function loadTBDetailLoans(poolId) {
+  poolId = poolId || _currentTBDetailPoolId;
   const listEl = document.getElementById('tb-loans-list');
-  if (!listEl) return;
-  if (!allTBPools.length) { listEl.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--ink-faint)">No pools yet</div>'; return; }
+  if (!listEl || !poolId) return;
 
   const { data: loans } = await sb.from('table_banking_loans')
-    .select('*,members(full_name),table_banking_pools(name)')
-    .in('pool_id', allTBPools.map(p=>p.id))
+    .select('*,members(full_name)')
+    .eq('pool_id', poolId)
     .order('created_at',{ascending:false});
 
   if (!loans?.length) {
@@ -2529,14 +2561,13 @@ async function loadTBLoans() {
   }
 
   listEl.innerHTML = `<div class="table-wrap"><table>
-    <thead><tr><th>Member</th><th>Pool</th><th>Principal</th><th>Rate</th><th>Due Date</th><th>Outstanding</th><th>Status</th><th></th></tr></thead>
+    <thead><tr><th>Member</th><th>Principal</th><th>Rate</th><th>Due Date</th><th>Outstanding</th><th>Status</th><th></th></tr></thead>
     <tbody>${loans.map(l => {
       const outstanding = Math.max(0, Number(l.principal||0) - Number(l.total_repaid||0));
       const overdue = l.due_date && new Date(l.due_date) < new Date() && l.status === 'active';
       const badgeClass = l.status==='repaid'?'badge-green':overdue?'badge-red':'badge-warn';
       return `<tr>
         <td><strong>${l.members?.full_name||'—'}</strong></td>
-        <td>${l.table_banking_pools?.name||'—'}</td>
         <td>Ksh ${Number(l.principal).toLocaleString()}</td>
         <td>${l.interest_rate}%/mo</td>
         <td>${l.due_date||'—'}</td>
@@ -2546,6 +2577,39 @@ async function loadTBLoans() {
           onclick="markLoanRepaid('${l.id}')">Mark Repaid</button></td>
       </tr>`;
     }).join('')}</tbody></table></div>`;
+}
+
+async function populateTBRepayLoanSelect(poolId) {
+  poolId = poolId || _currentTBDetailPoolId;
+  const repayLoanEl = document.getElementById('tb-repay-loan');
+  if (!repayLoanEl || !poolId) return;
+
+  const { data: activeLoans } = await sb.from('table_banking_loans')
+    .select('*,members(full_name)')
+    .eq('pool_id', poolId)
+    .eq('status','active');
+
+  const loanOpts = '<option value="">Select loan…</option>' +
+    (activeLoans||[]).map(l => {
+      const bal = Number(l.principal||0) - Number(l.total_repaid||0);
+      return `<option value="${l.id}">${l.members?.full_name||'—'} — Ksh ${bal.toLocaleString()} outstanding</option>`;
+    }).join('');
+  repayLoanEl.innerHTML = loanOpts;
+}
+
+// Prep the Issue Loan modal, locking it to whichever pool is currently open
+function openTBNewLoan() {
+  if (!_currentTBDetailPoolId) { toast('Open a pool first'); return; }
+  const pool = allTBPools.find(p => p.id === _currentTBDetailPoolId);
+  document.getElementById('tb-loan-pool').value = _currentTBDetailPoolId;
+  document.getElementById('tb-loan-pool-display').value = pool ? pool.name : '—';
+  const memberOpts = '<option value="">Select member…</option>' +
+    allMembers.map(m => `<option value="${m.id}">${m.full_name}</option>`).join('');
+  const loanMemberEl = document.getElementById('tb-loan-member');
+  if (loanMemberEl) loanMemberEl.innerHTML = memberOpts;
+  const dateEl = document.getElementById('tb-loan-date');
+  if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+  showModal('tbNewLoan');
 }
 
 async function saveTBPool() {
@@ -2577,16 +2641,16 @@ async function saveTBPool() {
 }
 
 async function saveTBContribution() {
-  const poolId = document.getElementById('tb-rec-pool').value;
+  const poolId = _currentTBDetailPoolId;
   const memberId = document.getElementById('tb-rec-member').value;
   const amount = Number(document.getElementById('tb-rec-amount').value);
   const date = document.getElementById('tb-rec-date').value;
   const ref = document.getElementById('tb-rec-ref').value.trim();
-  if (!poolId) { toast('Please select a pool'); return; }
+  if (!poolId) { toast('Open a pool first'); return; }
   if (!memberId) { toast('Please select a member'); return; }
   if (!amount || amount <= 0) { toast('Please enter an amount'); return; }
 
-  const saveBtn = [...document.querySelectorAll('#tb-tab-record .btn-primary')].pop();
+  const saveBtn = [...document.querySelectorAll('#tb-dtab-record .btn-primary')].pop();
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
 
   const { error } = await sb.from('table_banking_contributions').insert({
@@ -2601,8 +2665,7 @@ async function saveTBContribution() {
   document.getElementById('tb-rec-amount').value = '';
   document.getElementById('tb-rec-ref').value = '';
   await loadTableBanking();
-  // Refresh detail view if this pool is currently open
-  if (_currentTBDetailPoolId === poolId) await loadTBOverview(poolId);
+  await loadTBOverview(poolId);
 }
 
 function calcLoanRepayment() {
@@ -2639,6 +2702,11 @@ async function saveTBLoan() {
   toast('✓ Loan issued — Ksh ' + principal.toLocaleString());
   closeModal('tbNewLoan');
   await loadTableBanking();
+  if (_currentTBDetailPoolId === poolId) {
+    await loadTBDetailLoans(poolId);
+    await loadTBOverview(poolId);
+    await populateTBRepayLoanSelect(poolId);
+  }
 }
 
 async function loadLoanRepayDetails(loanId) {
@@ -2695,14 +2763,22 @@ async function saveTBRepayment() {
   document.getElementById('tb-repay-amount').value = '';
   document.getElementById('tb-repay-split').style.display = 'none';
   await loadTableBanking();
-  await loadTBLoans();
+  if (_currentTBDetailPoolId) {
+    await loadTBOverview(_currentTBDetailPoolId);
+    await loadTBDetailLoans(_currentTBDetailPoolId);
+    await populateTBRepayLoanSelect(_currentTBDetailPoolId);
+  }
 }
 
 async function markLoanRepaid(loanId) {
   if (!confirm('Mark this loan as fully repaid?')) return;
   await sb.from('table_banking_loans').update({ status: 'repaid' }).eq('id', loanId);
   toast('✓ Loan marked as repaid');
-  await loadTBLoans();
+  if (_currentTBDetailPoolId) {
+    await loadTBDetailLoans(_currentTBDetailPoolId);
+    await populateTBRepayLoanSelect(_currentTBDetailPoolId);
+    await loadTBOverview(_currentTBDetailPoolId);
+  }
   await loadTableBanking();
 }
 
