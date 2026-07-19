@@ -525,7 +525,7 @@ body{font-family:'Inter',sans-serif;background:var(--surface-2);color:var(--ink)
 
 /* MAIN */
 .main{margin-left:var(--sidebar-w);min-height:100vh;display:flex;flex-direction:column;flex:1;transition:margin-left .25s ease}
-.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 2rem;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.topbar{display:none !important}
 .topbar-title{font-size:1rem;font-weight:600;color:var(--ink)}
 .topbar-sub{font-size:.72rem;color:var(--ink-faint);margin-top:.1rem}
 .topbar-right{display:flex;align-items:center;gap:.75rem}
