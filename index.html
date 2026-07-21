@@ -234,6 +234,9 @@
             <label class="form-label">Create Password</label>
             <input class="form-input" type="password" id="join-password" placeholder="Minimum 6 characters"/>
           </div>
+          <div style="text-align:center;font-size:.7rem;color:var(--ink-faint);margin:.75rem 0 .5rem;line-height:1.5">
+            By requesting access, you agree to our <a href="terms.html" target="_blank" rel="noopener" style="color:var(--teal);font-weight:600">Terms of Service</a> and <a href="privacy.html" target="_blank" rel="noopener" style="color:var(--teal);font-weight:600">Privacy Policy</a>.
+          </div>
           <button class="btn btn-primary" onclick="joinOrg()">Request Access →</button>
           <div style="text-align:center;margin-top:.75rem;font-size:.72rem;color:var(--ink-faint)">Already have access? <a onclick="switchAuthTab('login')" style="color:var(--maroon);cursor:pointer;font-weight:600">Sign in</a></div>
         </div>
@@ -299,6 +302,10 @@
           <!-- Hidden compat field -->
           <input type="hidden" id="reg-org-name" value=""/>
           <input type="hidden" id="reg-plan" value="standard"/>
+
+          <div style="text-align:center;font-size:.7rem;color:var(--ink-faint);margin:.75rem 0 .5rem;line-height:1.5">
+            By creating an account, you agree to our <a href="terms.html" target="_blank" rel="noopener" style="color:var(--teal);font-weight:600">Terms of Service</a> and <a href="privacy.html" target="_blank" rel="noopener" style="color:var(--teal);font-weight:600">Privacy Policy</a>.
+          </div>
 
           <button class="btn btn-primary" onclick="registerAccount()" style="margin-top:.25rem">
             Create Account →

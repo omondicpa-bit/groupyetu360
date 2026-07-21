@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Privacy Policy — GroupYetu360</title>
+<title>Privacy Policy - GroupYetu360</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
@@ -42,7 +42,7 @@ footer{background:var(--maroon);padding:1.5rem 2rem;text-align:center;color:rgba
   <div class="hero-inner">
     <div class="hero-label">Legal</div>
     <h1 class="hero-title">Privacy Policy</h1>
-    <div class="hero-meta">EPH Technologies Limited · Last updated: June 2025 · Effective: June 2025</div>
+    <div class="hero-meta">EPH Technologies Limited · Last updated: July 2026 · Effective: July 2026</div>
   </div>
 </div>
 
@@ -61,7 +61,7 @@ This Privacy Policy explains how GroupYetu360, operated by EPH Technologies Limi
 <ul>
   <li>Full name, email address, phone number and ID number (for member registration)</li>
   <li>Organisation name, registration number and contact details (for group administrators)</li>
-  <li>Financial information including contribution amounts, M-Pesa transaction references and bank balance figures entered by administrators</li>
+  <li>Financial information including contribution amounts, payment references and bank balance figures entered by administrators</li>
   <li>Meeting records, welfare event details and project information</li>
   <li>Messages and communications sent through the platform's SMS feature</li>
 </ul>
@@ -77,15 +77,15 @@ This Privacy Policy explains how GroupYetu360, operated by EPH Technologies Limi
 <h3>2.3 Information from third parties</h3>
 <ul>
   <li><strong>Google Sign-In:</strong> If you sign in with Google, we receive your name, email address and profile picture from Google. We do not receive your Google password.</li>
-  <li><strong>M-Pesa (Safaricom Daraja API):</strong> When M-Pesa STK Push is enabled, we receive payment confirmation data including transaction reference, amount and phone number. We do not store your M-Pesa PIN or full account details.</li>
-  <li><strong>Africa's Talking:</strong> SMS delivery status and recipient data for bulk messages sent through the platform.</li>
+  <li><strong>Payment partners (Paystack, Fingo Africa, SasaPay):</strong> When Instant Pay is enabled by your organisation, we receive payment confirmation data including transaction reference, amount and phone number. We do not store your M-Pesa PIN or full M-Pesa account details.</li>
+  <li><strong>Celcom Africa:</strong> SMS delivery status and recipient data for bulk messages sent through the platform.</li>
 </ul>
 
 <h2>3. How We Use Your Information</h2>
 <p>We use your personal data only for the following purposes:</p>
 <ul>
   <li>To operate and provide the GroupYetu360 platform to you and your organisation</li>
-  <li>To authenticate your identity and manage your account</li>
+  <li>To authenticate your identity and manage your account, including two-factor authentication where enabled</li>
   <li>To process and record financial contributions and payments</li>
   <li>To send SMS notifications you or your administrator have requested</li>
   <li>To provide customer support and respond to your enquiries</li>
@@ -99,7 +99,8 @@ This Privacy Policy explains how GroupYetu360, operated by EPH Technologies Limi
 <p>We implement the following security measures:</p>
 <ul>
   <li>Row-level security (RLS) ensuring organisations can only access their own data</li>
-  <li>Role-based access control — members see only their personal data; admins manage their organisation only</li>
+  <li>Role-based access control - members see only their personal data; admins manage their organisation only</li>
+  <li>Optional two-factor authentication (2FA) for admin, treasurer and superadmin roles - a one-time verification code is generated and emailed to your registered account email via our email provider, Resend, and expires after 5 minutes</li>
   <li>All passwords are hashed and never stored in plain text</li>
   <li>API keys and credentials are encrypted at the database level</li>
   <li>HTTPS enforced on all connections</li>
@@ -108,10 +109,12 @@ This Privacy Policy explains how GroupYetu360, operated by EPH Technologies Limi
 <h2>5. Data Sharing</h2>
 <p>We share your data only with the following parties, strictly to provide our service:</p>
 <ul>
-  <li><strong>Supabase Inc.</strong> — Database and authentication infrastructure provider</li>
-  <li><strong>Safaricom PLC</strong> — For processing M-Pesa payments where enabled by your organisation</li>
-  <li><strong>Africa's Talking</strong> — For sending SMS notifications</li>
-  <li><strong>Google LLC</strong> — For Google Sign-In authentication</li>
+  <li><strong>Supabase Inc.</strong> - Database and authentication infrastructure provider</li>
+  <li><strong>Paystack, Fingo Africa and SasaPay</strong> - For processing Instant Pay member contributions where enabled by your organisation. Fingo Africa and SasaPay also disburse collected funds to organisations on our behalf - see our <a href="terms.html">Terms of Service</a> for how this works</li>
+  <li><strong>Safaricom PLC</strong> - As the underlying mobile network operator for M-Pesa transactions initiated through our payment partners</li>
+  <li><strong>Celcom Africa</strong> - Our SMS delivery partner for bulk notifications</li>
+  <li><strong>Resend</strong> - Transactional email delivery, including account verification and two-factor authentication codes</li>
+  <li><strong>Google LLC</strong> - For Google Sign-In authentication</li>
 </ul>
 <p>We may disclose your data to law enforcement or regulatory authorities if required to do so by Kenyan law or a valid court order.</p>
 
@@ -127,21 +130,22 @@ This Privacy Policy explains how GroupYetu360, operated by EPH Technologies Limi
 <h2>7. Your Rights (Kenya Data Protection Act, 2019)</h2>
 <p>Under the Kenya Data Protection Act 2019, you have the right to:</p>
 <ul>
-  <li><strong>Access</strong> — Request a copy of the personal data we hold about you</li>
-  <li><strong>Correction</strong> — Request correction of inaccurate or incomplete data</li>
-  <li><strong>Deletion</strong> — Request deletion of your personal data (subject to legal retention requirements)</li>
-  <li><strong>Objection</strong> — Object to certain processing of your data</li>
-  <li><strong>Portability</strong> — Request your data in a portable format</li>
+  <li><strong>Access</strong> - Request a copy of the personal data we hold about you</li>
+  <li><strong>Correction</strong> - Request correction of inaccurate or incomplete data</li>
+  <li><strong>Deletion</strong> - Request deletion of your personal data (subject to legal retention requirements)</li>
+  <li><strong>Objection</strong> - Object to certain processing of your data</li>
+  <li><strong>Portability</strong> - Request your data in a portable format</li>
 </ul>
 <p>To exercise any of these rights, contact us at <a href="mailto:info@groupyetu.org">info@groupyetu.org</a>. We will respond within 21 days as required by law.</p>
 
-<h2>8. M-Pesa Data</h2>
-<p>When M-Pesa STK Push integration is enabled by your organisation administrator, the following applies:</p>
+<h2>8. Payment Data</h2>
+<p>When Instant Pay is enabled by your organisation administrator, the following applies:</p>
 <ul>
   <li>Your M-Pesa phone number is used to initiate payment prompts</li>
-  <li>Transaction confirmation data (reference, amount, date) is stored to record your contribution</li>
-  <li>Your M-Pesa PIN is entered directly on Safaricom's secure system and is never transmitted to or stored by GroupYetu360</li>
-  <li>M-Pesa data is processed under Safaricom's own privacy policy</li>
+  <li>Transaction confirmation data (reference, amount, date and payment partner used) is stored to record your contribution</li>
+  <li>Your M-Pesa PIN is entered directly on Safaricom's secure system and is never transmitted to or stored by GroupYetu360 or any of our payment partners</li>
+  <li>Where your organisation uses Fingo Africa or SasaPay, your contribution is briefly received into EPH Technologies' merchant account with that provider before being disbursed to your organisation - see our <a href="terms.html">Terms of Service</a> for details. Where your organisation uses Paystack, your contribution goes directly to the organisation's own Paystack subaccount and EPH Technologies never receives it</li>
+  <li>Payment data is also processed under the respective privacy policies of Safaricom, Paystack, Fingo Africa and SasaPay</li>
 </ul>
 
 <h2>9. Cookies and Tracking</h2>
@@ -160,7 +164,7 @@ This Privacy Policy explains how GroupYetu360, operated by EPH Technologies Limi
 <p>For any privacy concerns, data requests or questions about this policy:</p>
 <ul>
   <li><strong>Email:</strong> <a href="mailto:info@groupyetu.org">info@groupyetu.org</a></li>
-  <li><strong>WhatsApp:</strong> <a href="https://wa.me/254792385970">+254 792 385 970</a></li>
+  <li><strong>WhatsApp:</strong> <a href="https://wa.me/254702903544">+254 702 903 544</a></li>
   <li><strong>Address:</strong> EPH Technologies Limited, Western Heights, Karuna Road, Westlands, Nairobi, Kenya</li>
 </ul>
 <p>You also have the right to lodge a complaint with the <strong>Office of the Data Protection Commissioner of Kenya</strong> at <a href="https://www.odpc.go.ke" target="_blank">odpc.go.ke</a>.</p>
@@ -168,7 +172,7 @@ This Privacy Policy explains how GroupYetu360, operated by EPH Technologies Limi
 </div>
 
 <footer>
-  © 2025 EPH Technologies Limited · RC: PVT-RXUMLM2Q · <a href="/" style="color:rgba(255,255,255,.5)">groupyetu.org</a>
+  © 2026 EPH Technologies Limited · RC: PVT-RXUMLM2Q · <a href="/" style="color:rgba(255,255,255,.5)">groupyetu.org</a>
 </footer>
 </body>
 </html>
