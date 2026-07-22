@@ -83,6 +83,23 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      # Bubblewrap compares a sha1 checksum of twa-manifest.json (stored in
+      # manifest-checksum.txt) to detect drift. If they don't match, `build`
+      # interactively asks "apply changes to the project?" — which hangs
+      # forever on a CI runner with no stdin attached (confirmed: exit code
+      # 130 on run #9). Auto-confirming would be worse: it would run
+      # Bubblewrap's own `update`, which regenerates app/build.gradle from
+      # its bundled template — silently reverting any manual edits to that
+      # file (e.g. targetSdkVersion, androidbrowserhelper version) back to
+      # whatever Bubblewrap 1.24.1 ships by default. Regenerating the
+      # checksum here — without touching the project — keeps our hand-edited
+      # app/build.gradle intact and skips the prompt entirely, regardless of
+      # what future edits are made to twa-manifest.json.
+      - name: Sync manifest checksum (avoid Bubblewrap's interactive update prompt)
+        run: |
+          printf '%s' "$(sha1sum twa-manifest.json | cut -d' ' -f1)" > manifest-checksum.txt
+          cat manifest-checksum.txt
+
       # Official non-interactive CI mode, confirmed against Bubblewrap's own
       # CLI documentation (packages/cli/README.md) — these two env vars are
       # what let `build` run without prompting for keystore passwords.
