@@ -56,9 +56,9 @@ android {
     defaultConfig {
         applicationId "com.ephtechnologies.groupyetu360"
         minSdkVersion 21
-        targetSdkVersion 35
-        versionCode 7
-        versionName "6"
+        targetSdkVersion 36
+        versionCode 8
+        versionName "7"
 
         // The name for the application
         resValue "string", "appName", twaManifest.name
@@ -208,6 +208,6 @@ repositories {
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     
-        implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.6.2'
+        implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.7.2'
     
 }

@@ -21,8 +21,8 @@
     "path": "./signing.keystore",
     "alias": "my-key-alias"
   },
-  "appVersionName": "6",
-  "appVersionCode": 7,
+  "appVersionName": "7",
+  "appVersionCode": 8,
   "shortcuts": [
     {
       "name": "Dashboard",
@@ -63,5 +63,5 @@
   "fileHandlers": [],
   "launchHandlerClientMode": "",
   "displayOverride": [],
-  "appVersion": "6"
+  "appVersion": "7"
 }
