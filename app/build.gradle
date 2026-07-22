@@ -55,7 +55,7 @@ android {
     namespace "com.ephtechnologies.groupyetu360"
     defaultConfig {
         applicationId "com.ephtechnologies.groupyetu360"
-        minSdkVersion 21
+        minSdkVersion 23
         targetSdkVersion 36
         versionCode 8
         versionName "7"
