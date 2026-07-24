@@ -3077,74 +3077,35 @@ async function loadBroadcastHistory() {
 ════════════════════════════════════════════════════ */
 
 // Reconciles settlement_batches against approved SasaPay/Fingo/Paystack
-// member_contribution payments. Safe to call often - existing PAID
-// batches are never touched (locked once paid, matching how a real
-// settlement record should behave), existing PENDING batches get their
-// amount refreshed (in case more transactions landed for that date since
-// the last sync), and genuinely new (org, provider, date, line) combos
-// get created fresh.
-// Auto-batches REGULAR contributions only - welfare is deliberately
-// excluded here. Welfare events can run for days, so daily auto-batching
-// doesn't make sense for them; they're only turned into a settlement_batch
-// when the admin explicitly clicks "Request Settlement" on that specific
-// event (see requestWelfareSettlement() below).
+// member_contribution payments. Runs server-side via the sync-settlement-batches
+// Edge Function using the service role — settlement_batches correctly blocks
+// direct client writes at the RLS level (it's EPH's internal settlement
+// ledger), which is exactly what silently broke this when called from an org
+// admin's session: every insert came back 403, visible only in the console,
+// never surfaced to the admin, meaning an org's settlement history depended
+// on the superadmin having separately visited their own Settlements page.
+// Confirmed via browser console: "new row violates row-level security policy
+// for table settlement_batches". Safe to call often regardless of caller —
+// existing PAID batches are never touched, existing PENDING batches get their
+// amount refreshed, genuinely new (org, provider, date, line) combos get
+// created fresh.
 async function syncSettlementBatches() {
-  const since = new Date(); since.setDate(since.getDate() - 60);
-  const sinceStr = since.toISOString().split('T')[0];
+  try {
+    const session = await sb.auth.getSession();
+    const jwt = session?.data?.session?.access_token;
+    if (!jwt) { console.warn('syncSettlementBatches: no active session'); return; }
 
-  const { data: rows, error: rowsErr } = await sb.from('payment_requests')
-    .select('org_id, provider, payment_date, allocations')
-    .in('provider', ['sasapay', 'fingo', 'paystack'])
-    .eq('status', 'approved')
-    .eq('payment_type', 'member_contribution')
-    .gte('payment_date', sinceStr);
-  if (rowsErr) { console.warn('syncSettlementBatches: could not load payment_requests —', rowsErr.message); return; }
-
-  const groups = {};
-  for (const row of rows || []) {
-    let allocs = [];
-    try { allocs = JSON.parse(row.allocations || '[]'); } catch(e) { continue; }
-    for (const a of allocs) {
-      if (a.isWelfare) continue; // welfare - admin requests settlement explicitly, per event
-      if (a.isMGR) continue;     // MGR - auto-created server-side the moment a round completes, never date-batched
-      const lineType = a.isTB ? 'table_banking' : 'regular';
-      const key = `${row.org_id}|${row.provider}|${row.payment_date}|${lineType}`;
-      groups[key] = (groups[key] || 0) + Number(a.amount || 0);
-    }
+    const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/sync-settlement-batches', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${jwt}` },
+    });
+    const result = await res.json();
+    if (!res.ok || result.error) { console.warn('syncSettlementBatches error:', result.error || res.statusText); return; }
+    if (result.insertError) console.warn('syncSettlementBatches insert error:', result.insertError);
+    console.log(`syncSettlementBatches: ${result.inserted} new, ${result.updated} refreshed`);
+  } catch (e) {
+    console.warn('syncSettlementBatches: request failed —', e.message);
   }
-
-  const { data: existing } = await sb.from('settlement_batches')
-    .select('org_id,provider,settlement_date,line_type,status,amount')
-    .in('line_type', ['regular', 'table_banking'])
-    .gte('settlement_date', sinceStr);
-  const existingMap = {};
-  (existing || []).forEach(b => {
-    existingMap[`${b.org_id}|${b.provider}|${b.settlement_date}|${b.line_type}`] = b;
-  });
-
-  const toInsert = [];
-  const toUpdate = [];
-  for (const [key, amount] of Object.entries(groups)) {
-    const [org_id, provider, settlement_date, line_type] = key.split('|');
-    const roundedAmount = Math.round(amount * 100) / 100;
-    const existingBatch = existingMap[key];
-    if (!existingBatch) {
-      toInsert.push({ org_id, provider, settlement_date, line_type, amount: roundedAmount });
-    } else if (existingBatch.status === 'pending' && Number(existingBatch.amount) !== roundedAmount) {
-      toUpdate.push({ org_id, provider, settlement_date, line_type, amount: roundedAmount });
-    }
-  }
-
-  if (toInsert.length) {
-    const { error } = await sb.from('settlement_batches').insert(toInsert);
-    if (error) console.warn('syncSettlementBatches insert error:', error.message);
-  }
-  for (const u of toUpdate) {
-    await sb.from('settlement_batches').update({ amount: u.amount })
-      .eq('org_id', u.org_id).eq('provider', u.provider)
-      .eq('settlement_date', u.settlement_date).eq('line_type', u.line_type);
-  }
-  console.log(`syncSettlementBatches: ${toInsert.length} new, ${toUpdate.length} refreshed`);
 }
 
 // SA view - syncs first, then renders every batch from the last 60 days
