@@ -15,6 +15,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { creditMemberContribution } from '../_shared/creditMemberContribution.ts';
+import { claimPaymentRequest } from '../_shared/claimPaymentRequest.ts';
 
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -119,7 +120,13 @@ serve(async (req) => {
 
   if (event.type === 'transaction.succeeded') {
     if (pr.payment_type === 'member_contribution') {
-      await creditMemberContribution(supabase, pr, reference);
+      // Atomic claim — see _shared/claimPaymentRequest.ts. Without this,
+      // a Fingo webhook retry and the client's own polling could both pass
+      // the status='pending' check above before either writes back
+      // 'approved', crediting the same payment twice.
+      const claimed = await claimPaymentRequest(supabase, pr);
+      if (!claimed) return new Response('OK', { status: 200 });
+      await creditMemberContribution(supabase, claimed, reference);
     } else {
       console.log('[GY360 Fingo Webhook] Non-member_contribution success — no handler for this type on Fingo:', pr.payment_type);
     }

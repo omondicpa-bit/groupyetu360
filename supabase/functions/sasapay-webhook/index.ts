@@ -20,6 +20,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { creditMemberContribution } from '../_shared/creditMemberContribution.ts';
+import { claimPaymentRequest } from '../_shared/claimPaymentRequest.ts';
 
 // From SasaPay's dev console (not the public docs — more authoritative,
 // dashboard-specific info Felix pulled directly). Trusted source IPs for
@@ -168,9 +169,18 @@ serve(async (req) => {
     return new Response('OK', { status: 200 });
   }
 
+  // Atomic claim — see _shared/claimPaymentRequest.ts. SasaPay confirmed
+  // (see note above) to send more than one callback per payment; without
+  // this, two near-simultaneous result-shaped callbacks for the same
+  // payment could both pass the status='pending' check above and both
+  // credit, exactly like the Paystack triple-credit bug this pattern
+  // was originally built to fix.
+  const claimed = await claimPaymentRequest(supabase, pr);
+  if (!claimed) return new Response('OK', { status: 200 });
+
   try {
     if (pr.payment_type === 'member_contribution') {
-      await creditMemberContribution(supabase, pr, reference);
+      await creditMemberContribution(supabase, claimed, reference);
 
     } else if (pr.payment_type?.startsWith('subscription_') || pr.payment_type === 'subscription') {
       // Mirrors paystack-webhook's subscription activation exactly —

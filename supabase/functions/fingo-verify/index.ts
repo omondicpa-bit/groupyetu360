@@ -9,6 +9,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { creditMemberContribution } from '../_shared/creditMemberContribution.ts';
+import { claimPaymentRequest } from '../_shared/claimPaymentRequest.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -108,7 +109,12 @@ serve(async (req) => {
     // initiated, rejected.
     if (fingoStatus === 'completed' || fingoStatus === 'settled') {
       if (pr.payment_type === 'member_contribution') {
-        await creditMemberContribution(supabase, pr, reference);
+        // Atomic claim — see _shared/claimPaymentRequest.ts. This poll runs
+        // roughly every 2s while the STK prompt is open, concurrently with
+        // fingo-webhook potentially firing for the same payment; without
+        // this claim both could credit the same row.
+        const claimed = await claimPaymentRequest(supabase, pr);
+        if (claimed) await creditMemberContribution(supabase, claimed, reference);
       }
       return new Response(JSON.stringify({ status: 'approved' }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }

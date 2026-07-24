@@ -619,7 +619,7 @@ async function populateMobileAdminHome(orgId) {
       if (entries.length) {
         contribEl.innerHTML = entries.map(([name, total]) =>
           `<div style="display:flex;justify-content:space-between;align-items:center">
-            <span style="font-size:.72rem;color:rgba(255,255,255,.75)">${name}</span>
+            <span style="font-size:.72rem;color:rgba(255,255,255,.75)">${h(name)}</span>
             <span style="font-size:.75rem;font-weight:700;color:rgba(255,255,255,.95)">Ksh ${total.toLocaleString()}</span>
           </div>`
         ).join('');

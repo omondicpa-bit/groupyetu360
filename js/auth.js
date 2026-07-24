@@ -866,7 +866,7 @@ function selectPickerPlan(el) {
     const price = (typeof PLAN_PRICES !== 'undefined' && PLAN_PRICES[plan]) || 0;
     const s = _platformSettings || {};
     prompt.style.display = '';
-    if (detailsEl) detailsEl.innerHTML = 'Pay Ksh ' + price.toLocaleString() + ' to activate ' + plan.toUpperCase() + ':<br><strong>' + (s.bank_name||'KCB Bank') + '</strong> · Account: <strong>' + (s.bank_account||'—') + '</strong>' + (s.paybill ? ' · Paybill: <strong>' + s.paybill + '</strong>' : '');
+    if (detailsEl) detailsEl.innerHTML = 'Pay Ksh ' + price.toLocaleString() + ' to activate ' + plan.toUpperCase() + ':<br><strong>' + h(s.bank_name||'KCB Bank') + '</strong> · Account: <strong>' + h(s.bank_account||'—') + '</strong>' + (s.paybill ? ' · Paybill: <strong>' + h(s.paybill) + '</strong>' : '');
     if (btn) btn.textContent = 'Create Group & Submit Payment →';
   } else {
     prompt.style.display = 'none';
