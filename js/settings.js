@@ -3463,6 +3463,8 @@ async function loadOrgSettlements() {
   el.innerHTML = '<div class="loading"><div class="spinner"></div>Loading…</div>';
 
   try {
+    await syncSettlementBatches();
+
     const since = new Date(); since.setDate(since.getDate() - 60);
     const { data: batches } = await sb.from('settlement_batches')
       .select('*, welfare_events(event_type), round_slots(slot_number, member_id, savings_rounds(name))')
