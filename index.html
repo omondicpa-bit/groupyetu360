@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026072506">
+  <link rel="stylesheet" href="style.css?v=2026072507">
 </head>
 <body>
 
@@ -552,7 +552,7 @@
 
           <!-- Quick action buttons row -->
           <div class="mob-action-row" id="mob-action-row">
-            <button id="mob-qa-payment" class="mob-action-btn" onclick="showPage('finance');setTimeout(()=>switchTab(document.querySelector('[onclick*=tab-record]'),'tab-record'),100)">
+            <button id="mob-qa-payment" class="mob-action-btn" onclick="openRecordPaymentModal()">
               <div class="mob-action-icon">💳</div>
               <div class="mob-action-label">Payment</div>
             </button>
@@ -752,7 +752,7 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
         <div class="card" id="txn-summary-card">
           <div class="card-header">
-            <div><div class="card-title">Contributions by Type</div><div class="card-sub">All-time totals per category</div></div>
+            <div><div class="card-title">Contributions by Type</div><div class="card-sub">Totals per category · Welfare/TB/MGR reflect active events only</div></div>
             <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.72rem;color:var(--ink-faint)">
               <input type="checkbox" id="show-balance-toggle" style="accent-color:var(--maroon)" onchange="toggleMemberBalanceVisibility(this.checked)"/>
               Show balance to members
@@ -911,7 +911,7 @@
             <button class="fin-mob-tab active" onclick="finMobSwitchTab(this,'tab-transactions')">📋 Ledger</button>
             <button class="fin-mob-tab" onclick="finMobSwitchTab(this,'tab-expenses')">📤 Expenses</button>
             <button class="fin-mob-tab" onclick="finMobSwitchTab(this,'tab-fines');loadFinesLedger()">⚠ Fines</button>
-            <button class="fin-mob-tab fin-mob-tab-action" onclick="finMobSwitchTab(this,'tab-record')">＋ Payment</button>
+            <button class="fin-mob-tab fin-mob-tab-action" onclick="openRecordPaymentModal()">＋ Payment</button>
             <button class="fin-mob-tab fin-mob-tab-action" onclick="showModal('recordIncome')">＋ Income</button>
             <button class="fin-mob-tab fin-mob-tab-action" onclick="showModal('recordExpense')">− Expense</button>
             <button class="fin-mob-tab fin-mob-tab-warn" onclick="finMobSwitchTab(this,'tab-fine-record')">⚠ Fine</button>
@@ -1077,32 +1077,6 @@
       </div>
 
       <!-- TAB: RECORD PAYMENT -->
-      <div class="tab-panel" id="tab-record">
-        <div class="fin-form-card">
-          <div class="fin-form-heading">
-            <div class="fin-form-icon teal">₭</div>
-            <div>
-              <div class="fin-form-title">Record Member Payment</div>
-              <div class="fin-form-sub">Log a contribution, savings deposit or share payment</div>
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group"><label class="form-label">Member</label><select class="form-select" id="pay-member"><option value="">Select member…</option></select></div>
-            <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="pay-date"/></div>
-          </div>
-          <div class="form-row">
-            <div class="form-group"><label class="form-label">Payment Type</label><select class="form-select" id="pay-type"><option value="">Select type…</option></select></div>
-            <div class="form-group"><label class="form-label">Amount (Ksh)</label><input class="form-input" type="number" id="pay-amount" placeholder="0"/></div>
-          </div>
-          <div class="form-group"><label class="form-label">M-Pesa Reference</label><input class="form-input" id="pay-ref" placeholder="e.g. QBC4X8YZDE - optional"/></div>
-          <div class="form-group"><label class="form-label">Notes (optional)</label><input class="form-input" id="pay-notes" placeholder="Any additional info…"/></div>
-          <div class="fin-form-actions">
-            <button class="btn btn-primary" onclick="saveTransaction()" style="background:var(--teal);box-shadow:0 3px 10px rgba(15,110,86,.2)">Save Payment →</button>
-            <button class="btn btn-secondary" onclick="clearPayForm()">Clear</button>
-          </div>
-        </div>
-      </div>
-
       <!-- TAB: RECORD INCOME -->
       </div><!-- end .mob-hide -->
 
@@ -5584,14 +5558,14 @@
 
 
   <!-- GroupYetu360 Scripts - load order matters -->
-  <script src="js/auth.js?v=2026072506"></script>
-  <script src="js/utils.js?v=2026072506"></script>
-  <script src="js/dashboard.js?v=2026072506"></script>
-  <script src="js/members.js?v=2026072506"></script>
-  <script src="js/finance.js?v=2026072506"></script>
-  <script src="js/settings.js?v=2026072506"></script>
-  <script src="js/portal.js?v=2026072506"></script>
-  <script src="js/modules.js?v=2026072506"></script>
+  <script src="js/auth.js?v=2026072507"></script>
+  <script src="js/utils.js?v=2026072507"></script>
+  <script src="js/dashboard.js?v=2026072507"></script>
+  <script src="js/members.js?v=2026072507"></script>
+  <script src="js/finance.js?v=2026072507"></script>
+  <script src="js/settings.js?v=2026072507"></script>
+  <script src="js/portal.js?v=2026072507"></script>
+  <script src="js/modules.js?v=2026072507"></script>
   <script>
     // Bootstrap - runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —

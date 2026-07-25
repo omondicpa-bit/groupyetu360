@@ -347,54 +347,6 @@ function exportExpensesCSV() {
   );
 }
 
-async function saveTransaction() {
-  if (!canDo('recordPayment')) { toast('⚠ You do not have permission to record payments.'); return; }
-  if (!currentOrg?.id) return;
-  const memberId = document.getElementById('pay-member').value || null;
-  const typeId = document.getElementById('pay-type').value || null;
-  const amount = parseFloat(document.getElementById('pay-amount').value);
-  const payload = {
-    org_id: currentOrg.id,
-    member_id: memberId,
-    type_id: typeId,
-    amount,
-    mpesa_ref: document.getElementById('pay-ref').value.trim() || null,
-    transaction_date: document.getElementById('pay-date').value || null,
-    notes: document.getElementById('pay-notes').value.trim() || null,
-    recorded_by: currentUser.id
-  };
-  if (!amount) { toast('Please enter an amount'); return; }
-  const { error } = await sb.from('transactions').insert(payload);
-  if (error) { toast('Error: ' + error.message); return; }
-  // Update member balance - use income_type to determine what to update
-  if (memberId && typeId) {
-    const contribType = allContribTypes.find(t => t.id === typeId);
-    const incomeType = contribType?.income_type || (contribType?.is_member_income !== false ? 'member_savings' : 'admin_income');
-    const isMemberBalance = ['member_shares','member_savings'].includes(incomeType);
-    if (contribType && isMemberBalance) {
-      const { data: member } = await sb.from('members').select('shares_balance,savings_balance').eq('id', memberId).single();
-      if (member) {
-        const updates = {};
-        if (incomeType === 'member_shares' || contribType.name.toLowerCase().includes('share')) {
-          updates.shares_balance = (member.shares_balance||0) + amount;
-        } else if (incomeType === 'member_savings' || contribType.name.toLowerCase().includes('saving')) {
-          updates.savings_balance = (member.savings_balance||0) + amount;
-        }
-        if (Object.keys(updates).length) {
-          await sb.from('members').update(updates).eq('id', memberId);
-        }
-      }
-    }
-  }
-  // Auto-update bank balance
-  const totalRecorded = parseFloat(document.getElementById('pay-amount')?.value)||0;
-  if (totalRecorded > 0) await updateBankBalance(currentOrg.id, totalRecorded, 'credit');
-  toast('Payment recorded successfully');
-  clearPayForm();
-  loadFinance();
-  loadDashboard();
-}
-
 // ── Split-payment helpers ──
 var _payLines = []; // [{type_id, name, income_type, amount}]
 
@@ -420,14 +372,24 @@ function renderPayLines() {
   if (!container) return;
   const typeOptions = (allContribTypes || [])
     .filter(t => t.is_active !== false) // archived types stay selectable for viewing history elsewhere, but shouldn't offer as a destination for new payments
-    .map(t => `<option value="${t.id}" data-income="${t.income_type||''}">${h(t.name)}${t.default_amount ? ' (Ksh '+Number(t.default_amount).toLocaleString()+')' : ''}</option>`)
+    .map(t => `<option value="${t.id}" data-kind="regular" data-income="${t.income_type||''}">${h(t.name)}${t.default_amount ? ' (Ksh '+Number(t.default_amount).toLocaleString()+')' : ''}</option>`)
     .join('');
+  const welfareOptions = _modalWelfareEventsCache.length
+    ? '<optgroup label="Welfare">' + _modalWelfareEventsCache.map(w =>
+        `<option value="${w.id}" data-kind="welfare">${h(w.event_type||'Welfare')}</option>`).join('') + '</optgroup>'
+    : '';
+  const tbOptions = _modalTBPoolsCache.length
+    ? '<optgroup label="Table Banking">' + _modalTBPoolsCache.map(p =>
+        `<option value="${p.id}" data-kind="tb">${h(p.name||'Pool')}</option>`).join('') + '</optgroup>'
+    : '';
   container.innerHTML = _payLines.map((line, i) => `
     <div style="display:flex;align-items:center;gap:.5rem;background:var(--surface-2);border-radius:8px;padding:.5rem .65rem">
       <select class="form-select" style="flex:1;font-size:.82rem" onchange="setPayLineType(${i},this)"
         data-idx="${i}">
         <option value="">Select type…</option>
         ${typeOptions}
+        ${welfareOptions}
+        ${tbOptions}
       </select>
       <input class="form-input" type="number" placeholder="Amount"
         style="width:110px;font-size:.82rem;text-align:right"
@@ -442,20 +404,27 @@ function renderPayLines() {
   // Restore selected type values
   _payLines.forEach((line, i) => {
     const sel = container.querySelectorAll('select')[i];
-    if (sel && line.type_id) sel.value = line.type_id;
+    const val = line.type_id || line.eventId || line.poolId;
+    if (sel && val) sel.value = val;
   });
 }
 
 function setPayLineType(idx, sel) {
-  _payLines[idx].type_id = sel.value;
   const opt = sel.options[sel.selectedIndex];
+  const kind = opt?.dataset?.kind || 'regular';
+  _payLines[idx].kind = kind;
+  _payLines[idx].type_id = kind === 'regular' ? sel.value : '';
+  _payLines[idx].eventId = kind === 'welfare' ? sel.value : null;
+  _payLines[idx].poolId = kind === 'tb' ? sel.value : null;
   _payLines[idx].income_type = opt?.dataset?.income || '';
   _payLines[idx].name = opt?.text || '';
-  // Auto-fill default amount if set and current amount is empty
-  const ct = (allContribTypes||[]).find(t => t.id === sel.value);
-  if (ct?.default_amount && !_payLines[idx].amount) {
-    _payLines[idx].amount = ct.default_amount;
-    renderPayLines();
+  // Auto-fill default amount if set and current amount is empty (regular types only - welfare/TB have no default_amount on this cache)
+  if (kind === 'regular') {
+    const ct = (allContribTypes||[]).find(t => t.id === sel.value);
+    if (ct?.default_amount && !_payLines[idx].amount) {
+      _payLines[idx].amount = ct.default_amount;
+      renderPayLines();
+    }
   }
   updatePayTotal();
 }
@@ -471,7 +440,16 @@ function updatePayTotal() {
   if (el) el.textContent = 'Ksh ' + total.toLocaleString();
 }
 
-function openRecordPaymentModal(prefillMemberId) {
+// Caches for the Record Payment modal's welfare/TB options - populated by
+// openRecordPaymentModal(), same query pattern as the member portal's own
+// payment picker (portal.js). MGR is deliberately not included here yet -
+// it's tied to a specific member's specific slot/turn, which needs a
+// per-member lookup the admin modal doesn't currently have a clean hook
+// for; flagged as a follow-up rather than guessed at.
+var _modalWelfareEventsCache = [];
+var _modalTBPoolsCache = [];
+
+async function openRecordPaymentModal(prefillMemberId) {
   _payLines = [];
   const container = document.getElementById('modal-pay-lines');
   if (container) container.innerHTML = '';
@@ -487,6 +465,14 @@ function openRecordPaymentModal(prefillMemberId) {
     const sel = document.getElementById('modal-pay-member');
     if (sel) sel.value = prefillMemberId;
   }
+
+  const [welRes, tbRes] = await Promise.all([
+    sb.from('welfare_events').select('id,event_type').eq('org_id', currentOrg.id).eq('is_active', true),
+    sb.from('table_banking_pools').select('id,name').eq('org_id', currentOrg.id).eq('status', 'active'),
+  ]);
+  _modalWelfareEventsCache = welRes.data || [];
+  _modalTBPoolsCache = tbRes.data || [];
+
   addPaymentLine();
   showModal('recordPayment');
 }
@@ -502,17 +488,52 @@ async function saveModalTransaction() {
   const mpesaRef = document.getElementById('modal-pay-ref').value.trim() || null;
 
   if (!memberId) { if (errEl) errEl.textContent = 'Please select a member'; return; }
-  const validLines = _payLines.filter(l => l.type_id && parseFloat(l.amount) > 0);
+  // Previously required type_id specifically, which silently dropped any
+  // welfare/TB line (they use eventId/poolId instead) even after they were
+  // selectable in the dropdown - they'd just vanish with no error.
+  const validLines = _payLines.filter(l => (l.type_id || l.eventId || l.poolId) && parseFloat(l.amount) > 0);
   if (!validLines.length) { if (errEl) errEl.textContent = 'Add at least one payment line with type and amount'; return; }
 
   // Fetch current member balances once
   const { data: member } = await sb.from('members').select('shares_balance,savings_balance').eq('id', memberId).single();
   let sharesBalance = member?.shares_balance || 0;
   let savingsBalance = member?.savings_balance || 0;
-  let totalAmount = 0;
+  let totalAmount = 0; // drives bank_balance credit below - regular lines only, matching the welfare/TB independence rule used everywhere else in this codebase
 
   for (const line of validLines) {
     const amount = parseFloat(line.amount);
+    const kind = line.kind || 'regular';
+
+    if (kind === 'welfare') {
+      const { error } = await sb.from('transactions').insert({
+        org_id: currentOrg.id,
+        member_id: memberId,
+        amount,
+        mpesa_ref: mpesaRef,
+        transaction_date: txDate,
+        welfare_event_id: line.eventId,
+        notes: `Welfare contribution - ${line.name || 'Welfare'}. Recorded manually.`,
+        recorded_by: currentUser.id,
+      });
+      if (error) { toast('Error saving welfare line: ' + error.message); return; }
+      continue; // never touches bank_balance or member shares/savings
+    }
+
+    if (kind === 'tb') {
+      const { error } = await sb.from('table_banking_contributions').insert({
+        pool_id: line.poolId,
+        org_id: currentOrg.id,
+        member_id: memberId,
+        amount,
+        payment_date: txDate,
+        mpesa_ref: mpesaRef,
+        provider: 'manual',
+        recorded_by: currentUser.id,
+      });
+      if (error) { toast('Error saving Table Banking line: ' + error.message); return; }
+      continue; // never touches bank_balance or member shares/savings
+    }
+
     const payload = {
       org_id: currentOrg.id,
       member_id: memberId,
@@ -538,7 +559,7 @@ async function saveModalTransaction() {
 
   // Write updated member balances in one shot
   await sb.from('members').update({ shares_balance: sharesBalance, savings_balance: savingsBalance }).eq('id', memberId);
-  await updateBankBalance(currentOrg.id, totalAmount, 'credit');
+  if (totalAmount > 0) await updateBankBalance(currentOrg.id, totalAmount, 'credit');
 
   toast(`✓ Payment of Ksh ${totalAmount.toLocaleString()} recorded (${validLines.length} line${validLines.length>1?'s':''})`);
   _payLines = [];
@@ -764,7 +785,6 @@ async function submitFinePayment(){
   loadMyContributions();loadMyProfile();
 }
 
-function clearPayForm() { ['pay-member','pay-type','pay-amount','pay-ref','pay-notes'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; }); }
 function clearExpForm() { ['exp-category','exp-desc','exp-amount','exp-ref','exp-project'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; }); }
 
 
