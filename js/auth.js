@@ -22,7 +22,7 @@ let attState = {};
 // ── INIT ──
 // Registration/reset/invite routing is driven ENTIRELY by an explicit ?intent= query
 // param that WE set on every redirectTo/emailRedirectTo URL (see registerAccount(),
-// joinOrg(), sendPasswordReset(), saveInviteAdmin(), members.js invite functions).
+// joinOrg(), sendPasswordReset(), members.js invite functions).
 // Earlier versions tried to infer intent from Supabase's own hash `type` param and/or
 // whether a `profiles` row existed yet - both were unreliable (hash format varies by
 // auth flow type; profile existence depended on a client-side insert that silently

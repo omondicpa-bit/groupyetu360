@@ -161,18 +161,24 @@ async function loadSettings() {
   populateSelects();
 }
 
-// Per-org role (admin/treasurer/officer) lives in user_orgs.role - profiles.role
-// is the platform-wide account status (member/admin/superadmin/pending), not an
-// org-scoped permission. This tab used to read profiles.role filtered by
-// profiles.org_id, which is exactly backwards per this codebase's own
-// architecture rules, and meant team members added via the multi-org
-// (user_orgs) path never showed up here at all.
+// Read-only summary of who currently holds admin/treasurer/officer for this
+// org. Role changes happen in exactly one place - the "Change Portal Role"
+// picker on each member's card in Members - not duplicated here, so there's
+// only ever one code path that can mutate a role.
 //
-// Reads BOTH sources and merges them (preferring the user_orgs value when a
-// user appears in both) rather than switching over outright, so legacy
-// admins who predate the multi-org migration - who may only have
-// profiles.role/profiles.org_id set, with no user_orgs row yet - don't
-// silently vanish from this list.
+// Per-org role lives in user_orgs.role (profiles.role is the platform-wide
+// account status: member/admin/superadmin/pending). Reads both, merging
+// user_orgs on top, so legacy admins who predate the multi-org migration -
+// who may only have profiles.role/profiles.org_id set, with no user_orgs
+// row yet - don't silently vanish from this list.
+//
+// Uses two separate queries rather than a nested PostgREST embed
+// (user_orgs.select('...,profiles(...)')) - that embed syntax needs an
+// explicit relationship hint to resolve reliably and was the cause of this
+// tab getting stuck on "Loading…" forever with no visible error. Every
+// other place in this codebase that joins user_orgs to profiles (see
+// members.js) already does it as two queries merged client-side - matching
+// that proven pattern here instead of re-guessing at the embed syntax.
 async function loadTeamMembers() {
   if (!currentOrg?.id) return;
   const teamEl = document.getElementById('team-members-list');
@@ -181,7 +187,7 @@ async function loadTeamMembers() {
 
   const [legacyRes, userOrgsRes] = await Promise.all([
     sb.from('profiles').select('id, full_name, role').eq('org_id', currentOrg.id).in('role', ['admin', 'treasurer', 'officer']),
-    sb.from('user_orgs').select('user_id, role, profiles(id, full_name)').eq('org_id', currentOrg.id).in('role', ['admin', 'treasurer', 'officer']),
+    sb.from('user_orgs').select('user_id, role').eq('org_id', currentOrg.id).in('role', ['admin', 'treasurer', 'officer']),
   ]);
   if (legacyRes.error || userOrgsRes.error) {
     teamEl.innerHTML = '<div style="padding:1.25rem;color:var(--maroon);font-size:.82rem">Error loading team: '+(legacyRes.error||userOrgsRes.error).message+'</div>';
@@ -190,72 +196,35 @@ async function loadTeamMembers() {
 
   const merged = {};
   (legacyRes.data || []).forEach(p => { merged[p.id] = { id: p.id, full_name: p.full_name, role: p.role }; });
-  (userOrgsRes.data || []).forEach(m => {
-    if (!m.profiles) return; // guard against an orphaned user_orgs row
-    merged[m.user_id] = { id: m.user_id, full_name: m.profiles.full_name, role: m.role }; // user_orgs wins if present in both
-  });
+
+  const userOrgRows = userOrgsRes.data || [];
+  if (userOrgRows.length) {
+    const { data: profs, error: profsErr } = await sb.from('profiles')
+      .select('id, full_name').in('id', userOrgRows.map(m => m.user_id));
+    if (profsErr) {
+      teamEl.innerHTML = '<div style="padding:1.25rem;color:var(--maroon);font-size:.82rem">Error loading team: '+profsErr.message+'</div>';
+      return;
+    }
+    const nameById = {};
+    (profs || []).forEach(p => { nameById[p.id] = p.full_name; });
+    userOrgRows.forEach(m => {
+      if (!nameById[m.user_id]) return; // guard against an orphaned user_orgs row
+      merged[m.user_id] = { id: m.user_id, full_name: nameById[m.user_id], role: m.role }; // user_orgs wins if present in both
+    });
+  }
   const team = Object.values(merged);
 
   teamEl.innerHTML = team.length ? `
     <table>
-      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Action</th></tr></thead>
+      <thead><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead>
       <tbody>${team.map(p=>`<tr>
-        <td><strong>${h(p.full_name)||'—'}</strong></td>
+        <td><strong>${h(p.full_name)||'—'}</strong>${p.id===currentUser?.id?' <span style="font-size:.68rem;color:var(--ink-faint)">(you)</span>':''}</td>
         <td>${h(p.id)}</td>
         <td><span class="badge ${p.role==='admin'?'badge-maroon':p.role==='treasurer'?'badge-green':'badge-grey'}">${p.role}</span></td>
-        <td>
-          ${p.id !== currentUser?.id ? `
-          <select class="form-select" style="width:120px;padding:.2rem .5rem;font-size:.72rem" onchange="changeRole('${p.id}',this.value)">
-            <option value="admin" ${p.role==='admin'?'selected':''}>Admin</option>
-            <option value="treasurer" ${p.role==='treasurer'?'selected':''}>Treasurer</option>
-            <option value="officer" ${p.role==='officer'?'selected':''}>Officer</option>
-            <option value="member" ${p.role==='member'?'selected':''}>Member</option>
-          </select>` : '<span style="font-size:.72rem;color:var(--ink-faint)">Current user</span>'}
-        </td>
       </tr>`).join('')}</tbody>
-    </table>` :
-    '<div style="padding:1.25rem;font-size:.82rem;color:var(--ink-faint)">No admin team members yet</div>';
-}
-
-// Always writes to user_orgs (the correct per-org source going forward),
-// via upsert since a legacy admin may not have a user_orgs row yet - this
-// is also how a legacy admin naturally migrates onto the correct table the
-// first time their role is ever touched from this screen, with no separate
-// bulk-migration script needed. Deliberately does NOT also write
-// profiles.role - that field is platform-wide account status and is out of
-// scope here; see note to Felix about verifying nothing else (e.g. 2FA
-// eligibility) reads profiles.role specifically for org-level gating.
-async function changeRole(userId, newRole) {
-  const { error } = await sb.from('user_orgs')
-    .upsert({ user_id: userId, org_id: currentOrg.id, role: newRole }, { onConflict: 'user_id,org_id' });
-  if (error) { toast('Error: '+error.message); return; }
-  toast('Role updated to ' + newRole);
-  loadTeamMembers();
-}
-
-async function saveInviteAdmin() {
-  const name = document.getElementById('invite-name').value.trim();
-  const email = document.getElementById('invite-email').value.trim();
-  const password = document.getElementById('invite-password').value.trim();
-  const role = document.getElementById('invite-role').value;
-  if (!name||!email||!password) { toast('Please fill all fields'); return; }
-  if (password.length < 6) { toast('Password must be at least 6 characters'); return; }
-  // profiles/user_orgs are created server-side by the handle_new_user() trigger via
-  // the admin_invite_org_id/admin_invite_role metadata below - NOT via a client-side
-  // upsert here. There is no active session for this new account until they confirm
-  // their email, so a client-side write at this point would be silently blocked by
-  // RLS (same root cause documented for registerAccount()/joinOrg()).
-  const { data: authData, error: authErr } = await sb.auth.signUp({
-    email, password,
-    options: {
-      data: { full_name: name, admin_invite_org_id: currentOrg.id, admin_invite_role: role },
-      emailRedirectTo: 'https://app.groupyetu.org/?intent=invite'
-    }
-  });
-  if (authErr) { toast('Error: '+authErr.message); return; }
-  toast(name + ' added as ' + role + ' - confirmation email sent');
-  closeModal('inviteAdmin');
-  loadTeamMembers();
+    </table>
+    <div style="padding:.85rem 1.25rem;font-size:.72rem;color:var(--ink-faint);border-top:1px solid var(--border)">To change someone's role, use the role picker on their card in Members.</div>` :
+    '<div style="padding:1.25rem;font-size:.82rem;color:var(--ink-faint)">No admin team members yet. Assign a role from a member\'s card in Members.</div>';
 }
 
 // ── SHAREOUT & WITHDRAW FUNCTIONS ──

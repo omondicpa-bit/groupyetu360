@@ -346,10 +346,10 @@ async function loadWelfare() {
   // entirely for starter plan); preserved here as-is since this is the
   // only place that gate existed. Worth confirming with Felix this is
   // still the intended behavior now that the page itself isn't gated.
-  const manageBtn = document.getElementById('wel-manage-types-btn');
-  if (manageBtn) {
+  const manageLink = document.getElementById('wel-manage-types-link');
+  if (manageLink) {
     const plan = currentOrg?.plan || 'starter';
-    manageBtn.style.display = plan === 'starter' ? 'none' : '';
+    manageLink.style.display = plan === 'starter' ? 'none' : '';
   }
 
   // ── Load org's welfare event types ──
@@ -871,6 +871,10 @@ function renderProjectCard(p, idx) {
         <span class="farm-stat-label">Total Income</span>
         <span class="farm-stat-val pos">Ksh ${income.toLocaleString()}</span>
       </div>` : ''}
+      ${expenses > 0 ? `<div class="farm-stat">
+        <span class="farm-stat-label">Total Expenses</span>
+        <span class="farm-stat-val neg">Ksh ${expenses.toLocaleString()}</span>
+      </div>` : ''}
       ${roi !== null ? `<div class="farm-stat">
         <span class="farm-stat-label">ROI</span>
         <span class="farm-stat-val ${parseFloat(roi)>=0?'pos':'neg'}">${roi}%</span>
@@ -907,6 +911,30 @@ async function loadProjects() {
   if (!currentOrg?.id) return;
   const { data } = await sb.from('projects').select('*').eq('org_id', currentOrg.id).order('created_at',{ascending:false});
   allProjects = data || [];
+
+  // Real income/expense totals per project, computed live from actual
+  // recorded transactions (matched by project name, the same linking key
+  // the expense/income forms already use) rather than a stored total that
+  // would need separate upkeep. Previously total_income/total_expenses
+  // were never populated at all, so ROI was always exactly -100% -
+  // (0 - 0 - cost) / cost - regardless of how a project actually performed.
+  if (allProjects.length) {
+    const { data: projTxns } = await sb.from('expenses')
+      .select('project, amount, entry_type')
+      .eq('org_id', currentOrg.id)
+      .not('project', 'is', null);
+    const totalsByProject = {};
+    (projTxns || []).forEach(t => {
+      if (!totalsByProject[t.project]) totalsByProject[t.project] = { income: 0, expenses: 0 };
+      if (t.entry_type === 'income') totalsByProject[t.project].income += Number(t.amount || 0);
+      else totalsByProject[t.project].expenses += Number(t.amount || 0);
+    });
+    allProjects.forEach(p => {
+      const totals = totalsByProject[p.name] || { income: 0, expenses: 0 };
+      p.total_income = totals.income;
+      p.total_expenses = totals.expenses;
+    });
+  }
 
   // Stats
   const active = allProjects.filter(p => p.status === 'active');
