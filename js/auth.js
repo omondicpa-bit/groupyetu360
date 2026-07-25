@@ -296,8 +296,8 @@ function showAuthScreen() {
   document.getElementById('app-screen').classList.remove('visible');
   const waFab = document.getElementById('support-fab-btn');
   if (waFab) waFab.style.display = '';
-  const tayaFab = document.getElementById('taya-fab-btn');
-  if (tayaFab) tayaFab.style.display = 'none';
+  const tayaFab = document.getElementById('taya-fab');
+  if (tayaFab) tayaFab.style.display = '';
   const picker = document.getElementById('org-picker-screen');
   if (picker) picker.style.display = 'none';
   document.getElementById('auth-step-1').style.display = 'block';
@@ -1665,7 +1665,7 @@ function showApp() {
   // to WhatsApp directly when something needs a human.
   const waFab = document.getElementById('support-fab-btn');
   if (waFab) waFab.style.display = 'none';
-  const tayaFab = document.getElementById('taya-fab-btn');
+  const tayaFab = document.getElementById('taya-fab');
   if (tayaFab) tayaFab.style.display = 'flex';
   // Resolve role from _userOrgs cache (populated by loadUserOrgs before showApp is called)
   // This ensures the correct per-org role is used immediately, no async delay

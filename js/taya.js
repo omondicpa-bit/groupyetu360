@@ -8,7 +8,10 @@
 let _tayaMode = null;        // 'meeting_minutes' | 'financial_summary' | 'arrears_message' | 'chat'
 let _tayaContext = {};       // e.g. { meeting_id }
 let _tayaHistory = [];       // [{role,content}] - only used for freeform chat continuity
-let _tayaLastDraft = '';     // most recent draft text, for the active draft card's Save action
+
+function tayaTime() {
+  return new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
 
 function toggleTayaPanel(forceOpen) {
   const panel = document.getElementById('taya-panel');
@@ -16,8 +19,8 @@ function toggleTayaPanel(forceOpen) {
   const opening = forceOpen !== undefined ? forceOpen : !panel.classList.contains('open');
   panel.classList.toggle('open', opening);
   if (opening) {
-    const sub = document.getElementById('taya-panel-sub');
-    if (sub) sub.textContent = currentOrg?.name || '—';
+    const subText = document.getElementById('taya-panel-sub-text');
+    if (subText) subText.textContent = currentOrg?.name || '—';
     document.getElementById('taya-input')?.focus();
   }
 }
@@ -25,10 +28,10 @@ function toggleTayaPanel(forceOpen) {
 // Resets the panel back to the greeting + quick-action chips, clearing any
 // prior conversation - called whenever a fresh, unrelated task starts.
 function tayaResetPanel() {
-  _tayaMode = null; _tayaContext = {}; _tayaHistory = []; _tayaLastDraft = '';
+  _tayaMode = null; _tayaContext = {}; _tayaHistory = [];
   const body = document.getElementById('taya-panel-body');
   if (body) body.innerHTML = `
-    <div class="taya-greeting">Hi! What would you like help with?</div>
+    <div class="taya-greeting">Hi, I'm Taya 👋<br>What can I help with today?</div>
     <div class="taya-chip-row" id="taya-chip-row">
       <div class="taya-chip" onclick="tayaQuickAction('meeting_minutes')">📝 Meeting minutes</div>
       <div class="taya-chip" onclick="tayaQuickAction('financial_summary')">📊 Financial summary</div>
@@ -44,14 +47,22 @@ function tayaAppend(html) {
 }
 
 function tayaAppendUserBubble(text) {
-  tayaAppend(`<div class="taya-bubble-user">${h(text)}</div>`);
+  tayaAppend(`<div class="taya-msg-row from-user"><div class="taya-bubble-user">${h(text)}</div><div class="taya-msg-time">${tayaTime()}</div></div>`);
+}
+
+function tayaAppendTayaBubble(text) {
+  tayaAppend(`<div class="taya-msg-row from-taya"><div class="taya-bubble-taya">${h(text)}</div><div class="taya-msg-time">${tayaTime()}</div></div>`);
+}
+
+function tayaAppendError(message) {
+  tayaAppend(`<div class="taya-msg-row from-taya"><div class="taya-error-bubble">Sorry, that didn't work: ${h(message)}<br><br>If this keeps happening, <a href="https://wa.me/254702903544?text=Hi%2C%20I%20need%20help%20with%20Taya%20on%20GroupYetu360" target="_blank" rel="noopener">contact support on WhatsApp</a>.</div></div>`);
 }
 
 function tayaShowTyping() {
-  tayaAppend(`<div class="taya-typing" id="taya-typing-indicator"><span></span><span></span><span></span></div>`);
+  tayaAppend(`<div class="taya-msg-row from-taya" id="taya-typing-row"><div class="taya-typing"><span></span><span></span><span></span></div></div>`);
 }
 function tayaHideTyping() {
-  document.getElementById('taya-typing-indicator')?.remove();
+  document.getElementById('taya-typing-row')?.remove();
 }
 
 // ── Entry points ──
@@ -61,11 +72,19 @@ function tayaHideTyping() {
 // meeting without minutes, ask which one rather than guessing.
 async function tayaQuickAction(mode) {
   if (mode === 'meeting_minutes') {
-    const { data: candidates } = await sb.from('meetings').select('id, meeting_date, agenda')
-      .eq('org_id', currentOrg.id).is('minutes', null)
-      .order('meeting_date', { ascending: false }).limit(5);
+    let candidates;
+    try {
+      const res = await sb.from('meetings').select('id, meeting_date, agenda')
+        .eq('org_id', currentOrg.id).is('minutes', null)
+        .order('meeting_date', { ascending: false }).limit(5);
+      if (res.error) throw res.error;
+      candidates = res.data;
+    } catch (e) {
+      tayaAppendError('Could not load your meetings — ' + e.message);
+      return;
+    }
     if (!candidates?.length) {
-      tayaAppend(`<div class="taya-bubble-taya">All your recent meetings already have minutes filed. Nothing pending right now.</div>`);
+      tayaAppendTayaBubble("All your recent meetings already have minutes filed. Nothing pending right now.");
       return;
     }
     if (candidates.length === 1) {
@@ -73,7 +92,7 @@ async function tayaQuickAction(mode) {
       return;
     }
     const chipsHtml = candidates.map(m => `<div class="taya-chip" onclick="openTaya('meeting_minutes','${m.id}')">${h(m.meeting_date)}${m.agenda ? ' — ' + h(m.agenda.slice(0,24)) : ''}</div>`).join('');
-    tayaAppend(`<div class="taya-bubble-taya">Which meeting?</div><div class="taya-chip-row">${chipsHtml}</div>`);
+    tayaAppend(`<div class="taya-msg-row from-taya"><div class="taya-bubble-taya">Which meeting would you like minutes for?</div></div><div class="taya-chip-row">${chipsHtml}</div>`);
     return;
   }
   if (mode === 'financial_summary') { openTaya('financial_summary'); return; }
@@ -85,14 +104,15 @@ async function tayaQuickAction(mode) {
 // so it skips straight to generating rather than asking which one.
 async function openTaya(mode, contextId) {
   toggleTayaPanel(true);
+  tayaResetPanel();
   _tayaMode = mode;
   _tayaContext = mode === 'meeting_minutes' ? { meeting_id: contextId } : {};
   _tayaHistory = [];
 
   if (mode === 'meeting_minutes') {
-    tayaAppend(`<div class="taya-bubble-taya">Tell me what was discussed (or leave blank and I'll draft from the agenda alone), then send.</div>`);
-    document.getElementById('taya-input').placeholder = 'e.g. Discussed AGM date, welfare fund status…';
-    document.getElementById('taya-input').focus();
+    tayaAppendTayaBubble("Tell me what was discussed — or just hit send and I'll draft from the agenda alone.");
+    const input = document.getElementById('taya-input');
+    if (input) { input.placeholder = 'e.g. Discussed AGM date, welfare fund status…'; input.focus(); }
     return;
   }
   if (mode === 'financial_summary') {
@@ -117,7 +137,6 @@ async function sendTayaMessage() {
 
   tayaAppendUserBubble(text);
 
-  // No mode selected yet - treat as a freeform question about the org.
   if (!_tayaMode) _tayaMode = 'chat';
 
   await tayaGenerateDraft(text);
@@ -131,7 +150,7 @@ async function tayaGenerateDraft(message) {
   try {
     const session = await sb.auth.getSession();
     const jwt = session?.data?.session?.access_token;
-    if (!jwt) throw new Error('No active session');
+    if (!jwt) throw new Error("your session has expired — refresh the page and try again");
 
     const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/taya-assistant', {
       method: 'POST',
@@ -144,20 +163,27 @@ async function tayaGenerateDraft(message) {
         context: _tayaContext,
       }),
     });
-    const result = await res.json();
+
+    let result;
+    try {
+      result = await res.json();
+    } catch (parseErr) {
+      throw new Error(`Taya's server didn't respond properly (status ${res.status}). This usually means the function isn't deployed yet, or the API key isn't set up correctly.`);
+    }
+
     tayaHideTyping();
-    if (!res.ok || result.error) throw new Error(result.error || 'Something went wrong');
+    if (!res.ok || result.error) throw new Error(result.error || `something went wrong (status ${res.status})`);
+    if (!result.reply || !result.reply.trim()) throw new Error("Taya came back with an empty response — try rephrasing, or send again");
 
     if (_tayaMode === 'chat') {
       _tayaHistory.push({ role: 'user', content: message }, { role: 'assistant', content: result.reply });
-      tayaAppend(`<div class="taya-bubble-taya">${h(result.reply)}</div>`);
+      tayaAppendTayaBubble(result.reply);
     } else {
-      _tayaLastDraft = result.reply;
       tayaRenderDraftCard(_tayaMode, result.reply);
     }
   } catch (e) {
     tayaHideTyping();
-    tayaAppend(`<div class="taya-bubble-taya">Sorry, I couldn't do that: ${h(e.message)}<br><br>If this keeps happening, <a href="https://wa.me/254702903544?text=Hi%2C%20I%20need%20help%20with%20Taya%20on%20GroupYetu360" target="_blank" rel="noopener">contact support on WhatsApp</a>.</div>`);
+    tayaAppendError(e.message || 'unknown error');
   } finally {
     if (sendBtn) sendBtn.disabled = false;
   }
@@ -165,9 +191,9 @@ async function tayaGenerateDraft(message) {
 
 function tayaRenderDraftCard(mode, text) {
   const labels = {
-    meeting_minutes: 'Draft — Meeting Minutes',
-    financial_summary: 'Draft — Financial Summary',
-    arrears_message: 'Draft — Arrears Reminder',
+    meeting_minutes: '📝 Draft — Meeting minutes',
+    financial_summary: '📊 Draft — Financial summary',
+    arrears_message: '💬 Draft — Arrears reminder',
   };
   const saveLabels = {
     meeting_minutes: 'Save to Meetings →',
