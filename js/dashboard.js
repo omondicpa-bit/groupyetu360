@@ -169,18 +169,56 @@ async function loadDashboard() {
     }).catch(e => console.error('[GY360] recent txns fetch:', e));
 
   // ── All transactions — renders year total, chart, category breakdown ──
-  const allTxnPromise = sb.from('transactions')
-    .select('amount,transaction_date,contribution_types(name)')
-    .eq('org_id', orgId)
-    .then(({ data }) => {
-      const allTxns = data || [];
+  const allTxnPromise = Promise.all([
+    sb.from('transactions').select('amount,transaction_date,type_id,welfare_event_id').eq('org_id', orgId),
+    sb.from('contribution_types').select('id,name,is_active').eq('org_id', orgId),
+    sb.from('welfare_events').select('id,is_active').eq('org_id', orgId),
+    sb.from('table_banking_pools').select('id,status').eq('org_id', orgId),
+    sb.from('savings_rounds').select('id,status').eq('org_id', orgId),
+  ]).then(async ([txnRes, typesRes, welRes, poolRes, roundRes]) => {
+      const allTxns = txnRes.data || [];
       const yearTxns = allTxns.filter(t => (t.transaction_date||'').startsWith(thisYear));
       const yearTotal = yearTxns.reduce((s,t) => s + Number(t.amount||0), 0);
       setEl('dash-txn', yearTxns.length);
       setEl('dash-txn-meta', 'Ksh ' + yearTotal.toLocaleString() + ' this year');
-      // Category breakdown
+
+      // Category breakdown — only currently-active contribution types
+      // (an archived/deleted type stops appearing here, even though its
+      // past transactions are correctly still kept for history elsewhere),
+      // plus separate live totals for Welfare/Table Banking/MGR scoped to
+      // their currently-active events/pools/rounds only. None of those
+      // three ever go through contribution_types - they live in their own
+      // tables entirely, so they were invisible here before regardless of
+      // archiving.
+      const activeTypeIds = new Set((typesRes.data||[]).filter(t => t.is_active !== false).map(t => t.id));
+      const typeNameById = {}; (typesRes.data||[]).forEach(t => { typeNameById[t.id] = t.name; });
+      const activeWelfareIds = new Set((welRes.data||[]).filter(e => e.is_active !== false).map(e => e.id));
+      const activePoolIds = (poolRes.data||[]).filter(p => p.status === 'active').map(p => p.id);
+      const activeRoundIds = (roundRes.data||[]).filter(r => r.status === 'active').map(r => r.id);
+
       const cats = {};
-      allTxns.forEach(t => { const c = t.contribution_types?.name||'Other'; cats[c] = (cats[c]||0) + Number(t.amount||0); });
+      allTxns.forEach(t => {
+        if (t.welfare_event_id) return; // handled separately below, and excluded here regardless of active status
+        if (!t.type_id || !activeTypeIds.has(t.type_id)) return; // archived/deleted type, or untyped - drop rather than bucket into "Other"
+        const c = typeNameById[t.type_id];
+        cats[c] = (cats[c]||0) + Number(t.amount||0);
+      });
+
+      const welfareTotal = allTxns.filter(t => t.welfare_event_id && activeWelfareIds.has(t.welfare_event_id))
+        .reduce((s,t) => s + Number(t.amount||0), 0);
+      if (welfareTotal > 0) cats['Welfare'] = welfareTotal;
+
+      if (activePoolIds.length) {
+        const { data: tbContribs } = await sb.from('table_banking_contributions').select('amount,pool_id').in('pool_id', activePoolIds);
+        const tbTotal = (tbContribs||[]).reduce((s,c) => s + Number(c.amount||0), 0);
+        if (tbTotal > 0) cats['Table Banking'] = tbTotal;
+      }
+      if (activeRoundIds.length) {
+        const { data: mgrContribs } = await sb.from('round_contributions').select('amount,round_id').in('round_id', activeRoundIds);
+        const mgrTotal = (mgrContribs||[]).reduce((s,c) => s + Number(c.amount||0), 0);
+        if (mgrTotal > 0) cats['Rotating Savings'] = mgrTotal;
+      }
+
       const summaryEl = document.getElementById('txn-summary-content');
       if (summaryEl) {
         const entries = Object.entries(cats).sort((a,b) => b[1]-a[1]);
@@ -189,7 +227,7 @@ async function loadDashboard() {
           const pct = grand ? Math.round((total/grand)*100) : 0;
           return `<div style="margin-bottom:.7rem">
             <div style="display:flex;justify-content:space-between;margin-bottom:.25rem">
-              <span style="font-size:.78rem;color:var(--ink-soft)">${cat}</span>
+              <span style="font-size:.78rem;color:var(--ink-soft)">${h(cat)}</span>
               <strong style="font-size:.78rem;color:var(--maroon)">Ksh ${total.toLocaleString()}</strong>
             </div>
             <div style="height:5px;background:var(--border);border-radius:3px">

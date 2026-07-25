@@ -1725,7 +1725,7 @@ function updateTopbarActions(page) {
         break;
       case 'finance':
         topbar.innerHTML = `
-          <button class="topbar-btn outline" onclick="switchFinTab(document.querySelector('[onclick*=tab-expense-record]'),'tab-expense-record')">+ Expense</button>
+          <button class="topbar-btn outline" onclick="showModal('recordExpense')">+ Expense</button>
           <button class="topbar-btn" onclick="openRecordPaymentModal()">+ Record Payment</button>`;
         break;
       case 'meetings':

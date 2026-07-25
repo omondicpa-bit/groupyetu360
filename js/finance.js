@@ -179,7 +179,8 @@ async function loadFinance() {
       <td><strong>Ksh ${Number(t.amount).toLocaleString()}</strong></td>
       <td>${h(t.mpesa_ref)||'—'}</td>
       <td>${h(t.notes)||'—'}</td>
-    </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--ink-faint)">No contributions recorded yet</td></tr>';
+      <td><button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteTransactionEntry('${t.id}')">✕</button></td>
+    </tr>`).join('') : '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--ink-faint)">No contributions recorded yet</td></tr>';
 
   // Income table
   const incEl = document.getElementById('income-table');
@@ -225,6 +226,75 @@ async function deleteExpenseEntry(id, description, amount, entryType) {
   await updateBankBalance(currentOrg.id, amount, entryType === 'income' ? 'debit' : 'credit');
   await logActivity('DELETE ' + (entryType === 'income' ? 'INCOME' : 'EXPENSE'), `Deleted: ${description} - Ksh ${Number(amount).toLocaleString()}`, 'expense');
   toast(description + ' deleted');
+  loadFinance();
+  loadDashboard();
+}
+
+// Deletes a transaction and reverses its effects correctly - this is more
+// subtle than expense/income deletion because transactions can affect
+// bank_balance AND a member's shares/savings balance, and welfare-tagged
+// transactions deliberately touch NEITHER (see approvePaymentRequest() -
+// welfare money is tracked independently of bank_balance and member
+// balances by design, in both directions).
+//
+// Also handles "combined" rows correctly: a payment split across multiple
+// contribution types (e.g. Shares + Savings in one go) is stored as ONE
+// transaction row, with the real per-type breakdown only readable as free
+// text in .notes ("Shares: Ksh 300 | Savings: Ksh 2,500") - there's no
+// structured column for it. Auto-reversing shares/savings for these rows
+// would mean guessing which balance(s) to touch and by how much, which is
+// exactly the kind of silent financial corruption this codebase's own
+// history has been careful to avoid elsewhere. For these rows, the
+// transaction is deleted but the member's balance is left untouched, with
+// a clear warning to correct it manually via Debit/Credit if needed.
+async function deleteTransactionEntry(id) {
+  if (!canDo('recordPayment')) { toast('⚠ You do not have permission to delete this.'); return; }
+  const txn = (_lastFinanceData.txns || []).find(t => t.id === id);
+  if (!txn) { toast('Transaction not found - try refreshing the page'); return; }
+
+  const amount = Number(txn.amount || 0);
+  const isWelfare = !!txn.welfare_event_id;
+  const isCombined = (txn.notes || '').includes(' | '); // multiple "Type: Ksh X | Type: Ksh Y" allocations folded into one row
+
+  let msg = `Delete this Ksh ${amount.toLocaleString()} transaction for ${txn.members?.full_name || 'this member'}?`;
+  if (isWelfare) {
+    msg += '\n\nThis is a welfare contribution - it never affected the bank balance or member balance, so nothing else needs reversing.';
+  } else {
+    msg += '\n\nThis will reverse its effect on the bank balance';
+    if (isCombined) {
+      msg += '.\n\n⚠ This transaction combined multiple contribution types (see its notes) - the member\'s shares/savings balance will NOT be auto-adjusted, since which portion goes to which balance can only be read from free text, not reliably parsed. Use Debit/Credit on their card afterward if their balance needs correcting.';
+    } else if (txn.type_id) {
+      msg += " and the member's balance";
+    }
+  }
+  msg += '\n\nThis cannot be undone.';
+  if (!confirm(msg)) return;
+
+  const { error } = await sb.from('transactions').delete().eq('id', id);
+  if (error) { toast('Error: ' + error.message); return; }
+
+  if (!isWelfare) {
+    await updateBankBalance(currentOrg.id, amount, 'debit');
+
+    if (!isCombined && txn.member_id && txn.type_id) {
+      const ct = (allContribTypes || []).find(t => t.id === txn.type_id);
+      const incomeType = ct?.income_type || '';
+      const isShares = incomeType === 'member_shares' || ct?.name?.toLowerCase().includes('share');
+      const isSavings = incomeType === 'member_savings' || ct?.name?.toLowerCase().includes('saving');
+      if (isShares || isSavings) {
+        const { data: member } = await sb.from('members').select('shares_balance,savings_balance').eq('id', txn.member_id).single();
+        if (member) {
+          const updates = {};
+          if (isShares) updates.shares_balance = Math.max(0, (member.shares_balance||0) - amount);
+          if (isSavings) updates.savings_balance = Math.max(0, (member.savings_balance||0) - amount);
+          if (Object.keys(updates).length) await sb.from('members').update(updates).eq('id', txn.member_id);
+        }
+      }
+    }
+  }
+
+  await logActivity('DELETE TRANSACTION', `Deleted Ksh ${amount.toLocaleString()} transaction for ${txn.members?.full_name||'member'}${isCombined?' (combined allocation - balance not auto-adjusted)':''}${isWelfare?' (welfare - no balance effect)':''}`, 'transaction');
+  toast('Transaction deleted');
   loadFinance();
   loadDashboard();
 }
@@ -498,6 +568,7 @@ async function saveIncome() {
   await updateBankBalance(currentOrg.id, payload.amount, 'credit');
   toast('Income recorded successfully');
   clearIncForm();
+  closeModal('recordIncome');
   loadFinance();
   loadDashboard();
 }
@@ -543,7 +614,7 @@ async function saveExpense() {
   const totalExpense = payload.amount + charges;
   await updateBankBalance(currentOrg.id, totalExpense, 'debit');
   toast('Expense recorded' + (charges > 0 ? ` + Ksh ${charges} charges` : ''));
-  clearExpForm(); loadFinance(); loadDashboard();
+  clearExpForm(); closeModal('recordExpense'); loadFinance(); loadDashboard();
 }
 
 
@@ -846,7 +917,17 @@ async function approvePaymentRequest(requestId) {
   // and the FULL payment total (including welfare) was credited to
   // bank_balance with no separation at all.
   const welfareAllocs = allocations.filter(a => a.isWelfare && a.eventId);
-  const regularAllocs = allocations.filter(a => !(a.isWelfare && a.eventId));
+  // TB and MGR allocations were falling through into "everything else" here
+  // and getting silently dumped into the generic transactions table as a
+  // regular contribution - meaning approving a payment request with a TB or
+  // MGR allocation never actually credited the TB pool or MGR round at all,
+  // even though the admin saw "Approved" and the member believed their
+  // contribution was recorded. Mirrors creditMemberContribution.ts (the
+  // Instant Pay Edge Function), which already handled this correctly -
+  // that path just never had a manual-approval equivalent until now.
+  const tbAllocs = allocations.filter(a => a.isTB && a.poolId);
+  const mgrAllocs = allocations.filter(a => a.isMGR && a.slotId);
+  const regularAllocs = allocations.filter(a => !(a.isWelfare && a.eventId) && !(a.isTB && a.poolId) && !(a.isMGR && a.slotId));
   const regularTotal = regularAllocs.reduce((s,a)=>s+Number(a.amount||0),0);
   const welfareTotal = welfareAllocs.reduce((s,a)=>s+Number(a.amount||0),0);
 
@@ -885,6 +966,47 @@ async function approvePaymentRequest(requestId) {
       recorded_by: currentUser.id
     });
     if (!welErr) successCount++;
+  }
+
+  // Table Banking - own table, same shape as the Instant Pay Edge Function
+  // (creditMemberContribution.ts) and the manual TB "Record Contribution"
+  // flow. Never touches bank_balance - TB money is tracked in its own pool,
+  // not the group's general funds.
+  for (const alloc of tbAllocs) {
+    const { error: tbErr } = await sb.from('table_banking_contributions').insert({
+      pool_id: alloc.poolId,
+      org_id: currentOrg.id,
+      member_id: req.member_id,
+      amount: Number(alloc.amount),
+      payment_date: req.payment_date || new Date().toISOString().split('T')[0],
+      mpesa_ref: req.mpesa_ref || null,
+      provider: req.provider || 'manual',
+      recorded_by: currentUser.id,
+    });
+    if (!tbErr) successCount++;
+    else toast('⚠ Table Banking contribution failed to record: ' + tbErr.message);
+  }
+
+  // MGR - own table (round_contributions), same shape as the Edge Function.
+  // Never touches bank_balance - this money is destined for a specific
+  // round receiver via settlement, not the group's own funds. status is
+  // 'paid' immediately since this IS the payment confirmation.
+  for (const alloc of mgrAllocs) {
+    const { error: mgrErr } = await sb.from('round_contributions').insert({
+      round_id: alloc.roundId,
+      slot_id: alloc.slotId,
+      org_id: currentOrg.id,
+      contributor_member_id: req.member_id,
+      amount: Number(alloc.amount),
+      method: 'mobile_money',
+      mpesa_ref: req.mpesa_ref || null,
+      payment_date: req.payment_date || new Date().toISOString().split('T')[0],
+      status: 'paid',
+      provider: req.provider || 'manual',
+      recorded_by: currentUser.id,
+    });
+    if (!mgrErr) successCount++;
+    else toast('⚠ MGR contribution failed to record: ' + mgrErr.message);
   }
 
   // Accumulate per-allocation member balance updates - only for regular
