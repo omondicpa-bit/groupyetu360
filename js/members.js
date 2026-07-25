@@ -883,6 +883,14 @@ async function saveAdjustment() {
   if (adjErr) { toast('Error: '+adjErr.message); return; }
   // Update member balance
   const { data: member } = await sb.from('members').select('shares_balance,savings_balance').eq('id', currentMemberId).single();
+  // Maps the adj-type dropdown's values ('shares'/'savings', set in
+  // populateMemberAdjOptions()) to the actual member column names. This was
+  // referenced above but never defined anywhere in the codebase - every
+  // call threw a ReferenceError right here, after the balance_adjustments
+  // audit row had already been inserted successfully, so Debit/Credit
+  // silently logged an adjustment record without ever actually changing
+  // the member's balance.
+  const balFieldMap = { shares: 'shares_balance', savings: 'savings_balance' };
   const balField = balFieldMap[adjType] || 'savings_balance';
   const currentBal = member[balField] || 0;
   const newBal = direction==='credit'?currentBal+amount:Math.max(0,currentBal-amount);
