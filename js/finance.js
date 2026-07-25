@@ -165,6 +165,10 @@ async function loadFinance() {
     }
   }
 
+  // Cache last-loaded data so export buttons can use exactly what's on
+  // screen without a separate re-fetch.
+  _lastFinanceData = { txns, incomes, expenses };
+
   // Contributions table
   const txnEl = document.getElementById('txn-table');
   if (txnEl) txnEl.innerHTML = txns.length ? txns.map(t => `
@@ -187,7 +191,8 @@ async function loadFinance() {
       <td><strong>Ksh ${Number(e.amount).toLocaleString()}</strong></td>
       <td>${h(e.mpesa_ref)||'—'}</td>
       <td>${h(e.project)||'—'}</td>
-    </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--ink-faint)">No income recorded yet</td></tr>';
+      <td><button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteExpenseEntry('${e.id}','${(e.description||e.category||'income entry').replace(/'/g,"&apos;")}',${Number(e.amount)},'income')">✕</button></td>
+    </tr>`).join('') : '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--ink-faint)">No income recorded yet</td></tr>';
 
   // Expenses table
   const expEl = document.getElementById('exp-table');
@@ -199,10 +204,77 @@ async function loadFinance() {
       <td><strong>Ksh ${Number(e.amount).toLocaleString()}</strong></td>
       <td>${h(e.mpesa_ref)||'—'}</td>
       <td>${h(e.project)||'—'}</td>
-    </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--ink-faint)">No expenses yet</td></tr>';
+      <td><button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteExpenseEntry('${e.id}','${(e.description||e.category||'expense entry').replace(/'/g,"&apos;")}',${Number(e.amount)},'expense')">✕</button></td>
+    </tr>`).join('') : '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--ink-faint)">No expenses yet</td></tr>';
 
   // Populate mobile finance shell
   if (typeof populateFinMob === 'function') populateFinMob();
+}
+
+// Deletes an expense or income row (both live in the same `expenses` table,
+// distinguished by entry_type) and reverses its effect on the bank balance -
+// income was credited on creation, expense was debited, so deletion applies
+// the opposite direction. Without this, deleting a row would leave the
+// bank_balance total silently wrong forever (overstated for a deleted
+// expense, understated for a deleted income).
+async function deleteExpenseEntry(id, description, amount, entryType) {
+  if (!canDo('recordPayment')) { toast('⚠ You do not have permission to delete this.'); return; }
+  if (!confirm('Delete "' + description + '" (Ksh ' + Number(amount).toLocaleString() + ')?\n\nThis will also reverse its effect on the bank balance. This cannot be undone.')) return;
+  const { error } = await sb.from('expenses').delete().eq('id', id);
+  if (error) { toast('Error: ' + error.message); return; }
+  await updateBankBalance(currentOrg.id, amount, entryType === 'income' ? 'debit' : 'credit');
+  await logActivity('DELETE ' + (entryType === 'income' ? 'INCOME' : 'EXPENSE'), `Deleted: ${description} - Ksh ${Number(amount).toLocaleString()}`, 'expense');
+  toast(description + ' deleted');
+  loadFinance();
+  loadDashboard();
+}
+
+function exportContributionsCSV() {
+  const rows = (_lastFinanceData.txns || []).map(t => [
+    t.transaction_date || t.created_at?.split('T')[0] || '',
+    t.members?.full_name || '',
+    t.contribution_types?.name || 'Payment',
+    Number(t.amount || 0),
+    t.mpesa_ref || '',
+    t.notes || '',
+  ]);
+  exportToCSV(
+    ['Date', 'Member', 'Type', 'Amount (Ksh)', 'M-Pesa Ref', 'Notes'],
+    rows,
+    `${(currentOrg?.name || 'group').replace(/[^a-z0-9]+/gi, '-')}-contributions-${new Date().toISOString().split('T')[0]}.csv`
+  );
+}
+
+function exportIncomeCSV() {
+  const rows = (_lastFinanceData.incomes || []).map(e => [
+    e.expense_date || e.created_at?.split('T')[0] || '',
+    e.category || '',
+    e.description || '',
+    Number(e.amount || 0),
+    e.mpesa_ref || '',
+    e.project || '',
+  ]);
+  exportToCSV(
+    ['Date', 'Category', 'Description', 'Amount (Ksh)', 'Reference', 'Project'],
+    rows,
+    `${(currentOrg?.name || 'group').replace(/[^a-z0-9]+/gi, '-')}-income-${new Date().toISOString().split('T')[0]}.csv`
+  );
+}
+
+function exportExpensesCSV() {
+  const rows = (_lastFinanceData.expenses || []).map(e => [
+    e.expense_date || e.created_at?.split('T')[0] || '',
+    e.category || '',
+    e.description || '',
+    Number(e.amount || 0),
+    e.mpesa_ref || '',
+    e.project || '',
+  ]);
+  exportToCSV(
+    ['Date', 'Category', 'Description', 'Amount (Ksh)', 'M-Pesa Ref', 'Project'],
+    rows,
+    `${(currentOrg?.name || 'group').replace(/[^a-z0-9]+/gi, '-')}-expenses-${new Date().toISOString().split('T')[0]}.csv`
+  );
 }
 
 async function saveTransaction() {

@@ -14,6 +14,32 @@ function h(str) {
     .replace(/'/g, '&#39;');
 }
 
+// ── CSV EXPORT (canonical — same reasoning as h() above: utils.js loads
+//    first, so this one definition is available everywhere a table needs
+//    an Export button, instead of every page re-implementing it) ──
+// rows: array of arrays (already in display order/format, not raw DB rows -
+// callers are responsible for picking and formatting the columns they want).
+// Values are CSV-escaped (quoted + doubled internal quotes) whenever they
+// contain a comma, quote, or newline - the standard CSV escaping rule, not
+// the HTML escaping h() does.
+function exportToCSV(headers, rows, filename) {
+  const escapeCSV = (val) => {
+    const s = String(val ?? '');
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const lines = [headers, ...rows].map(row => row.map(escapeCSV).join(','));
+  const csv = lines.join('\r\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' }); // BOM so Excel opens Ksh/UTF-8 text correctly, not as mojibake
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 /* ── PLAN CARD SELECTOR ── */
 function selectRegPlan(el) {
   document.querySelectorAll('.reg-plan-card').forEach(c => c.classList.remove('selected'));

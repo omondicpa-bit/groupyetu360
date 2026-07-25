@@ -314,6 +314,7 @@ async function openMemberDetail(memberId) {
   const isSelf = window._myMemberId === memberId;
   const { data: m } = await sb.from('members').select('*').eq('id', memberId).single();
   if (!m) return;
+  _lastMemberDetail = m;
 
   // Determine display number: prefer display_number if set, else internal_number, else member_number
   const displayNum = m.display_number || (m.internal_number ? String(m.internal_number).padStart(3,'0') : m.member_number) || '—';
@@ -525,6 +526,7 @@ async function loadMemberHistory(memberId) {
     ...txns.map(t=>({date:t.transaction_date||t.created_at?.split('T')[0], type:'payment', label:t.contribution_types?.name||'Payment', amount:t.amount, direction:'credit', notes:t.mpesa_ref||t.notes||'—'})),
     ...adjs.map(a=>({date:a.created_at?.split('T')[0], type:'adjustment', label:a.adjustment_type==='shares'?'Shares Adj':'Savings Adj', amount:a.amount, direction:a.direction, notes:a.reason||'—'}))
   ].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  _lastMemberHistory = combined;
   document.getElementById('md-history-list').innerHTML = combined.length ? `
     <table>
       <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>+/−</th><th>Notes</th></tr></thead>
@@ -536,6 +538,67 @@ async function loadMemberHistory(memberId) {
         <td style="font-size:.75rem">${h(r.notes)}</td>
       </tr>`).join('')}</tbody>
     </table>` : '<div style="padding:2rem;text-align:center;color:var(--ink-faint);font-size:.82rem">No history yet</div>';
+}
+
+// Builds a clean, printable statement for the currently-open member using
+// data already cached by openMemberDetail()/loadMemberHistory() - no
+// separate fetch needed. Populates a hidden container and triggers the
+// browser's print dialog; "Save as PDF" there is the actual PDF export -
+// this avoids adding a whole PDF-generation library for what the browser
+// already does reliably.
+function printMemberStatement() {
+  const m = _lastMemberDetail;
+  if (!m) { toast('Open a member first'); return; }
+  const displayNum = m.display_number || (m.internal_number ? String(m.internal_number).padStart(3,'0') : m.member_number) || '—';
+  const totalBal = Number(m.shares_balance||0) + Number(m.savings_balance||0);
+  const today = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+
+  const rowsHtml = _lastMemberHistory.length ? _lastMemberHistory.map(r => `
+    <tr>
+      <td>${h(r.date)||'—'}</td>
+      <td>${h(r.label)}</td>
+      <td style="text-align:right">${r.direction==='credit'?'+':'−'} Ksh ${Number(r.amount).toLocaleString()}</td>
+      <td>${h(r.notes)}</td>
+    </tr>`).join('') : '<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:#888">No history yet</td></tr>';
+
+  document.getElementById('print-member-statement').innerHTML = `
+    <div style="padding:2rem;font-family:Arial,sans-serif;color:#1a1a1a">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #800020;padding-bottom:1rem;margin-bottom:1.5rem">
+        <div>
+          <div style="font-size:1.3rem;font-weight:800">${h(currentOrg?.name)||'Group'}</div>
+          <div style="font-size:.75rem;color:#666;margin-top:.2rem">${h(currentOrg?.org_code)||''}</div>
+        </div>
+        <div style="text-align:right;font-size:.75rem;color:#666">
+          <div>Member Statement</div>
+          <div>Generated ${today}</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:1.25rem">
+        <div style="font-size:1.05rem;font-weight:700">${h(m.full_name)}</div>
+        <div style="font-size:.78rem;color:#666;margin-top:.15rem">Member #${h(displayNum)} · ${h(m.phone)||'—'}${m.id_number?' · ID '+h(m.id_number):''}</div>
+      </div>
+
+      <div style="display:flex;gap:1rem;margin-bottom:1.5rem">
+        <div style="flex:1;border:1px solid #ddd;border-radius:6px;padding:.85rem"><div style="font-size:.68rem;color:#888;text-transform:uppercase">Shares Balance</div><div style="font-size:1.15rem;font-weight:700;color:#800020">Ksh ${Number(m.shares_balance||0).toLocaleString()}</div></div>
+        <div style="flex:1;border:1px solid #ddd;border-radius:6px;padding:.85rem"><div style="font-size:.68rem;color:#888;text-transform:uppercase">Savings Balance</div><div style="font-size:1.15rem;font-weight:700">Ksh ${Number(m.savings_balance||0).toLocaleString()}</div></div>
+        <div style="flex:1;border:1px solid #ddd;border-radius:6px;padding:.85rem;background:#f4f9f7"><div style="font-size:.68rem;color:#888;text-transform:uppercase">Total Balance</div><div style="font-size:1.15rem;font-weight:700;color:#0f6e56">Ksh ${totalBal.toLocaleString()}</div></div>
+      </div>
+
+      <div style="font-size:.85rem;font-weight:700;margin-bottom:.5rem">Transaction History</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.78rem">
+        <thead><tr style="border-bottom:2px solid #ccc;text-align:left">
+          <th style="padding:.5rem .3rem">Date</th><th style="padding:.5rem .3rem">Type</th><th style="padding:.5rem .3rem;text-align:right">Amount</th><th style="padding:.5rem .3rem">Notes</th>
+        </tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+
+      <div style="margin-top:2rem;padding-top:1rem;border-top:1px solid #ddd;font-size:.68rem;color:#999;text-align:center">
+        Generated by GroupYetu360 for ${h(currentOrg?.name)||'this group'} · Not a bank statement
+      </div>
+    </div>`;
+
+  window.print();
 }
 
 async function saveMemberDetail() {
