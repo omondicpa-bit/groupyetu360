@@ -97,6 +97,8 @@ async function loadMeetings() {
           onclick="event.stopPropagation();selectMeeting('${m.id}','${d.toDateString()}')">
           ${isPast?'View Attendance':'Take Attendance'}
         </button>
+        ${isPast && !m.minutes ? `<button class="btn btn-secondary btn-sm" style="font-size:.7rem;color:var(--maroon)"
+          onclick="event.stopPropagation();openTaya('meeting_minutes','${m.id}')">✨ Draft with Taya</button>` : ''}
         ${canSchedule ? `<button class="btn btn-danger btn-sm" style="font-size:.7rem"
           onclick="event.stopPropagation();deleteMeeting('${m.id}')">✕</button>` : ''}
       </div>

@@ -294,6 +294,10 @@ function showAuthScreen() {
   document.getElementById('auth-screen').style.display = 'flex';
   document.getElementById('pending-screen').style.display = 'none';
   document.getElementById('app-screen').classList.remove('visible');
+  const waFab = document.getElementById('support-fab-btn');
+  if (waFab) waFab.style.display = '';
+  const tayaFab = document.getElementById('taya-fab-btn');
+  if (tayaFab) tayaFab.style.display = 'none';
   const picker = document.getElementById('org-picker-screen');
   if (picker) picker.style.display = 'none';
   document.getElementById('auth-step-1').style.display = 'block';
@@ -1654,6 +1658,15 @@ function showApp() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('pending-screen').style.display = 'none';
   document.getElementById('app-screen').classList.add('visible');
+  // Taya replaces WhatsApp support once inside an org - Taya has real org
+  // context to work with here, unlike the picker/pre-org screens where
+  // there's nothing for it to draft from. WhatsApp stays reachable via the
+  // sidebar "Contact Support" link either way, and Taya itself can hand off
+  // to WhatsApp directly when something needs a human.
+  const waFab = document.getElementById('support-fab-btn');
+  if (waFab) waFab.style.display = 'none';
+  const tayaFab = document.getElementById('taya-fab-btn');
+  if (tayaFab) tayaFab.style.display = 'flex';
   // Resolve role from _userOrgs cache (populated by loadUserOrgs before showApp is called)
   // This ensures the correct per-org role is used immediately, no async delay
   const cachedOrgEntry = _userOrgs.find(o => o.id === currentOrg?.id);
