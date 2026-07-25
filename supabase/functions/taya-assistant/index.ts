@@ -159,9 +159,17 @@ serve(async (req: Request) => {
       const totalShares = (members || []).reduce((s, m) => s + Number(m.shares_balance || 0), 0);
       const totalSavings = (members || []).reduce((s, m) => s + Number(m.savings_balance || 0), 0);
       const arrears = (members || []).filter(m => m.status === 'arrears').map(m => m.full_name);
+      // Previously only the group-wide totals were included here, even
+      // though every member's own balance was already fetched above - a
+      // question about one specific member's balance had nothing to draw
+      // on, so Taya correctly said it didn't have the data, when the real
+      // issue was that the data was fetched but never actually passed in.
+      const memberTable = (members || [])
+        .map((m:any) => `${m.full_name} - ${m.status} - Shares: Ksh ${Number(m.shares_balance||0).toLocaleString()} - Savings: Ksh ${Number(m.savings_balance||0).toLocaleString()}`)
+        .join('\n');
 
       system += `\n\nAnswer questions about this group using only the data provided below. If something isn't in the data given, say you don't have that information rather than guessing.`;
-      userMessage = `Group: ${orgName}\nTotal members: ${(members||[]).length}\nTotal shares balance: Ksh ${totalShares.toLocaleString()}\nTotal savings balance: Ksh ${totalSavings.toLocaleString()}\nMembers in arrears: ${arrears.length ? arrears.join(', ') : 'none'}\n\nRecent transactions (last 30):\n${(recentTxns||[]).map((t:any) => `${t.transaction_date} - ${t.members?.full_name||'Unknown'} - Ksh ${t.amount}`).join('\n')}\n\nQuestion: ${message}`;
+      userMessage = `Group: ${orgName}\nTotal members: ${(members||[]).length}\nTotal shares balance: Ksh ${totalShares.toLocaleString()}\nTotal savings balance: Ksh ${totalSavings.toLocaleString()}\nMembers in arrears: ${arrears.length ? arrears.join(', ') : 'none'}\n\nPer-member balances:\n${memberTable}\n\nRecent transactions (last 30):\n${(recentTxns||[]).map((t:any) => `${t.transaction_date} - ${t.members?.full_name||'Unknown'} - Ksh ${t.amount}`).join('\n')}\n\nQuestion: ${message}`;
 
     } else {
       return new Response(JSON.stringify({ error: 'Unknown mode: ' + mode }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
