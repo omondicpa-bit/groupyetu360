@@ -696,9 +696,16 @@ async function openMemberPaymentModal() {
       : 'Enter the amount you have paid';
   }
 
-  // Load active welfare events
-  const { data: welfareEvents } = await sb.from('welfare_events')
-    .select('*').eq('org_id', currentOrg.id).eq('is_active', true).limit(5);
+  // Load active welfare events. is_active is never explicitly set on
+  // creation, so it can sit as NULL rather than true - a strict
+  // .eq('is_active', true) query silently excludes those rows. Filtering
+  // client-side with !== false instead, matching the permissive "active
+  // unless explicitly closed" convention used everywhere else this field
+  // is read (this was very likely why an open event with real members could
+  // still show zero payments - nobody, member or admin, could select it).
+  const { data: allWelfareEvents } = await sb.from('welfare_events')
+    .select('*').eq('org_id', currentOrg.id);
+  const welfareEvents = (allWelfareEvents || []).filter(e => e.is_active !== false).slice(0, 5);
   const welfareSection = document.getElementById('mp-option-welfare');
   const welfareList = document.getElementById('mp-welfare-list');
   if (welfareSection && welfareList) {

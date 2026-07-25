@@ -467,10 +467,14 @@ async function openRecordPaymentModal(prefillMemberId) {
   }
 
   const [welRes, tbRes] = await Promise.all([
-    sb.from('welfare_events').select('id,event_type').eq('org_id', currentOrg.id).eq('is_active', true),
+    sb.from('welfare_events').select('id,event_type,is_active').eq('org_id', currentOrg.id),
     sb.from('table_banking_pools').select('id,name').eq('org_id', currentOrg.id).eq('status', 'active'),
   ]);
-  _modalWelfareEventsCache = welRes.data || [];
+  // is_active is never explicitly set on creation, so it can sit as NULL
+  // rather than true - filtering client-side with !== false (not a strict
+  // .eq('is_active', true) in the query) matches the same "active unless
+  // explicitly closed" convention used everywhere else this field is read.
+  _modalWelfareEventsCache = (welRes.data || []).filter(e => e.is_active !== false);
   _modalTBPoolsCache = tbRes.data || [];
 
   addPaymentLine();

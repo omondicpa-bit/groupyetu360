@@ -86,9 +86,14 @@ async function loadDashboard() {
   // any disbursed-but-not-yet-closed amounts) rather than a cached column, to
   // avoid the exact class of drift/lock bug that froze bank_balance earlier.
   (async () => {
-    const { data: openEvents } = await sb.from('welfare_events')
-      .select('id').eq('org_id', orgId).eq('is_active', true);
-    const openIds = (openEvents||[]).map(e=>e.id);
+    const { data: allEvents } = await sb.from('welfare_events')
+      .select('id,is_active').eq('org_id', orgId);
+    // is_active is never explicitly set on creation, so it can sit as NULL
+    // rather than true - a strict .eq('is_active', true) query silently
+    // excludes those rows. Filtering client-side with !== false instead,
+    // matching the permissive "active unless explicitly closed" convention
+    // used everywhere else this field is read.
+    const openIds = (allEvents||[]).filter(e => e.is_active !== false).map(e=>e.id);
     const welMetaEl = document.getElementById('dash-welfare-meta');
     if (!openIds.length) { if (welMetaEl) welMetaEl.style.display = 'none'; return; }
     const { data: welTxns } = await sb.from('transactions')
