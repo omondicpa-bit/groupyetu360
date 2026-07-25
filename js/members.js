@@ -4,6 +4,26 @@
 // h() (XSS sanitiser) is defined in utils.js — loads before this file, available globally.
 
 // ── MEMBERS ──
+function exportMembersCSV() {
+  const displayNum = (m) => m.display_number || (m.internal_number ? String(m.internal_number).padStart(3,'0') : m.member_number) || '';
+  const rows = (allMembers || []).map(m => [
+    displayNum(m),
+    m.full_name || '',
+    m.phone || '',
+    m.email || '',
+    m.id_number || '',
+    Number(m.shares_balance || 0),
+    Number(m.savings_balance || 0),
+    m.status || '',
+    m.joined_date || m.created_at?.split('T')[0] || '',
+  ]);
+  exportToCSV(
+    ['#', 'Name', 'Phone', 'Email', 'ID Number', 'Shares (Ksh)', 'Savings (Ksh)', 'Status', 'Joined'],
+    rows,
+    `${(currentOrg?.name || 'group').replace(/[^a-z0-9]+/gi, '-')}-members-${new Date().toISOString().split('T')[0]}.csv`
+  );
+}
+
 async function loadMembers() {
   if (!currentOrg?.id) return;
   // Gate Add Member button based on role

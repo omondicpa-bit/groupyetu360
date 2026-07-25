@@ -2155,6 +2155,23 @@ function updatePromoToggleUI() {
 
 // ── SA ACTIVITY LOG ────────────────────────────────────────────────────────────
 
+var _lastSAActivity = [];
+
+function exportSAActivityCSV() {
+  const rows = _lastSAActivity.map(r => [
+    new Date(r.created_at).toLocaleString(),
+    r.action || '',
+    r.profiles?.full_name || r.user_id || '',
+    r.details || r.description || '',
+    r.organisations?.name || r.org_id || '',
+  ]);
+  exportToCSV(
+    ['Time', 'Action', 'User', 'Detail', 'Organisation'],
+    rows,
+    `activity-log-${new Date().toISOString().split('T')[0]}.csv`
+  );
+}
+
 async function loadSAActivity() {
   const listEl  = document.getElementById('sa-activity-list');
   const tableEl = document.getElementById('sa-activity-table');
@@ -2167,21 +2184,22 @@ async function loadSAActivity() {
   try {
     const orgFilter  = document.getElementById('activity-filter-org')?.value  || '';
     const typeFilter = document.getElementById('activity-filter-action')?.value || '';
-    let q = sb.from('activity_log').select('*,profiles(full_name)').order('created_at', { ascending: false }).limit(200);
+    let q = sb.from('activity_log').select('*,profiles(full_name),organisations(name)').order('created_at', { ascending: false }).limit(200);
     if (orgFilter)  q = q.eq('org_id', orgFilter);
     if (typeFilter) q = q.ilike('action', `%${typeFilter}%`);
     const { data, error } = await q;
     if (error) throw error;
+    _lastSAActivity = data || [];
     if (!data?.length) {
       tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--ink-faint)">No activity found</td></tr>';
       return;
     }
     tbody.innerHTML = data.map(r => `<tr style="border-bottom:0.5px solid var(--border)">
       <td style="font-size:.72rem;color:var(--ink-faint);padding:.5rem 1.25rem">${new Date(r.created_at).toLocaleString()}</td>
-      <td style="font-size:.75rem;font-weight:600;padding:.5rem">${r.action||'—'}</td>
-      <td style="font-size:.73rem;padding:.5rem">${r.profiles?.full_name||r.user_id?.slice(0,8)||'—'}</td>
-      <td style="font-size:.73rem;color:var(--ink-faint);padding:.5rem">${r.details||r.description||'—'}</td>
-      <td style="font-size:.7rem;color:var(--ink-faint);padding:.5rem">${r.org_id?.slice(0,8)||'—'}</td>
+      <td style="font-size:.75rem;font-weight:600;padding:.5rem">${h(r.action)||'—'}</td>
+      <td style="font-size:.73rem;padding:.5rem">${h(r.profiles?.full_name)||r.user_id?.slice(0,8)||'—'}</td>
+      <td style="font-size:.73rem;color:var(--ink-faint);padding:.5rem">${h(r.details||r.description)||'—'}</td>
+      <td style="font-size:.7rem;color:var(--ink-faint);padding:.5rem">${h(r.organisations?.name)||r.org_id?.slice(0,8)||'—'}</td>
     </tr>`).join('');
   } catch(e) {
     tbody.innerHTML = `<tr><td colspan="5" style="color:var(--danger);padding:1rem">${e.message}</td></tr>`;
@@ -3127,6 +3145,25 @@ async function syncSettlementBatches() {
 
 // SA view - syncs first, then renders every batch from the last 60 days
 // grouped by date, most recent first.
+var _lastSASettlements = [];
+
+function exportSASettlementsCSV() {
+  const rows = _lastSASettlements.map(b => [
+    b.settlement_date || '',
+    b.organisations?.name || 'Unknown',
+    b.provider || '',
+    settlementLineLabel(b),
+    Number(b.amount || 0),
+    b.status || '',
+    b.paid_at || '',
+  ]);
+  exportToCSV(
+    ['Date', 'Organisation', 'Provider', 'What', 'Amount (Ksh)', 'Status', 'Paid At'],
+    rows,
+    `all-settlements-${new Date().toISOString().split('T')[0]}.csv`
+  );
+}
+
 async function loadSASettlements() {
   const el = document.getElementById('sa-settlements-list');
   if (!el) return;
@@ -3140,6 +3177,7 @@ async function loadSASettlements() {
       .select('*, organisations(name), welfare_events(event_type), round_slots(slot_number, member_id, savings_rounds(name))')
       .gte('settlement_date', since.toISOString().split('T')[0])
       .order('settlement_date', { ascending: false });
+    _lastSASettlements = batches || [];
 
     if (!batches?.length) {
       const settleBadgeEmpty = document.getElementById('sa-bill-badge-settlement');
@@ -3435,6 +3473,23 @@ async function requestWelfareSettlement(welfareEventId) {
   }
 }
 
+var _lastOrgSettlements = [];
+
+function exportOrgSettlementsCSV() {
+  const rows = _lastOrgSettlements.map(b => [
+    b.settlement_date || '',
+    settlementLineLabel(b),
+    Number(b.amount || 0),
+    b.status || '',
+    b.paid_at || '',
+  ]);
+  exportToCSV(
+    ['Date', 'What', 'Amount (Ksh)', 'Status', 'Paid At'],
+    rows,
+    `${(currentOrg?.name || 'group').replace(/[^a-z0-9]+/gi, '-')}-settlements-${new Date().toISOString().split('T')[0]}.csv`
+  );
+}
+
 async function loadOrgSettlements() {
   const el = document.getElementById('org-settlements-list');
   if (!el || !currentOrg?.id) return;
@@ -3449,6 +3504,7 @@ async function loadOrgSettlements() {
       .eq('org_id', currentOrg.id)
       .gte('settlement_date', since.toISOString().split('T')[0])
       .order('settlement_date', { ascending: false });
+    _lastOrgSettlements = batches || [];
 
     // Summary stats
     const monthStart = new Date(); monthStart.setDate(1);
