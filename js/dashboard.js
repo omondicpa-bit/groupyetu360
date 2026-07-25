@@ -196,18 +196,36 @@ async function loadDashboard() {
       // tables entirely, so they were invisible here before regardless of
       // archiving.
       const activeTypeIds = new Set((typesRes.data||[]).filter(t => t.is_active !== false).map(t => t.id));
-      const typeNameById = {}; (typesRes.data||[]).forEach(t => { typeNameById[t.id] = t.name; });
+      const typeNameById = {}; const typeIncomeById = {};
+      (typesRes.data||[]).forEach(t => { typeNameById[t.id] = t.name; typeIncomeById[t.id] = t.income_type || ''; });
       const activeWelfareIds = new Set((welRes.data||[]).filter(e => e.is_active !== false).map(e => e.id));
       const activePoolIds = (poolRes.data||[]).filter(p => p.status === 'active').map(p => p.id);
       const activeRoundIds = (roundRes.data||[]).filter(r => r.status === 'active').map(r => r.id);
+
+      // A type counts as "shares" or "savings" using the same rule
+      // applied everywhere else in this codebase when crediting a payment
+      // (see saveModalTransaction/saveTransaction): the structured
+      // income_type field first, falling back to matching the name.
+      const isSharesType = (id) => typeIncomeById[id] === 'member_shares' || (typeNameById[id]||'').toLowerCase().includes('share');
+      const isSavingsType = (id) => typeIncomeById[id] === 'member_savings' || (typeNameById[id]||'').toLowerCase().includes('saving');
 
       const cats = {};
       allTxns.forEach(t => {
         if (t.welfare_event_id) return; // handled separately below, and excluded here regardless of active status
         if (!t.type_id || !activeTypeIds.has(t.type_id)) return; // archived/deleted type, or untyped - drop rather than bucket into "Other"
+        if (isSharesType(t.type_id) || isSavingsType(t.type_id)) return; // Shares/Savings come from members.shares_balance/savings_balance below instead - see note above
         const c = typeNameById[t.type_id];
         cats[c] = (cats[c]||0) + Number(t.amount||0);
       });
+
+      // Shares/Savings - summed directly from each member's actual balance,
+      // matching what their own member card shows, rather than re-deriving
+      // it from a transaction sum that can drift from the true balance.
+      const { data: memberBalances } = await sb.from('members').select('shares_balance,savings_balance').eq('org_id', orgId);
+      const totalShares = (memberBalances||[]).reduce((s,m) => s + Number(m.shares_balance||0), 0);
+      const totalSavings = (memberBalances||[]).reduce((s,m) => s + Number(m.savings_balance||0), 0);
+      if (totalShares > 0) cats['Shares'] = totalShares;
+      if (totalSavings > 0) cats['Savings'] = totalSavings;
 
       const welfareTotal = allTxns.filter(t => t.welfare_event_id && activeWelfareIds.has(t.welfare_event_id))
         .reduce((s,t) => s + Number(t.amount||0), 0);
