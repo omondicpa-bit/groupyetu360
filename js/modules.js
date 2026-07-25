@@ -342,12 +342,27 @@ let _welTypes = []; // cached welfare event types for this org
 async function loadWelfare() {
   if (!currentOrg?.id) return;
 
+  // Plan gate - previously on the Settings > Welfare tab itself (hidden
+  // entirely for starter plan); preserved here as-is since this is the
+  // only place that gate existed. Worth confirming with Felix this is
+  // still the intended behavior now that the page itself isn't gated.
+  const manageBtn = document.getElementById('wel-manage-types-btn');
+  if (manageBtn) {
+    const plan = currentOrg?.plan || 'starter';
+    manageBtn.style.display = plan === 'starter' ? 'none' : '';
+  }
+
   // ── Load org's welfare event types ──
   try {
     const { data: types } = await sb.from('welfare_event_types')
       .select('*').eq('org_id', currentOrg.id).order('created_at');
     _welTypes = types || [];
   } catch(e) { _welTypes = []; }
+
+  // Types management now lives on this page (Manage Types button) rather
+  // than a separate Settings tab, so keep its list in sync whenever this
+  // page loads too - not just when the panel is opened.
+  if (typeof loadWelfareTypes === 'function') loadWelfareTypes();
 
   // ── Hero — show org's event types as pills ──
   const subEl = document.getElementById('wel-hero-sub');
@@ -361,7 +376,7 @@ async function loadWelfare() {
           <span class="wel-rate-pill-val">Ksh ${Number(t.default_amount||0).toLocaleString()}</span>
         </div>`).join('');
     } else {
-      pillsEl.innerHTML = '<div style="font-size:.75rem;opacity:.7;margin-top:.35rem">No event types configured yet — add them in Settings → Welfare</div>';
+      pillsEl.innerHTML = '<div style="font-size:.75rem;opacity:.7;margin-top:.35rem">No event types configured yet — click Manage Types above to add some</div>';
     }
   }
 
@@ -2885,6 +2900,14 @@ async function deleteTBPool(poolId, poolName) {
 }
 
 // ── WELFARE EVENT TYPES (Settings) ────────────────────────────────────────
+function toggleWelfareTypesPanel() {
+  const panel = document.getElementById('welfare-types-panel');
+  if (!panel) return;
+  const opening = panel.style.display === 'none';
+  panel.style.display = opening ? 'block' : 'none';
+  if (opening) { loadWelfareTypes(); panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+}
+
 async function loadWelfareTypes() {
   const listEl = document.getElementById('welfare-types-list');
   if (!listEl) return;

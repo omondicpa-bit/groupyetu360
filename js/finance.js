@@ -277,7 +277,8 @@ function renderPayLines() {
   const container = document.getElementById('modal-pay-lines');
   if (!container) return;
   const typeOptions = (allContribTypes || [])
-    .map(t => `<option value="${t.id}" data-income="${t.income_type||''}">${t.name}${t.default_amount ? ' (Ksh '+Number(t.default_amount).toLocaleString()+')' : ''}</option>`)
+    .filter(t => t.is_active !== false) // archived types stay selectable for viewing history elsewhere, but shouldn't offer as a destination for new payments
+    .map(t => `<option value="${t.id}" data-income="${t.income_type||''}">${h(t.name)}${t.default_amount ? ' (Ksh '+Number(t.default_amount).toLocaleString()+')' : ''}</option>`)
     .join('');
   container.innerHTML = _payLines.map((line, i) => `
     <div style="display:flex;align-items:center;gap:.5rem;background:var(--surface-2);border-radius:8px;padding:.5rem .65rem">

@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026072501">
+  <link rel="stylesheet" href="style.css?v=2026072502">
 </head>
 <body>
 
@@ -1433,7 +1433,57 @@
           <div class="wel-hero-sub" id="wel-hero-sub">Loading rates…</div>
           <div class="wel-rates" id="wel-rates-pills"></div>
         </div>
-        <button class="btn fin-ctrl-btn" onclick="showModal('welfareEvent')">+ New Event</button>
+        <div style="display:flex;gap:.5rem">
+          <button class="btn btn-secondary" id="wel-manage-types-btn" onclick="toggleWelfareTypesPanel()">⚙ Manage Types</button>
+          <button class="btn fin-ctrl-btn" onclick="showModal('welfareEvent')">+ New Event</button>
+        </div>
+      </div>
+
+      <!-- ── EVENT TYPES (collapsed by default - relocated from Settings, was its own tab there duplicating this standalone page) ── -->
+      <div class="card" id="welfare-types-panel" style="display:none;margin-bottom:1.25rem">
+        <div class="card-header">
+          <div><div class="card-title">Welfare Event Types</div><div class="card-sub">Define the event types your group uses and their default contribution rates</div></div>
+          <button class="card-action" onclick="showAddWelfareType()">+ Add Type</button>
+        </div>
+        <div id="welfare-types-list"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+        <!-- Add/edit form (inline) -->
+        <div id="welfare-type-form" style="display:none;padding:1rem 1.25rem;border-top:1px solid var(--border);background:var(--surface)">
+          <div style="font-size:.8rem;font-weight:700;color:var(--ink);margin-bottom:.75rem" id="wtf-title">Add Event Type</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Event Type Name</label>
+              <input class="form-input" id="wtf-name" placeholder="e.g. Member Bereavement, Annual Party"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Default Contribution (Ksh)</label>
+              <input class="form-input" type="number" id="wtf-amount" placeholder="e.g. 1000"/>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Category</label>
+              <select class="form-select" id="wtf-category">
+                <option value="bereavement">Bereavement</option>
+                <option value="community">Community / General</option>
+                <option value="celebration">Celebration</option>
+                <option value="emergency">Emergency</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Scope</label>
+              <select class="form-select" id="wtf-scope">
+                <option value="member_specific">Member-specific</option>
+                <option value="general">General / Community</option>
+              </select>
+            </div>
+          </div>
+          <input type="hidden" id="wtf-id"/>
+          <div style="display:flex;gap:.5rem">
+            <button class="btn btn-primary btn-sm" onclick="saveWelfareType()" style="background:var(--maroon)">Save Type →</button>
+            <button class="btn btn-secondary btn-sm" onclick="hideWelfareTypeForm()">Cancel</button>
+          </div>
+        </div>
       </div>
 
       <!-- ── STATS ── -->
@@ -1680,8 +1730,6 @@
         <button class="fin-tab" onclick="switchSettingsTab(this,'st-payments')">💳 Payments</button>
         <button class="fin-tab" onclick="switchSettingsTab(this,'st-contributions')">₭ Contributions</button>
         <button class="fin-tab" onclick="switchSettingsTab(this,'st-team')">👥 Team</button>
-        <button class="fin-tab" id="st-welfare-tab" onclick="switchSettingsTab(this,'st-welfare')">♡ Welfare</button>
-        <button class="fin-tab" onclick="switchSettingsTab(this,'st-meetings')">📅 Meetings</button>
       </div>
 
       <!-- ── TAB: GENERAL ── -->
@@ -1838,79 +1886,6 @@
             <button class="card-action" onclick="showModal('inviteAdmin')">+ Invite Admin</button>
           </div>
           <div id="team-members-list"><div class="loading"><div class="spinner"></div>Loading…</div></div>
-        </div>
-      </div>
-
-      <!-- ── TAB: WELFARE ── -->
-      <div class="tab-panel" id="st-welfare">
-        <div class="card">
-          <div class="card-header">
-            <div><div class="card-title">Welfare Event Types</div><div class="card-sub">Define the event types your group uses and their default contribution rates</div></div>
-            <button class="card-action" onclick="showAddWelfareType()">+ Add Type</button>
-          </div>
-          <div id="welfare-types-list"><div class="loading"><div class="spinner"></div>Loading…</div></div>
-          <!-- Add/edit form (inline) -->
-          <div id="welfare-type-form" style="display:none;padding:1rem 1.25rem;border-top:1px solid var(--border);background:var(--surface)">
-            <div style="font-size:.8rem;font-weight:700;color:var(--ink);margin-bottom:.75rem" id="wtf-title">Add Event Type</div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Event Type Name</label>
-                <input class="form-input" id="wtf-name" placeholder="e.g. Member Bereavement, Annual Party"/>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Default Contribution (Ksh)</label>
-                <input class="form-input" type="number" id="wtf-amount" placeholder="e.g. 1000"/>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Category</label>
-                <select class="form-select" id="wtf-category">
-                  <option value="bereavement">Bereavement</option>
-                  <option value="community">Community / General</option>
-                  <option value="celebration">Celebration</option>
-                  <option value="emergency">Emergency</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Scope</label>
-                <select class="form-select" id="wtf-scope">
-                  <option value="member_specific">Member-specific</option>
-                  <option value="general">General / Community</option>
-                </select>
-              </div>
-            </div>
-            <input type="hidden" id="wtf-id"/>
-            <div style="display:flex;gap:.5rem">
-              <button class="btn btn-primary btn-sm" onclick="saveWelfareType()" style="background:var(--maroon)">Save Type →</button>
-              <button class="btn btn-secondary btn-sm" onclick="hideWelfareTypeForm()">Cancel</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── TAB: MEETINGS ── -->
-      <div class="tab-panel" id="st-meetings">
-        <div class="card" style="max-width:540px">
-          <div class="card-header"><div class="card-title">Meeting Defaults</div><div class="card-sub">Pre-fill new meetings with these values</div></div>
-          <div class="card-body">
-            <div class="form-row">
-              <div class="form-group"><label class="form-label">Default Meeting Time</label><input class="form-input" type="time" id="settings-meeting-time" value="20:30"/></div>
-              <div class="form-group"><label class="form-label">Default Venue</label>
-                <select class="form-select" id="settings-meeting-venue">
-                  <option>Online (Virtual)</option>
-                  <option>Physical Location</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-row single">
-              <div class="form-group"><label class="form-label">Standing Agenda Items</label>
-                <textarea class="form-textarea" id="settings-agenda" placeholder="1. Opening Prayer&#10;2. Treasurer's Report&#10;3. AOB" style="min-height:100px;resize:vertical"></textarea>
-              </div>
-            </div>
-            <div class="form-actions"><button class="btn btn-primary" onclick="saveMeetingDefaults()" style="background:var(--maroon)">Save Defaults →</button></div>
-          </div>
         </div>
       </div>
 
@@ -4175,7 +4150,7 @@
     <div class="modal-body">
       <!-- Event type - driven by org's configured types -->
       <div class="form-group">
-        <label class="form-label">Event Type <a onclick="showPage('settings');switchSettingsTab(document.querySelector('[onclick*=st-welfare]'),'st-welfare')" style="color:var(--teal);cursor:pointer;font-size:.7rem;font-weight:400;margin-left:.35rem">+ Manage types →</a></label>
+        <label class="form-label">Event Type <a onclick="closeModal('welfareEvent');showPage('welfare');toggleWelfareTypesPanel()" style="color:var(--teal);cursor:pointer;font-size:.7rem;font-weight:400;margin-left:.35rem">+ Manage types →</a></label>
         <select class="form-select" id="wel-type" onchange="onWelfareTypeChange(this.value)">
           <option value="">Select event type…</option>
           <option value="__custom__">Custom / Other (enter manually)</option>
@@ -5638,14 +5613,14 @@
 
 
   <!-- GroupYetu360 Scripts - load order matters -->
-  <script src="js/auth.js?v=2026072501"></script>
-  <script src="js/utils.js?v=2026072501"></script>
-  <script src="js/dashboard.js?v=2026072501"></script>
-  <script src="js/members.js?v=2026072501"></script>
-  <script src="js/finance.js?v=2026072501"></script>
-  <script src="js/settings.js?v=2026072501"></script>
-  <script src="js/portal.js?v=2026072501"></script>
-  <script src="js/modules.js?v=2026072501"></script>
+  <script src="js/auth.js?v=2026072502"></script>
+  <script src="js/utils.js?v=2026072502"></script>
+  <script src="js/dashboard.js?v=2026072502"></script>
+  <script src="js/members.js?v=2026072502"></script>
+  <script src="js/finance.js?v=2026072502"></script>
+  <script src="js/settings.js?v=2026072502"></script>
+  <script src="js/portal.js?v=2026072502"></script>
+  <script src="js/modules.js?v=2026072502"></script>
   <script>
     // Bootstrap - runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —

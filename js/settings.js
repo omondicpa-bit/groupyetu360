@@ -97,18 +97,9 @@ function switchSettingsTab(btn, tabId) {
   document.querySelectorAll('#page-settings .tab-panel').forEach(p => p.classList.remove('active'));
   const panel = document.getElementById(tabId);
   if (panel) panel.classList.add('active');
-  // Load welfare types when that tab is opened
-  if (tabId === 'st-welfare' && typeof loadWelfareTypes === 'function') loadWelfareTypes();
 }
 
 async function loadSettings() {
-  // Gate welfare tab on plan
-  const welfareTab = document.getElementById('st-welfare-tab');
-  if (welfareTab) {
-    const plan = currentOrg?.plan || 'starter';
-    welfareTab.style.display = plan === 'starter' ? 'none' : '';
-  }
-
   if (!currentOrg?.id) return;
   // Refresh org data from DB first
   const { data: freshOrg } = await sb.from('organisations').select('*').eq('id', currentOrg.id).single();
@@ -149,14 +140,16 @@ async function loadSettings() {
     ctEl.innerHTML = allContribTypes.length ? `
       <div class="table-wrap">
       <table><thead><tr><th>Type</th><th>Default Amt</th><th>Frequency</th><th>Income Type</th><th></th></tr></thead>
-      <tbody>${allContribTypes.map(t=>`<tr>
-        <td><strong>${h(t.name)}</strong>${t.notes?`<div style='font-size:.68rem;color:var(--ink-faint)'>${h(t.notes)}</div>`:''}</td>
+      <tbody>${allContribTypes.map(t=>`<tr${t.is_active===false?' style="opacity:.55"':''}>
+        <td><strong>${h(t.name)}</strong>${t.is_active===false?' <span class="badge badge-grey" style="font-size:.6rem">ARCHIVED</span>':''}${t.notes?`<div style='font-size:.68rem;color:var(--ink-faint)'>${h(t.notes)}</div>`:''}</td>
         <td>Ksh ${t.is_variable?'Variable':Number(t.amount||0).toLocaleString()}</td>
         <td><span class="badge badge-grey">${t.frequency}</span></td>
         <td>${t.is_member_income===false?'<span class="badge badge-maroon" title="Goes to group funds only">Admin</span>':'<span class="badge badge-green" title="Adds to member balances">Member</span>'}</td>
         <td style="display:flex;gap:.4rem">
-          <button class="btn btn-secondary btn-sm" onclick="editContribType('${t.id}')">Edit</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteContribType('${t.id}','${t.name.replace(/'/g,"&apos;")}')">✕</button>
+          ${t.is_active===false
+            ? `<button class="btn btn-secondary btn-sm" onclick="restoreContribType('${t.id}','${t.name.replace(/'/g,"&apos;")}')">Restore</button>`
+            : `<button class="btn btn-secondary btn-sm" onclick="editContribType('${t.id}')">Edit</button>
+               <button class="btn btn-danger btn-sm" onclick="deleteContribType('${t.id}','${t.name.replace(/'/g,"&apos;")}')">✕</button>`}
         </td>
       </tr>`).join('')}</tbody></table></div>
       <div style="padding:.75rem 1.25rem"><button class="btn btn-secondary btn-sm" onclick="showModal('addContribType')">+ Add Contribution Type</button></div>` :
@@ -168,21 +161,50 @@ async function loadSettings() {
   populateSelects();
 }
 
+// Per-org role (admin/treasurer/officer) lives in user_orgs.role - profiles.role
+// is the platform-wide account status (member/admin/superadmin/pending), not an
+// org-scoped permission. This tab used to read profiles.role filtered by
+// profiles.org_id, which is exactly backwards per this codebase's own
+// architecture rules, and meant team members added via the multi-org
+// (user_orgs) path never showed up here at all.
+//
+// Reads BOTH sources and merges them (preferring the user_orgs value when a
+// user appears in both) rather than switching over outright, so legacy
+// admins who predate the multi-org migration - who may only have
+// profiles.role/profiles.org_id set, with no user_orgs row yet - don't
+// silently vanish from this list.
 async function loadTeamMembers() {
   if (!currentOrg?.id) return;
-  const { data: profiles } = await sb.from('profiles').select('*').eq('org_id', currentOrg.id);
   const teamEl = document.getElementById('team-members-list');
   if (!teamEl) return;
-  const team = (profiles||[]).filter(p => p.role !== 'member' && p.role !== 'pending' && p.role !== 'declined');
+  teamEl.innerHTML = '<div class="loading"><div class="spinner"></div>Loading…</div>';
+
+  const [legacyRes, userOrgsRes] = await Promise.all([
+    sb.from('profiles').select('id, full_name, role').eq('org_id', currentOrg.id).in('role', ['admin', 'treasurer', 'officer']),
+    sb.from('user_orgs').select('user_id, role, profiles(id, full_name)').eq('org_id', currentOrg.id).in('role', ['admin', 'treasurer', 'officer']),
+  ]);
+  if (legacyRes.error || userOrgsRes.error) {
+    teamEl.innerHTML = '<div style="padding:1.25rem;color:var(--maroon);font-size:.82rem">Error loading team: '+(legacyRes.error||userOrgsRes.error).message+'</div>';
+    return;
+  }
+
+  const merged = {};
+  (legacyRes.data || []).forEach(p => { merged[p.id] = { id: p.id, full_name: p.full_name, role: p.role }; });
+  (userOrgsRes.data || []).forEach(m => {
+    if (!m.profiles) return; // guard against an orphaned user_orgs row
+    merged[m.user_id] = { id: m.user_id, full_name: m.profiles.full_name, role: m.role }; // user_orgs wins if present in both
+  });
+  const team = Object.values(merged);
+
   teamEl.innerHTML = team.length ? `
     <table>
       <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Action</th></tr></thead>
       <tbody>${team.map(p=>`<tr>
-        <td><strong>${p.full_name||'—'}</strong></td>
-        <td>${p.id}</td>
-        <td><span class="badge ${p.role==='admin'?'badge-maroon':p.role==='superadmin'?'badge-gold':p.role==='treasurer'?'badge-green':'badge-grey'}">${p.role}</span></td>
+        <td><strong>${h(p.full_name)||'—'}</strong></td>
+        <td>${h(p.id)}</td>
+        <td><span class="badge ${p.role==='admin'?'badge-maroon':p.role==='treasurer'?'badge-green':'badge-grey'}">${p.role}</span></td>
         <td>
-          ${p.role !== 'superadmin' && p.id !== currentUser?.id ? `
+          ${p.id !== currentUser?.id ? `
           <select class="form-select" style="width:120px;padding:.2rem .5rem;font-size:.72rem" onchange="changeRole('${p.id}',this.value)">
             <option value="admin" ${p.role==='admin'?'selected':''}>Admin</option>
             <option value="treasurer" ${p.role==='treasurer'?'selected':''}>Treasurer</option>
@@ -195,8 +217,17 @@ async function loadTeamMembers() {
     '<div style="padding:1.25rem;font-size:.82rem;color:var(--ink-faint)">No admin team members yet</div>';
 }
 
+// Always writes to user_orgs (the correct per-org source going forward),
+// via upsert since a legacy admin may not have a user_orgs row yet - this
+// is also how a legacy admin naturally migrates onto the correct table the
+// first time their role is ever touched from this screen, with no separate
+// bulk-migration script needed. Deliberately does NOT also write
+// profiles.role - that field is platform-wide account status and is out of
+// scope here; see note to Felix about verifying nothing else (e.g. 2FA
+// eligibility) reads profiles.role specifically for org-level gating.
 async function changeRole(userId, newRole) {
-  const { error } = await sb.from('profiles').update({ role: newRole }).eq('id', userId);
+  const { error } = await sb.from('user_orgs')
+    .upsert({ user_id: userId, org_id: currentOrg.id, role: newRole }, { onConflict: 'user_id,org_id' });
   if (error) { toast('Error: '+error.message); return; }
   toast('Role updated to ' + newRole);
   loadTeamMembers();
@@ -445,19 +476,36 @@ async function toggleWithdrawWindow() {
   if (typeof updateWithdrawCard === 'function') updateWithdrawCard();
 }
 
-async function saveWelfareRates() {
-  toast('Welfare rates saved (feature coming soon)');
-}
-
-async function saveMeetingDefaults() {
-  toast('Meeting defaults saved (feature coming soon)');
-}
-
 async function deleteContribType(id, name) {
-  if (!confirm('Delete "' + name + '"? This won\'t affect existing transactions.')) return;
-  const { error } = await sb.from('contribution_types').delete().eq('id', id);
+  // A hard DELETE fails outright with a foreign key violation
+  // (transactions_type_id_fkey) if any transaction references this type -
+  // financial transaction history is never allowed to be silently orphaned
+  // or lost. Check first: if nothing references it, delete for real; if
+  // something does, archive it instead (is_active=false) so it disappears
+  // from new-payment pickers going forward while every past transaction
+  // still shows the correct type name.
+  const { count, error: countErr } = await sb.from('transactions')
+    .select('id', { count: 'exact', head: true }).eq('type_id', id);
+  if (countErr) { toast('Error: ' + countErr.message); return; }
+
+  if (!count) {
+    if (!confirm('Delete "' + name + '"? No transactions use this type, so this removes it completely.')) return;
+    const { error } = await sb.from('contribution_types').delete().eq('id', id);
+    if (error) { toast('Error: ' + error.message); return; }
+    toast(name + ' deleted');
+  } else {
+    if (!confirm('"' + name + '" has ' + count + ' transaction' + (count===1?'':'s') + ' recorded against it, so it can\'t be deleted outright without losing that history. Archive it instead? It will disappear from new-payment options but past transactions keep showing "' + name + '" correctly. You can restore it later.')) return;
+    const { error } = await sb.from('contribution_types').update({ is_active: false }).eq('id', id);
+    if (error) { toast('Error: ' + error.message); return; }
+    toast(name + ' archived');
+  }
+  loadSettings();
+}
+
+async function restoreContribType(id, name) {
+  const { error } = await sb.from('contribution_types').update({ is_active: true }).eq('id', id);
   if (error) { toast('Error: ' + error.message); return; }
-  toast(name + ' removed');
+  toast(name + ' restored');
   loadSettings();
 }
 

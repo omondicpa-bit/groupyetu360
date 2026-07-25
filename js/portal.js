@@ -679,10 +679,12 @@ async function openMemberPaymentModal() {
   // Load contribution types
   const { data: types } = await sb.from('contribution_types')
     .select('*').eq('org_id', currentOrg.id).order('name');
-  _mpContribTypes = (types||[]).filter(t =>
-    !t.name.toLowerCase().includes('registration') &&
-    !t.name.toLowerCase().includes('welfare')
-  );
+  // Previously filtered by matching "registration"/"welfare" in the name
+  // string - fragile (breaks on rename, false-matches partial names) and
+  // was really standing in for "this type has been superseded by a
+  // standalone feature." Now uses the same is_active flag Settings uses
+  // to archive a type, which is the actual source of truth.
+  _mpContribTypes = (types||[]).filter(t => t.is_active !== false);
 
   // Suggested amount label
   const sugLabel = document.getElementById('mp-suggested-label');
