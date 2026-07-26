@@ -42,6 +42,7 @@ function tayaResetPanel() {
       <div class="taya-chip" onclick="tayaQuickAction('financial_summary')">📊 Financial summary</div>
       <div class="taya-chip" onclick="tayaQuickAction('arrears_message')">💬 Arrears reminder</div>
       <div class="taya-chip" onclick="tayaQuickAction('member_lookup')">🔍 Member lookup</div>
+      <div class="taya-chip" onclick="tayaQuickAction('last_contribution')">📅 Last contribution check</div>
     </div>`;
 }
 
@@ -89,6 +90,14 @@ async function tayaQuickAction(mode) {
         <select class="form-select" style="width:100%;font-size:.78rem;padding:.5rem" onchange="tayaLookupMemberById(this.value)">
           <option value="">Select a member…</option>${options}
         </select>
+      </div>`);
+    return;
+  }
+  if (mode === 'last_contribution') {
+    tayaAppend(`<div class="taya-msg-row from-taya"><div class="taya-bubble-taya">Show members who have not contributed since which date?</div></div>
+      <div style="padding:0 .1rem;align-self:stretch;display:flex;gap:.4rem">
+        <input type="date" id="taya-cutoff-date" class="form-input" style="flex:1;font-size:.78rem;padding:.5rem"/>
+        <button class="taya-btn-primary" style="flex:none;padding:.5rem .9rem" onclick="tayaRunLastContributionCheck()">Check</button>
       </div>`);
     return;
   }
@@ -295,6 +304,15 @@ function tayaLogQuestion(question, handledBy) {
 }
 
 async function tayaTryDirectAnswer(text) {
+  // "Who has not contributed since / before X" needs an exact date to
+  // compare against. Guessing that date out of free text is exactly the
+  // kind of thing that goes wrong quietly, so this redirects to a real
+  // date picker instead of ever trying to parse "start of June" itself.
+  if (/(who|which member).*(not|hasn'?t|haven'?t).*(contribut|paid)|last contribut|contributed before|paid before|not contributed since/i.test(text)) {
+    await tayaQuickAction('last_contribution');
+    return true;
+  }
+
   // Only even attempt this for questions that look like a data lookup -
   // avoids misfiring on "draft a message" or genuinely open-ended chat.
   if (!/balance|arrears|how much|how many|contributed|paid|savings?|shares?/i.test(text)) return false;
@@ -333,6 +351,39 @@ async function tayaTryDirectAnswer(text) {
   }
 
   return false; // no confident match - let Claude handle it properly
+}
+
+// Every member's real last contribution date, computed from actual
+// transactions, not a limited recent-history window. Members with no
+// transactions at all show as never contributed.
+async function tayaRunLastContributionCheck() {
+  const cutoff = document.getElementById('taya-cutoff-date')?.value;
+  if (!cutoff) { toast('Pick a date first'); return; }
+
+  const [{ data: members }, { data: txns }] = await Promise.all([
+    sb.from('members').select('id, full_name').eq('org_id', currentOrg.id),
+    sb.from('transactions').select('member_id, transaction_date').eq('org_id', currentOrg.id),
+  ]);
+  if (!members) { tayaAppendError('Could not load members'); return; }
+
+  const lastByMember = {};
+  (txns || []).forEach(t => {
+    if (!t.member_id) return;
+    const cur = lastByMember[t.member_id];
+    if (!cur || t.transaction_date > cur) lastByMember[t.member_id] = t.transaction_date;
+  });
+
+  const stale = members
+    .map(m => ({ name: m.full_name, last: lastByMember[m.id] || null }))
+    .filter(m => !m.last || m.last < cutoff)
+    .sort((a, b) => (a.last || '').localeCompare(b.last || ''));
+
+  if (!stale.length) {
+    await tayaAppendDirect(`Every member has contributed since ${cutoff}.`);
+    return;
+  }
+  const lines = stale.map(m => `${m.name}: ${m.last ? 'last paid ' + m.last : 'never contributed'}`).join('\n');
+  await tayaAppendDirect(`Members with no contribution since ${cutoff}.\n\n${lines}`);
 }
 
 async function tayaLookupMemberById(memberId) {
