@@ -1290,7 +1290,7 @@ body.member-mob-active #taya-fab{display:none !important}
 .taya-fab-btn:active{transform:scale(.94)}
 .taya-fab-pulse{position:absolute;inset:-5px;border-radius:50%;border:2px solid rgba(159,225,203,.55);animation:fabPing 3s ease-out infinite}
 
-/* Panel — floating card on desktop/tablet */
+/* Panel - floating card on desktop/tablet */
 .taya-panel{
   position:fixed;bottom:5.5rem;right:1.5rem;width:380px;max-width:calc(100vw - 2rem);height:600px;max-height:calc(100vh - 8rem);
   background:rgba(255,255,255,.55);
@@ -1315,6 +1315,17 @@ body.member-mob-active #taya-fab{display:none !important}
 .taya-greeting{font-size:.8rem;color:var(--ink-faint);text-align:center;padding:.5rem 0 .3rem;line-height:1.5}
 .taya-chip-row{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center;margin-bottom:.4rem}
 .taya-chip{background:rgba(255,255,255,.65);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.7);border-radius:99px;padding:.45rem .8rem;font-size:.7rem;font-weight:600;color:var(--teal);cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.04);transition:transform .15s}
+
+/* Inline controls inside a Taya reply - date pickers, dropdowns, action
+   buttons. Soft, rounded, glass to match the rest of the panel, instead of
+   the plain app-wide form-input look that clashed here. */
+.taya-inline-group{display:flex;gap:.5rem;align-self:stretch;background:rgba(255,255,255,.4);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border-radius:16px;padding:.5rem}
+.taya-inline-field{flex:1;border:1px solid rgba(15,110,86,.22);border-radius:12px;padding:.6rem .85rem;font-size:.78rem;font-family:inherit;background:rgba(255,255,255,.75);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 1px 3px rgba(0,0,0,.04);color:var(--ink);transition:border-color .15s,box-shadow .15s}
+.taya-inline-field:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(15,110,86,.12)}
+.taya-inline-field[type="date"]::-webkit-calendar-picker-indicator{filter:invert(36%) sepia(45%) saturate(700%) hue-rotate(122deg) brightness(90%);cursor:pointer;opacity:.8}
+.taya-inline-btn{flex:none;border:none;border-radius:12px;padding:.6rem 1.1rem;font-size:.75rem;font-weight:700;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--teal) 0%,#0a5544 100%);box-shadow:0 3px 10px rgba(15,110,86,.25);transition:transform .15s,box-shadow .15s;white-space:nowrap}
+.taya-inline-btn:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(15,110,86,.32)}
+.taya-inline-btn:active{transform:translateY(0)}
 .taya-chip:hover{background:rgba(234,250,243,.8);border-color:var(--teal-mid,#9fe1cb);transform:translateY(-1px)}
 
 /* Bubbles - asymmetric radius mimics a tail without extra markup */

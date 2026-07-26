@@ -86,8 +86,8 @@ async function tayaQuickAction(mode) {
     }
     const options = members.map(m => `<option value="${m.id}">${h(m.full_name)}</option>`).join('');
     tayaAppend(`<div class="taya-msg-row from-taya"><div class="taya-bubble-taya">Which member?</div></div>
-      <div style="padding:0 .1rem;align-self:stretch">
-        <select class="form-select" style="width:100%;font-size:.78rem;padding:.5rem" onchange="tayaLookupMemberById(this.value)">
+      <div class="taya-inline-group">
+        <select class="taya-inline-field" onchange="tayaLookupMemberById(this.value)">
           <option value="">Select a member…</option>${options}
         </select>
       </div>`);
@@ -95,9 +95,9 @@ async function tayaQuickAction(mode) {
   }
   if (mode === 'last_contribution') {
     tayaAppend(`<div class="taya-msg-row from-taya"><div class="taya-bubble-taya">Show members who have not contributed since which date?</div></div>
-      <div style="padding:0 .1rem;align-self:stretch;display:flex;gap:.4rem">
-        <input type="date" id="taya-cutoff-date" class="form-input" style="flex:1;font-size:.78rem;padding:.5rem"/>
-        <button class="taya-btn-primary" style="flex:none;padding:.5rem .9rem" onclick="tayaRunLastContributionCheck()">Check</button>
+      <div class="taya-inline-group">
+        <input type="date" id="taya-cutoff-date" class="taya-inline-field"/>
+        <button class="taya-inline-btn" onclick="tayaRunLastContributionCheck()">Check</button>
       </div>`);
     return;
   }
