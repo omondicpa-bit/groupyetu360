@@ -205,10 +205,13 @@ function tayaAppendDirect(text) {
 async function tayaTryDirectAnswer(text) {
   // Only even attempt this for questions that look like a data lookup -
   // avoids misfiring on "draft a message" or genuinely open-ended chat.
-  if (!/balance|arrears|how much|how many|contributed|paid|savings?|shares?/i.test(text)) return false;
+  // Broadened after "please share report Stephen Otieno" fell through to
+  // Claude unnecessarily - "report"/"info"/"details" are natural ways to
+  // ask for exactly what this function already answers.
+  if (!/balance|arrears|how much|how many|contributed|paid|savings?|shares?|report|info|details/i.test(text)) return false;
 
   const { data: members, error } = await sb.from('members')
-    .select('full_name, status, shares_balance, savings_balance')
+    .select('id, full_name, status, shares_balance, savings_balance')
     .eq('org_id', currentOrg.id);
   if (error || !members) return false;
 
@@ -234,9 +237,7 @@ async function tayaTryDirectAnswer(text) {
 
   const member = tayaFindMemberInText(text, members);
   if (member) {
-    tayaAppendDirect(
-      `${member.full_name}\nStatus: ${member.status || 'active'}\nShares balance: Ksh ${Number(member.shares_balance || 0).toLocaleString()}\nSavings balance: Ksh ${Number(member.savings_balance || 0).toLocaleString()}`
-    );
+    await tayaAppendMemberReport(member);
     return true;
   }
 
@@ -246,11 +247,27 @@ async function tayaTryDirectAnswer(text) {
 async function tayaLookupMemberById(memberId) {
   if (!memberId) return;
   const { data: member, error } = await sb.from('members')
-    .select('full_name, status, shares_balance, savings_balance')
+    .select('id, full_name, status, shares_balance, savings_balance')
     .eq('id', memberId).single();
   if (error || !member) { tayaAppendError('Could not load that member — ' + (error?.message || 'not found')); return; }
+  await tayaAppendMemberReport(member);
+}
+
+// Scoped to one specific member's own transaction history, not capped at
+// "last 30 group-wide" the way the Claude chat path was - this is actually
+// more complete for an active group, not just free.
+async function tayaAppendMemberReport(member) {
+  const { data: txns } = await sb.from('transactions')
+    .select('amount, transaction_date, contribution_types(name)')
+    .eq('member_id', member.id)
+    .order('transaction_date', { ascending: false })
+    .limit(10);
+  const total = Number(member.shares_balance || 0) + Number(member.savings_balance || 0);
+  const txnLines = (txns || []).length
+    ? (txns || []).map(t => `${t.transaction_date} - ${t.contribution_types?.name || 'Payment'} - Ksh ${Number(t.amount).toLocaleString()}`).join('\n')
+    : 'No transactions recorded yet.';
   tayaAppendDirect(
-    `${member.full_name}\nStatus: ${member.status || 'active'}\nShares balance: Ksh ${Number(member.shares_balance || 0).toLocaleString()}\nSavings balance: Ksh ${Number(member.savings_balance || 0).toLocaleString()}`
+    `${member.full_name}\nStatus: ${member.status || 'active'}\nShares balance: Ksh ${Number(member.shares_balance || 0).toLocaleString()}\nSavings balance: Ksh ${Number(member.savings_balance || 0).toLocaleString()}\nTotal balance: Ksh ${total.toLocaleString()}\n\nRecent transactions (most recent 10, this member only):\n${txnLines}`
   );
 }
 
