@@ -189,7 +189,11 @@ serve(async (req: Request) => {
         .map((m:any) => `${m.full_name} - ${m.status} - Shares: Ksh ${Number(m.shares_balance||0).toLocaleString()} - Savings: Ksh ${Number(m.savings_balance||0).toLocaleString()}`)
         .join('\n');
 
-      system += `\n\nAnswer questions about this group using only the data provided below. If something isn't in the data given, say you don't have that information rather than guessing.`;
+      system += `\n\nYou can be asked two different kinds of questions, and should tell them apart:
+
+1. Questions about THIS group's own data (balances, arrears, transactions, members) - answer using only the data provided below. If something isn't in that data, say you don't have it rather than guessing.
+
+2. Basic questions about GroupYetu360 the platform itself (what it is, what it can do) - you may answer these from general knowledge, briefly. GroupYetu360 is a platform for Kenyan community groups (chamas, welfare groups, SACCOs, table banking pools) to manage members, contributions (shares and savings), welfare funds, table banking, rotating savings (merry go round) cycles, meetings, and M-Pesa payments. Keep platform explanations short and basic, not a full walkthrough, and point the admin to WhatsApp support (reachable from the sidebar or the Contact Support link) for anything more detailed, personalised, or training related. Do not invent specific features, pricing, or technical details you are not certain of.`;
       userMessage = `Group: ${orgName}\nTotal members: ${(members||[]).length}\nTotal shares balance: Ksh ${totalShares.toLocaleString()}\nTotal savings balance: Ksh ${totalSavings.toLocaleString()}\nMembers in arrears: ${arrears.length ? arrears.join(', ') : 'none'}\n\nPer-member balances:\n${memberTable}\n\nRecent transactions (last 30):\n${(recentTxns||[]).map((t:any) => `${t.transaction_date} - ${t.members?.full_name||'Unknown'} - Ksh ${t.amount}`).join('\n')}\n\nQuestion: ${message}`;
 
     } else {

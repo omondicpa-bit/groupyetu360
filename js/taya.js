@@ -162,7 +162,7 @@ async function sendTayaMessage() {
     // Cheapest possible path first - greetings and "what can you do"
     // questions need zero network calls at all, not even a database read.
     const cannedReply = tayaCannedReply(text);
-    if (cannedReply) { tayaAppendDirect(cannedReply); return; }
+    if (cannedReply) { await tayaAppendDirect(cannedReply); return; }
 
     // Try a free, instant, direct-from-database answer next - only when
     // no drafting flow is already active, since minutes/summaries/reminders
@@ -209,7 +209,20 @@ function tayaFindMemberInText(text, members) {
 }
 
 function tayaAppendDirect(text) {
-  tayaAppend(`<div class="taya-msg-row from-taya"><div class="taya-bubble-taya">${h(text)}</div><div class="taya-msg-time">${tayaTime()} · ⚡ instant, no AI used</div></div>`);
+  return new Promise(resolve => {
+    tayaShowTyping();
+    // A brief, slightly randomised pause before showing the answer - purely
+    // about how this feels to use. The lookup itself is already instant and
+    // free either way; this just keeps the pacing consistent with a real
+    // Claude response so it reads as one continuous experience rather than
+    // exposing which path handled it.
+    const delay = 450 + Math.random() * 450;
+    setTimeout(() => {
+      tayaHideTyping();
+      tayaAppend(`<div class="taya-msg-row from-taya"><div class="taya-bubble-taya">${h(text)}</div><div class="taya-msg-time">${tayaTime()} ⚡</div></div>`);
+      resolve();
+    }, delay);
+  });
 }
 
 // Greetings and meta questions ("hi", "thanks", "what can you do") never
@@ -241,28 +254,28 @@ async function tayaTryDirectAnswer(text) {
   if (error || !members) return false;
 
   if (/how many members/i.test(text)) {
-    tayaAppendDirect(`${currentOrg.name} has ${members.length} member${members.length === 1 ? '' : 's'}.`);
+    await tayaAppendDirect(`${currentOrg.name} has ${members.length} member${members.length === 1 ? '' : 's'}.`);
     return true;
   }
   if (/arrears/i.test(text) && /how many/i.test(text)) {
     const count = members.filter(m => m.status === 'arrears').length;
-    tayaAppendDirect(`${count} member${count === 1 ? '' : 's'} currently in arrears.`);
+    await tayaAppendDirect(`${count} member${count === 1 ? '' : 's'} currently in arrears.`);
     return true;
   }
   if (/total\s+shares/i.test(text)) {
     const total = members.reduce((s, m) => s + Number(m.shares_balance || 0), 0);
-    tayaAppendDirect(`Total shares balance across all members: Ksh ${total.toLocaleString()}.`);
+    await tayaAppendDirect(`Total shares balance across all members: Ksh ${total.toLocaleString()}.`);
     return true;
   }
   if (/total\s+savings/i.test(text)) {
     const total = members.reduce((s, m) => s + Number(m.savings_balance || 0), 0);
-    tayaAppendDirect(`Total savings balance across all members: Ksh ${total.toLocaleString()}.`);
+    await tayaAppendDirect(`Total savings balance across all members: Ksh ${total.toLocaleString()}.`);
     return true;
   }
 
   const member = tayaFindMemberInText(text, members);
   if (member) {
-    tayaAppendDirect(
+    await tayaAppendDirect(
       `${member.full_name}\nStatus: ${member.status || 'active'}\nShares balance: Ksh ${Number(member.shares_balance || 0).toLocaleString()}\nSavings balance: Ksh ${Number(member.savings_balance || 0).toLocaleString()}`
     );
     return true;
@@ -277,7 +290,7 @@ async function tayaLookupMemberById(memberId) {
     .select('full_name, status, shares_balance, savings_balance')
     .eq('id', memberId).single();
   if (error || !member) { tayaAppendError('Could not load that member - ' + (error?.message || 'not found')); return; }
-  tayaAppendDirect(
+  await tayaAppendDirect(
     `${member.full_name}\nStatus: ${member.status || 'active'}\nShares balance: Ksh ${Number(member.shares_balance || 0).toLocaleString()}\nSavings balance: Ksh ${Number(member.savings_balance || 0).toLocaleString()}`
   );
 }
