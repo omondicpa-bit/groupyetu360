@@ -162,15 +162,24 @@ async function sendTayaMessage() {
     // Cheapest possible path first - greetings and "what can you do"
     // questions need zero network calls at all, not even a database read.
     const cannedReply = tayaCannedReply(text);
-    if (cannedReply) { await tayaAppendDirect(cannedReply); return; }
+    if (cannedReply) { await tayaAppendDirect(cannedReply); tayaLogQuestion(text, 'canned'); return; }
 
-    // Try a free, instant, direct-from-database answer next - only when
-    // no drafting flow is already active, since minutes/summaries/reminders
-    // genuinely need generation, not a lookup.
+    // Free, instant, direct-from-database answer next - only when no
+    // drafting flow is already active, since minutes and summaries and
+    // reminders genuinely need generation, not a lookup.
     const handled = await tayaTryDirectAnswer(text);
-    if (handled) return;
+    if (handled) { tayaLogQuestion(text, 'direct'); return; }
+
+    // Basic platform questions come from a maintained FAQ, not Claude. This
+    // covers "what is GroupYetu360" style questions with an answer we wrote
+    // ourselves, not one Claude guesses at each time.
+    const handledByFaq = await tayaTryFaqAnswer(text);
+    if (handledByFaq) { tayaLogQuestion(text, 'faq'); return; }
+
     _tayaMode = 'chat';
   }
+
+  tayaLogQuestion(text, _tayaMode);
 
   await tayaGenerateDraft(text);
 }
@@ -241,6 +250,48 @@ function tayaCannedReply(text) {
     return "I'm Taya. I can draft meeting minutes, summarise your group's finances, help remind members in arrears, and look up member balances. All of it comes straight from this group's own records.";
   }
   return null;
+}
+
+// Platform questions, matched against a maintained FAQ table instead of
+// Claude. Fetched once per session and cached, since this content rarely
+// changes. Picks the longest matching trigger phrase, so a more specific
+// phrase wins over a shorter, more generic one.
+let _tayaFaqCache = null;
+
+async function tayaTryFaqAnswer(text) {
+  if (!_tayaFaqCache) {
+    const { data, error } = await sb.from('taya_faq').select('triggers, answer');
+    if (error || !data) return false;
+    _tayaFaqCache = data;
+  }
+  const lower = text.toLowerCase();
+  let best = null;
+  let bestLen = 0;
+  for (const row of _tayaFaqCache) {
+    for (const trig of row.triggers || []) {
+      if (lower.includes(trig.toLowerCase()) && trig.length > bestLen) {
+        best = row;
+        bestLen = trig.length;
+      }
+    }
+  }
+  if (best) {
+    await tayaAppendDirect(best.answer);
+    return true;
+  }
+  return false;
+}
+
+// Logs every question so gaps can be reviewed later. Fire and forget, on
+// purpose. Logging should never block the chat or surface an error to the
+// user if it fails.
+function tayaLogQuestion(question, handledBy) {
+  sb.from('taya_question_log').insert({
+    org_id: currentOrg?.id || null,
+    user_id: currentUser?.id || null,
+    question,
+    handled_by: handledBy,
+  }).then(() => {}, () => {});
 }
 
 async function tayaTryDirectAnswer(text) {
