@@ -1,4 +1,4 @@
-// GroupYetu360 — js/taya.js
+// GroupYetu360 - js/taya.js
 // Taya AI assistant: panel UI, quick actions, and the Save handlers that
 // turn a draft into a real record. Taya itself never writes to the
 // database - every save action here is an ordinary, explicit write
@@ -13,14 +13,18 @@ function tayaTime() {
   return new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }
 
+function tayaFirstName() {
+  const full = currentProfile?.full_name || '';
+  const first = full.trim().split(/\s+/)[0];
+  return first || null;
+}
+
 function toggleTayaPanel(forceOpen) {
   const panel = document.getElementById('taya-panel');
   if (!panel) return;
   const opening = forceOpen !== undefined ? forceOpen : !panel.classList.contains('open');
   panel.classList.toggle('open', opening);
   if (opening) {
-    const subText = document.getElementById('taya-panel-sub-text');
-    if (subText) subText.textContent = currentOrg?.name || '—';
     document.getElementById('taya-input')?.focus();
   }
 }
@@ -30,8 +34,9 @@ function toggleTayaPanel(forceOpen) {
 function tayaResetPanel() {
   _tayaMode = null; _tayaContext = {}; _tayaHistory = [];
   const body = document.getElementById('taya-panel-body');
+  const name = tayaFirstName();
   if (body) body.innerHTML = `
-    <div class="taya-greeting">Hi, I'm Taya 👋<br>What can I help with today?</div>
+    <div class="taya-greeting">Hi${name ? ' ' + h(name) : ''}, I'm Taya 👋<br>What can I help with today?</div>
     <div class="taya-chip-row" id="taya-chip-row">
       <div class="taya-chip" onclick="tayaQuickAction('meeting_minutes')">📝 Meeting minutes</div>
       <div class="taya-chip" onclick="tayaQuickAction('financial_summary')">📊 Financial summary</div>
@@ -75,7 +80,7 @@ async function tayaQuickAction(mode) {
   if (mode === 'member_lookup') {
     const { data: members, error } = await sb.from('members').select('id, full_name').eq('org_id', currentOrg.id).order('full_name');
     if (error || !members?.length) {
-      tayaAppendError('Could not load your members list' + (error ? ' — ' + error.message : ''));
+      tayaAppendError('Could not load your members list' + (error ? ' - ' + error.message : ''));
       return;
     }
     const options = members.map(m => `<option value="${m.id}">${h(m.full_name)}</option>`).join('');
@@ -96,7 +101,7 @@ async function tayaQuickAction(mode) {
       if (res.error) throw res.error;
       candidates = res.data;
     } catch (e) {
-      tayaAppendError('Could not load your meetings — ' + e.message);
+      tayaAppendError('Could not load your meetings - ' + e.message);
       return;
     }
     if (!candidates?.length) {
@@ -107,7 +112,7 @@ async function tayaQuickAction(mode) {
       openTaya('meeting_minutes', candidates[0].id);
       return;
     }
-    const chipsHtml = candidates.map(m => `<div class="taya-chip" onclick="openTaya('meeting_minutes','${m.id}')">${h(m.meeting_date)}${m.agenda ? ' — ' + h(m.agenda.slice(0,24)) : ''}</div>`).join('');
+    const chipsHtml = candidates.map(m => `<div class="taya-chip" onclick="openTaya('meeting_minutes','${m.id}')">${h(m.meeting_date)}${m.agenda ? ' - ' + h(m.agenda.slice(0,24)) : ''}</div>`).join('');
     tayaAppend(`<div class="taya-msg-row from-taya"><div class="taya-bubble-taya">Which meeting would you like minutes for?</div></div><div class="taya-chip-row">${chipsHtml}</div>`);
     return;
   }
@@ -126,7 +131,7 @@ async function openTaya(mode, contextId) {
   _tayaHistory = [];
 
   if (mode === 'meeting_minutes') {
-    tayaAppendTayaBubble("Tell me what was discussed — or just hit send and I'll draft from the agenda alone.");
+    tayaAppendTayaBubble("Tell me what was discussed, or just hit send and I'll draft from the agenda alone.");
     const input = document.getElementById('taya-input');
     if (input) { input.placeholder = 'e.g. Discussed AGM date, welfare fund status…'; input.focus(); }
     return;
@@ -213,13 +218,14 @@ function tayaAppendDirect(text) {
 function tayaCannedReply(text) {
   const t = text.trim().toLowerCase().replace(/[!.?]+$/, '');
   if (/^(hi|hello|hey|hallo|habari|niaje|sasa|mambo)( taya)?$/.test(t)) {
-    return "Hi! I can help with meeting minutes, financial summaries, arrears reminders, or member lookups — tap one of the options above, or just ask.";
+    const name = tayaFirstName();
+    return `Hi${name ? ' ' + name : ''}! I can help with meeting minutes, financial summaries, arrears reminders, or member lookups. Tap one of the options above, or just ask.`;
   }
   if (/^(thanks|thank you|asante|thnx|ty)\b/.test(t)) {
     return "You're welcome! Let me know if there's anything else.";
   }
   if (/what can you do|who are you|what is taya|what'?s taya|^help$/.test(t)) {
-    return "I'm Taya. I can draft meeting minutes, summarise your group's finances, help remind members in arrears, and look up member balances — all pulled from this group's own records.";
+    return "I'm Taya. I can draft meeting minutes, summarise your group's finances, help remind members in arrears, and look up member balances. All of it comes straight from this group's own records.";
   }
   return null;
 }
@@ -270,7 +276,7 @@ async function tayaLookupMemberById(memberId) {
   const { data: member, error } = await sb.from('members')
     .select('full_name, status, shares_balance, savings_balance')
     .eq('id', memberId).single();
-  if (error || !member) { tayaAppendError('Could not load that member — ' + (error?.message || 'not found')); return; }
+  if (error || !member) { tayaAppendError('Could not load that member - ' + (error?.message || 'not found')); return; }
   tayaAppendDirect(
     `${member.full_name}\nStatus: ${member.status || 'active'}\nShares balance: Ksh ${Number(member.shares_balance || 0).toLocaleString()}\nSavings balance: Ksh ${Number(member.savings_balance || 0).toLocaleString()}`
   );
@@ -284,7 +290,7 @@ async function tayaGenerateDraft(message) {
   try {
     const session = await sb.auth.getSession();
     const jwt = session?.data?.session?.access_token;
-    if (!jwt) throw new Error("your session has expired — refresh the page and try again");
+    if (!jwt) throw new Error("your session has expired, refresh the page and try again");
 
     const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/taya-assistant', {
       method: 'POST',
@@ -307,7 +313,7 @@ async function tayaGenerateDraft(message) {
 
     tayaHideTyping();
     if (!res.ok || result.error) throw new Error(result.error || `something went wrong (status ${res.status})`);
-    if (!result.reply || !result.reply.trim()) throw new Error("Taya came back with an empty response — try rephrasing, or send again");
+    if (!result.reply || !result.reply.trim()) throw new Error("Taya came back with an empty response, try rephrasing or send again");
 
     if (_tayaMode === 'chat') {
       _tayaHistory.push({ role: 'user', content: message }, { role: 'assistant', content: result.reply });
@@ -325,9 +331,9 @@ async function tayaGenerateDraft(message) {
 
 function tayaRenderDraftCard(mode, text) {
   const labels = {
-    meeting_minutes: '📝 Draft — Meeting minutes',
-    financial_summary: '📊 Draft — Financial summary',
-    arrears_message: '💬 Draft — Arrears reminder',
+    meeting_minutes: '📝 Draft: Meeting minutes',
+    financial_summary: '📊 Draft: Financial summary',
+    arrears_message: '💬 Draft: Arrears reminder',
   };
   const saveLabels = {
     meeting_minutes: 'Save to Meetings →',

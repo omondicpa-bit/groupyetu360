@@ -1293,14 +1293,16 @@ body.member-mob-active #taya-fab{display:none !important}
 /* Panel — floating card on desktop/tablet */
 .taya-panel{
   position:fixed;bottom:5.5rem;right:1.5rem;width:380px;max-width:calc(100vw - 2rem);height:600px;max-height:calc(100vh - 8rem);
-  background:#fbf8f4;border-radius:20px;box-shadow:0 24px 60px rgba(0,0,0,.22);
+  background:rgba(255,255,255,.55);
+  -webkit-backdrop-filter:blur(28px) saturate(180%);backdrop-filter:blur(28px) saturate(180%);
+  border-radius:22px;box-shadow:0 24px 60px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.7);
   z-index:9999;display:none;flex-direction:column;overflow:hidden;
-  border:1px solid rgba(0,0,0,.06);
+  border:1px solid rgba(255,255,255,.6);
 }
 .taya-panel.open{display:flex;animation:tayaPanelIn .3s cubic-bezier(.2,.8,.3,1) both}
 @keyframes tayaPanelIn{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
 
-.taya-panel-header{background:linear-gradient(120deg,var(--maroon-dk) 0%,var(--maroon) 60%,#0a5544 100%);padding:1rem 1.1rem;display:flex;align-items:center;gap:.7rem;color:#fff;flex-shrink:0}
+.taya-panel-header{background:linear-gradient(120deg,rgba(92,0,24,.92) 0%,rgba(128,0,32,.9) 60%,rgba(10,85,68,.92) 100%);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);padding:1rem 1.1rem;display:flex;align-items:center;gap:.7rem;color:#fff;flex-shrink:0}
 .taya-panel-avatar{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .taya-panel-title{font-family:'Crimson Pro',serif;font-weight:700;font-size:1.08rem;line-height:1.1}
 .taya-panel-sub{font-size:.68rem;opacity:.8;margin-top:2px;display:flex;align-items:center;gap:.3rem}
@@ -1308,57 +1310,67 @@ body.member-mob-active #taya-fab{display:none !important}
 .taya-panel-close{margin-left:auto;opacity:.75;cursor:pointer;font-size:1.3rem;background:none;border:none;color:#fff;line-height:1;padding:.2rem}
 .taya-panel-close:hover{opacity:1}
 
-/* Chat area — warm, textured, WhatsApp-like */
-.taya-panel-body{flex:1;overflow-y:auto;padding:1.1rem .9rem;display:flex;flex-direction:column;gap:.55rem;background:#f7f1e8}
+/* Chat area - glass, lets whatever's behind the floating panel show through softly */
+.taya-panel-body{flex:1;overflow-y:auto;padding:1.1rem .9rem;display:flex;flex-direction:column;gap:.55rem;background:rgba(247,241,232,.35)}
 .taya-greeting{font-size:.8rem;color:var(--ink-faint);text-align:center;padding:.5rem 0 .3rem;line-height:1.5}
 .taya-chip-row{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center;margin-bottom:.4rem}
-.taya-chip{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:99px;padding:.45rem .8rem;font-size:.7rem;font-weight:600;color:var(--teal);cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.04);transition:transform .15s}
-.taya-chip:hover{background:#eafaf3;border-color:var(--teal-mid,#9fe1cb);transform:translateY(-1px)}
+.taya-chip{background:rgba(255,255,255,.65);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.7);border-radius:99px;padding:.45rem .8rem;font-size:.7rem;font-weight:600;color:var(--teal);cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.04);transition:transform .15s}
+.taya-chip:hover{background:rgba(234,250,243,.8);border-color:var(--teal-mid,#9fe1cb);transform:translateY(-1px)}
 
-/* Bubbles — asymmetric radius mimics a tail without extra markup */
+/* Bubbles - asymmetric radius mimics a tail without extra markup */
 .taya-msg-row{display:flex;flex-direction:column;max-width:82%}
 .taya-msg-row.from-taya{align-self:flex-start;align-items:flex-start}
 .taya-msg-row.from-user{align-self:flex-end;align-items:flex-end}
-.taya-bubble-taya{background:#fff;border-radius:3px 16px 16px 16px;padding:.65rem .85rem;font-size:.79rem;color:var(--ink-soft);white-space:pre-wrap;line-height:1.5;box-shadow:0 1px 2px rgba(0,0,0,.05)}
-.taya-bubble-user{background:linear-gradient(135deg,var(--teal) 0%,#0a5544 100%);color:#fff;border-radius:16px 3px 16px 16px;padding:.65rem .85rem;font-size:.79rem;line-height:1.5;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.taya-bubble-taya{background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.5);border-radius:3px 16px 16px 16px;padding:.65rem .85rem;font-size:.79rem;color:var(--ink-soft);white-space:pre-wrap;line-height:1.5;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.taya-bubble-user{background:linear-gradient(135deg,rgba(15,110,86,.92) 0%,rgba(10,85,68,.95) 100%);color:#fff;border-radius:16px 3px 16px 16px;padding:.65rem .85rem;font-size:.79rem;line-height:1.5;box-shadow:0 1px 4px rgba(0,0,0,.1)}
 .taya-msg-time{font-size:.6rem;color:var(--ink-faint);margin-top:.2rem;padding:0 .3rem}
 
-.taya-draft-card{align-self:flex-start;max-width:96%;width:100%;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.07)}
-.taya-draft-head{background:#f0ece3;padding:.55rem .8rem;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--teal);display:flex;align-items:center;gap:.35rem}
+.taya-draft-card{align-self:flex-start;max-width:96%;width:100%;background:rgba(255,255,255,.78);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.6);border-radius:14px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.taya-draft-head{background:rgba(240,236,227,.6);padding:.55rem .8rem;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--teal);display:flex;align-items:center;gap:.35rem}
 .taya-draft-body{padding:.8rem;font-size:.76rem;color:var(--ink-soft);line-height:1.6;white-space:pre-wrap}
 .taya-draft-body[contenteditable="true"]{outline:none;cursor:text}
-.taya-draft-body[contenteditable="true"]:focus{background:#fafafa}
+.taya-draft-body[contenteditable="true"]:focus{background:rgba(255,255,255,.5)}
 .taya-draft-actions{display:flex;gap:.4rem;padding:.6rem .8rem;border-top:1px solid rgba(0,0,0,.06)}
 .taya-btn-primary{flex:1;background:var(--maroon);color:#fff;border:none;border-radius:9px;padding:.55rem;font-size:.7rem;font-weight:700;cursor:pointer;transition:opacity .15s}
 .taya-btn-primary:hover{opacity:.9}
 .taya-btn-primary:disabled{opacity:.5;cursor:default}
 .taya-btn-ghost{flex:1;background:none;border:1px solid rgba(0,0,0,.1);border-radius:9px;padding:.55rem;font-size:.7rem;font-weight:600;color:var(--ink-faint);cursor:pointer}
 
-.taya-error-bubble{background:#fff5f4;border:1px solid #f0c4bf;border-radius:3px 16px 16px 16px;padding:.65rem .85rem;font-size:.76rem;color:#8a3a2e;line-height:1.55;align-self:flex-start;max-width:88%}
+.taya-error-bubble{background:rgba(255,245,244,.85);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(240,196,191,.8);border-radius:3px 16px 16px 16px;padding:.65rem .85rem;font-size:.76rem;color:#8a3a2e;line-height:1.55;align-self:flex-start;max-width:88%}
 .taya-error-bubble a{color:var(--teal);font-weight:700}
 
-.taya-nudge{background:#fff;border:1px solid var(--gold,#c49a30);border-radius:12px;padding:.7rem .8rem;font-size:.75rem;color:var(--ink-soft);align-self:stretch}
+.taya-nudge{background:rgba(255,255,255,.7);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid var(--gold,#c49a30);border-radius:12px;padding:.7rem .8rem;font-size:.75rem;color:var(--ink-soft);align-self:stretch}
 .taya-nudge a{color:var(--teal);font-weight:600}
 
-.taya-panel-inputbar{padding:.7rem .8rem;background:#fbf8f4;border-top:1px solid rgba(0,0,0,.06);display:flex;gap:.5rem;align-items:center;flex-shrink:0}
-.taya-panel-inputbar input{flex:1;border:1px solid rgba(0,0,0,.08);border-radius:99px;padding:.6rem 1rem;font-size:.78rem;font-family:inherit;background:#fff}
+.taya-panel-inputbar{padding:.7rem .8rem;background:rgba(251,248,244,.6);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid rgba(255,255,255,.5);display:flex;gap:.5rem;align-items:center;flex-shrink:0}
+.taya-panel-inputbar input{flex:1;border:1px solid rgba(0,0,0,.08);border-radius:99px;padding:.6rem 1rem;font-size:.78rem;font-family:inherit;background:rgba(255,255,255,.75)}
 .taya-panel-inputbar input:focus{outline:none;border-color:var(--teal-mid,#9fe1cb)}
 .taya-panel-send{width:36px;height:36px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:none;cursor:pointer;transition:transform .15s}
 .taya-panel-send:hover{transform:scale(1.06)}
 .taya-panel-send:disabled{opacity:.5;cursor:default;transform:none}
-.taya-disclaimer{font-size:.62rem;color:var(--ink-faint);text-align:center;padding:.35rem 0 .55rem;flex-shrink:0;background:#fbf8f4}
-.taya-typing{display:flex;gap:.28rem;align-self:flex-start;background:#fff;padding:.65rem .9rem;border-radius:3px 16px 16px 16px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.taya-disclaimer{font-size:.64rem;font-weight:600;color:var(--teal);text-align:center;padding:.4rem 0 .6rem;flex-shrink:0;background:rgba(251,248,244,.6)}
+.taya-typing{display:flex;gap:.28rem;align-self:flex-start;background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);padding:.65rem .9rem;border-radius:3px 16px 16px 16px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
 .taya-typing span{width:6px;height:6px;border-radius:50%;background:#c9c2b4;animation:tayaTyping 1.3s infinite ease-in-out}
 .taya-typing span:nth-child(2){animation-delay:.2s}
 .taya-typing span:nth-child(3){animation-delay:.4s}
 @keyframes tayaTyping{0%,60%,100%{opacity:.35;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
 
-/* Mobile — Taya opens as its own full screen, like a real messaging app,
+/* Mobile - Taya opens as its own full screen, like a real messaging app,
    not a small floating card that's awkward to use on a phone. */
 @media(max-width:640px){
   .taya-panel{
     position:fixed;inset:0;width:100%;height:100%;max-width:100%;max-height:100%;
     border-radius:0;bottom:0;right:0;
+  }
+  /* A consistent, soft backdrop for the glass to read against - without
+     this, the panel would blur whatever page happened to be open
+     underneath, which varies and can look muddy or flat depending on
+     context. This keeps the glass effect intentional every time. */
+  .taya-panel::before{
+    content:'';position:absolute;inset:0;z-index:-1;
+    background:radial-gradient(circle at 20% 15%,rgba(128,0,32,.14),transparent 55%),
+               radial-gradient(circle at 85% 80%,rgba(15,110,86,.14),transparent 55%),
+               #f7f1e8;
   }
   .taya-panel.open{animation:tayaPanelInMobile .28s ease both}
   @keyframes tayaPanelInMobile{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}

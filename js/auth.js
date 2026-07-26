@@ -1678,6 +1678,7 @@ function showApp() {
   if (waFab) waFab.style.display = getsTaya ? 'none' : '';
   const tayaFab = document.getElementById('taya-fab');
   if (tayaFab) tayaFab.style.display = getsTaya ? 'flex' : 'none';
+  if (getsTaya && typeof tayaResetPanel === 'function') tayaResetPanel();
   buildNav();
   updateSidebar();
   if (typeof gateQuickActions === 'function') gateQuickActions();
