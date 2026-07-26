@@ -176,7 +176,7 @@ async function sendTayaMessage() {
     // Free, instant, direct-from-database answer next - only when no
     // drafting flow is already active, since minutes and summaries and
     // reminders genuinely need generation, not a lookup.
-    const handled = await tayaTryDirectAnswer(text);
+    const handled = await tayaTryTopicAnswer(text);
     if (handled) { tayaLogQuestion(text, 'direct'); return; }
 
     // Basic platform questions come from a maintained FAQ, not Claude. This
@@ -303,55 +303,223 @@ function tayaLogQuestion(question, handledBy) {
   }).then(() => {}, () => {});
 }
 
-async function tayaTryDirectAnswer(text) {
-  // "Who has not contributed since / before X" needs an exact date to
-  // compare against. Guessing that date out of free text is exactly the
-  // kind of thing that goes wrong quietly, so this redirects to a real
-  // date picker instead of ever trying to parse "start of June" itself.
-  if (/(who|which member).*(not|hasn'?t|haven'?t).*(contribut|paid)|last contribut|contributed before|paid before|not contributed since/i.test(text)) {
-    await tayaQuickAction('last_contribution');
-    return true;
+// ── Direct-answer topics ──
+// Each topic recognises a question shape and answers it straight from the
+// database. No Claude call. No cost. New areas get added here as a new
+// entry, not as more branches inside one growing function. Order goes
+// roughly specific to general, since the first confident match wins.
+const TAYA_TOPICS = [
+  {
+    name: 'last_contribution_redirect',
+    test: t => /(who|which member).*(not|hasn'?t|haven'?t).*(contribut|paid)|last contribut|contributed before|paid before|not contributed since/i.test(t),
+    handle: async () => { await tayaQuickAction('last_contribution'); return '__handled__'; },
+  },
+  {
+    name: 'next_meeting',
+    test: t => /next meeting|upcoming meeting|when is the meeting|when.*next meeting/i.test(t),
+    handle: tayaTopicNextMeeting,
+  },
+  {
+    name: 'meeting_count',
+    test: t => /how many meetings/i.test(t),
+    handle: tayaTopicMeetingCount,
+  },
+  {
+    name: 'attendance',
+    test: t => /attendance|attend(ed)?|missed the (last|previous) meeting|was .*(present|absent)/i.test(t),
+    handle: tayaTopicAttendance,
+  },
+  {
+    name: 'welfare_status',
+    test: t => /welfare (fund|balance|status|pool)/i.test(t),
+    handle: tayaTopicWelfareStatus,
+  },
+  {
+    name: 'table_banking',
+    test: t => /table banking (pool|balance)|tb pool/i.test(t),
+    handle: tayaTopicTableBanking,
+  },
+  {
+    name: 'mgr_status',
+    test: t => /(whose|who'?s) turn|next.*(receive|payout)|rotating savings status|merry go round status|current round/i.test(t),
+    handle: tayaTopicMGRStatus,
+  },
+  {
+    name: 'fines',
+    test: t => /\bfine\b|fines|penalt/i.test(t),
+    handle: tayaTopicFines,
+  },
+  {
+    name: 'member_or_aggregate',
+    test: t => /balance|arrears|how much|how many|contributed|paid|savings?|shares?|report|info|details/i.test(t),
+    handle: tayaTopicMemberOrAggregate,
+  },
+];
+
+async function tayaTryTopicAnswer(text) {
+  for (const topic of TAYA_TOPICS) {
+    if (!topic.test(text)) continue;
+    let result;
+    try {
+      result = await topic.handle(text);
+    } catch (e) {
+      continue; // this topic failed to answer confidently - try the next one, or fall through to Claude
+    }
+    if (result === '__handled__') return true; // handler already rendered its own reply
+    if (result) { await tayaAppendDirect(result); return true; }
+  }
+  return false; // nothing confident matched - let Claude handle it properly
+}
+
+async function tayaTopicNextMeeting() {
+  const today = new Date().toISOString().split('T')[0];
+  const { data } = await sb.from('meetings').select('meeting_date, meeting_time, venue')
+    .eq('org_id', currentOrg.id).gte('meeting_date', today)
+    .order('meeting_date', { ascending: true }).limit(1);
+  if (!data?.length) return 'No upcoming meeting is scheduled yet.';
+  const m = data[0];
+  return `Next meeting: ${m.meeting_date}${m.meeting_time ? ' at ' + m.meeting_time : ''}.\nVenue: ${m.venue || 'not set yet'}.`;
+}
+
+async function tayaTopicMeetingCount() {
+  const { count } = await sb.from('meetings').select('id', { count: 'exact', head: true }).eq('org_id', currentOrg.id);
+  return `Your group has held ${count || 0} meeting${count === 1 ? '' : 's'} in total.`;
+}
+
+async function tayaTopicAttendance(text) {
+  const { data: members } = await sb.from('members').select('id, full_name').eq('org_id', currentOrg.id);
+  if (!members) return null;
+  const member = tayaFindMemberInText(text, members);
+
+  if (member) {
+    const { data: recs } = await sb.from('attendance')
+      .select('status, meetings(meeting_date)')
+      .eq('member_id', member.id)
+      .limit(20);
+    if (!recs?.length) return `No attendance has been recorded for ${member.full_name} yet.`;
+    const sorted = recs.slice()
+      .sort((a, b) => (b.meetings?.meeting_date || '').localeCompare(a.meetings?.meeting_date || ''))
+      .slice(0, 5);
+    const lines = sorted.map(r => `${r.meetings?.meeting_date || 'Unknown date'}: ${r.status}`).join('\n');
+    return `${member.full_name}'s recent attendance.\n\n${lines}`;
   }
 
-  // Only even attempt this for questions that look like a data lookup -
-  // avoids misfiring on "draft a message" or genuinely open-ended chat.
-  if (!/balance|arrears|how much|how many|contributed|paid|savings?|shares?/i.test(text)) return false;
+  const today = new Date().toISOString().split('T')[0];
+  const { data: lastMeeting } = await sb.from('meetings')
+    .select('id, meeting_date').eq('org_id', currentOrg.id).lt('meeting_date', today)
+    .order('meeting_date', { ascending: false }).limit(1);
+  if (!lastMeeting?.length) return 'No past meetings recorded yet.';
+  const meetingId = lastMeeting[0].id;
+  const { data: att } = await sb.from('attendance').select('status').eq('meeting_id', meetingId);
+  const present = (att || []).filter(a => a.status === 'present').length;
+  const apology = (att || []).filter(a => a.status === 'apology').length;
+  const absent = (att || []).filter(a => a.status === 'absent').length;
+  return `Attendance for the last meeting on ${lastMeeting[0].meeting_date}.\n\nPresent: ${present}\nApology: ${apology}\nAbsent: ${absent}`;
+}
 
-  const { data: members, error } = await sb.from('members')
-    .select('full_name, status, shares_balance, savings_balance')
+async function tayaTopicWelfareStatus() {
+  // is_active is never explicitly set on creation, so it can sit as NULL
+  // rather than true. Filtering client side with !== false, matching the
+  // same fix already applied to the Record Payment modal and the dashboard.
+  const { data: events } = await sb.from('welfare_events')
+    .select('id, event_type, is_active, contribution_per_member')
     .eq('org_id', currentOrg.id);
-  if (error || !members) return false;
+  const active = (events || []).filter(e => e.is_active !== false);
+  if (!active.length) return 'There is no active welfare event right now.';
+
+  const lines = [];
+  for (const e of active) {
+    const { data: txns } = await sb.from('transactions').select('amount').eq('welfare_event_id', e.id);
+    const collected = (txns || []).reduce((s, t) => s + Number(t.amount || 0), 0);
+    const perMember = e.contribution_per_member ? ` Ksh ${Number(e.contribution_per_member).toLocaleString()} per member.` : '';
+    lines.push(`${e.event_type || 'Welfare event'}: Ksh ${collected.toLocaleString()} collected so far.${perMember}`);
+  }
+  return lines.join('\n');
+}
+
+async function tayaTopicTableBanking() {
+  const { data: pools } = await sb.from('table_banking_pools')
+    .select('id, name').eq('org_id', currentOrg.id).eq('status', 'active');
+  if (!pools?.length) return 'There is no active table banking pool right now.';
+  const poolIds = pools.map(p => p.id);
+  const [{ data: contribs }, { data: loans }] = await Promise.all([
+    sb.from('table_banking_contributions').select('pool_id, amount').in('pool_id', poolIds),
+    sb.from('table_banking_loans').select('pool_id, amount').in('pool_id', poolIds).eq('status', 'active'),
+  ]);
+  const lines = pools.map(p => {
+    const total = (contribs || []).filter(c => c.pool_id === p.id).reduce((s, c) => s + Number(c.amount || 0), 0);
+    const activeLoans = (loans || []).filter(l => l.pool_id === p.id);
+    const loanTotal = activeLoans.reduce((s, l) => s + Number(l.amount || 0), 0);
+    return `${p.name}: Ksh ${total.toLocaleString()} contributed. ${activeLoans.length} active loan${activeLoans.length === 1 ? '' : 's'} totalling Ksh ${loanTotal.toLocaleString()}.`;
+  });
+  return lines.join('\n');
+}
+
+async function tayaTopicMGRStatus() {
+  const { data: rounds } = await sb.from('savings_rounds')
+    .select('id, name, amount_per_member').eq('org_id', currentOrg.id).eq('status', 'active');
+  if (!rounds?.length) return 'There is no active rotating savings round right now.';
+  const lines = [];
+  for (const r of rounds) {
+    const { data: slots } = await sb.from('round_slots')
+      .select('slot_number, received, members(full_name)')
+      .eq('round_id', r.id).order('slot_number');
+    const next = (slots || []).find(s => !s.received);
+    const turn = next ? `Next to receive is ${next.members?.full_name || 'unknown'}, round ${next.slot_number}.` : 'Everyone has received their turn.';
+    lines.push(`${r.name}: ${turn} Ksh ${Number(r.amount_per_member || 0).toLocaleString()} per round.`);
+  }
+  return lines.join('\n');
+}
+
+async function tayaTopicFines(text) {
+  const { data: members } = await sb.from('members').select('id, full_name').eq('org_id', currentOrg.id);
+  const member = members ? tayaFindMemberInText(text, members) : null;
+
+  if (member) {
+    const { data: fines } = await sb.from('fines').select('reason, amount, issued_date')
+      .eq('org_id', currentOrg.id).eq('member_id', member.id).eq('status', 'pending');
+    if (!fines?.length) return `${member.full_name} has no pending fines.`;
+    const total = fines.reduce((s, f) => s + Number(f.amount || 0), 0);
+    const lines = fines.map(f => `${f.issued_date}: ${f.reason || 'Fine'}. Ksh ${Number(f.amount).toLocaleString()}`).join('\n');
+    return `${member.full_name} has ${fines.length} pending fine${fines.length === 1 ? '' : 's'}. Total Ksh ${total.toLocaleString()}.\n\n${lines}`;
+  }
+
+  const { data: allFines } = await sb.from('fines').select('amount').eq('org_id', currentOrg.id).eq('status', 'pending');
+  const total = (allFines || []).reduce((s, f) => s + Number(f.amount || 0), 0);
+  return `${(allFines || []).length} pending fine${(allFines || []).length === 1 ? '' : 's'} across the group. Total Ksh ${total.toLocaleString()}.`;
+}
+
+async function tayaTopicMemberOrAggregate(text) {
+  const { data: members, error } = await sb.from('members')
+    .select('id, full_name, status, shares_balance, savings_balance')
+    .eq('org_id', currentOrg.id);
+  if (error || !members) return null;
 
   if (/how many members/i.test(text)) {
-    await tayaAppendDirect(`${currentOrg.name} has ${members.length} member${members.length === 1 ? '' : 's'}.`);
-    return true;
+    return `${currentOrg.name} has ${members.length} member${members.length === 1 ? '' : 's'}.`;
   }
   if (/arrears/i.test(text) && /how many/i.test(text)) {
     const count = members.filter(m => m.status === 'arrears').length;
-    await tayaAppendDirect(`${count} member${count === 1 ? '' : 's'} currently in arrears.`);
-    return true;
+    return `${count} member${count === 1 ? '' : 's'} currently in arrears.`;
   }
   if (/total\s+shares/i.test(text)) {
     const total = members.reduce((s, m) => s + Number(m.shares_balance || 0), 0);
-    await tayaAppendDirect(`Total shares balance across all members: Ksh ${total.toLocaleString()}.`);
-    return true;
+    return `Total shares balance across all members: Ksh ${total.toLocaleString()}.`;
   }
   if (/total\s+savings/i.test(text)) {
     const total = members.reduce((s, m) => s + Number(m.savings_balance || 0), 0);
-    await tayaAppendDirect(`Total savings balance across all members: Ksh ${total.toLocaleString()}.`);
-    return true;
+    return `Total savings balance across all members: Ksh ${total.toLocaleString()}.`;
   }
 
   const member = tayaFindMemberInText(text, members);
   if (member) {
-    await tayaAppendDirect(
-      `${member.full_name}\nStatus: ${member.status || 'active'}\nShares balance: Ksh ${Number(member.shares_balance || 0).toLocaleString()}\nSavings balance: Ksh ${Number(member.savings_balance || 0).toLocaleString()}`
-    );
-    return true;
+    await tayaAppendMemberReport(member);
+    return '__handled__'; // tayaAppendMemberReport already rendered its own reply
   }
 
-  return false; // no confident match - let Claude handle it properly
+  return null;
 }
+
 
 // Every member's real last contribution date, computed from actual
 // transactions, not a limited recent-history window. Members with no
@@ -389,11 +557,26 @@ async function tayaRunLastContributionCheck() {
 async function tayaLookupMemberById(memberId) {
   if (!memberId) return;
   const { data: member, error } = await sb.from('members')
-    .select('full_name, status, shares_balance, savings_balance')
+    .select('id, full_name, status, shares_balance, savings_balance')
     .eq('id', memberId).single();
   if (error || !member) { tayaAppendError('Could not load that member - ' + (error?.message || 'not found')); return; }
+  await tayaAppendMemberReport(member);
+}
+
+// Scoped to one specific member's own transaction history, not capped at
+// a recent-window group-wide list the way Claude's version used to be.
+async function tayaAppendMemberReport(member) {
+  const { data: txns } = await sb.from('transactions')
+    .select('amount, transaction_date, contribution_types(name)')
+    .eq('member_id', member.id)
+    .order('transaction_date', { ascending: false })
+    .limit(10);
+  const total = Number(member.shares_balance || 0) + Number(member.savings_balance || 0);
+  const txnLines = (txns || []).length
+    ? (txns || []).map(t => `${t.transaction_date} - ${t.contribution_types?.name || 'Payment'} - Ksh ${Number(t.amount).toLocaleString()}`).join('\n')
+    : 'No transactions recorded yet.';
   await tayaAppendDirect(
-    `${member.full_name}\nStatus: ${member.status || 'active'}\nShares balance: Ksh ${Number(member.shares_balance || 0).toLocaleString()}\nSavings balance: Ksh ${Number(member.savings_balance || 0).toLocaleString()}`
+    `${member.full_name}\nStatus: ${member.status || 'active'}\nShares balance: Ksh ${Number(member.shares_balance || 0).toLocaleString()}\nSavings balance: Ksh ${Number(member.savings_balance || 0).toLocaleString()}\nTotal balance: Ksh ${total.toLocaleString()}\n\nRecent transactions (most recent 10, this member only):\n${txnLines}`
   );
 }
 
