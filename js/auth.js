@@ -1658,15 +1658,6 @@ function showApp() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('pending-screen').style.display = 'none';
   document.getElementById('app-screen').classList.add('visible');
-  // Taya replaces WhatsApp support once inside an org - Taya has real org
-  // context to work with here, unlike the picker/pre-org screens where
-  // there's nothing for it to draft from. WhatsApp stays reachable via the
-  // sidebar "Contact Support" link either way, and Taya itself can hand off
-  // to WhatsApp directly when something needs a human.
-  const waFab = document.getElementById('support-fab-btn');
-  if (waFab) waFab.style.display = 'none';
-  const tayaFab = document.getElementById('taya-fab');
-  if (tayaFab) tayaFab.style.display = 'flex';
   // Resolve role from _userOrgs cache (populated by loadUserOrgs before showApp is called)
   // This ensures the correct per-org role is used immediately, no async delay
   const cachedOrgEntry = _userOrgs.find(o => o.id === currentOrg?.id);
@@ -1676,6 +1667,17 @@ function showApp() {
   } else {
     currentOrgRole = currentProfile?.role || 'member';
   }
+  // Taya replaces WhatsApp support once inside an org, but only for roles
+  // that actually get Taya (admin/treasurer/officer/superadmin - see
+  // useTaya in canDo()). A plain member has no Taya access, so they keep
+  // the WhatsApp float button rather than losing their visible support
+  // option with nothing shown in its place - the sidebar "Contact Support"
+  // link stays available to everyone either way.
+  const getsTaya = canDo('useTaya');
+  const waFab = document.getElementById('support-fab-btn');
+  if (waFab) waFab.style.display = getsTaya ? 'none' : '';
+  const tayaFab = document.getElementById('taya-fab');
+  if (tayaFab) tayaFab.style.display = getsTaya ? 'flex' : 'none';
   buildNav();
   updateSidebar();
   if (typeof gateQuickActions === 'function') gateQuickActions();

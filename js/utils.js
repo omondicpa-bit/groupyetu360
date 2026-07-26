@@ -886,6 +886,12 @@ function canDo(action) {
     // View-only (read)
     viewFinance:      ['superadmin','admin','treasurer','officer'],
     viewMembers:      ['superadmin','admin','treasurer','officer'],
+
+    // Taya AI - admin/treasurer/officer only. Minutes, summaries, arrears
+    // drafting and payment assistance are all admin tasks; plain members
+    // have no real need for it, and gating it here is the single biggest
+    // lever on unnecessary API spend from casual poking.
+    useTaya:          ['superadmin','admin','treasurer','officer'],
   };
 
   return (rules[action] || []).includes(role);

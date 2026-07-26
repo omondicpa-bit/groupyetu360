@@ -36,9 +36,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const MODEL = 'claude-sonnet-5';
+const MODEL_SONNET = 'claude-sonnet-5';
+const MODEL_HAIKU = 'claude-haiku-4-5-20251001';
 
-async function callClaude(system: string, userMessage: string, history: {role:string,content:string}[] = []) {
+async function callClaude(system: string, userMessage: string, history: {role:string,content:string}[] = [], model: string = MODEL_SONNET) {
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not configured');
 
@@ -50,7 +51,7 @@ async function callClaude(system: string, userMessage: string, history: {role:st
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       max_tokens: 1200,
       system,
       messages: [...history, { role: 'user', content: userMessage }],
@@ -95,18 +96,38 @@ serve(async (req: Request) => {
 
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
-    // Verify caller actually belongs to this org before touching any of
-    // its data - checks both the multi-org table and the legacy
-    // profiles.org_id path, matching the same dual-path convention used
-    // everywhere else in this codebase.
+    // Verify caller has a Taya-eligible role in this org - admin, treasurer,
+    // officer, or platform superadmin. Plain members don't get Taya access
+    // at all (see useTaya in js/utils.js canDo()) - this is the server-side
+    // enforcement of that, since hiding the FAB client-side alone wouldn't
+    // stop a member calling this function directly. Checks both the
+    // multi-org table and the legacy profiles.org_id path, matching the
+    // same dual-path convention used everywhere else in this codebase.
+    const TAYA_ROLES = ['admin', 'treasurer', 'officer'];
     const [{ data: uoRow }, { data: profRow }] = await Promise.all([
       supabase.from('user_orgs').select('role').eq('user_id', callerUser.id).eq('org_id', org_id).maybeSingle(),
       supabase.from('profiles').select('role, org_id').eq('id', callerUser.id).maybeSingle(),
     ]);
-    const isMember = !!uoRow || profRow?.org_id === org_id;
     const isSuperadmin = profRow?.role === 'superadmin';
-    if (!isMember && !isSuperadmin) {
-      return new Response(JSON.stringify({ error: 'You do not have access to this organisation' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const hasEligibleRole = TAYA_ROLES.includes(uoRow?.role || '')
+      || (profRow?.org_id === org_id && TAYA_ROLES.includes(profRow?.role || ''));
+    if (!hasEligibleRole && !isSuperadmin) {
+      return new Response(JSON.stringify({ error: 'Taya is available to organisation admins, treasurers and officers' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // Daily cap per org - a backstop against any single org running away
+    // with usage in one day. Deliberately checked before any data-gathering
+    // or Claude call, so a capped request costs nothing at all, not even a
+    // partial one. Not the main cost-control mechanism (that's admin-only
+    // access, canned replies, free DB lookups, and Haiku for chat) - this
+    // is the safety net underneath all of that.
+    const DAILY_CAP = 20;
+    const { data: usageCount } = await supabase.rpc('increment_taya_usage', { p_org_id: org_id });
+    if (typeof usageCount === 'number' && usageCount > DAILY_CAP) {
+      return new Response(
+        JSON.stringify({ reply: "I've reached today's usage limit for this group - it resets tomorrow. For anything urgent in the meantime, use Contact Support." }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const { data: org } = await supabase.from('organisations').select('name').eq('id', org_id).single();
@@ -175,7 +196,8 @@ serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: 'Unknown mode: ' + mode }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const reply = await callClaude(system, userMessage, history || []);
+    const modelForMode = mode === 'chat' ? MODEL_HAIKU : MODEL_SONNET;
+    const reply = await callClaude(system, userMessage, history || [], modelForMode);
     return new Response(JSON.stringify({ reply }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (e) {

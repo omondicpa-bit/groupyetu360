@@ -154,7 +154,12 @@ async function sendTayaMessage() {
   tayaAppendUserBubble(text);
 
   if (!_tayaMode) {
-    // Try a free, instant, direct-from-database answer first - only when
+    // Cheapest possible path first - greetings and "what can you do"
+    // questions need zero network calls at all, not even a database read.
+    const cannedReply = tayaCannedReply(text);
+    if (cannedReply) { tayaAppendDirect(cannedReply); return; }
+
+    // Try a free, instant, direct-from-database answer next - only when
     // no drafting flow is already active, since minutes/summaries/reminders
     // genuinely need generation, not a lookup.
     const handled = await tayaTryDirectAnswer(text);
@@ -202,16 +207,30 @@ function tayaAppendDirect(text) {
   tayaAppend(`<div class="taya-msg-row from-taya"><div class="taya-bubble-taya">${h(text)}</div><div class="taya-msg-time">${tayaTime()} · ⚡ instant, no AI used</div></div>`);
 }
 
+// Greetings and meta questions ("hi", "thanks", "what can you do") never
+// need Claude, or even a database read - handled entirely client-side.
+// Returns the reply text if matched, or null to fall through.
+function tayaCannedReply(text) {
+  const t = text.trim().toLowerCase().replace(/[!.?]+$/, '');
+  if (/^(hi|hello|hey|hallo|habari|niaje|sasa|mambo)( taya)?$/.test(t)) {
+    return "Hi! I can help with meeting minutes, financial summaries, arrears reminders, or member lookups — tap one of the options above, or just ask.";
+  }
+  if (/^(thanks|thank you|asante|thnx|ty)\b/.test(t)) {
+    return "You're welcome! Let me know if there's anything else.";
+  }
+  if (/what can you do|who are you|what is taya|what'?s taya|^help$/.test(t)) {
+    return "I'm Taya. I can draft meeting minutes, summarise your group's finances, help remind members in arrears, and look up member balances — all pulled from this group's own records.";
+  }
+  return null;
+}
+
 async function tayaTryDirectAnswer(text) {
   // Only even attempt this for questions that look like a data lookup -
   // avoids misfiring on "draft a message" or genuinely open-ended chat.
-  // Broadened after "please share report Stephen Otieno" fell through to
-  // Claude unnecessarily - "report"/"info"/"details" are natural ways to
-  // ask for exactly what this function already answers.
-  if (!/balance|arrears|how much|how many|contributed|paid|savings?|shares?|report|info|details/i.test(text)) return false;
+  if (!/balance|arrears|how much|how many|contributed|paid|savings?|shares?/i.test(text)) return false;
 
   const { data: members, error } = await sb.from('members')
-    .select('id, full_name, status, shares_balance, savings_balance')
+    .select('full_name, status, shares_balance, savings_balance')
     .eq('org_id', currentOrg.id);
   if (error || !members) return false;
 
@@ -237,7 +256,9 @@ async function tayaTryDirectAnswer(text) {
 
   const member = tayaFindMemberInText(text, members);
   if (member) {
-    await tayaAppendMemberReport(member);
+    tayaAppendDirect(
+      `${member.full_name}\nStatus: ${member.status || 'active'}\nShares balance: Ksh ${Number(member.shares_balance || 0).toLocaleString()}\nSavings balance: Ksh ${Number(member.savings_balance || 0).toLocaleString()}`
+    );
     return true;
   }
 
@@ -247,27 +268,11 @@ async function tayaTryDirectAnswer(text) {
 async function tayaLookupMemberById(memberId) {
   if (!memberId) return;
   const { data: member, error } = await sb.from('members')
-    .select('id, full_name, status, shares_balance, savings_balance')
+    .select('full_name, status, shares_balance, savings_balance')
     .eq('id', memberId).single();
   if (error || !member) { tayaAppendError('Could not load that member — ' + (error?.message || 'not found')); return; }
-  await tayaAppendMemberReport(member);
-}
-
-// Scoped to one specific member's own transaction history, not capped at
-// "last 30 group-wide" the way the Claude chat path was - this is actually
-// more complete for an active group, not just free.
-async function tayaAppendMemberReport(member) {
-  const { data: txns } = await sb.from('transactions')
-    .select('amount, transaction_date, contribution_types(name)')
-    .eq('member_id', member.id)
-    .order('transaction_date', { ascending: false })
-    .limit(10);
-  const total = Number(member.shares_balance || 0) + Number(member.savings_balance || 0);
-  const txnLines = (txns || []).length
-    ? (txns || []).map(t => `${t.transaction_date} - ${t.contribution_types?.name || 'Payment'} - Ksh ${Number(t.amount).toLocaleString()}`).join('\n')
-    : 'No transactions recorded yet.';
   tayaAppendDirect(
-    `${member.full_name}\nStatus: ${member.status || 'active'}\nShares balance: Ksh ${Number(member.shares_balance || 0).toLocaleString()}\nSavings balance: Ksh ${Number(member.savings_balance || 0).toLocaleString()}\nTotal balance: Ksh ${total.toLocaleString()}\n\nRecent transactions (most recent 10, this member only):\n${txnLines}`
+    `${member.full_name}\nStatus: ${member.status || 'active'}\nShares balance: Ksh ${Number(member.shares_balance || 0).toLocaleString()}\nSavings balance: Ksh ${Number(member.savings_balance || 0).toLocaleString()}`
   );
 }
 
