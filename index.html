@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026072521">
+  <link rel="stylesheet" href="style.css?v=2026081517">
 </head>
 <body>
 
@@ -5612,15 +5612,15 @@
 
 
   <!-- GroupYetu360 Scripts - load order matters -->
-  <script src="js/auth.js?v=2026072521"></script>
-  <script src="js/utils.js?v=2026072521"></script>
-  <script src="js/dashboard.js?v=2026072521"></script>
-  <script src="js/members.js?v=2026072521"></script>
-  <script src="js/finance.js?v=2026072521"></script>
-  <script src="js/settings.js?v=2026072521"></script>
-  <script src="js/portal.js?v=2026072521"></script>
-  <script src="js/modules.js?v=2026072521"></script>
-  <script src="js/taya.js?v=2026072521"></script>
+  <script src="js/auth.js?v=2026081517"></script>
+  <script src="js/utils.js?v=2026081517"></script>
+  <script src="js/dashboard.js?v=2026081517"></script>
+  <script src="js/members.js?v=2026081517"></script>
+  <script src="js/finance.js?v=2026081517"></script>
+  <script src="js/settings.js?v=2026081517"></script>
+  <script src="js/portal.js?v=2026081517"></script>
+  <script src="js/modules.js?v=2026081517"></script>
+  <script src="js/taya.js?v=2026081517"></script>
   <script>
     // Bootstrap - runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —
@@ -5715,20 +5715,31 @@ function setFinMobHeight() {
 // Same fix as the other mobile shells above, applied to Taya - the panel
 // previously relied on CSS height:100% to fill the screen, which doesn't
 // reliably track the real visible viewport on Android once the on-screen
-// keyboard opens (exactly when someone's typing to Taya or reviewing a
-// draft that needs scrolling). Only takes effect at the same <=640px
-// breakpoint the panel's own mobile CSS already uses, so desktop's fixed
-// 600px floating card is untouched.
+// keyboard opens. First attempt at this used window.innerHeight, matching
+// the other shells above, but that's the LAYOUT viewport - many Android
+// WebViews (including the one this app's TWA wraps) don't shrink it when
+// the keyboard opens, and the panel's own fixed position can drift
+// upward too, not just fail to shrink. window.visualViewport.height and
+// .offsetTop are the values actually designed to track this, so this
+// prefers those when available and only falls back to innerHeight/0 on
+// older browsers that don't support the Visual Viewport API at all.
 function setTayaMobHeight() {
   const panel = document.getElementById('taya-panel');
   if (!panel) return;
-  if (window.innerWidth > 640) { panel.style.height = ''; panel.style.maxHeight = ''; return; }
-  const h = window.innerHeight + 'px';
-  panel.style.height = h; panel.style.maxHeight = h;
+  if (window.innerWidth > 640) { panel.style.height = ''; panel.style.maxHeight = ''; panel.style.top = ''; return; }
+  const vv = window.visualViewport;
+  const h = (vv ? vv.height : window.innerHeight) + 'px';
+  const top = (vv ? vv.offsetTop : 0) + 'px';
+  panel.style.top = top;
+  panel.style.height = h;
+  panel.style.maxHeight = h;
 }
 function setAllMobHeights() { setMobHomeHeight(); setAdmMobHeight(); setFinMobHeight(); setTayaMobHeight(); }
 window.addEventListener('resize', setAllMobHeights);
-if (window.visualViewport) window.visualViewport.addEventListener('resize', setTayaMobHeight);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', setTayaMobHeight);
+  window.visualViewport.addEventListener('scroll', setTayaMobHeight);
+}
 document.addEventListener('DOMContentLoaded', () => {
   setAllMobHeights();
   setTimeout(setAllMobHeights, 200);
