@@ -708,47 +708,9 @@ async function tayaAppendMemberReport(member) {
   );
 }
 
-// Reads Claude's raw SSE stream and calls onDelta(fullTextSoFar, chunk) for
-// every text token as it arrives - this is what makes responses appear
-// progressively instead of as one block after a long pause. Anthropic's
-// stream is a sequence of `event:`/`data:` pairs separated by a blank
-// line; only content_block_delta events with a text_delta carry text we
-// care about, everything else (message_start, content_block_start,
-// message_stop, etc.) is metadata this ignores on purpose.
-async function tayaConsumeSSEStream(res, onDelta) {
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  let fullText = '';
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const events = buffer.split('\n\n');
-    buffer = events.pop() || ''; // last chunk may be a partial event - keep it for next read
-    for (const evt of events) {
-      const dataLine = evt.split('\n').find(l => l.startsWith('data:'));
-      if (!dataLine) continue;
-      const jsonStr = dataLine.slice(5).trim();
-      if (!jsonStr) continue;
-      let parsed;
-      try { parsed = JSON.parse(jsonStr); } catch { continue; }
-      if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
-        fullText += parsed.delta.text;
-        onDelta(fullText, parsed.delta.text);
-      } else if (parsed.type === 'error') {
-        throw new Error(parsed.error?.message || 'Claude streaming error');
-      }
-    }
-  }
-  return fullText;
-}
-
 async function tayaGenerateDraft(message) {
   const sendBtn = document.getElementById('taya-send-btn');
   if (sendBtn) sendBtn.disabled = true;
-  let streamTargetEl = null;
-  let cardId = null;
   tayaShowTyping();
 
   try {
@@ -768,56 +730,22 @@ async function tayaGenerateDraft(message) {
       }),
     });
 
-    const contentType = res.headers.get('content-type') || '';
-
-    // Cheap short-circuit replies (usage cap, "no one's in arrears", auth
-    // errors) still come back as plain JSON, not a stream - there's
-    // nothing to stream when the answer was already known before Claude
-    // would've been called at all.
-    if (contentType.includes('application/json')) {
-      const result = await res.json();
-      tayaHideTyping();
-      if (!res.ok || result.error) throw new Error(result.error || `something went wrong (status ${res.status})`);
-      if (!result.reply || !result.reply.trim()) throw new Error("Taya came back with an empty response, try rephrasing or send again");
-      if (_tayaMode === 'chat') {
-        _tayaHistory.push({ role: 'user', content: message }, { role: 'assistant', content: result.reply });
-        tayaAppendTayaBubble(result.reply);
-      } else {
-        tayaRenderDraftCard(_tayaMode, result.reply);
-      }
-      return;
+    let result;
+    try {
+      result = await res.json();
+    } catch (parseErr) {
+      throw new Error(`Taya's server didn't respond properly (status ${res.status}). This usually means the function isn't deployed yet, or the API key isn't set up correctly.`);
     }
 
-    if (!res.ok || !res.body) throw new Error(`Taya's server didn't respond properly (status ${res.status})`);
-
-    // Streaming path - create an empty shell the instant the first token
-    // is about to arrive, then grow it in place. This is the actual
-    // "feels faster" part: the person sees Taya start answering within a
-    // few hundred ms instead of staring at a typing dot for several
-    // seconds while a full meeting-minutes draft is generated.
-    let started = false;
-    const finalText = await tayaConsumeSSEStream(res, (fullTextSoFar) => {
-      if (!started) {
-        started = true;
-        tayaHideTyping();
-        if (_tayaMode === 'chat') {
-          streamTargetEl = tayaAppend(`<div class="taya-msg-row from-taya"><div class="taya-bubble-taya"></div><div class="taya-msg-time">${tayaTime()}</div></div>`)?.querySelector('.taya-bubble-taya');
-        } else {
-          const shell = tayaCreateDraftShell(_tayaMode);
-          cardId = shell.cardId;
-          streamTargetEl = shell.bodyEl;
-        }
-      }
-      if (streamTargetEl) streamTargetEl.innerHTML = h(fullTextSoFar) + '<span class="taya-stream-cursor">▍</span>';
-    });
-
-    if (!finalText.trim()) throw new Error("Taya came back with an empty response, try rephrasing or send again");
-    if (streamTargetEl) streamTargetEl.innerHTML = h(finalText); // drop the cursor, settle on the real text
+    tayaHideTyping();
+    if (!res.ok || result.error) throw new Error(result.error || `something went wrong (status ${res.status})`);
+    if (!result.reply || !result.reply.trim()) throw new Error("Taya came back with an empty response, try rephrasing or send again");
 
     if (_tayaMode === 'chat') {
-      _tayaHistory.push({ role: 'user', content: message }, { role: 'assistant', content: finalText });
+      _tayaHistory.push({ role: 'user', content: message }, { role: 'assistant', content: result.reply });
+      tayaAppendTayaBubble(result.reply);
     } else {
-      tayaFinalizeDraftCard(_tayaMode, cardId, finalText);
+      tayaRenderDraftCard(_tayaMode, result.reply);
     }
   } catch (e) {
     tayaHideTyping();
@@ -827,11 +755,6 @@ async function tayaGenerateDraft(message) {
   }
 }
 
-// Empty card shown the moment streaming starts - no action buttons yet,
-// those only make sense once there's a finished draft to act on. Kept
-// separate from tayaFinalizeDraftCard so streaming can fill the body in
-// while the card is already visible, rather than waiting for the whole
-// response before showing anything.
 function tayaCreateDraftShell(mode) {
   const labels = {
     meeting_minutes: '📝 Draft: Meeting minutes',
@@ -849,10 +772,7 @@ function tayaCreateDraftShell(mode) {
   return { cardId, bodyEl: document.getElementById(cardId + '-body') };
 }
 
-// Fills in the action row (Discard/Save/Send Now) plus the refine chips
-// once the draft has actually finished streaming. Also used for the
-// non-streaming JSON short-circuit path, so there's one place that builds
-// this row regardless of how the text arrived.
+// Fills in the action row (Discard/Save/Send Now) plus the refine chips.
 function tayaFinalizeDraftCard(mode, cardId, text) {
   const saveLabels = {
     meeting_minutes: 'Save to Meetings →',
@@ -876,9 +796,7 @@ function tayaFinalizeDraftCard(mode, cardId, text) {
 
 // Quick-refine chips - the difference between "here's a draft, hope it's
 // right" and something that feels like working WITH an assistant rather
-// than re-prompting it from scratch every time it's not quite right. Each
-// chip reuses the refine path in tayaGenerateDraft, which is a cheap
-// Haiku call working off the existing draft, not a full regeneration.
+// than re-prompting it from scratch every time it's not quite right.
 function tayaAddRefineChips(mode, cardId) {
   const isMessagingMode = mode === 'arrears_message' || mode === 'send_message';
   const chips = isMessagingMode
@@ -901,35 +819,28 @@ async function tayaRefineDraft(cardId, instruction) {
   if (!bodyEl) return;
   const previousText = bodyEl.innerText.trim();
   if (actionsEl) actionsEl.style.display = 'none';
-  refineRow?.remove(); // rebuilt fresh on the next tayaFinalizeDraftCard-equivalent below
+  refineRow?.remove();
   tayaShowTyping();
-  const finalText = await (async () => {
-    try {
-      const session = await sb.auth.getSession();
-      const jwt = session?.data?.session?.access_token;
-      if (!jwt) throw new Error("your session has expired, refresh the page and try again");
-      const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/taya-assistant', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${jwt}` },
-        body: JSON.stringify({ org_id: currentOrg.id, mode: _tayaMode, message: instruction, history: [], context: { ..._tayaContext, refine_instruction: instruction, previous_draft: previousText } }),
-      });
-      if (!res.ok || !res.body) throw new Error(`something went wrong (status ${res.status})`);
-      let started = false;
-      const text = await tayaConsumeSSEStream(res, (fullTextSoFar) => {
-        if (!started) { started = true; tayaHideTyping(); }
-        bodyEl.innerHTML = h(fullTextSoFar) + '<span class="taya-stream-cursor">▍</span>';
-      });
-      if (!text.trim()) throw new Error('empty response');
-      return text;
-    } catch (e) {
-      tayaHideTyping();
-      toast('Could not refine: ' + (e.message || 'unknown error'));
-      return previousText;
-    }
-  })();
-  bodyEl.innerHTML = h(finalText);
-  if (actionsEl) actionsEl.style.display = '';
-  tayaAddRefineChips(_tayaMode, cardId);
+  try {
+    const session = await sb.auth.getSession();
+    const jwt = session?.data?.session?.access_token;
+    if (!jwt) throw new Error("your session has expired, refresh the page and try again");
+    const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/taya-assistant', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${jwt}` },
+      body: JSON.stringify({ org_id: currentOrg.id, mode: _tayaMode, message: instruction, history: [], context: { ..._tayaContext, refine_instruction: instruction, previous_draft: previousText } }),
+    });
+    const result = await res.json();
+    tayaHideTyping();
+    if (!res.ok || result.error || !result.reply?.trim()) throw new Error(result.error || 'empty response');
+    bodyEl.innerHTML = h(result.reply);
+  } catch (e) {
+    tayaHideTyping();
+    toast('Could not refine: ' + (e.message || 'unknown error'));
+  } finally {
+    if (actionsEl) actionsEl.style.display = '';
+    tayaAddRefineChips(_tayaMode, cardId);
+  }
 }
 
 function tayaRenderDraftCard(mode, text) {
