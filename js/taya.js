@@ -185,6 +185,19 @@ async function sendTayaMessage() {
     const handledByFaq = await tayaTryFaqAnswer(text);
     if (handledByFaq) { tayaLogQuestion(text, 'faq'); return; }
 
+    // Messaging intent ("send an sms", "text the members", "remind
+    // arrears", "message Felix") needs to be caught here, before falling
+    // into generic chat mode - chat mode has no way to actually send
+    // anything, so left unhandled it used to produce Taya wrongly telling
+    // people SMS wasn't something she could help with at all, when it's a
+    // real, working feature. Caught here, it starts the proper draft +
+    // recipient flow instead.
+    if (tayaLooksLikeSendIntent(text)) {
+      tayaLogQuestion(text, 'send_intent');
+      await tayaStartSendFlow(text);
+      return;
+    }
+
     _tayaMode = 'chat';
   }
 
@@ -250,13 +263,13 @@ function tayaCannedReply(text) {
   const t = text.trim().toLowerCase().replace(/[!.?]+$/, '');
   if (/^(hi|hello|hey|hallo|habari|niaje|sasa|mambo)( taya)?$/.test(t)) {
     const name = tayaFirstName();
-    return `Hi${name ? ' ' + name : ''}! I can help with meeting minutes, financial summaries, arrears reminders, or member lookups. Tap one of the options above, or just ask.`;
+    return `Hi${name ? ' ' + name : ''}! I can help with meeting minutes, financial summaries, sending SMS to members, or member lookups. Tap one of the options above, or just ask.`;
   }
   if (/^(thanks|thank you|asante|thnx|ty)\b/.test(t)) {
     return "You're welcome! Let me know if there's anything else.";
   }
   if (/what can you do|who are you|what is taya|what'?s taya|^help$/.test(t)) {
-    return "I'm Taya. I can draft meeting minutes, summarise your group's finances, help remind members in arrears, and look up member balances. All of it comes straight from this group's own records.";
+    return "I'm Taya. I can draft meeting minutes, summarise your group's finances, look up member balances, and draft and send SMS messages to members - all members, active members, arrears, or one specific person. Everything comes straight from this group's own records.";
   }
   return null;
 }
@@ -301,6 +314,52 @@ function tayaLogQuestion(question, handledBy) {
     question,
     handled_by: handledBy,
   }).then(() => {}, () => {});
+}
+
+// ── Send SMS / message flow ──
+// Recognises free-text requests to message members, distinct from the
+// arrears_message quick-action chip (which is scoped to arrears only).
+// This is deliberately broad since real people phrase this many ways -
+// false positives just mean an extra "who should this go to?" question,
+// which is harmless, whereas false negatives are what caused the original
+// problem (Taya claiming she can't message members at all).
+function tayaLooksLikeSendIntent(text) {
+  return /\b(send|text|message|sms|remind|notify|announce)\b/i.test(text)
+    && !/^(hi|hello|hey|thanks|thank you)\b/i.test(text.trim());
+}
+
+// Asks who the message should go to, unless the phrasing already makes it
+// obvious (a specific member's name, or "everyone"/"all members"). Keeps
+// this quick rather than opening the full custom-recipient picker unless a
+// named member genuinely can't be resolved.
+async function tayaStartSendFlow(originalText) {
+  const { data: members } = await sb.from('members').select('id, full_name, status').eq('org_id', currentOrg.id);
+  const member = tayaFindMemberInText(originalText, members || []);
+  if (member) {
+    await tayaBeginSendDraft(originalText, 'custom', member);
+    return;
+  }
+  if (/arrears|behind|not paid|haven'?t paid/i.test(originalText)) {
+    await tayaBeginSendDraft(originalText, 'arrears', null);
+    return;
+  }
+  if (/everyone|all members|whole group|entire group/i.test(originalText)) {
+    await tayaBeginSendDraft(originalText, 'all', null);
+    return;
+  }
+  tayaAppend(`<div class="taya-msg-row from-taya"><div class="taya-bubble-taya">Who should this go to?</div></div>
+    <div class="taya-chip-row">
+      <div class="taya-chip" onclick="tayaBeginSendDraft(${JSON.stringify(originalText)}, 'all', null)">All members</div>
+      <div class="taya-chip" onclick="tayaBeginSendDraft(${JSON.stringify(originalText)}, 'active', null)">Active members</div>
+      <div class="taya-chip" onclick="tayaBeginSendDraft(${JSON.stringify(originalText)}, 'arrears', null)">Members in arrears</div>
+    </div>`);
+}
+
+async function tayaBeginSendDraft(originalText, recipientType, member) {
+  _tayaMode = 'send_message';
+  _tayaContext = { recipient_type: recipientType, recipient_name: member?.full_name || null, recipient_member_id: member?.id || null };
+  _tayaHistory = [];
+  await tayaGenerateDraft(originalText);
 }
 
 // ── Direct-answer topics ──
@@ -632,13 +691,23 @@ function tayaRenderDraftCard(mode, text) {
     meeting_minutes: '📝 Draft: Meeting minutes',
     financial_summary: '📊 Draft: Financial summary',
     arrears_message: '💬 Draft: Arrears reminder',
+    send_message: '💬 Draft: Message to members',
   };
   const saveLabels = {
     meeting_minutes: 'Save to Meetings →',
     financial_summary: 'Copy',
     arrears_message: 'Use in Messages →',
+    send_message: 'Use in Messages →',
   };
+  const isMessagingMode = mode === 'arrears_message' || mode === 'send_message';
   const cardId = 'taya-draft-' + Date.now();
+  // "Send Now" only ever shown to admins/superadmins, matching the real
+  // canDo('sendSms') gate - a treasurer/officer can still reach Taya and
+  // draft a message, but sendSms() itself will correctly refuse them, so
+  // there's no point offering a button that just dead-ends for them.
+  const sendNowBtn = isMessagingMode && typeof canDo === 'function' && canDo('sendSms')
+    ? `<button class="taya-btn-primary" style="background:var(--teal,#0f6e56)" onclick="tayaSendNow('${cardId}-body')">Send Now →</button>`
+    : '';
   tayaAppend(`
     <div class="taya-draft-card" id="${cardId}">
       <div class="taya-draft-head">${labels[mode] || 'Draft'}</div>
@@ -646,6 +715,7 @@ function tayaRenderDraftCard(mode, text) {
       <div class="taya-draft-actions">
         <button class="taya-btn-ghost" onclick="document.getElementById('${cardId}').remove()">Discard</button>
         <button class="taya-btn-primary" onclick="tayaSaveDraft('${mode}','${cardId}-body')">${saveLabels[mode] || 'Save'}</button>
+        ${sendNowBtn}
       </div>
     </div>`);
 }
@@ -677,16 +747,50 @@ async function tayaSaveDraft(mode, bodyElId) {
     return;
   }
 
-  if (mode === 'arrears_message') {
+  if (mode === 'arrears_message' || mode === 'send_message') {
     toggleTayaPanel(false);
     showPage('messages');
     setTimeout(() => {
-      const body = document.getElementById('sms-body');
-      const recipients = document.getElementById('sms-recipients');
-      if (body) { body.value = text; if (typeof updateSmsCount === 'function') updateSmsCount(text); }
-      if (recipients) recipients.value = 'arrears';
+      tayaFillMessagesForm(text);
       toast('Draft loaded into Messages - review and send');
     }, 150);
     return;
   }
+}
+
+// Shared by both "Use in Messages" and "Send Now" - fills the real
+// Messages page fields the exact same way, so both paths end up going
+// through the one real, tested sendSms() pipeline rather than two
+// slightly-different copies of recipient-resolution logic.
+function tayaFillMessagesForm(text) {
+  const body = document.getElementById('sms-body');
+  const recipients = document.getElementById('sms-recipients');
+  const recipientType = _tayaContext?.recipient_type === 'arrears' || _tayaMode === 'arrears_message' ? 'arrears' : (_tayaContext?.recipient_type || 'all');
+  if (body) { body.value = text; if (typeof updateSmsCount === 'function') updateSmsCount(text); }
+  if (recipients) recipients.value = recipientType === 'custom' ? 'custom' : recipientType;
+  if (recipientType === 'custom' && _tayaContext?.recipient_member_id && typeof _customSelectedMemberIds !== 'undefined') {
+    _customSelectedMemberIds = new Set([_tayaContext.recipient_member_id]);
+  }
+}
+
+// The real "give Taya power to send" action. Taya never sends anything
+// herself - this populates the exact same form the admin would fill in by
+// hand, then calls the platform's own sendSms(), which has its own
+// canDo('sendSms') check, its own confirm() dialog showing the message and
+// recipient count, its own SMS-bundle balance check, and its own logging.
+// Nothing new is being trusted here - this is one click doing what would
+// otherwise be several, through code that's already live and proven.
+async function tayaSendNow(bodyElId) {
+  const text = document.getElementById(bodyElId)?.innerText.trim();
+  if (!text) return;
+  toggleTayaPanel(false);
+  showPage('messages');
+  setTimeout(async () => {
+    tayaFillMessagesForm(text);
+    if (typeof sendSms === 'function') {
+      await sendSms(); // shows its own confirm() dialog - nothing sends without that explicit click
+    } else {
+      toast('Could not find the send function - use the Messages page to send this.');
+    }
+  }, 150);
 }

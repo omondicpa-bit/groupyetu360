@@ -172,6 +172,29 @@ serve(async (req: Request) => {
       system += `\n\nYou are drafting a short, polite SMS reminder (under 300 characters) to send to members who are behind on their contributions. Firm but warm, no guilt-tripping, include the group name.`;
       userMessage = `Group: ${orgName}\n${count} members are currently behind on their contributions.\n\n${message || 'Draft the reminder SMS.'}`;
 
+    } else if (mode === 'send_message') {
+      // Generalised SMS drafting, reached from free-text requests like "send
+      // an SMS to everyone" or "text Felix Omondi" rather than only the
+      // arrears quick-action chip. context.recipient_type mirrors the same
+      // values the real Messages page uses (all/active/arrears/custom), so
+      // the draft here and the actual send on the client stay in sync about
+      // who it's going to. Still just a draft - nothing is sent from here.
+      const recipientType = context?.recipient_type || 'all';
+      const recipientName = context?.recipient_name || null; // for a single named member (custom)
+      let audienceLine;
+      if (recipientType === 'custom' && recipientName) {
+        audienceLine = `This message is going to one specific member: ${recipientName}.`;
+      } else {
+        const statusFilter = recipientType === 'active' ? { status: 'active' } : recipientType === 'arrears' ? { status: 'arrears' } : null;
+        let query = supabase.from('members').select('full_name', { count: 'exact', head: true }).eq('org_id', org_id);
+        if (statusFilter) query = query.eq('status', statusFilter.status);
+        const { count } = await query;
+        const audienceLabel = recipientType === 'active' ? 'active members' : recipientType === 'arrears' ? 'members currently in arrears' : 'all members';
+        audienceLine = `This message is going to ${count || 0} ${audienceLabel}.`;
+      }
+      system += `\n\nYou are drafting a short SMS (under 300 characters) on behalf of a group admin. Match the tone to what's being asked - a reminder should be firm but warm, an announcement should be clear and informative. Include the group name. Do not invent a reason for the message if none was given - if the admin's request is vague, write a simple, neutral notice they can edit.`;
+      userMessage = `Group: ${orgName}\n${audienceLine}\n\nAdmin's request: ${message || 'Draft a short SMS for the members.'}`;
+
     } else if (mode === 'chat') {
       const [{ data: members }, { data: recentTxns }] = await Promise.all([
         supabase.from('members').select('full_name, status, shares_balance, savings_balance').eq('org_id', org_id),
@@ -189,11 +212,13 @@ serve(async (req: Request) => {
         .map((m:any) => `${m.full_name} - ${m.status} - Shares: Ksh ${Number(m.shares_balance||0).toLocaleString()} - Savings: Ksh ${Number(m.savings_balance||0).toLocaleString()}`)
         .join('\n');
 
-      system += `\n\nYou can be asked two different kinds of questions, and should tell them apart:
+      system += `\n\nYou can be asked three different kinds of questions, and should tell them apart:
 
 1. Questions about THIS group's own data (balances, arrears, transactions, members) - answer using only the data provided below. If something isn't in that data, say you don't have it rather than guessing.
 
-2. Basic questions about GroupYetu360 the platform itself (what it is, what it can do) - you may answer these from general knowledge, briefly. GroupYetu360 is a platform for Kenyan community groups (chamas, welfare groups, SACCOs, table banking pools) to manage members, contributions (shares and savings), welfare funds, table banking, rotating savings (merry go round) cycles, meetings, and M-Pesa payments. Keep platform explanations short and basic, not a full walkthrough, and point the admin to WhatsApp support (reachable from the sidebar or the Contact Support link) for anything more detailed, personalised, or training related. Do not invent specific features, pricing, or technical details you are not certain of.`;
+2. Requests to message members (send an SMS, text someone, remind members, announce something) - you CAN help with this. Tell the admin you'll draft it and ask who it should go to if that's not already clear (all members, active members, members in arrears, or one specific person), rather than saying you can't send messages - sending SMS is a real, working feature of this platform, gated to admins. Never claim you can't do this.
+
+3. Basic questions about GroupYetu360 the platform itself (what it is, what it can do) - you may answer these from general knowledge, briefly. GroupYetu360 is a platform for Kenyan community groups (chamas, welfare groups, SACCOs, table banking pools) to manage members, contributions (shares and savings), welfare funds, table banking, rotating savings (merry go round) cycles, meetings, M-Pesa payments, and SMS messaging to members. Keep platform explanations short and basic, not a full walkthrough. Only point the admin to WhatsApp support (reachable from the sidebar or the Contact Support link) for things genuinely outside what's listed here - billing issues, account problems, bugs, or anything requiring a human. Do not send someone to support for something you or the platform can already do. Do not invent specific features, pricing, or technical details you are not certain of.`;
       userMessage = `Group: ${orgName}\nTotal members: ${(members||[]).length}\nTotal shares balance: Ksh ${totalShares.toLocaleString()}\nTotal savings balance: Ksh ${totalSavings.toLocaleString()}\nMembers in arrears: ${arrears.length ? arrears.join(', ') : 'none'}\n\nPer-member balances:\n${memberTable}\n\nRecent transactions (last 30):\n${(recentTxns||[]).map((t:any) => `${t.transaction_date} - ${t.members?.full_name||'Unknown'} - Ksh ${t.amount}`).join('\n')}\n\nQuestion: ${message}`;
 
     } else {
