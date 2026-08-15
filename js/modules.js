@@ -1249,12 +1249,19 @@ async function sendSms() {
   if (!rawPhones.length) { toast('No phone numbers found for selected recipients'); return; }
 
   // ── Confirmation gate — prevents accidental double-send ──
+  const customNames = recipientType === 'custom'
+    ? allMembers.filter(m => _customSelectedMemberIds.has(m.id)).map(m => m.full_name)
+    : [];
   const recipientLabel = recipientType === 'all' ? 'all members'
     : recipientType === 'active' ? 'active members'
     : recipientType === 'arrears' ? 'members in arrears'
-    : `${rawPhones.length} selected member${rawPhones.length!==1?'s':''}`;
+    : customNames.length <= 3 ? customNames.join(', ')
+    : `${rawPhones.length} selected members`;
   const preview = body.length > 60 ? body.slice(0, 60) + '…' : body;
-  const confirmed = confirm(`Send SMS to ${rawPhones.length} ${recipientLabel}?\n\nMessage: "${preview}"\n\nThis will use ${rawPhones.length} SMS from your bundle.`);
+  const toLabel = recipientType === 'custom' && customNames.length <= 3
+    ? recipientLabel
+    : `${rawPhones.length} ${recipientLabel}`;
+  const confirmed = confirm(`Send SMS to ${toLabel}?\n\nMessage: "${preview}"\n\nThis will use ${rawPhones.length} SMS from your bundle.`);
   if (!confirmed) return;
 
   // ── Balance gate ──
