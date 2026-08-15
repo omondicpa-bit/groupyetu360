@@ -25,6 +25,7 @@ function toggleTayaPanel(forceOpen) {
   const opening = forceOpen !== undefined ? forceOpen : !panel.classList.contains('open');
   panel.classList.toggle('open', opening);
   if (opening) {
+    if (typeof setTayaMobHeight === 'function') setTayaMobHeight();
     document.getElementById('taya-input')?.focus();
   }
 }

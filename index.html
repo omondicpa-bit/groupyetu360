@@ -5712,8 +5712,23 @@ function setFinMobHeight() {
   if (window.innerWidth <= 768) document.body.classList.add('finance-mob-active');
   else document.body.classList.remove('finance-mob-active');
 }
-function setAllMobHeights() { setMobHomeHeight(); setAdmMobHeight(); setFinMobHeight(); }
+// Same fix as the other mobile shells above, applied to Taya - the panel
+// previously relied on CSS height:100% to fill the screen, which doesn't
+// reliably track the real visible viewport on Android once the on-screen
+// keyboard opens (exactly when someone's typing to Taya or reviewing a
+// draft that needs scrolling). Only takes effect at the same <=640px
+// breakpoint the panel's own mobile CSS already uses, so desktop's fixed
+// 600px floating card is untouched.
+function setTayaMobHeight() {
+  const panel = document.getElementById('taya-panel');
+  if (!panel) return;
+  if (window.innerWidth > 640) { panel.style.height = ''; panel.style.maxHeight = ''; return; }
+  const h = window.innerHeight + 'px';
+  panel.style.height = h; panel.style.maxHeight = h;
+}
+function setAllMobHeights() { setMobHomeHeight(); setAdmMobHeight(); setFinMobHeight(); setTayaMobHeight(); }
 window.addEventListener('resize', setAllMobHeights);
+if (window.visualViewport) window.visualViewport.addEventListener('resize', setTayaMobHeight);
 document.addEventListener('DOMContentLoaded', () => {
   setAllMobHeights();
   setTimeout(setAllMobHeights, 200);
