@@ -1303,7 +1303,10 @@ body.member-mob-active #taya-fab{display:none !important}
 @keyframes tayaPanelIn{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
 
 .taya-panel-header{background:linear-gradient(120deg,rgba(92,0,24,.92) 0%,rgba(128,0,32,.9) 60%,rgba(10,85,68,.92) 100%);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);padding:1rem 1.1rem;display:flex;align-items:center;gap:.7rem;color:#fff;flex-shrink:0}
-.taya-panel-avatar{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.taya-panel-avatar{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative}
+.taya-panel-avatar::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(255,255,255,.35);animation:tayaAvatarBreathe 2.6s ease-in-out infinite}
+@keyframes tayaAvatarBreathe{0%,100%{transform:scale(1);opacity:.7}50%{transform:scale(1.15);opacity:0}}
+@media(prefers-reduced-motion:reduce){.taya-panel-avatar::after{animation:none;display:none}}
 .taya-panel-title{font-family:'Crimson Pro',serif;font-weight:700;font-size:1.08rem;line-height:1.1}
 .taya-panel-sub{font-size:.68rem;opacity:.8;margin-top:2px;display:flex;align-items:center;gap:.3rem}
 .taya-status-dot{width:6px;height:6px;border-radius:50%;background:#7de3b8;display:inline-block}
@@ -1315,6 +1318,19 @@ body.member-mob-active #taya-fab{display:none !important}
 .taya-greeting{font-size:.8rem;color:var(--ink-faint);text-align:center;padding:.5rem 0 .3rem;line-height:1.5}
 .taya-chip-row{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center;margin-bottom:.4rem}
 .taya-chip{background:rgba(255,255,255,.65);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.7);border-radius:99px;padding:.45rem .8rem;font-size:.7rem;font-weight:600;color:var(--teal);cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.04);transition:transform .15s}
+
+/* Capability grid - the first thing anyone sees when they open Taya, so
+   it carries more weight than a quick-reply chip does. A 2-column grid
+   with the 5th tile spanning both columns reads as a deliberate layout
+   instead of the previous flex-wrap, which left an awkward lone pill
+   centered under two even rows. */
+.taya-capability-grid{display:grid;grid-template-columns:1fr 1fr;gap:.55rem;margin-bottom:.5rem}
+.taya-capability-tile{display:flex;align-items:center;gap:.55rem;background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.7);border-radius:13px;padding:.65rem .7rem;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.05);transition:transform .15s,box-shadow .15s}
+.taya-capability-tile:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(0,0,0,.09)}
+.taya-capability-tile:nth-child(5){grid-column:1 / -1}
+.taya-capability-icon{flex-shrink:0;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:.85rem;background:var(--teal-pale)}
+.taya-capability-label{font-size:.71rem;font-weight:600;color:var(--ink-soft);line-height:1.25;text-align:left}
+@media(max-width:640px){.taya-capability-grid{grid-template-columns:1fr 1fr}}
 
 /* Inline controls inside a Taya reply - date pickers, dropdowns, action
    buttons. Soft, rounded, glass to match the rest of the panel, instead of
@@ -1336,8 +1352,8 @@ body.member-mob-active #taya-fab{display:none !important}
 .taya-bubble-user{background:linear-gradient(135deg,rgba(15,110,86,.92) 0%,rgba(10,85,68,.95) 100%);color:#fff;border-radius:16px 3px 16px 16px;padding:.65rem .85rem;font-size:.79rem;line-height:1.5;box-shadow:0 1px 4px rgba(0,0,0,.1)}
 .taya-msg-time{font-size:.6rem;color:var(--ink-faint);margin-top:.2rem;padding:0 .3rem}
 
-.taya-draft-card{align-self:flex-start;max-width:96%;width:100%;background:rgba(255,255,255,.78);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.6);border-radius:14px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.08)}
-.taya-draft-head{background:rgba(240,236,227,.6);padding:.55rem .8rem;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--teal);display:flex;align-items:center;gap:.35rem}
+.taya-draft-card{align-self:flex-start;max-width:96%;width:100%;background:rgba(255,255,255,.82);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.6);border-left:3px solid var(--gold);border-radius:4px 14px 14px 4px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.taya-draft-head{background:linear-gradient(90deg,rgba(196,154,48,.14),rgba(196,154,48,.04));padding:.55rem .8rem;font-size:.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--gold);display:flex;align-items:center;gap:.4rem}
 .taya-draft-body{padding:.8rem;font-size:.76rem;color:var(--ink-soft);line-height:1.6;white-space:pre-wrap}
 .taya-draft-body[contenteditable="true"]{outline:none;cursor:text}
 .taya-draft-body[contenteditable="true"]:focus{background:rgba(255,255,255,.5)}
@@ -1346,6 +1362,16 @@ body.member-mob-active #taya-fab{display:none !important}
 .taya-btn-primary:hover{opacity:.9}
 .taya-btn-primary:disabled{opacity:.5;cursor:default}
 .taya-btn-ghost{flex:1;background:none;border:1px solid rgba(0,0,0,.1);border-radius:9px;padding:.55rem;font-size:.7rem;font-weight:600;color:var(--ink-faint);cursor:pointer}
+
+/* A confirm-send card is a different kind of moment than a draft, real
+   money/SMS-bundle is about to be spent, so it gets its own identity
+   instead of reusing the draft card's gold "here's something for you"
+   accent. Warm amber, not red, since this is a normal confirm step, not
+   an error. */
+.taya-confirm-card{align-self:flex-start;max-width:96%;width:100%;background:var(--warning-pale,#fef3e0);border:1px solid rgba(160,96,16,.18);border-left:3px solid var(--warning,#a06010);border-radius:4px 14px 14px 4px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.taya-confirm-head{padding:.55rem .8rem;font-size:.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--warning,#a06010);display:flex;align-items:center;gap:.4rem}
+.taya-confirm-body{padding:.2rem .8rem .8rem;font-size:.78rem;color:var(--ink-soft);line-height:1.6}
+.taya-confirm-actions{display:flex;gap:.4rem;padding:.6rem .8rem;border-top:1px solid rgba(160,96,16,.12)}
 
 .taya-error-bubble{background:rgba(255,245,244,.85);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(240,196,191,.8);border-radius:3px 16px 16px 16px;padding:.65rem .85rem;font-size:.76rem;color:#8a3a2e;line-height:1.55;align-self:flex-start;max-width:88%}
 .taya-error-bubble a{color:var(--teal);font-weight:700}

@@ -38,12 +38,12 @@ function tayaResetPanel() {
   const name = tayaFirstName();
   if (body) body.innerHTML = `
     <div class="taya-greeting">Hi${name ? ' ' + h(name) : ''}, I'm Taya 👋<br>What can I help with today?</div>
-    <div class="taya-chip-row" id="taya-chip-row">
-      <div class="taya-chip" onclick="tayaQuickAction('meeting_minutes')">📝 Meeting minutes</div>
-      <div class="taya-chip" onclick="tayaQuickAction('financial_summary')">📊 Financial summary</div>
-      <div class="taya-chip" onclick="tayaQuickAction('arrears_message')">💬 Arrears reminder</div>
-      <div class="taya-chip" onclick="tayaQuickAction('member_lookup')">🔍 Member lookup</div>
-      <div class="taya-chip" onclick="tayaQuickAction('last_contribution')">📅 Last contribution check</div>
+    <div class="taya-capability-grid" id="taya-chip-row">
+      <div class="taya-capability-tile" onclick="tayaQuickAction('meeting_minutes')"><div class="taya-capability-icon">📝</div><div class="taya-capability-label">Meeting minutes</div></div>
+      <div class="taya-capability-tile" onclick="tayaQuickAction('financial_summary')"><div class="taya-capability-icon">📊</div><div class="taya-capability-label">Financial summary</div></div>
+      <div class="taya-capability-tile" onclick="tayaQuickAction('arrears_message')"><div class="taya-capability-icon">💬</div><div class="taya-capability-label">Arrears reminder</div></div>
+      <div class="taya-capability-tile" onclick="tayaQuickAction('member_lookup')"><div class="taya-capability-icon">🔍</div><div class="taya-capability-label">Member lookup</div></div>
+      <div class="taya-capability-tile" onclick="tayaQuickAction('last_contribution')"><div class="taya-capability-icon">📅</div><div class="taya-capability-label">Last contribution check</div></div>
     </div>`;
 }
 
@@ -979,14 +979,14 @@ async function tayaSendNow(cardId) {
   const confirmId = cardId + '-confirm';
   const preview = text.length > 70 ? text.slice(0, 70) + '…' : text;
   tayaAppend(`
-    <div class="taya-draft-card" id="${confirmId}" style="border-color:rgba(15,110,86,.3)">
-      <div class="taya-draft-head" style="color:var(--maroon)">⚠️ Confirm send</div>
-      <div class="taya-draft-body" style="white-space:normal">
+    <div class="taya-confirm-card" id="${confirmId}">
+      <div class="taya-confirm-head">⚠️ Confirm send</div>
+      <div class="taya-confirm-body">
         Send to <strong>${h(label)}</strong> (${phones.length} recipient${phones.length !== 1 ? 's' : ''})?<br><br>
         <span style="color:var(--ink-faint);font-style:italic">"${h(preview)}"</span><br><br>
         This uses ${phones.length} SMS from your bundle.
       </div>
-      <div class="taya-draft-actions">
+      <div class="taya-confirm-actions">
         <button class="taya-btn-ghost" onclick="tayaCancelSend('${cardId}','${confirmId}',${JSON.stringify(mode)})">Cancel</button>
         <button class="taya-btn-primary" style="background:var(--teal,#0f6e56)" onclick="tayaConfirmSend('${cardId}','${confirmId}',${JSON.stringify(mode)})">Yes, send →</button>
       </div>
