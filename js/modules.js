@@ -1219,7 +1219,8 @@ function loadSmsTemplate(t) {
   if (templates[t]) { document.getElementById('sms-body').value=templates[t]; updateSmsCount(templates[t]); }
 }
 
-async function sendSms() {
+async function sendSms(opts = {}) {
+  const skipConfirm = opts.skipConfirm === true;
   if (!canDo('sendSms')) { toast('⚠ Only admins can send SMS messages.'); return; }
   const body = document.getElementById('sms-body').value.trim();
   if (!body) { toast('Please enter a message'); return; }
@@ -1261,7 +1262,7 @@ async function sendSms() {
   const toLabel = recipientType === 'custom' && customNames.length <= 3
     ? recipientLabel
     : `${rawPhones.length} ${recipientLabel}`;
-  const confirmed = confirm(`Send SMS to ${toLabel}?\n\nMessage: "${preview}"\n\nThis will use ${rawPhones.length} SMS from your bundle.`);
+  const confirmed = skipConfirm ? true : confirm(`Send SMS to ${toLabel}?\n\nMessage: "${preview}"\n\nThis will use ${rawPhones.length} SMS from your bundle.`);
   if (!confirmed) return;
 
   // ── Balance gate ──

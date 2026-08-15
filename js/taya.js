@@ -393,10 +393,13 @@ async function tayaBeginSendDraft(originalText, recipientType, member) {
   const template = tayaTrySmsTemplate(originalText);
   if (template) {
     tayaLogQuestion(originalText, 'template');
+    const contextForCard = _tayaContext; // capture before resetting below
     tayaShowTyping();
     setTimeout(() => {
       tayaHideTyping();
-      tayaRenderDraftCard('send_message', template);
+      tayaRenderDraftCard('send_message', template, contextForCard);
+      _tayaMode = null;
+      _tayaContext = {};
     }, 450 + Math.random() * 450);
     return;
   }
@@ -745,7 +748,20 @@ async function tayaGenerateDraft(message) {
       _tayaHistory.push({ role: 'user', content: message }, { role: 'assistant', content: result.reply });
       tayaAppendTayaBubble(result.reply);
     } else {
-      tayaRenderDraftCard(_tayaMode, result.reply);
+      // Bake this card's mode/context into the card itself before letting
+      // go of the shared globals below - the card has to keep working
+      // (Save, Send Now, Refine) no matter what the person does next, and
+      // it can't do that if it's reading live global state that's about
+      // to change out from under it.
+      tayaRenderDraftCard(_tayaMode, result.reply, _tayaContext);
+      // Reset back to the neutral state once a draft is actually on
+      // screen - otherwise every message after this one (even "thanks")
+      // permanently skips the free canned/FAQ/lookup paths for the rest
+      // of the session and goes straight to a paid Claude call, which is
+      // exactly the bug this fixes. Chat mode is deliberately exempt -
+      // that one's supposed to keep its running conversation.
+      _tayaMode = null;
+      _tayaContext = {};
     }
   } catch (e) {
     tayaHideTyping();
@@ -755,7 +771,7 @@ async function tayaGenerateDraft(message) {
   }
 }
 
-function tayaCreateDraftShell(mode) {
+function tayaCreateDraftShell(mode, context) {
   const labels = {
     meeting_minutes: '📝 Draft: Meeting minutes',
     financial_summary: '📊 Draft: Financial summary',
@@ -764,12 +780,25 @@ function tayaCreateDraftShell(mode) {
   };
   const cardId = 'taya-draft-' + Date.now();
   tayaAppend(`
-    <div class="taya-draft-card" id="${cardId}">
+    <div class="taya-draft-card" id="${cardId}" data-mode="${h(mode)}">
       <div class="taya-draft-head">${labels[mode] || 'Draft'}</div>
       <div class="taya-draft-body" contenteditable="true" id="${cardId}-body"></div>
       <div class="taya-draft-actions" id="${cardId}-actions" style="display:none"></div>
     </div>`);
+  const card = document.getElementById(cardId);
+  // Context lives on the card itself, not in the shared _tayaMode/_tayaContext
+  // globals - those get reset the moment a draft is shown so the cheap
+  // canned/FAQ/lookup paths work again for whatever the person types next.
+  // A card that read the live globals later would silently pick up
+  // whatever the NEXT request set them to, which is exactly how "Send Now"
+  // could end up targeting the wrong recipient.
+  if (card) card.dataset.context = JSON.stringify(context || {});
   return { cardId, bodyEl: document.getElementById(cardId + '-body') };
+}
+
+function tayaCardContext(cardId) {
+  try { return JSON.parse(document.getElementById(cardId)?.dataset.context || '{}'); }
+  catch { return {}; }
 }
 
 // Fills in the action row (Discard/Save/Send Now) plus the refine chips.
@@ -782,13 +811,13 @@ function tayaFinalizeDraftCard(mode, cardId, text) {
   };
   const isMessagingMode = mode === 'arrears_message' || mode === 'send_message';
   const sendNowBtn = isMessagingMode && typeof canDo === 'function' && canDo('sendSms')
-    ? `<button class="taya-btn-primary" style="background:var(--teal,#0f6e56)" onclick="tayaSendNow('${cardId}-body')">Send Now →</button>`
+    ? `<button class="taya-btn-primary" style="background:var(--teal,#0f6e56)" onclick="tayaSendNow('${cardId}')">Send Now →</button>`
     : '';
   const actionsEl = document.getElementById(cardId + '-actions');
   if (!actionsEl) return;
   actionsEl.innerHTML = `
     <button class="taya-btn-ghost" onclick="document.getElementById('${cardId}').remove()">Discard</button>
-    <button class="taya-btn-primary" onclick="tayaSaveDraft('${mode}','${cardId}-body')">${saveLabels[mode] || 'Save'}</button>
+    <button class="taya-btn-primary" onclick="tayaSaveDraft('${mode}','${cardId}')">${saveLabels[mode] || 'Save'}</button>
     ${sendNowBtn}`;
   actionsEl.style.display = '';
   tayaAddRefineChips(mode, cardId);
@@ -816,6 +845,7 @@ async function tayaRefineDraft(cardId, instruction) {
   const bodyEl = document.getElementById(bodyElId);
   const actionsEl = document.getElementById(actionsElId);
   const refineRow = document.getElementById(cardId + '-refine');
+  const mode = document.getElementById(cardId)?.dataset.mode;
   if (!bodyEl) return;
   const previousText = bodyEl.innerText.trim();
   if (actionsEl) actionsEl.style.display = 'none';
@@ -828,7 +858,7 @@ async function tayaRefineDraft(cardId, instruction) {
     const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/taya-assistant', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${jwt}` },
-      body: JSON.stringify({ org_id: currentOrg.id, mode: _tayaMode, message: instruction, history: [], context: { ..._tayaContext, refine_instruction: instruction, previous_draft: previousText } }),
+      body: JSON.stringify({ org_id: currentOrg.id, mode: mode || 'chat', message: instruction, history: [], context: { ...tayaCardContext(cardId), refine_instruction: instruction, previous_draft: previousText } }),
     });
     const result = await res.json();
     tayaHideTyping();
@@ -839,24 +869,25 @@ async function tayaRefineDraft(cardId, instruction) {
     toast('Could not refine: ' + (e.message || 'unknown error'));
   } finally {
     if (actionsEl) actionsEl.style.display = '';
-    tayaAddRefineChips(_tayaMode, cardId);
+    tayaAddRefineChips(mode, cardId);
   }
 }
 
-function tayaRenderDraftCard(mode, text) {
-  const shell = tayaCreateDraftShell(mode);
+function tayaRenderDraftCard(mode, text, context) {
+  const shell = tayaCreateDraftShell(mode, context);
   shell.bodyEl.innerHTML = h(text);
   tayaFinalizeDraftCard(mode, shell.cardId, text);
 }
 
 // ── Save handlers - the only place any of this actually writes anything ──
 
-async function tayaSaveDraft(mode, bodyElId) {
-  const text = document.getElementById(bodyElId)?.innerText.trim();
+async function tayaSaveDraft(mode, cardId) {
+  const text = document.getElementById(cardId + '-body')?.innerText.trim();
   if (!text) return;
+  const context = tayaCardContext(cardId);
 
   if (mode === 'meeting_minutes') {
-    const meetingId = _tayaContext.meeting_id;
+    const meetingId = context.meeting_id;
     if (!meetingId) { toast('No meeting selected'); return; }
     const { error } = await sb.from('meetings').update({ minutes: text }).eq('id', meetingId);
     if (error) { toast('Error: ' + error.message); return; }
@@ -880,46 +911,106 @@ async function tayaSaveDraft(mode, bodyElId) {
     toggleTayaPanel(false);
     showPage('messages');
     setTimeout(() => {
-      tayaFillMessagesForm(text);
+      tayaFillMessagesForm(text, mode, context);
       toast('Draft loaded into Messages - review and send');
     }, 150);
     return;
   }
 }
 
-// Shared by both "Use in Messages" and "Send Now" - fills the real
-// Messages page fields the exact same way, so both paths end up going
-// through the one real, tested sendSms() pipeline rather than two
-// slightly-different copies of recipient-resolution logic.
-function tayaFillMessagesForm(text) {
+// Shared by "Use in Messages" and "Send Now" - fills the real Messages
+// page fields the exact same way, so both paths end up going through the
+// one real, tested sendSms() pipeline rather than two slightly-different
+// copies of recipient-resolution logic. Takes mode/context as arguments
+// now instead of reading the shared globals, since by the time either of
+// these fires, those globals may already belong to a different request.
+function tayaFillMessagesForm(text, mode, context) {
   const body = document.getElementById('sms-body');
   const recipients = document.getElementById('sms-recipients');
-  const recipientType = _tayaContext?.recipient_type === 'arrears' || _tayaMode === 'arrears_message' ? 'arrears' : (_tayaContext?.recipient_type || 'all');
+  const recipientType = context?.recipient_type === 'arrears' || mode === 'arrears_message' ? 'arrears' : (context?.recipient_type || 'all');
   if (body) { body.value = text; if (typeof updateSmsCount === 'function') updateSmsCount(text); }
   if (recipients) recipients.value = recipientType === 'custom' ? 'custom' : recipientType;
-  if (recipientType === 'custom' && _tayaContext?.recipient_member_id && typeof _customSelectedMemberIds !== 'undefined') {
-    _customSelectedMemberIds = new Set([_tayaContext.recipient_member_id]);
+  if (recipientType === 'custom' && context?.recipient_member_id && typeof _customSelectedMemberIds !== 'undefined') {
+    _customSelectedMemberIds = new Set([context.recipient_member_id]);
   }
+  return recipientType;
 }
 
-// The real "give Taya power to send" action. Taya never sends anything
-// herself - this populates the exact same form the admin would fill in by
-// hand, then calls the platform's own sendSms(), which has its own
-// canDo('sendSms') check, its own confirm() dialog showing the message and
-// recipient count, its own SMS-bundle balance check, and its own logging.
-// Nothing new is being trusted here - this is one click doing what would
-// otherwise be several, through code that's already live and proven.
-async function tayaSendNow(bodyElId) {
-  const text = document.getElementById(bodyElId)?.innerText.trim();
+// Resolves who a recipientType actually points to, purely for showing an
+// accurate confirmation - mirrors sendSms()'s own resolution so the
+// number/names shown here always match what will actually be sent to.
+function tayaResolveRecipients(recipientType, context) {
+  if (recipientType === 'all') return { phones: allMembers.filter(m => m.phone).map(m => m.phone), label: 'all members' };
+  if (recipientType === 'active') return { phones: allMembers.filter(m => m.phone && m.status === 'active').map(m => m.phone), label: 'active members' };
+  if (recipientType === 'arrears') return { phones: allMembers.filter(m => m.phone && m.status === 'arrears').map(m => m.phone), label: 'members in arrears' };
+  if (recipientType === 'custom') {
+    const names = allMembers.filter(m => m.id === context?.recipient_member_id).map(m => m.full_name);
+    const phones = allMembers.filter(m => m.id === context?.recipient_member_id && m.phone).map(m => m.phone);
+    return { phones, label: names[0] || context?.recipient_name || '1 member' };
+  }
+  return { phones: [], label: 'no one' };
+}
+
+// The real "give Taya power to send" action, done properly this time -
+// no leaving the panel, no browser confirm() popup. Taya still never
+// sends anything herself: this shows its own in-panel confirmation, and
+// only on that explicit click does it populate the real Messages form and
+// call the platform's own sendSms() (with its native popup suppressed
+// since this already confirmed) - same tested pipeline, same balance
+// check, same logging, just without forcing a page you didn't ask to
+// leave in order to approve something you were already looking at.
+async function tayaSendNow(cardId) {
+  const bodyEl = document.getElementById(cardId + '-body');
+  const text = bodyEl?.innerText.trim();
   if (!text) return;
-  toggleTayaPanel(false);
-  showPage('messages');
-  setTimeout(async () => {
-    tayaFillMessagesForm(text);
-    if (typeof sendSms === 'function') {
-      await sendSms(); // shows its own confirm() dialog - nothing sends without that explicit click
-    } else {
-      toast('Could not find the send function - use the Messages page to send this.');
-    }
-  }, 150);
+  const mode = document.getElementById(cardId)?.dataset.mode;
+  const context = tayaCardContext(cardId);
+  const recipientType = context?.recipient_type === 'arrears' || mode === 'arrears_message' ? 'arrears' : (context?.recipient_type || 'all');
+  const { phones, label } = tayaResolveRecipients(recipientType, context);
+
+  if (!phones.length) { toast('No phone numbers found for the selected recipient(s)'); return; }
+
+  const actionsEl = document.getElementById(cardId + '-actions');
+  const refineRow = document.getElementById(cardId + '-refine');
+  if (actionsEl) actionsEl.style.display = 'none';
+  refineRow?.remove();
+
+  const confirmId = cardId + '-confirm';
+  const preview = text.length > 70 ? text.slice(0, 70) + '…' : text;
+  tayaAppend(`
+    <div class="taya-draft-card" id="${confirmId}" style="border-color:rgba(15,110,86,.3)">
+      <div class="taya-draft-head" style="color:var(--maroon)">⚠️ Confirm send</div>
+      <div class="taya-draft-body" style="white-space:normal">
+        Send to <strong>${h(label)}</strong> (${phones.length} recipient${phones.length !== 1 ? 's' : ''})?<br><br>
+        <span style="color:var(--ink-faint);font-style:italic">"${h(preview)}"</span><br><br>
+        This uses ${phones.length} SMS from your bundle.
+      </div>
+      <div class="taya-draft-actions">
+        <button class="taya-btn-ghost" onclick="tayaCancelSend('${cardId}','${confirmId}',${JSON.stringify(mode)})">Cancel</button>
+        <button class="taya-btn-primary" style="background:var(--teal,#0f6e56)" onclick="tayaConfirmSend('${cardId}','${confirmId}',${JSON.stringify(mode)})">Yes, send →</button>
+      </div>
+    </div>`);
+  document.getElementById(cardId)?.after(document.getElementById(confirmId));
+}
+
+function tayaCancelSend(cardId, confirmId, mode) {
+  document.getElementById(confirmId)?.remove();
+  const actionsEl = document.getElementById(cardId + '-actions');
+  if (actionsEl) actionsEl.style.display = '';
+  tayaAddRefineChips(mode, cardId);
+}
+
+async function tayaConfirmSend(cardId, confirmId, mode) {
+  const bodyEl = document.getElementById(cardId + '-body');
+  const text = bodyEl?.innerText.trim();
+  const context = tayaCardContext(cardId);
+  document.getElementById(confirmId)?.remove();
+  if (!text) return;
+  tayaFillMessagesForm(text, mode, context);
+  if (typeof sendSms === 'function') {
+    await sendSms({ skipConfirm: true }); // already confirmed above - no second popup
+    toggleTayaPanel(false);
+  } else {
+    toast('Could not find the send function - use the Messages page to send this.');
+  }
 }
