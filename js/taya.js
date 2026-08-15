@@ -48,9 +48,26 @@ function tayaResetPanel() {
 
 function tayaAppend(html) {
   const body = document.getElementById('taya-panel-body');
-  if (!body) return;
+  if (!body) return null;
+  const before = body.children.length;
   body.insertAdjacentHTML('beforeend', html);
-  body.scrollTop = body.scrollHeight;
+  const newEl = body.children[before] || null;
+  // Scroll on the next animation frame, not immediately - reading
+  // scrollHeight right after insertAdjacentHTML can run before the browser
+  // has finished laying out the new content (worse on slower devices),
+  // which previously left a tall card (like a draft) only partly
+  // scrolled-into-view - e.g. just its header visible. scrollIntoView on
+  // the actual new element, after layout has settled, doesn't have that
+  // race - it scrolls to wherever the real element ends up, not a height
+  // number read too early.
+  requestAnimationFrame(() => {
+    if (newEl && typeof newEl.scrollIntoView === 'function') {
+      newEl.scrollIntoView({ block: 'end', behavior: 'smooth' });
+    } else {
+      body.scrollTop = body.scrollHeight;
+    }
+  });
+  return newEl;
 }
 
 function tayaAppendUserBubble(text) {
@@ -271,6 +288,14 @@ function tayaCannedReply(text) {
   if (/what can you do|who are you|what is taya|what'?s taya|^help$/.test(t)) {
     return "I'm Taya. I can draft meeting minutes, summarise your group's finances, look up member balances, and draft and send SMS messages to members - all members, active members, arrears, or one specific person. Everything comes straight from this group's own records.";
   }
+  // Capability questions ("can you send sms?", "are you able to message
+  // members?") are asking WHETHER something is possible, not asking Taya
+  // to actually do it - answering this needs no Claude call and no
+  // database read, same as the rest of this function. Kept separate from
+  // tayaLooksLikeSendIntent, which is for actual do-it requests.
+  if (/\b(can|could|do|does|is|are|will|would)\b.*\b(send|text|message)\b.*\b(sms|member)/i.test(t) || (/\?$/.test(text.trim()) && /\b(send|text|message|sms)\b/i.test(t))) {
+    return "Yes - I can draft and send SMS to your members. Tell me who (all members, active members, those in arrears, or one specific person) and what it should say, or just ask me to send something and I'll ask who it's for.";
+  }
   return null;
 }
 
@@ -359,7 +384,51 @@ async function tayaBeginSendDraft(originalText, recipientType, member) {
   _tayaMode = 'send_message';
   _tayaContext = { recipient_type: recipientType, recipient_name: member?.full_name || null, recipient_member_id: member?.id || null };
   _tayaHistory = [];
+
+  // Free path first - a test message or a routine notice (meeting, AGM,
+  // welfare, contribution reminder) doesn't need Claude to write it, this
+  // platform already has good boilerplate for exactly these cases. Only a
+  // genuinely custom request (specific wording, specific situation) is
+  // worth spending a real API call on.
+  const template = tayaTrySmsTemplate(originalText);
+  if (template) {
+    tayaLogQuestion(originalText, 'template');
+    tayaShowTyping();
+    setTimeout(() => {
+      tayaHideTyping();
+      tayaRenderDraftCard('send_message', template);
+    }, 450 + Math.random() * 450);
+    return;
+  }
   await tayaGenerateDraft(originalText);
+}
+
+// Reuses the exact same wording as the Messages page's own canned
+// templates (loadSmsTemplate in modules.js), so there's one source of
+// truth for what these say, not two copies that can drift apart. Returns
+// null (meaning: fall through to Claude) for anything that isn't clearly
+// one of these routine, templatable cases.
+function tayaTrySmsTemplate(text) {
+  const t = text.toLowerCase();
+  const orgName = currentOrg?.name || 'your group';
+  const paybill = currentOrg?.paybill || '—';
+  const isArrearsRelated = /arrears|behind|not paid|haven'?t paid/.test(t);
+  if (/\btest(ing)?\b/.test(t)) {
+    return `This is a test message from ${orgName} via GroupYetu360. Please disregard.`;
+  }
+  if (/\bagm\b|annual general meeting/.test(t)) {
+    return `Dear Member, the ${orgName} Annual General Meeting has been scheduled. Details to follow. Please mark your diary. Regards.`;
+  }
+  if (/\bwelfare\b/.test(t)) {
+    return `Dear Member, there is an active welfare event. Kindly contribute as per constitution. Send to Paybill ${paybill}. Regards, ${orgName}.`;
+  }
+  if (/\bmeeting\b/.test(t) && !isArrearsRelated) {
+    return `Dear Member, the next ${orgName} meeting is coming up. Please check your calendar and be available. Regards, ${orgName}.`;
+  }
+  if (/\bcontribut/.test(t) && !isArrearsRelated) {
+    return `Dear Member, kindly ensure your monthly contributions are up to date. Paybill: ${paybill}. Regards, ${orgName}.`;
+  }
+  return null;
 }
 
 // ── Direct-answer topics ──
