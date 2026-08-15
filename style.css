@@ -1342,6 +1342,8 @@ body.member-mob-active #taya-fab{display:none !important}
 .taya-draft-body[contenteditable="true"]{outline:none;cursor:text}
 .taya-draft-body[contenteditable="true"]:focus{background:rgba(255,255,255,.5)}
 .taya-draft-actions{display:flex;gap:.4rem;padding:.6rem .8rem;border-top:1px solid rgba(0,0,0,.06)}
+.taya-stream-cursor{display:inline-block;animation:tayaCursorBlink 1s step-start infinite;color:var(--teal);font-weight:400}
+@keyframes tayaCursorBlink{50%{opacity:0}}
 .taya-btn-primary{flex:1;background:var(--maroon);color:#fff;border:none;border-radius:9px;padding:.55rem;font-size:.7rem;font-weight:700;cursor:pointer;transition:opacity .15s}
 .taya-btn-primary:hover{opacity:.9}
 .taya-btn-primary:disabled{opacity:.5;cursor:default}

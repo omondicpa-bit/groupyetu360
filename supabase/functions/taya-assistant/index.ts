@@ -39,7 +39,14 @@ const corsHeaders = {
 const MODEL_SONNET = 'claude-sonnet-5';
 const MODEL_HAIKU = 'claude-haiku-4-5-20251001';
 
-async function callClaude(system: string, userMessage: string, history: {role:string,content:string}[] = [], model: string = MODEL_SONNET) {
+// Streaming - returns Claude's raw SSE response body untouched, so this
+// function is a pass-through, not a re-parser. The client speaks the same
+// SSE format Anthropic's API itself uses (content_block_delta events),
+// which keeps this simple and means a future change to Claude's stream
+// shape doesn't require a matching change here. Every mode routes through
+// this now - there's no non-streaming path left, so there's only one code
+// path to keep correct instead of two that can drift apart.
+async function callClaudeStream(system: string, userMessage: string, history: {role:string,content:string}[] = [], model: string = MODEL_SONNET) {
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not configured');
 
@@ -55,15 +62,14 @@ async function callClaude(system: string, userMessage: string, history: {role:st
       max_tokens: 1200,
       system,
       messages: [...history, { role: 'user', content: userMessage }],
+      stream: true,
     }),
   });
-  if (!res.ok) {
-    const errText = await res.text();
+  if (!res.ok || !res.body) {
+    const errText = await res.text().catch(() => '');
     throw new Error(`Claude API error (${res.status}): ${errText}`);
   }
-  const data = await res.json();
-  const text = (data.content || []).filter((b: any) => b.type === 'text').map((b: any) => b.text).join('\n');
-  return text.trim();
+  return res.body;
 }
 
 const TAYA_PERSONA = `You are Taya, the AI assistant built into GroupYetu360, a platform Kenyan community groups (chamas, welfare groups, SACCOs, table banking pools) use to manage members, finances and meetings.
@@ -132,6 +138,19 @@ serve(async (req: Request) => {
 
     const { data: org } = await supabase.from('organisations').select('name').eq('id', org_id).single();
     const orgName = org?.name || 'this group';
+
+    // Refine path - "make it shorter", "more formal", "regenerate" on an
+    // existing draft. Deliberately does not re-fetch this mode's data or
+    // rebuild its system prompt from scratch - it's a lightweight edit of
+    // text that already exists, not a new draft, so Haiku plus the
+    // previous draft is enough and keeps this cheap. Works the same way
+    // regardless of which mode produced the original draft.
+    if (context?.refine_instruction && typeof context?.previous_draft === 'string') {
+      const refineSystem = TAYA_PERSONA + `\n\nYou previously wrote a draft for this group's admin. Revise it per the instruction below. Return ONLY the revised text - no preamble, no "Here's the revised version", nothing but the draft itself.`;
+      const refineMessage = `Previous draft:\n${context.previous_draft}\n\nInstruction: ${context.refine_instruction}`;
+      const stream = await callClaudeStream(refineSystem, refineMessage, [], MODEL_HAIKU);
+      return new Response(stream, { status: 200, headers: { ...corsHeaders, 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache' } });
+    }
 
     let system = TAYA_PERSONA;
     let userMessage = message || '';
@@ -226,8 +245,8 @@ serve(async (req: Request) => {
     }
 
     const modelForMode = mode === 'chat' ? MODEL_HAIKU : MODEL_SONNET;
-    const reply = await callClaude(system, userMessage, history || [], modelForMode);
-    return new Response(JSON.stringify({ reply }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const stream = await callClaudeStream(system, userMessage, history || [], modelForMode);
+    return new Response(stream, { status: 200, headers: { ...corsHeaders, 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache' } });
 
   } catch (e) {
     return new Response(
