@@ -2488,7 +2488,12 @@ async function submitCartPaystack_impl() {
       const { data: provRow } = await sb.from('platform_settings_public').select('subscription_payment_provider').maybeSingle();
       subscriptionProvider = provRow?.subscription_payment_provider || 'paystack';
     } catch(e) {}
-    const chargeFunctionName = subscriptionProvider === 'sasapay' ? 'sasapay-charge' : 'paystack-charge';
+    // 'daraja' = EPH's own Safaricom Paybill (daraja-charge). Anything unknown
+    // falls back to Paystack, so a bad value in platform_settings can never
+    // leave checkout with no provider at all.
+    const chargeFunctionName = subscriptionProvider === 'sasapay' ? 'sasapay-charge'
+      : subscriptionProvider === 'daraja' ? 'daraja-charge'
+      : 'paystack-charge';
 
     const res = await fetch(`https://eengldzvvgplgzvbutal.supabase.co/functions/v1/${chargeFunctionName}`, {
       method: 'POST',
@@ -2525,6 +2530,19 @@ async function submitCartPaystack_impl() {
         return;
       }
       try {
+        // Safaricom Direct only: if the callback is late, ask Safaricom
+        // directly (daraja-verify) starting ~15s in, then about every 10s.
+        // Without this a missed callback leaves the customer looking at a
+        // timeout even though they paid. Paystack and SasaPay are untouched.
+        if (subscriptionProvider === 'daraja' && polls >= 3 && polls % 2 === 1) {
+          try {
+            await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/daraja-verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+              body: JSON.stringify({ payment_request_id: result.payment_request_id })
+            });
+          } catch(verifyErr) { /* the DB read below is still the source of truth */ }
+        }
         const { data: pr } = await sb.from('payment_requests')
           .select('status').eq('id', result.payment_request_id).maybeSingle();
         if (pr?.status === 'approved') {

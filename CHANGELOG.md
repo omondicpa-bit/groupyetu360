@@ -1,3 +1,18 @@
+# Changelog - 28 September 2026 session
+
+## Payments - Safaricom Direct (EPH Paybill 1273386), built dormant
+- Added `daraja-charge`, `daraja-callback` (rewritten) and `daraja-verify` Edge Functions, plus shared modules `darajaClient`, `billingPrices`, `creditPlatformPayment`, `darajaProcessing`, `authorizeOrgAccess`. Subscription and SMS bundle billing only. Member contributions are unchanged and stay on the group providers.
+- New third option in Super Admin Platform Settings: "Safaricom Direct (EPH Paybill)". Default stays Paystack, so nothing changes until it is selected.
+- The billing amount is verified on the server against the price list (plans, and Ksh 1.50 per SMS). Paystack and SasaPay still trust the amount the browser sends.
+- Combined carts (plan + SMS bundle) credit both parts. Credited in a single organisation update.
+- Safety layers on the callback: optional secret in the callback URL, amount cross-check, atomic claim (`claimPaymentRequest`), late-success recovery after a wrongly declined request.
+- Safety net for a missing callback: the billing poll loop calls `daraja-verify` (asks Safaricom directly via STK Query) from about 15 seconds in, for this provider only.
+- Deliberately does NOT credit the paying group's bank balance (see HANDOVER open items).
+- Old `daraja-stk` left in place, unused and superseded. Retire it once Safaricom Direct is proven live.
+- Tested against a fake database and fake Safaricom (44 checks, including duplicate and simultaneous callbacks, amount tampering, and retry after a crediting failure). Strict type-check clean. Not yet run against real Safaricom.
+
+---
+
 # Changelog — 19 July 2026 session
 
 ## Payments — SasaPay

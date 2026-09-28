@@ -11,7 +11,7 @@ These exist specifically so Felix never has to repeat himself. Any new Claude in
 ### Deployment discipline
 1. **Every file delivery includes the full exact PowerShell block** — `copy` commands with the real path (`C:\Users\Felix\groupyetu360\...`, never a placeholder), `git add .`, `git commit -m "..."`, `git push`. Never assume Felix knows the destination path.
 2. **`index.html`'s cache-bust query string (`?v=...`) MUST be bumped on every delivery that touches a JS file it loads**, even if `index.html` itself wasn't otherwise edited. This was the direct cause of at least two "my changes aren't showing up" incidents this session. If you edit `portal.js`/`modules.js`/`settings.js`/`auth.js`/`utils.js` and don't also bump and re-deliver `index.html`, the browser will keep serving the old file indefinitely.
-3. **Every Edge Function that receives an external webhook (not called by our own client) needs `--no-verify-jwt` on deploy** — `supabase functions deploy <name> --no-verify-jwt`. Confirmed root cause: Supabase's gateway rejects any request without a valid Supabase auth token *before your code even runs*, and external services (SasaPay, Paystack, Fingo) never send one. This silently broke Paystack's and Fingo's webhooks for the entire project history before it was found — they were only ever "working" because the active-verify polling fallback was quietly doing the real job. Functions needing this flag: `paystack-webhook`, `fingo-webhook`, `sasapay-webhook`. Apply it to any new webhook-receiving function by default.
+3. **Every Edge Function that receives an external webhook (not called by our own client) needs `--no-verify-jwt` on deploy** — `supabase functions deploy <name> --no-verify-jwt`. Confirmed root cause: Supabase's gateway rejects any request without a valid Supabase auth token *before your code even runs*, and external services (SasaPay, Paystack, Fingo) never send one. This silently broke Paystack's and Fingo's webhooks for the entire project history before it was found — they were only ever "working" because the active-verify polling fallback was quietly doing the real job. Functions needing this flag: `paystack-webhook`, `fingo-webhook`, `sasapay-webhook`, `daraja-callback`. Apply it to any new webhook-receiving function by default.
 4. **Before editing any file, check whether it was already modified earlier in the same session** (compare what's in `/mnt/user-data/outputs/` against `/mnt/user-data/uploads/`) rather than assuming the original upload is current. This has caused real regressions when a stale upload silently reverted an earlier fix.
 
 ### Financial/architecture principles (do not deviate without asking)
@@ -62,6 +62,21 @@ SasaPay's API has no synchronous "check now, get the answer now" endpoint — th
 
 ### 🟡 IP whitelist for SasaPay — log-only, not enforced
 Deliberately not blocking on this yet — no confidence that Supabase's Edge Function runtime reliably exposes SasaPay's true origin IP rather than an internal proxy IP. Revisit once there's real log data showing what IP actually shows up in practice.
+
+### 🟡 Safaricom Direct (Daraja) - built, not yet live
+Code is in the repo and dormant until Super Admin selects "Safaricom Direct" under Platform Billing. To go live:
+1. Finish Daraja go-live for Paybill 1273386 (production keys, then the passkey by email).
+2. Set secrets, never in chat: `supabase secrets set DARAJA_CONSUMER_KEY=... DARAJA_CONSUMER_SECRET=... DARAJA_SHORTCODE=1273386 DARAJA_PASSKEY=... DARAJA_ENV=production DARAJA_CALLBACK_SECRET=<random hex>`
+3. Deploy: `supabase functions deploy daraja-charge`, `supabase functions deploy daraja-verify`, and `supabase functions deploy daraja-callback --no-verify-jwt`.
+4. Test with Felix's own org and a small SMS bundle (Ksh 75) before switching anyone else. Keep Paystack as the fallback.
+Sandbox works first: leave `DARAJA_ENV` unset, use shortcode 174379 and Safaricom's public sandbox passkey.
+Price rules live in `_shared/billingPrices.ts` and MUST mirror `PLAN_PRICES` in `js/settings.js` and the SMS pills in `index.html`.
+
+### 🔴 Needs a data check: subscription and SMS payments may be inflating group bank balances
+`paystack-webhook` and `sasapay-webhook` call `update_bank_balance(... 'credit')` for the PAYING group when a subscription or SMS bundle payment is auto-approved. A group paying EPH should not gain bank balance, and the manual approval flow does not do it. Likely a leftover from before member contributions moved to their own path. Run the read-only check in the session notes before changing anything, then decide on a correction for affected groups.
+
+### 🟡 sasapay-webhook drops the SMS part of a combined cart
+It credits from `payment_type` only, which holds just the first cart item. A plan plus SMS bundle credits the plan and loses the SMS. Paystack's webhook handles this via `notes`. `creditPlatformPayment` shows the fix.
 
 ### 🟡 Known pre-existing bug, unrelated to this session's work
 Mobile's Finance tab buttons (`onclick="finMobSwitchTab(...)"`) call a function that doesn't exist anywhere in the codebase. Found while building Settlements; not touched since it wasn't in scope at the time.
