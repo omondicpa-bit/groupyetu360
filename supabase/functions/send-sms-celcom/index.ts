@@ -115,7 +115,7 @@ serve(async (req: Request) => {
       .from('organisations').select('sms_label').eq('id', org_id).maybeSingle();
     const label = orgRow?.sms_label?.trim();
     if (label && !message.toLowerCase().includes(label.toLowerCase())) {
-      outgoingMessage = `${label}\n${message}`;
+      outgoingMessage = `${label}:\n\n${message}`;
     }
 
     const mobile = recipients.join(',');
