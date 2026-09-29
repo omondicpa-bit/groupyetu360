@@ -228,13 +228,14 @@ async function processPayment(supabase: any, pr: any, reference: string, amountK
       notes: (pr.notes || '') + ` | Auto-approved via Paystack webhook. ref: ${reference}`,
     }).eq('id', pr.id);
 
-    // Atomic bank balance credit
-    await supabase.rpc('update_bank_balance', {
-      p_org_id: orgId,
-      p_amount: amountKes,
-      p_direction: 'credit',
-      p_date: today,
-    });
+    // No bank_balance credit here, on purpose. Everything that reaches this
+    // point (subscription or SMS bundle) is the org paying EPH, not money
+    // for the org's own account. A bank_balance credit used to fire here
+    // unconditionally - real bug, corrected Sep 2026, see HANDOVER for the
+    // one-off data correction that fixed the organisations it had already
+    // affected. Member contributions are the only case that should ever
+    // credit bank_balance, and those are handled entirely by
+    // processMemberContribution() above, never reaching this line.
 
     // Activity log
     await supabase.from('activity_log').insert({

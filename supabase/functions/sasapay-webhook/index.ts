@@ -201,10 +201,9 @@ serve(async (req) => {
         notes: (pr.notes || '') + ` | Auto-approved via SasaPay webhook. Ref: ${reference}`,
       }).eq('id', pr.id);
 
-      await supabase.rpc('update_bank_balance', {
-        p_org_id: pr.org_id, p_amount: expectedAmount, p_direction: 'credit',
-        p_date: new Date().toISOString().split('T')[0],
-      });
+      // No bank_balance credit here, on purpose - this is the org paying
+      // EPH, not money for the org's own account. Real bug, corrected Sep
+      // 2026, see HANDOVER for the one-off data correction.
 
       console.log(`[GY360 SasaPay Webhook] ✓ Activated ${plan} plan for org ${pr.org_id} until ${expiryStr}`);
 
@@ -221,10 +220,8 @@ serve(async (req) => {
         notes: (pr.notes || '') + ` | Auto-approved via SasaPay webhook. Ref: ${reference}`,
       }).eq('id', pr.id);
 
-      await supabase.rpc('update_bank_balance', {
-        p_org_id: pr.org_id, p_amount: expectedAmount, p_direction: 'credit',
-        p_date: new Date().toISOString().split('T')[0],
-      });
+      // No bank_balance credit here, on purpose - same reasoning as the
+      // subscription branch above.
 
       console.log(`[GY360 SasaPay Webhook] ✓ Credited ${smsCount} SMS to org ${pr.org_id}`);
 
