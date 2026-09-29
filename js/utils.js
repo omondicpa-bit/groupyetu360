@@ -156,12 +156,33 @@ function toggleAccordion(header) {
   }
 }
 
+// Same idea as toggleAccordion, but scoped to just the provider panels
+// nested inside the Payment Service Providers card - a separate function
+// so opening "Paystack" doesn't also collapse the outer card it lives in,
+// and so it only closes its own sibling providers, not every accordion
+// on the page.
+function toggleSubAccordion(header) {
+  const body    = header.nextElementSibling;
+  const chevron = header.querySelector('.ps-acc-chevron');
+  const isOpen  = body.classList.contains('open');
+  const group = header.closest('.ps-subgroup');
+  if (group) {
+    group.querySelectorAll('.ps-subacc-body').forEach(b => b.classList.remove('open'));
+    group.querySelectorAll('.ps-subacc-header').forEach(h => h.classList.remove('open'));
+    group.querySelectorAll('.ps-acc-chevron').forEach(c => c.classList.remove('open'));
+  }
+  if (!isOpen) {
+    body.classList.add('open');
+    header.classList.add('open');
+    if (chevron) chevron.classList.add('open');
+  }
+}
+
 // ── PAYMENT TOGGLE UI (used by SA settings page) ──────────────────────────────
 function updatePaymentToggleUI() {
   const manualOn   = document.getElementById('sp-manual-enabled')?.checked !== false;
   const psToggle   = document.getElementById('sp-paystack-enabled-toggle');
-  const psModeToggle = document.getElementById('sp-paystack-mode-toggle');
-  const paystackOn = psToggle?.checked === true || psModeToggle?.checked === true;
+  const paystackOn = psToggle?.checked === true;
 
   const setToggle = (uiId, knobId, on) => {
     const ui   = document.getElementById(uiId);
@@ -170,12 +191,7 @@ function updatePaymentToggleUI() {
     if (knob) knob.style.transform = on ? 'translateX(20px)' : 'translateX(2px)';
   };
   setToggle('sp-manual-toggle-ui',   'sp-manual-knob',        manualOn);
-  setToggle('sp-paystack-mode-ui',   'sp-paystack-mode-knob', paystackOn);
   setToggle('sp-paystack-toggle-ui', 'sp-paystack-knob',      paystackOn);
-
-  // Keep both Paystack toggle checkboxes in sync
-  if (psToggle)     psToggle.checked     = paystackOn;
-  if (psModeToggle) psModeToggle.checked = paystackOn;
 
   // Webhook hint
   const hint = document.getElementById('sp-paystack-webhook-hint');
@@ -427,8 +443,6 @@ async function loadSASupport() {
   // sp-subscription-provider in loadSASupport()/saveSupportSettings()
   // further down, not tracked here.
   // Subscription controls
-  const pmEl = document.getElementById('sp-payment-mode');
-  if (pmEl) pmEl.value = s.payment_mode || 'manual';
   const promoDaysEl = document.getElementById('sp-promo-days');
   if (promoDaysEl) promoDaysEl.value = s.promo_days || '60';
   const promoEl = document.getElementById('sp-promo-active');
@@ -539,7 +553,6 @@ async function saveSupportSettings() {
     celcom_partner_id: document.getElementById('sp-celcom-partner-id')?.value?.trim()||null,
     celcom_shortcode:  document.getElementById('sp-celcom-shortcode')?.value?.trim()||null,
     ...(document.getElementById('sp-celcom-key')?.value?.trim() ? { celcom_api_key: document.getElementById('sp-celcom-key').value.trim() } : {}),
-    payment_mode:   document.getElementById('sp-payment-mode')?.value || 'manual',
     promo_active:   document.getElementById('sp-promo-active')?.checked === true,
     promo_days:     document.getElementById('sp-promo-days')?.value || '60',
     // Payment method toggles
