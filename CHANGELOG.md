@@ -1,3 +1,26 @@
+# Changelog - 30 September 2026 session
+
+## Safaricom Direct - live and proven
+- Two CHECK constraints (`platform_settings_subscription_payment_provider_check`, `payment_requests_provider_check`) were quietly blocking `'daraja'` after everything else was correctly deployed and configured. Both widened via `ALTER TABLE`, nothing else that was already allowed removed.
+- Real production test: Ksh 75 SMS bundle, real STK prompt, real payment, credited instantly. End-to-end chain confirmed: callback, atomic claim, crediting, activity log, no bank_balance side effect.
+- Platform Settings restructured per Felix's direction: a dedicated "Instant Payment" card (master toggle + provider dropdown, together, replacing the previous split where the toggle lived in the Paystack card and the dropdown lived in the SasaPay card, silently misleading anyone trying to enable a different provider) and a grouped "Payment Service Providers" card with each provider as an independently-collapsible nested panel, rather than four separate top-level cards.
+- Group-level (member contribution) collection via Safaricom remains explicitly deferred - Felix's call, tracked in HANDOVER.
+
+## Bank balance bug - fixed at the source, historical data corrected
+- `paystack-webhook` and `sasapay-webhook` (2 call sites) were crediting the PAYING org's own bank_balance whenever a subscription or SMS bundle payment was auto-approved - money going to EPH was wrongly also added to the org's own balance. All three call sites removed. Member contributions were never affected.
+- Three orgs corrected via a query that subtracts the exact wrongly-credited total from each org's current balance (not a fixed snapshot number), confirmed safe regardless of other activity on those accounts since.
+
+## Fingo removed entirely
+- The service shut down; no live org was using it. Removed from both org-level Active Provider selectors, the Collection Activation approval flow, the Payment Service Providers card, and `portal.js`'s member-payment charge/verify/fee routing.
+- The three Fingo Edge Functions deleted from the repo (still need `supabase functions delete` run per function to actually undeploy).
+- Deliberately left in place: the Settlements reconciliation code still recognizes `'fingo'` as a historical provider value, so past settlement records stay queryable.
+
+## Also fixed along the way
+- `sw.js` threw an uncaught error trying to cache `chrome-extension://` requests (the Cache API only accepts http/https) - added a scheme guard, wrapped in `.catch()`.
+- Reverted a bad push that had rolled back the cache-bust version on all nine script tags to a much older value and silently removed the Daraja dropdown option - likely an old `index.html` from Downloads overwriting the current one. Rebuilt from a fresh clone, version bumped to a value that's never existed on the site before, to rule out any ambiguity this time.
+
+---
+
 # Changelog - 28 September 2026 session
 
 ## Payments - Safaricom Direct (EPH Paybill 1273386), built dormant
