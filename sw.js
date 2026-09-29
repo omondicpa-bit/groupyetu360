@@ -1,5 +1,5 @@
 // GroupYetu360 Service Worker v5.30 — groupyetu.org
-const CACHE_NAME = 'gy360-v5.62';
+const CACHE_NAME = 'gy360-v5.63';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -60,9 +60,15 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        if (response.ok) {
+        // Only http/https requests can go into the Cache API - a browser
+        // extension's own chrome-extension:// resources can end up here too,
+        // since this listener sees every fetch on the page, not just ours.
+        // cache.put() throws on anything else, so this guard is what was
+        // missing, not a try/catch, since the throw was correct behaviour
+        // from the Cache API, just never worth attempting in the first place.
+        if (response.ok && (url.protocol === 'http:' || url.protocol === 'https:')) {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone)).catch(() => {});
         }
         return response;
       })
