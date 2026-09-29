@@ -103,13 +103,28 @@ serve(async (req: Request) => {
       );
     }
 
+    // Prefix the group's short label onto the message, so members know which
+    // group texted them - the sender ID on every SMS is the single shared
+    // "EPH TECH" shortcode above, not each group's own name, so without this
+    // a member has no way to tell which of their groups sent it. Skipped
+    // entirely if the group hasn't set a label yet (existing groups start
+    // blank until SA sets one - see HANDOVER), and skipped if the message
+    // already mentions the label, so it's never duplicated.
+    let outgoingMessage = message;
+    const { data: orgRow } = await supabase
+      .from('organisations').select('sms_label').eq('id', org_id).maybeSingle();
+    const label = orgRow?.sms_label?.trim();
+    if (label && !message.toLowerCase().includes(label.toLowerCase())) {
+      outgoingMessage = `${label}: ${message}`;
+    }
+
     const mobile = recipients.join(',');
 
     const payload = {
       apikey: ps.celcom_api_key,
       partnerID: ps.celcom_partner_id,
       shortcode: ps.celcom_shortcode || 'EPH TECH',
-      message,
+      message: outgoingMessage,
       mobile,
       messageID: Date.now().toString()
     };

@@ -1194,7 +1194,13 @@ async function loadMessages() {
 }
 
 function updateSmsCount(v) {
-  const len = v.length;
+  // Match the prefix send-sms-celcom will actually add server-side, so the
+  // character count shown here is the real one being billed, not just what's
+  // visibly typed. Same skip-if-already-mentioned rule as the server.
+  const label = currentOrg?.sms_label?.trim();
+  const willPrefix = label && !v.toLowerCase().includes(label.toLowerCase());
+  const effectiveLen = v.length + (willPrefix ? label.length + 2 : 0); // +2 for ": "
+  const len = effectiveLen;
   const parts = Math.ceil(len/160)||1;
   const pct = Math.min((len/160)*100, 100);
   const el = document.getElementById('sms-chars');
@@ -1205,6 +1211,11 @@ function updateSmsCount(v) {
   if (fill) {
     fill.style.width = pct + '%';
     fill.className = 'msg-char-fill' + (len > 160 ? ' over' : len > 120 ? ' warn' : '');
+  }
+  const labelHint = document.getElementById('sms-label-hint');
+  if (labelHint) {
+    labelHint.style.display = willPrefix ? '' : 'none';
+    if (willPrefix) labelHint.textContent = `"${label}: " will be added automatically (+${label.length + 2} characters)`;
   }
 }
 

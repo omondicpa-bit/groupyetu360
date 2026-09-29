@@ -1355,6 +1355,7 @@ function showOrgPickerRegister() {
 async function registerNewOrg() {
   const name = document.getElementById('new-org-name').value.trim();
   const plan = document.getElementById('new-org-plan').value;
+  const smsLabel = document.getElementById('new-org-sms-label')?.value.trim() || null;
   const errEl = document.getElementById('new-org-error');
   const sucEl = document.getElementById('new-org-success');
   errEl.classList.remove('show'); sucEl.classList.remove('show');
@@ -1372,7 +1373,7 @@ async function registerNewOrg() {
   const orgCode = 'GY' + Math.random().toString(36).toUpperCase().slice(2,6);
   // Always create on Starter - pickerCreateOrg handles paid plan activation separately
   const { data: org, error: orgErr } = await sb.from('organisations')
-    .insert({ name, plan: 'starter', status:'active', org_code: orgCode, subscription_status:'active', sms_bundle: 0 })
+    .insert({ name, plan: 'starter', status:'active', org_code: orgCode, subscription_status:'active', sms_bundle: 0, sms_label: smsLabel })
     .select().single();
 
   if (orgErr) { errEl.textContent='Error: '+orgErr.message; errEl.classList.add('show'); window._registeringOrg = false; return; }

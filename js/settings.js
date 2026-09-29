@@ -1431,6 +1431,10 @@ async function openOrgDetail(orgId) {
   // see the Safaricom Direct card in Platform Settings for why.
   sv('od-max-contribution', org.max_contribution_amount);
   sv('od-active-provider', org.active_payment_provider || 'paystack');
+  // Two locations exist for this tab (desktop/mobile variants), both with the
+  // same underlying value - written to both ids explicitly since sv() only
+  // ever reaches the first match in the DOM for a given id.
+  sv('od-sms-label', org.sms_label); sv('od-sms-label-2', org.sms_label);
 
   // Provider account refs now live in org_payment_providers, not the legacy
   // paystack_subaccount_code column directly - this is what lets SA switch
@@ -2908,6 +2912,10 @@ async function saveOrgProviderSettings() {
   const paystackCode = document.getElementById('od-paystack-subaccount')?.value?.trim();
   const activeProvider = document.getElementById('od-active-provider')?.value || 'paystack';
   const maxContribRaw = document.getElementById('od-max-contribution')?.value;
+  // Two locations exist for this tab (desktop/mobile variants) - only one is
+  // actually rendered at a time, so whichever has a value wins.
+  const smsLabel = (document.getElementById('od-sms-label')?.value?.trim()
+    || document.getElementById('od-sms-label-2')?.value?.trim() || null);
 
   if (activeProvider === 'paystack' && !paystackCode) { toast('Paystack is selected as active but has no subaccount code'); return; }
 
@@ -2924,6 +2932,7 @@ async function saveOrgProviderSettings() {
     const { error: orgErr } = await sb.from('organisations').update({
       active_payment_provider: activeProvider,
       max_contribution_amount: maxContribRaw ? parseFloat(maxContribRaw) : null,
+      sms_label: smsLabel,
     }).eq('id', orgId);
     if (orgErr) throw new Error(orgErr.message);
 
