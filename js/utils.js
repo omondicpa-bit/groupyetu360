@@ -422,9 +422,10 @@ async function loadSASupport() {
   if (celcomSaved) celcomSaved.style.display = s.celcom_api_key_set ? 'inline' : 'none';
   const celcomKeyEl = document.getElementById('sp-celcom-key');
   if (celcomKeyEl) celcomKeyEl.placeholder = s.celcom_api_key_set ? '••••• (saved — leave blank to keep)' : 'Celcom API Key';
-  // Daraja removed — Fingo + Paystack are the only two payment providers
-  // going forward, per Felix's explicit decision. DB columns left in
-  // place, inert (same precedent as SMS Leopard/Africa's Talking removal).
+  // Platform billing provider (Paystack, SasaPay, or Safaricom Direct via
+  // Daraja) - which one is active is read directly from the DB by
+  // sp-subscription-provider in loadSASupport()/saveSupportSettings()
+  // further down, not tracked here.
   // Subscription controls
   const pmEl = document.getElementById('sp-payment-mode');
   if (pmEl) pmEl.value = s.payment_mode || 'manual';
