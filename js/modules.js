@@ -1199,7 +1199,7 @@ function updateSmsCount(v) {
   // visibly typed. Same skip-if-already-mentioned rule as the server.
   const label = currentOrg?.sms_label?.trim();
   const willPrefix = label && !v.toLowerCase().includes(label.toLowerCase());
-  const effectiveLen = v.length + (willPrefix ? label.length + 2 : 0); // +2 for ": "
+  const effectiveLen = v.length + (willPrefix ? label.length + 1 : 0); // +1 for the newline - own line now, no ": "
   const len = effectiveLen;
   const parts = Math.ceil(len/160)||1;
   const pct = Math.min((len/160)*100, 100);
@@ -1215,7 +1215,7 @@ function updateSmsCount(v) {
   const labelHint = document.getElementById('sms-label-hint');
   if (labelHint) {
     labelHint.style.display = willPrefix ? '' : 'none';
-    if (willPrefix) labelHint.textContent = `"${label}: " will be added automatically (+${label.length + 2} characters)`;
+    if (willPrefix) labelHint.textContent = `"${label}" will be added as its own line above this (+${label.length + 1} characters)`;
   }
 }
 
