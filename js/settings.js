@@ -1425,7 +1425,10 @@ async function openOrgDetail(orgId) {
   sv('od-bank-balance-edit', org.bank_balance||0);
 
   // Settings tab
-  // Daraja removed - Fingo + Paystack are the only two payment providers now.
+  // Paystack and SasaPay are the two member-contribution providers.
+  // Fingo removed Sep 2026 - the service itself shut down and no org was
+  // using it. Safaricom Direct isn't a member-contribution option yet,
+  // see the Safaricom Direct card in Platform Settings for why.
   sv('od-max-contribution', org.max_contribution_amount);
   sv('od-active-provider', org.active_payment_provider || 'paystack');
 
@@ -1436,9 +1439,7 @@ async function openOrgDetail(orgId) {
     const { data: providerRows } = await sb.from('org_payment_providers')
       .select('provider, provider_account_ref').eq('org_id', orgId);
     const paystackRow = (providerRows||[]).find(p => p.provider === 'paystack');
-    const fingoRow = (providerRows||[]).find(p => p.provider === 'fingo');
     sv('od-paystack-subaccount', paystackRow?.provider_account_ref || org.paystack_subaccount_code);
-    sv('od-fingo-submerchant', fingoRow?.provider_account_ref);
   } catch(e) {
     sv('od-paystack-subaccount', org.paystack_subaccount_code);
   }
@@ -1775,10 +1776,9 @@ async function saveOrgDetail() {
     subscription_expires: gv('od-sub-expiry'),
     sms_bundle: parseInt(document.getElementById('od-sms-bundle')?.value) || 0
   };
-  // (Daraja credentials removed - Fingo + Paystack are the only two payment providers now)
-  // Provider account refs (Paystack subaccount, Fingo sub-merchant, active
-  // provider) are saved separately via saveOrgProviderSettings() into
-  // org_payment_providers - not written here, to keep this one save action
+  // Provider account refs (Paystack subaccount, active provider) are saved
+  // separately via saveOrgProviderSettings() into org_payment_providers -
+  // not written here, to keep this one save action
   // scoped to general org details rather than payment routing.
   const maxContribRaw = document.getElementById('od-max-contribution')?.value;
   updates.max_contribution_amount = maxContribRaw ? parseFloat(maxContribRaw) : null;
@@ -2678,9 +2678,9 @@ async function loadPaymentHistory() {
    COLLECTION ACTIVATION - org-side request flow
    Any org without an active payment provider yet sees a dashboard prompt to
    add disbursement details and request instant collection. SA reviews the
-   request, manually creates sub-accounts on both Paystack and Fingo, and
-   approves - see settings.js's SA-side handleCollectionRequest() for the
-   other half of this flow.
+   request, manually creates a sub-account on Paystack (or nothing at all
+   for SasaPay, a pooled wallet), and approves - see settings.js's SA-side
+   handleCollectionRequest() for the other half of this flow.
 ════════════════════════════════════════════════════ */
 function saveDisbursementDetails() {
   const method = document.getElementById('dc-disb-method')?.value;
@@ -2792,17 +2792,15 @@ async function loadCollectionRequestsQueue() {
             </div>
           </div>
           <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:.75rem;margin-bottom:.6rem;font-size:.72rem;color:var(--ink-soft)">
-            ℹ️ Create this org's sub-account on <strong>both</strong> Paystack and Fingo dashboards manually, then paste both codes below - pre-provisioning both means switching providers later is a config change, not a new setup step. SasaPay needs no reference here at all - it's a pooled wallet shared by every org.
+            ℹ️ Create this org's sub-account on Paystack's dashboard manually, then paste the code below - pre-provisioning it means switching to it later is a config change, not a new setup step. SasaPay needs no reference here at all - it's a pooled wallet shared by every org.
           </div>
           <div class="form-row">
             <div class="form-group"><label class="form-label">Paystack Subaccount Code</label><input class="form-input" id="sa-req-paystack-${r.id}" placeholder="ACCT_…"/></div>
-            <div class="form-group"><label class="form-label">Fingo Sub-Merchant Internal ID</label><input class="form-input" id="sa-req-fingo-${r.id}" placeholder="SM-…"/></div>
           </div>
           <div class="form-row single">
             <div class="form-group"><label class="form-label">Active Provider (default collection route)</label>
               <select class="form-select" id="sa-req-active-${r.id}">
                 <option value="paystack">Paystack</option>
-                <option value="fingo">Fingo</option>
                 <option value="sasapay">SasaPay</option>
               </select>
             </div>
@@ -2821,19 +2819,16 @@ async function loadCollectionRequestsQueue() {
 
 async function approveCollectionRequest(requestId, orgId) {
   const paystackCode = document.getElementById(`sa-req-paystack-${requestId}`)?.value?.trim();
-  const fingoId = document.getElementById(`sa-req-fingo-${requestId}`)?.value?.trim();
   const activeProvider = document.getElementById(`sa-req-active-${requestId}`)?.value || 'paystack';
 
   // SasaPay needs no reference at all (pooled wallet, no per-org
-  // sub-account exists) - only Paystack/Fingo genuinely require one, and
-  // only when THAT specific provider is the one being activated.
+  // sub-account exists) - only Paystack genuinely requires one, and
+  // only when it's the one being activated.
   if (activeProvider === 'paystack' && !paystackCode) { toast('Paystack is selected as active but has no subaccount code'); return; }
-  if (activeProvider === 'fingo' && !fingoId) { toast('Fingo is selected as active but has no sub-merchant ID'); return; }
 
   try {
     const rows = [];
     if (paystackCode) rows.push({ org_id: orgId, provider: 'paystack', provider_account_ref: paystackCode });
-    if (fingoId) rows.push({ org_id: orgId, provider: 'fingo', provider_account_ref: fingoId });
 
     const { error: providersErr } = await sb.from('org_payment_providers')
       .upsert(rows, { onConflict: 'org_id,provider' });
@@ -2871,11 +2866,11 @@ async function declineCollectionRequest(requestId) {
 
 /* ════════════════════════════════════════════════════
    MANUAL DISBURSEMENT - SA records that a real payout was made via
-   Paystack/Fingo's own dashboard or API. Deliberately manual - the actual
+   Paystack's own dashboard or API. Deliberately manual - the actual
    transfer happens outside this app; this just logs it and debits
    bank_balance accordingly. Automating the transfer itself is separate,
-   future work (per the "prove it works before automating" pattern already
-   used for Fingo sub-merchant creation).
+   future work (per the "prove it works before automating" pattern used
+   everywhere else on this project).
 ════════════════════════════════════════════════════ */
 async function recordDisbursement(orgId) {
   const amount = parseFloat(document.getElementById('sa-disb-amount')?.value);
@@ -2911,17 +2906,14 @@ async function recordDisbursement(orgId) {
 async function saveOrgProviderSettings() {
   const orgId = currentDetailOrgId;
   const paystackCode = document.getElementById('od-paystack-subaccount')?.value?.trim();
-  const fingoId = document.getElementById('od-fingo-submerchant')?.value?.trim();
   const activeProvider = document.getElementById('od-active-provider')?.value || 'paystack';
   const maxContribRaw = document.getElementById('od-max-contribution')?.value;
 
   if (activeProvider === 'paystack' && !paystackCode) { toast('Paystack is selected as active but has no subaccount code'); return; }
-  if (activeProvider === 'fingo' && !fingoId) { toast('Fingo is selected as active but has no sub-merchant ID'); return; }
 
   try {
     const rows = [];
     if (paystackCode) rows.push({ org_id: orgId, provider: 'paystack', provider_account_ref: paystackCode });
-    if (fingoId) rows.push({ org_id: orgId, provider: 'fingo', provider_account_ref: fingoId });
 
     if (rows.length) {
       const { error: providersErr } = await sb.from('org_payment_providers')

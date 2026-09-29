@@ -618,7 +618,7 @@ async function checkSubscriptionAccess() {
 let _mpContribTypes = [];
 let _mpMemberStatus = null;
 let _mpInstantCalc = null;
-let _mpActiveProvider = null; // { provider: 'paystack'|'fingo', accountRef }
+let _mpActiveProvider = null; // { provider: 'paystack'|'sasapay', accountRef }
 let _mpPendingDotsInterval = null;
 let _mpRealtimeChannel = null;
 let _mpPollInterval = null;
@@ -736,7 +736,7 @@ async function openMemberPaymentModal() {
   // Load Table Banking obligations
   if (memberId) await loadMemberTBObligations(memberId);
 
-  // ── Instant Pay setup — provider-aware (Paystack or Fingo) ──
+  // Instant Pay setup - provider-aware (Paystack or SasaPay)
   resetInstantPayState();
   const tabsEl = document.getElementById('mp-mode-tabs');
   _mpActiveProvider = await getActiveProviderConfig(currentOrg);
@@ -1045,10 +1045,8 @@ async function recalcInstantFee() {
     if (capWarningEl) capWarningEl.style.display = 'none';
     return;
   }
-  const { platformFeePercent, paystackFeePercent, fingoFeeMultiplier, sasapayFeePercent, sasapayPlatformFeePercent } = await getPlatformFeeRates();
-  const calc = _mpActiveProvider?.provider === 'fingo'
-    ? calculateFingoGrossCharge(net, fingoFeeMultiplier)
-    : _mpActiveProvider?.provider === 'sasapay'
+  const { platformFeePercent, paystackFeePercent, sasapayFeePercent, sasapayPlatformFeePercent } = await getPlatformFeeRates();
+  const calc = _mpActiveProvider?.provider === 'sasapay'
     ? calculateGrossCharge(net, sasapayPlatformFeePercent, sasapayFeePercent)
     : calculateGrossCharge(net, platformFeePercent, paystackFeePercent);
   _mpInstantCalc = calc; // cache for payInstantContribution()
@@ -1116,10 +1114,8 @@ async function payInstantContribution() {
 
   let calc = _mpInstantCalc;
   if (!calc || calc.netAmount !== net) {
-    const { platformFeePercent, paystackFeePercent, fingoFeeMultiplier, sasapayFeePercent, sasapayPlatformFeePercent } = await getPlatformFeeRates();
-    calc = _mpActiveProvider.provider === 'fingo'
-      ? calculateFingoGrossCharge(net, fingoFeeMultiplier)
-      : _mpActiveProvider.provider === 'sasapay'
+    const { platformFeePercent, paystackFeePercent, sasapayFeePercent, sasapayPlatformFeePercent } = await getPlatformFeeRates();
+    calc = _mpActiveProvider.provider === 'sasapay'
       ? calculateGrossCharge(net, sasapayPlatformFeePercent, sasapayFeePercent)
       : calculateGrossCharge(net, platformFeePercent, paystackFeePercent);
   }
@@ -1155,15 +1151,13 @@ async function payInstantContribution() {
   }, 500);
 
   const provider = _mpActiveProvider.provider;
-  const functionName = provider === 'fingo' ? 'fingo-charge' : provider === 'sasapay' ? 'sasapay-charge' : 'paystack-charge';
-  const notes = `Member contribution — Ksh ${net.toLocaleString()} net${_mpBeneficiaryRows.length > 1 ? ' (split across ' + _mpBeneficiaryRows.length + ' members)' : ''}`;
+  const functionName = provider === 'sasapay' ? 'sasapay-charge' : 'paystack-charge';
+  const notes = `Member contribution - Ksh ${net.toLocaleString()} net${_mpBeneficiaryRows.length > 1 ? ' (split across ' + _mpBeneficiaryRows.length + ' members)' : ''}`;
 
   // Only Paystack needs subaccount/transaction_charge/bearer to route its
-  // automatic split. Neither Fingo nor SasaPay has an equivalent — both
-  // look up their own routing server-side (Fingo's sub-merchant ID;
-  // SasaPay has no per-org routing at all, it's a pooled wallet) and never
-  // trust a client-supplied fee, so those fields are simply omitted for
-  // both rather than sent and ignored.
+  // automatic split. SasaPay has no equivalent - it's a pooled wallet with
+  // no per-org routing at all - and never trusts a client-supplied fee, so
+  // those fields are simply omitted rather than sent and ignored.
   const requestBody = {
     org_id: currentOrg.id,
     amount: calc.gross,
@@ -1220,7 +1214,7 @@ function listenForContributionConfirmation(paymentRequestId, netAmount, provider
   // that provider — confirmation relies on the webhook + Realtime alone
   // until sasapay-verify is built, rather than wrongly querying Paystack's
   // API with a reference that was never created there.
-  const verifyFunctionName = provider === 'fingo' ? 'fingo-verify' : provider === 'sasapay' ? null : 'paystack-verify';
+  const verifyFunctionName = provider === 'sasapay' ? null : 'paystack-verify';
 
   const onResult = (status) => {
     if (resolved) return;
