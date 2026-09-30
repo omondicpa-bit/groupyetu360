@@ -309,9 +309,30 @@ export async function stkQuery(cfg: DarajaConfig, checkoutRequestId: string, fet
   }
   if (data?.ResultCode !== undefined && data?.ResultCode !== null && data?.ResultCode !== '') {
     const code = Number(data.ResultCode);
-    return code === 0
-      ? { state: 'success', resultCode: 0, resultDesc: data.ResultDesc }
-      : { state: 'failed', resultCode: code, resultDesc: data.ResultDesc };
+    if (code === 0) return { state: 'success', resultCode: 0, resultDesc: data.ResultDesc };
+
+    // Real bug, found 1 Oct 2026: a genuine payment succeeded (money left
+    // the member's account) but this function reported it as failed,
+    // because it treated ANY non-zero code as a definite decline. This
+    // endpoint can return transient, ambiguous codes in the short window
+    // right after a PIN is entered, before Safaricom's own backend has
+    // settled the result. Wrongly saying "still pending" costs nothing,
+    // the real callback (or a later query) sorts it out. Wrongly saying
+    // "declined" on a real payment costs a member their money and this
+    // app's credibility - that asymmetry is why only a short, well-known
+    // list of unambiguous failures counts as failed here; everything else
+    // is treated as still pending, not assumed to be a decline.
+    const DEFINITE_FAILURE_CODES = new Set([
+      1,    // Insufficient balance
+      1032, // Request cancelled by user
+      1037, // Timed out - phone unreachable / no response
+      2001, // Wrong PIN entered
+    ]);
+    if (DEFINITE_FAILURE_CODES.has(code)) {
+      return { state: 'failed', resultCode: code, resultDesc: data.ResultDesc };
+    }
+    console.warn(`[stkQuery] Unrecognised non-zero ResultCode ${code} ("${data.ResultDesc}") for ${checkoutRequestId} - treating as still pending, not a decline.`);
+    return { state: 'pending' };
   }
   return { state: 'error', resultDesc: data?.errorMessage || `HTTP ${status}` };
 }
