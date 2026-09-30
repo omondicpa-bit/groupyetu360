@@ -1436,6 +1436,27 @@ async function openOrgDetail(orgId) {
   // ever reaches the first match in the DOM for a given id.
   sv('od-sms-label', org.sms_label); sv('od-sms-label-2', org.sms_label);
 
+  // Settlement Destination - SA's view/edit of the same fields the org set
+  // themselves when requesting collection (see saveDisbursementDetails()
+  // above). Verify-before-switching-to-Daraja is the whole point of SA
+  // being able to see and correct these here.
+  sv('od-dest-method', org.disbursement_method || '');
+  sv('od-dest-mpesa', org.disbursement_mpesa_number);
+  sv('od-dest-bank-name', org.disbursement_bank_name);
+  sv('od-dest-bank-paybill', org.disbursement_bank_paybill);
+  sv('od-dest-bank-account', org.disbursement_bank_account_number);
+  sv('od-dest-bank-account-name', org.disbursement_bank_account_name);
+  const welfareDiffers = !!org.welfare_disbursement_method;
+  const welfareCheckbox = document.getElementById('od-dest-welfare-diff');
+  if (welfareCheckbox) welfareCheckbox.checked = welfareDiffers;
+  sv('od-dest-welfare-method', org.welfare_disbursement_method || '');
+  sv('od-dest-welfare-mpesa', org.welfare_disbursement_mpesa_number);
+  sv('od-dest-welfare-bank-name', org.welfare_disbursement_bank_name);
+  sv('od-dest-welfare-bank-paybill', org.welfare_disbursement_bank_paybill);
+  sv('od-dest-welfare-bank-account', org.welfare_disbursement_bank_account_number);
+  if (typeof toggleSADestinationFields === 'function') toggleSADestinationFields();
+  if (typeof toggleSAWelfareDestinationFields === 'function') toggleSAWelfareDestinationFields();
+
   // Provider account refs now live in org_payment_providers, not the legacy
   // paystack_subaccount_code column directly - this is what lets SA switch
   // an org's active provider at any time without touching a schema field.
@@ -3082,6 +3103,76 @@ async function recordDisbursement(orgId) {
   }
 }
 
+function toggleSADestinationFields() {
+  const method = document.getElementById('od-dest-method')?.value;
+  const mpesaEl = document.getElementById('od-dest-mpesa-fields');
+  const bankEl = document.getElementById('od-dest-bank-fields');
+  if (mpesaEl) mpesaEl.style.display = method === 'mpesa' ? '' : 'none';
+  if (bankEl) bankEl.style.display = method === 'bank' ? '' : 'none';
+}
+
+function toggleSAWelfareDestinationFields() {
+  const differs = document.getElementById('od-dest-welfare-diff')?.checked === true;
+  const block = document.getElementById('od-dest-welfare-block');
+  if (block) block.style.display = differs ? '' : 'none';
+  if (!differs) return;
+  const method = document.getElementById('od-dest-welfare-method')?.value;
+  const mpesaEl = document.getElementById('od-dest-welfare-mpesa-fields');
+  const bankEl = document.getElementById('od-dest-welfare-bank-fields');
+  if (mpesaEl) mpesaEl.style.display = method === 'mpesa' ? '' : 'none';
+  if (bankEl) bankEl.style.display = method === 'bank' ? '' : 'none';
+}
+
+async function saveSADestination() {
+  const orgId = currentDetailOrgId;
+  const method = document.getElementById('od-dest-method')?.value || null;
+
+  if (method === 'mpesa' && !document.getElementById('od-dest-mpesa')?.value?.trim()) {
+    toast('Enter the M-Pesa number, or set Method back to Not set'); return;
+  }
+  if (method === 'bank' && (!document.getElementById('od-dest-bank-paybill')?.value?.trim() || !document.getElementById('od-dest-bank-account')?.value?.trim())) {
+    toast('Bank settlement needs both the bank\'s own Paybill and this org\'s account number'); return;
+  }
+
+  const updates = {
+    disbursement_method: method,
+    disbursement_mpesa_number: method === 'mpesa' ? (document.getElementById('od-dest-mpesa')?.value?.trim() || null) : null,
+    disbursement_bank_name: method === 'bank' ? (document.getElementById('od-dest-bank-name')?.value?.trim() || null) : null,
+    disbursement_bank_paybill: method === 'bank' ? (document.getElementById('od-dest-bank-paybill')?.value?.trim() || null) : null,
+    disbursement_bank_account_number: method === 'bank' ? (document.getElementById('od-dest-bank-account')?.value?.trim() || null) : null,
+    disbursement_bank_account_name: method === 'bank' ? (document.getElementById('od-dest-bank-account-name')?.value?.trim() || null) : null,
+  };
+
+  const welfareDiffers = document.getElementById('od-dest-welfare-diff')?.checked === true;
+  if (welfareDiffers) {
+    const wMethod = document.getElementById('od-dest-welfare-method')?.value || null;
+    if (wMethod === 'mpesa' && !document.getElementById('od-dest-welfare-mpesa')?.value?.trim()) {
+      toast('Enter the welfare M-Pesa number, or turn off the welfare override'); return;
+    }
+    if (wMethod === 'bank' && (!document.getElementById('od-dest-welfare-bank-paybill')?.value?.trim() || !document.getElementById('od-dest-welfare-bank-account')?.value?.trim())) {
+      toast('Welfare bank settlement needs both the bank\'s own Paybill and this org\'s account number'); return;
+    }
+    updates.welfare_disbursement_method = wMethod;
+    updates.welfare_disbursement_mpesa_number = wMethod === 'mpesa' ? (document.getElementById('od-dest-welfare-mpesa')?.value?.trim() || null) : null;
+    updates.welfare_disbursement_bank_name = wMethod === 'bank' ? (document.getElementById('od-dest-welfare-bank-name')?.value?.trim() || null) : null;
+    updates.welfare_disbursement_bank_paybill = wMethod === 'bank' ? (document.getElementById('od-dest-welfare-bank-paybill')?.value?.trim() || null) : null;
+    updates.welfare_disbursement_bank_account_number = wMethod === 'bank' ? (document.getElementById('od-dest-welfare-bank-account')?.value?.trim() || null) : null;
+  } else {
+    // Explicitly clear any previous override, rather than leaving stale
+    // values that no longer reflect an unchecked box - falls back to the
+    // main destination for welfare, same as if it was never set.
+    updates.welfare_disbursement_method = null;
+    updates.welfare_disbursement_mpesa_number = null;
+    updates.welfare_disbursement_bank_name = null;
+    updates.welfare_disbursement_bank_paybill = null;
+    updates.welfare_disbursement_bank_account_number = null;
+  }
+
+  const { error } = await sb.from('organisations').update(updates).eq('id', orgId);
+  if (error) { toast('Could not save: ' + error.message); return; }
+  toast('Settlement destination saved');
+}
+
 async function saveOrgProviderSettings() {
   const orgId = currentDetailOrgId;
   const paystackCode = document.getElementById('od-paystack-subaccount')?.value?.trim();
@@ -3093,6 +3184,9 @@ async function saveOrgProviderSettings() {
     || document.getElementById('od-sms-label-2')?.value?.trim() || null);
 
   if (activeProvider === 'paystack' && !paystackCode) { toast('Paystack is selected as active but has no subaccount code'); return; }
+  if (activeProvider === 'daraja' && !document.getElementById('od-dest-method')?.value) {
+    if (!confirm("This org has no Settlement Destination set in the card above. Contributions via Safaricom Direct will fail until one is set. Save anyway?")) return;
+  }
 
   try {
     const rows = [];
