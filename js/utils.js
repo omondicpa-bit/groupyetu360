@@ -286,7 +286,17 @@ async function loadSABilling() {
   const month = new Date().toISOString().slice(0,7);
 
   const [pendingRes, orgsRes, smsRes] = await Promise.all([
-    sb.from('payment_requests').select('*,organisations(name)').eq('status','pending').order('requested_at',{ascending:false}),
+    // Platform billing only (subscription/SMS) - member contributions go
+    // through their own settlement pipeline (see Payouts), not this queue.
+    // Real bug, found 1 Oct 2026: this had no payment_type filter at all,
+    // so a member contribution could land here and get approved by
+    // approvePayment(), which only knows how to activate a plan or credit
+    // an SMS bundle - it silently did neither, and just flipped the
+    // status to 'approved' with nothing actually credited to the member
+    // or queued for settlement.
+    sb.from('payment_requests').select('*,organisations(name)').eq('status','pending')
+      .or('payment_type.ilike.subscription%,payment_type.ilike.sms_bundle%')
+      .order('requested_at',{ascending:false}),
     sb.from('organisations').select('*').order('name'),
     sb.from('sms_usage').select('messages_sent').eq('month', month)
   ]);
@@ -360,6 +370,16 @@ async function loadSABilling() {
 }
 
 async function approvePayment(paymentId, orgId, paymentType, amount) {
+  // This button only knows how to activate a plan or credit an SMS bundle -
+  // a member contribution needs its own settlement pipeline (transactions,
+  // bank_balance, a payment_settlements row for Payouts), none of which
+  // this function does. Refuse rather than silently approve-and-do-nothing,
+  // the exact failure that left a real payment uncredited on 30 Sep 2026.
+  if (String(paymentType || '').includes('member_contribution')) {
+    toast('This is a member contribution, not a billing payment - it settles through its own pipeline, not this button. Contact support if it looks stuck.');
+    return;
+  }
+
   // Determine what to activate
   const updates = {};
   const today = new Date();
