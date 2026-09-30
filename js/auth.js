@@ -1795,6 +1795,7 @@ function buildNav() {
     <a class="nav-item" onclick="showPage('sa_members')" href="#"><span class="nav-icon">◉</span> All Members</a>
     <a class="nav-item" onclick="showPage('sa_finance')" href="#"><span class="nav-icon">₭</span> Revenue</a>
     <a class="nav-item" onclick="showPage('sa_billing')" href="#"><span class="nav-icon">💳</span> Billing</a>
+    <a class="nav-item" onclick="showPage('sa_payouts')" href="#"><span class="nav-icon">💸</span> Payouts</a>
     <a class="nav-item" onclick="showPage('sa_activity')" href="#"><span class="nav-icon">📋</span> Activity Log</a>
     <a class="nav-item" onclick="showPage('sa_support')" href="#"><span class="nav-icon">⚙</span> Platform Settings</a>
     <div class="nav-label" style="margin-top:.5rem">Account</div>
@@ -1948,11 +1949,12 @@ const pageTitles = {
   sa_org_detail: ['Organisation Detail', 'Platform management'],
   sa_support: ['Platform Settings', 'Contact details, payment info & Daraja'],
   sa_activity: ['Activity Log', 'Audit trail of all admin actions'],
+  sa_payouts: ['Payouts', 'Automated Safaricom settlements - money owed to groups'],
   my_meetings: ['Meetings', 'Scheduled meetings and attendance'],
   my_notices: ['Notices', 'Messages from your group admin'],
   my_contributions: ['My Contributions', 'Your payment history'],
   approvals: ['Member Approvals', 'Review and approve access requests'],
-  settlements: ['Settlements', 'Daily settlement status for SasaPay & Fingo collections'],
+  settlements: ['Settlements', 'Daily settlement status for your collections'],
   members: ['Members', 'Member register'],
   finance: ['Finance', 'Transactions & expenses'],
   meetings: ['Meetings', 'Schedule & attendance'],
@@ -2103,7 +2105,7 @@ function showPage(id) {
   document.getElementById('page-title').textContent = info[0];
   document.getElementById('page-sub').textContent = info[1] || currentOrg?.name || '';
   document.title = 'GroupYetu360 - ' + info[0];
-  const loaders = { members: loadMembers, finance: loadFinance, meetings: loadMeetings, welfare: loadWelfare, projects: loadProjects, mgr: loadMGR, table_banking: loadTableBanking, messages: loadMessages, settings: ()=>typeof loadSettings==='function'&&loadSettings(), superadmin: ()=>typeof loadSuperAdmin==='function'&&loadSuperAdmin(), sa_org_detail: ()=>{}, sa_members: ()=>typeof loadSAMembers==='function'&&loadSAMembers(), sa_finance: ()=>typeof loadSAFinance==='function'&&loadSAFinance(), sa_organisations: ()=>typeof loadSAOrganisations==='function'&&loadSAOrganisations(), my_profile: ()=>typeof loadMyProfile==='function'&&loadMyProfile(), my_contributions: ()=>typeof loadMyContributions==='function'&&loadMyContributions(), approvals: ()=>typeof loadApprovals==='function'&&loadApprovals(), my_account: ()=>typeof loadMyAccount==='function'&&loadMyAccount(), billing: ()=>typeof loadBilling==='function'&&loadBilling(), support: ()=>typeof loadSupport==='function'&&loadSupport(), sa_billing: ()=>typeof loadSABilling==='function'&&loadSABilling(), sa_support: ()=>typeof loadSASupport==='function'&&loadSASupport(), sa_activity: ()=>typeof loadSAActivity==='function'&&loadSAActivity(), my_meetings: ()=>typeof loadMyMeetings==='function'&&loadMyMeetings(), my_notices: ()=>typeof loadMyNotices==='function'&&loadMyNotices(), settlements: ()=>typeof loadOrgSettlements==='function'&&loadOrgSettlements() };
+  const loaders = { members: loadMembers, finance: loadFinance, meetings: loadMeetings, welfare: loadWelfare, projects: loadProjects, mgr: loadMGR, table_banking: loadTableBanking, messages: loadMessages, settings: ()=>typeof loadSettings==='function'&&loadSettings(), superadmin: ()=>typeof loadSuperAdmin==='function'&&loadSuperAdmin(), sa_org_detail: ()=>{}, sa_members: ()=>typeof loadSAMembers==='function'&&loadSAMembers(), sa_finance: ()=>typeof loadSAFinance==='function'&&loadSAFinance(), sa_organisations: ()=>typeof loadSAOrganisations==='function'&&loadSAOrganisations(), my_profile: ()=>typeof loadMyProfile==='function'&&loadMyProfile(), my_contributions: ()=>typeof loadMyContributions==='function'&&loadMyContributions(), approvals: ()=>typeof loadApprovals==='function'&&loadApprovals(), my_account: ()=>typeof loadMyAccount==='function'&&loadMyAccount(), billing: ()=>typeof loadBilling==='function'&&loadBilling(), support: ()=>typeof loadSupport==='function'&&loadSupport(), sa_billing: ()=>typeof loadSABilling==='function'&&loadSABilling(), sa_support: ()=>typeof loadSASupport==='function'&&loadSASupport(), sa_activity: ()=>typeof loadSAActivity==='function'&&loadSAActivity(), sa_payouts: ()=>typeof loadSAPayouts==='function'&&loadSAPayouts(), my_meetings: ()=>typeof loadMyMeetings==='function'&&loadMyMeetings(), my_notices: ()=>typeof loadMyNotices==='function'&&loadMyNotices(), settlements: ()=>typeof loadOrgSettlements==='function'&&loadOrgSettlements() };
   if (loaders[id]) loaders[id]();
   updateTopbarActions(id);
 }

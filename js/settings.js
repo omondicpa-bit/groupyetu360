@@ -2176,6 +2176,181 @@ function exportSAActivityCSV() {
   );
 }
 
+// ── SA Payouts page ──────────────────────────────────────────────────────
+
+function payoutDestinationLabel(settlement, org) {
+  if (!org) return '—';
+  const isWelfare = settlement.fund_type === 'welfare';
+  const method = isWelfare ? (org.welfare_disbursement_method || org.disbursement_method) : org.disbursement_method;
+  if (method === 'mpesa') {
+    const num = isWelfare ? (org.welfare_disbursement_mpesa_number || org.disbursement_mpesa_number) : org.disbursement_mpesa_number;
+    return num ? `M-Pesa: ${num}` : 'M-Pesa: not set';
+  }
+  if (method === 'bank') {
+    const paybill = isWelfare ? (org.welfare_disbursement_bank_paybill || org.disbursement_bank_paybill) : org.disbursement_bank_paybill;
+    const acct = isWelfare ? (org.welfare_disbursement_bank_account_number || org.disbursement_bank_account_number) : org.disbursement_bank_account_number;
+    const bankName = isWelfare ? (org.welfare_disbursement_bank_name || org.disbursement_bank_name) : org.disbursement_bank_name;
+    if (!paybill || !acct) return `${bankName || 'Bank'}: not fully set`;
+    return `${bankName || 'Bank'} ${paybill} / Acct ${acct}`;
+  }
+  return 'Not configured';
+}
+
+const SA_PAYOUT_STATUS_STYLE = {
+  pending:    { bg: '#fff3cd', color: '#7a5c00', label: 'Pending' },
+  processing: { bg: '#e8f0fd', color: '#1a4d8f', label: 'Processing' },
+  settled:    { bg: '#e6f4ef', color: '#1e7a50', label: 'Settled' },
+  failed:     { bg: '#fde8e8', color: '#7a1212', label: 'Failed' },
+  cancelled:  { bg: '#f5f5f5', color: '#888',    label: 'Cancelled' },
+};
+
+async function loadSAAutopilotState() {
+  const { data: ps } = await sb.from('platform_settings').select('daraja_autopilot_enabled').maybeSingle();
+  const on = ps?.daraja_autopilot_enabled === true;
+  const toggle = document.getElementById('sa-payouts-autopilot-toggle');
+  const ui = document.getElementById('sa-payouts-autopilot-ui');
+  const knob = document.getElementById('sa-payouts-autopilot-knob');
+  if (toggle) toggle.checked = on;
+  if (ui) ui.style.background = on ? 'var(--maroon)' : '#ccc';
+  if (knob) knob.style.transform = on ? 'translateX(20px)' : 'translateX(2px)';
+  const sub = document.getElementById('sa-payouts-autopilot-sub');
+  if (sub) sub.textContent = on
+    ? 'On - a settlement fires the moment its contribution is credited.'
+    : 'Off - settlements wait below for you to process them one by one.';
+}
+
+async function toggleSAAutopilot() {
+  const on = document.getElementById('sa-payouts-autopilot-toggle')?.checked === true;
+  const ui = document.getElementById('sa-payouts-autopilot-ui');
+  const knob = document.getElementById('sa-payouts-autopilot-knob');
+  if (ui) ui.style.background = on ? 'var(--maroon)' : '#ccc';
+  if (knob) knob.style.transform = on ? 'translateX(20px)' : 'translateX(2px)';
+  // platform_settings is a fixed single row, id: 1 - upsert() is the
+  // established way the rest of the app writes to it (see
+  // saveSupportSettings in utils.js), not a keyless update.
+  const { error } = await sb.from('platform_settings').upsert({ id: 1, daraja_autopilot_enabled: on });
+  if (error) { toast('Could not save: ' + error.message); await loadSAAutopilotState(); return; }
+  toast(on ? 'Autopilot turned on' : 'Autopilot turned off');
+  await loadSAAutopilotState();
+}
+
+async function loadSAPayouts() {
+  await loadSAAutopilotState();
+
+  const listEl = document.getElementById('sa-payouts-list');
+  const tableEl = document.getElementById('sa-payouts-table');
+  const tbody = document.getElementById('sa-payouts-tbody');
+  if (listEl) listEl.innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
+  if (tableEl) tableEl.style.display = 'none';
+
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+  const filter = document.getElementById('sa-payouts-filter')?.value || 'active';
+  const orgCols = 'name, disbursement_method, disbursement_mpesa_number, disbursement_bank_name, disbursement_bank_paybill, disbursement_bank_account_number, welfare_disbursement_method, welfare_disbursement_mpesa_number, welfare_disbursement_bank_name, welfare_disbursement_bank_paybill, welfare_disbursement_bank_account_number';
+
+  let query = sb.from('payment_settlements').select(`*, organisations(${orgCols})`).order('created_at', { ascending: false }).limit(200);
+  if (filter === 'active') query = query.in('status', ['pending', 'failed']);
+  else if (filter === 'settled') query = query.eq('status', 'settled').gte('created_at', sevenDaysAgo);
+  else if (filter === 'all') query = query.gte('created_at', sevenDaysAgo);
+  else query = query.eq('status', filter);
+
+  const [{ data: rows, error }, pendingCount, failedCount, settledToday] = await Promise.all([
+    query,
+    sb.from('payment_settlements').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    sb.from('payment_settlements').select('id', { count: 'exact', head: true }).eq('status', 'failed'),
+    sb.from('payment_settlements').select('amount').eq('status', 'settled').gte('settled_at', new Date().toISOString().split('T')[0]),
+  ]);
+
+  document.getElementById('sa-payouts-stat-pending').textContent = pendingCount.count ?? '-';
+  document.getElementById('sa-payouts-stat-failed').textContent = failedCount.count ?? '-';
+  const settledTodayTotal = (settledToday.data || []).reduce((s, r) => s + Number(r.amount || 0), 0);
+  document.getElementById('sa-payouts-stat-settled').textContent = 'Ksh ' + settledTodayTotal.toLocaleString('en-KE');
+
+  if (error) { if (listEl) listEl.innerHTML = `<div class="alert alert-error">Could not load: ${h(error.message)}</div>`; return; }
+  if (!rows || !rows.length) {
+    if (listEl) listEl.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--ink-faint);font-size:.85rem">Nothing here right now.</div>';
+    return;
+  }
+  if (listEl) listEl.innerHTML = '';
+  if (tableEl) tableEl.style.display = '';
+
+  tbody.innerHTML = rows.map((r) => {
+    const org = r.organisations;
+    const style = SA_PAYOUT_STATUS_STYLE[r.status] || SA_PAYOUT_STATUS_STYLE.pending;
+    const canProcess = r.status === 'pending' || r.status === 'failed';
+    const canCancel = r.status === 'pending';
+    return `
+      <tr>
+        <td>${h(org?.name || 'Unknown group')}</td>
+        <td style="text-transform:capitalize">${h(r.fund_type)}</td>
+        <td>Ksh ${Number(r.amount).toLocaleString('en-KE')}</td>
+        <td style="font-size:.75rem;color:var(--ink-faint)">${h(payoutDestinationLabel(r, org))}</td>
+        <td><span class="sa-status" style="background:${style.bg};color:${style.color}">${style.label}</span></td>
+        <td style="font-size:.72rem;color:var(--ink-faint)">${new Date(r.created_at).toLocaleString('en-KE', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}</td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-secondary btn-sm" style="padding:.25rem .5rem;font-size:.68rem" onclick="viewPayoutDetails('${r.id}')">View</button>
+          ${canProcess ? `<button class="btn btn-primary btn-sm" style="padding:.25rem .5rem;font-size:.68rem;margin-left:.3rem" onclick="processPayoutRow('${r.id}', this)">${r.status === 'failed' ? 'Retry' : 'Process'}</button>` : ''}
+          ${canCancel ? `<button class="btn btn-secondary btn-sm" style="padding:.25rem .5rem;font-size:.68rem;margin-left:.3rem;color:#a02020" onclick="cancelPayoutRow('${r.id}')">Cancel</button>` : ''}
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+async function processPayoutRow(id, btnEl) {
+  if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Sending...'; }
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/daraja-payout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ settlement_id: id }),
+    });
+    const result = await res.json();
+    if (result.outcome === 'sent') toast('Payout sent, waiting for Safaricom to confirm.');
+    else if (result.error) toast('Could not send: ' + result.error);
+    else toast('Outcome: ' + (result.outcome || 'unknown'));
+  } catch (e) {
+    toast('Could not send: ' + e.message);
+  }
+  loadSAPayouts();
+}
+
+async function cancelPayoutRow(id) {
+  if (!confirm('Cancel this settlement? The group will not be paid this amount automatically - you would need to handle it manually if this was a genuine contribution.')) return;
+  const { error } = await sb.from('payment_settlements').update({ status: 'cancelled' }).eq('id', id).eq('status', 'pending');
+  if (error) { toast('Could not cancel: ' + error.message); return; }
+  toast('Cancelled');
+  loadSAPayouts();
+}
+
+async function viewPayoutDetails(id) {
+  showModal('payoutDetail');
+  const body = document.getElementById('sa-payout-detail-body');
+  body.innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
+  const { data: r, error } = await sb.from('payment_settlements')
+    .select('*, organisations(name, disbursement_method, disbursement_mpesa_number, disbursement_bank_name, disbursement_bank_paybill, disbursement_bank_account_number, welfare_disbursement_method, welfare_disbursement_mpesa_number, welfare_disbursement_bank_name, welfare_disbursement_bank_paybill, welfare_disbursement_bank_account_number)')
+    .eq('id', id).maybeSingle();
+  if (error || !r) { body.innerHTML = `<div class="alert alert-error">Could not load: ${h(error?.message || 'not found')}</div>`; return; }
+  const style = SA_PAYOUT_STATUS_STYLE[r.status] || SA_PAYOUT_STATUS_STYLE.pending;
+  const rows = [
+    ['Group', r.organisations?.name || 'Unknown'],
+    ['Type', r.fund_type],
+    ['Amount', 'Ksh ' + Number(r.amount).toLocaleString('en-KE')],
+    ['Destination', payoutDestinationLabel(r, r.organisations)],
+    ['Status', style.label],
+    ['Method', r.method || '—'],
+    ['Safaricom reference', r.checkout_id || '—'],
+    ['M-Pesa reference', r.provider_reference || '—'],
+    ['Settlement fee charged', r.settlement_fee != null ? 'Ksh ' + r.settlement_fee : '—'],
+    ['Failure reason', r.failure_reason || '—'],
+    ['Created', new Date(r.created_at).toLocaleString('en-KE')],
+    ['Settled', r.settled_at ? new Date(r.settled_at).toLocaleString('en-KE') : '—'],
+  ];
+  body.innerHTML = rows.map(([label, val]) => `
+    <div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border);font-size:.8rem">
+      <span style="color:var(--ink-faint)">${h(label)}</span><span style="font-weight:600;text-align:right">${h(String(val))}</span>
+    </div>`).join('');
+}
+
 async function loadSAActivity() {
   const listEl  = document.getElementById('sa-activity-list');
   const tableEl = document.getElementById('sa-activity-table');

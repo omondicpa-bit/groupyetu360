@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026093012">
+  <link rel="stylesheet" href="style.css?v=2026093013">
 </head>
 <body>
 
@@ -2810,6 +2810,71 @@
       </div>
     </div>
 
+    <!-- SUPERADMIN PAYOUTS -->
+    <div class="page" id="page-sa_payouts">
+      <div class="section-header">
+        <div><div class="section-title">Payouts</div><div class="section-sub">Automated Safaricom settlements - money EPH is holding on a group's behalf, on its way out or waiting</div></div>
+      </div>
+
+      <!-- Autopilot control -->
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Autopilot</div>
+            <div class="card-sub" id="sa-payouts-autopilot-sub">When on, a settlement fires the moment its contribution is credited. When off, everything below waits for you to process it.</div>
+          </div>
+          <div style="flex-shrink:0;margin-left:1rem">
+            <input type="checkbox" id="sa-payouts-autopilot-toggle" style="display:none" onchange="toggleSAAutopilot()">
+            <div onclick="document.getElementById('sa-payouts-autopilot-toggle').click()" id="sa-payouts-autopilot-ui" style="width:44px;height:24px;border-radius:24px;background:#ccc;position:relative;cursor:pointer;transition:.3s">
+              <div id="sa-payouts-autopilot-knob" style="width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.3)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem" id="sa-payouts-summary">
+        <div class="card" style="flex:1;min-width:140px;padding:.9rem 1.1rem">
+          <div style="font-size:.68rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem">Pending</div>
+          <div style="font-size:1.3rem;font-weight:700;color:var(--ink)" id="sa-payouts-stat-pending">-</div>
+        </div>
+        <div class="card" style="flex:1;min-width:140px;padding:.9rem 1.1rem">
+          <div style="font-size:.68rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem">Failed</div>
+          <div style="font-size:1.3rem;font-weight:700;color:#a02020" id="sa-payouts-stat-failed">-</div>
+        </div>
+        <div class="card" style="flex:1;min-width:140px;padding:.9rem 1.1rem">
+          <div style="font-size:.68rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem">Settled Today</div>
+          <div style="font-size:1.3rem;font-weight:700;color:var(--teal)" id="sa-payouts-stat-settled">-</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">Settlements</div><div class="card-sub">Every Daraja-collected contribution that needs to reach a group</div></div>
+          <div style="display:flex;gap:.5rem">
+            <select class="form-select" id="sa-payouts-filter" style="font-size:.75rem;padding:.3rem .5rem" onchange="loadSAPayouts()">
+              <option value="active">Pending & Failed</option>
+              <option value="pending">Pending only</option>
+              <option value="processing">Processing only</option>
+              <option value="failed">Failed only</option>
+              <option value="settled">Settled (last 7 days)</option>
+              <option value="all">Everything (last 7 days)</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="loadSAPayouts()">↻ Refresh</button>
+          </div>
+        </div>
+        <div id="sa-payouts-list"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+        <div class="sa-table-scroll">
+          <table class="sa-org-table" style="width:100%;display:none" id="sa-payouts-table">
+            <thead><tr>
+              <th>Group</th><th>Type</th><th>Amount</th><th>Destination</th><th>Status</th><th>Created</th><th></th>
+            </tr></thead>
+            <tbody id="sa-payouts-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- SUPERADMIN SUPPORT SETTINGS -->
     <div class="page" id="page-sa_support">
       <div class="section-header"><div><div class="section-title">Platform Settings</div><div class="section-sub">Configure contact details, integrations and payment controls</div></div></div>
@@ -5432,6 +5497,18 @@
 </div>
 
 <!-- MODAL: SA User Detail -->
+<div class="modal-overlay" id="modal-payoutDetail">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title">Settlement Detail</div>
+      <button class="modal-close" onclick="closeModal('payoutDetail')">✕</button>
+    </div>
+    <div class="modal-body" id="sa-payout-detail-body">
+      <div class="loading"><div class="spinner"></div>Loading...</div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-saUserDetail">
   <div class="modal" style="max-width:580px">
     <div class="modal-header">
@@ -5636,15 +5713,15 @@
 
 
   <!-- GroupYetu360 Scripts - load order matters -->
-  <script src="js/auth.js?v=2026093012"></script>
-  <script src="js/utils.js?v=2026093012"></script>
-  <script src="js/dashboard.js?v=2026093012"></script>
-  <script src="js/members.js?v=2026093012"></script>
-  <script src="js/finance.js?v=2026093012"></script>
-  <script src="js/settings.js?v=2026093012"></script>
-  <script src="js/portal.js?v=2026093012"></script>
-  <script src="js/modules.js?v=2026093012"></script>
-  <script src="js/taya.js?v=2026093012"></script>
+  <script src="js/auth.js?v=2026093013"></script>
+  <script src="js/utils.js?v=2026093013"></script>
+  <script src="js/dashboard.js?v=2026093013"></script>
+  <script src="js/members.js?v=2026093013"></script>
+  <script src="js/finance.js?v=2026093013"></script>
+  <script src="js/settings.js?v=2026093013"></script>
+  <script src="js/portal.js?v=2026093013"></script>
+  <script src="js/modules.js?v=2026093013"></script>
+  <script src="js/taya.js?v=2026093013"></script>
   <script>
     // Bootstrap - runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —
