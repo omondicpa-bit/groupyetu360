@@ -1046,7 +1046,9 @@ async function recalcInstantFee() {
     return;
   }
   const { platformFeePercent, paystackFeePercent, sasapayFeePercent, sasapayPlatformFeePercent } = await getPlatformFeeRates();
-  const calc = _mpActiveProvider?.provider === 'sasapay'
+  const calc = _mpActiveProvider?.provider === 'daraja'
+    ? calculateDarajaGrossCharge(net, _mpActiveProvider.destinationType)
+    : _mpActiveProvider?.provider === 'sasapay'
     ? calculateGrossCharge(net, sasapayPlatformFeePercent, sasapayFeePercent)
     : calculateGrossCharge(net, platformFeePercent, paystackFeePercent);
   _mpInstantCalc = calc; // cache for payInstantContribution()
@@ -1115,7 +1117,9 @@ async function payInstantContribution() {
   let calc = _mpInstantCalc;
   if (!calc || calc.netAmount !== net) {
     const { platformFeePercent, paystackFeePercent, sasapayFeePercent, sasapayPlatformFeePercent } = await getPlatformFeeRates();
-    calc = _mpActiveProvider.provider === 'sasapay'
+    calc = _mpActiveProvider.provider === 'daraja'
+      ? calculateDarajaGrossCharge(net, _mpActiveProvider.destinationType)
+      : _mpActiveProvider.provider === 'sasapay'
       ? calculateGrossCharge(net, sasapayPlatformFeePercent, sasapayFeePercent)
       : calculateGrossCharge(net, platformFeePercent, paystackFeePercent);
   }
@@ -1151,7 +1155,7 @@ async function payInstantContribution() {
   }, 500);
 
   const provider = _mpActiveProvider.provider;
-  const functionName = provider === 'sasapay' ? 'sasapay-charge' : 'paystack-charge';
+  const functionName = provider === 'daraja' ? 'daraja-charge' : provider === 'sasapay' ? 'sasapay-charge' : 'paystack-charge';
   const notes = `Member contribution - Ksh ${net.toLocaleString()} net${_mpBeneficiaryRows.length > 1 ? ' (split across ' + _mpBeneficiaryRows.length + ' members)' : ''}`;
 
   // Only Paystack needs subaccount/transaction_charge/bearer to route its
@@ -1214,7 +1218,7 @@ function listenForContributionConfirmation(paymentRequestId, netAmount, provider
   // that provider — confirmation relies on the webhook + Realtime alone
   // until sasapay-verify is built, rather than wrongly querying Paystack's
   // API with a reference that was never created there.
-  const verifyFunctionName = provider === 'sasapay' ? null : 'paystack-verify';
+  const verifyFunctionName = provider === 'daraja' ? 'daraja-verify' : provider === 'sasapay' ? null : 'paystack-verify';
 
   const onResult = (status) => {
     if (resolved) return;

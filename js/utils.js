@@ -955,6 +955,43 @@ async function getPlatformFeeRates() {
  * @param {number} platformFeePercent - EPH's margin, e.g. 0.5
  * @param {number} paystackFeePercent - Paystack's rate, e.g. 1.5
  */
+// Mirrors supabase/functions/_shared/darajaSettlementFees.ts exactly - keep
+// both in sync if Safaricom's tariff ever changes. This client-side copy is
+// ONLY for showing the member an accurate preview before they pay; the
+// server independently recomputes and enforces the real amount
+// (darajaContributionValidation.ts), so a stale copy here would show a
+// wrong preview or a confusing "amount doesn't match" error, never an
+// actual wrong charge.
+const DARAJA_TARIFF_BANDS = {
+  b2c_registered: [
+    [1,49,0],[50,100,0],[101,500,5],[501,1000,5],[1001,1500,5],[1501,2500,9],
+    [2501,3500,9],[3501,5000,9],[5001,7500,11],[7501,10000,11],[10001,15000,11],
+    [15001,20000,11],[20001,25000,13],[25001,30000,13],[30001,35000,13],
+    [35001,40000,13],[40001,45000,13],[45001,50000,13],[50001,70000,13],[70001,150000,13],
+  ],
+  b2b: [
+    [1,49,2],[50,100,3],[101,500,8],[501,1000,13],[1001,1500,18],[1501,2500,25],
+    [2501,3500,30],[3501,5000,39],[5001,7500,48],[7501,10000,54],[10001,15000,63],
+    [15001,20000,68],[20001,25000,74],[25001,30000,79],[30001,35000,90],
+    [35001,40000,106],[40001,45000,110],[45001,50000,115],[50001,Infinity,115],
+  ],
+};
+
+function lookupDarajaSettlementFee(amount, destinationType) {
+  const bands = DARAJA_TARIFF_BANDS[destinationType] || DARAJA_TARIFF_BANDS.b2c_registered;
+  const band = bands.find(([min, max]) => amount >= min && amount <= max);
+  return band ? band[2] : bands[bands.length - 1][2];
+}
+
+// Same shape as calculateGrossCharge, for the one provider whose fee isn't
+// a flat percentage but a lookup against Safaricom's real tariff bands.
+function calculateDarajaGrossCharge(netAmount, destinationType) {
+  const settlementFee = lookupDarajaSettlementFee(netAmount, destinationType);
+  const ephMargin = Math.round(netAmount * 0.01); // Felix's decision, 30 Sep 2026 - flat 1%
+  const gross = netAmount + settlementFee + ephMargin;
+  return { netAmount, gross, fee: gross - netAmount, transactionCharge: settlementFee + ephMargin };
+}
+
 function calculateGrossCharge(netAmount, platformFeePercent, paystackFeePercent) {
   const totalRate = (platformFeePercent + paystackFeePercent) / 100;
   if (totalRate >= 1) throw new Error('Fee rates cannot total 100% or more');
@@ -1054,6 +1091,13 @@ async function getActiveProviderConfig(org) {
 
   if (activeProvider === 'sasapay') {
     return { provider: 'sasapay', accountRef: null };
+  }
+
+  if (activeProvider === 'daraja') {
+    // No org_payment_providers row needed - unlike Paystack's subaccount,
+    // Daraja settles via B2C/B2B to whatever this org's own
+    // disbursement_method/number already is, not a per-org provider account.
+    return { provider: 'daraja', accountRef: null, destinationType: org.disbursement_method === 'bank' ? 'b2b' : 'b2c_registered' };
   }
 
   try {
