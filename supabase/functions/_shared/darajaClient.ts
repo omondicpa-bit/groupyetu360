@@ -51,6 +51,33 @@ export function getDarajaConfig(): DarajaConfig {
   };
 }
 
+export interface DarajaInitiatorConfig {
+  initiatorName: string;
+  securityCredential: string;
+}
+
+// B2C and B2B authenticate with an initiator username plus an encrypted
+// password (SecurityCredential), not the consumer key/secret pair used for
+// STK Push. This is one shared credential set for both, on the assumption
+// that a single initiator (felixomondi) has been granted both the B2C and
+// B2B initiator roles - the SecurityCredential itself is just that user's
+// encrypted M-Pesa password, not tied to a specific product, so the same
+// value works for both as long as the role is granted for each.
+export function getDarajaInitiatorConfig(): DarajaInitiatorConfig {
+  const initiatorName = Deno.env.get('DARAJA_INITIATOR_NAME') || '';
+  const securityCredential = Deno.env.get('DARAJA_INITIATOR_SECURITY_CREDENTIAL') || '';
+  if (!initiatorName || !securityCredential) {
+    throw new DarajaConfigError('Missing Daraja secrets: DARAJA_INITIATOR_NAME, DARAJA_INITIATOR_SECURITY_CREDENTIAL');
+  }
+  return { initiatorName, securityCredential };
+}
+
+export function buildPayoutResultUrl(): string {
+  const base = `${Deno.env.get('SUPABASE_URL')}/functions/v1/daraja-payout-callback`;
+  const secret = Deno.env.get('DARAJA_CALLBACK_SECRET') || '';
+  return secret ? `${base}?s=${encodeURIComponent(secret)}` : base;
+}
+
 // The callback URL Safaricom posts the STK result to. When DARAJA_CALLBACK_SECRET
 // is set it rides along as ?s=..., and daraja-callback ignores any request that
 // does not carry it. Safaricom callbacks are unsigned, so this is the only way
@@ -166,6 +193,93 @@ export async function stkPush(cfg: DarajaConfig, p: StkPushParams, fetchFn: type
     checkoutRequestId: String(data.CheckoutRequestID),
     merchantRequestId: String(data.MerchantRequestID || ''),
     customerMessage: String(data.CustomerMessage || ''),
+  };
+}
+
+export interface B2CParams {
+  amount: number;
+  phone: string;          // 2547XXXXXXXX, must be an M-Pesa-registered number
+  initiatorName: string;
+  securityCredential: string;
+  resultUrl: string;
+  timeoutUrl: string;
+  remarks: string;        // up to 100 chars
+  occasion?: string;
+}
+
+// Sends money to an individual's phone (Miruka Family's treasurer, for
+// example), not a business. Uses BusinessPayment as the CommandID - the
+// right choice for "paying an amount owed to someone," as opposed to
+// SalaryPayment or PromotionPayment, which are for different purposes and
+// may be taxed or reported differently by Safaricom.
+export async function b2cPayment(cfg: DarajaConfig, p: B2CParams, fetchFn: typeof fetch = fetch) {
+  const body = {
+    InitiatorName: p.initiatorName,
+    SecurityCredential: p.securityCredential,
+    CommandID: 'BusinessPayment',
+    Amount: Math.round(p.amount),
+    PartyA: Number(cfg.shortcode),
+    PartyB: Number(p.phone),
+    Remarks: p.remarks.slice(0, 100),
+    QueueTimeOutURL: p.timeoutUrl,
+    ResultURL: p.resultUrl,
+    Occasion: (p.occasion || '').slice(0, 100),
+  };
+  const { status, data } = await darajaPost(cfg, '/mpesa/b2c/v1/paymentrequest', body, fetchFn);
+  if (String(data?.ResponseCode) !== '0' || !data?.ConversationID) {
+    throw new DarajaRequestError(
+      data?.errorMessage || data?.ResponseDescription || `Safaricom rejected the B2C request (HTTP ${status})`,
+      data,
+    );
+  }
+  return {
+    conversationId: String(data.ConversationID),
+    originatorConversationId: String(data.OriginatorConversationID || ''),
+  };
+}
+
+export interface B2BParams {
+  amount: number;
+  receiverShortcode: string;  // the BANK's own Paybill, e.g. KCB's 522533 - not the group's account number
+  accountReference: string;   // the GROUP's own account number at that bank, up to 13 characters
+  initiatorName: string;
+  securityCredential: string;
+  resultUrl: string;
+  timeoutUrl: string;
+  remarks: string;
+  requesterPhone?: string;    // optional - the member whose contribution this is, for the bank's own records
+}
+
+// Sends money to another business's Paybill, with an account reference -
+// the mechanism a bank uses to route a Lipa Na M-Pesa payment into one
+// specific customer's account among many sharing that same Paybill. This
+// is what actually lands money in ADA's or KPA's own bank account.
+export async function b2bPayment(cfg: DarajaConfig, p: B2BParams, fetchFn: typeof fetch = fetch) {
+  const body = {
+    Initiator: p.initiatorName,
+    SecurityCredential: p.securityCredential,
+    CommandID: 'BusinessPayBill',
+    SenderIdentifierType: '4',
+    RecieverIdentifierType: '4',
+    Amount: Math.round(p.amount),
+    PartyA: Number(cfg.shortcode),
+    PartyB: Number(p.receiverShortcode),
+    AccountReference: p.accountReference.slice(0, 13),
+    Requester: p.requesterPhone || undefined,
+    Remarks: p.remarks.slice(0, 100),
+    QueueTimeOutURL: p.timeoutUrl,
+    ResultURL: p.resultUrl,
+  };
+  const { status, data } = await darajaPost(cfg, '/mpesa/b2b/v1/paymentrequest', body, fetchFn);
+  if (String(data?.ResponseCode) !== '0' || !data?.ConversationID) {
+    throw new DarajaRequestError(
+      data?.errorMessage || data?.ResponseDescription || `Safaricom rejected the B2B request (HTTP ${status})`,
+      data,
+    );
+  }
+  return {
+    conversationId: String(data.ConversationID),
+    originatorConversationId: String(data.OriginatorConversationID || ''),
   };
 }
 

@@ -1,9 +1,17 @@
 // supabase/functions/daraja-charge/index.ts
 //
-// Starts an M-Pesa Express (STK Push) prompt on EPH's own Paybill for
-// subscription and SMS bundle billing. Same request and response contract as
-// paystack-charge and sasapay-charge, so the billing checkout only has to
-// pick a different function name.
+// Starts an M-Pesa Express (STK Push) prompt on EPH's own Paybill. Two
+// kinds of charge go through here now:
+//   - Platform billing (subscription/SMS bundles) - validated against
+//     billingPrices.ts's fixed price list, same as always.
+//   - Member contributions - validated against darajaContributionValidation.ts,
+//     which grosses up whatever the member is contributing by the real
+//     settlement fee for wherever that money has to end up, so the group
+//     receives their contribution untouched (see darajaSettlementFees.ts).
+//
+// Same request and response contract as paystack-charge for the
+// member-contribution case, so the billing/contribution checkout code only
+// has to pick a different function name.
 //
 // Deploy normally (it authenticates the logged-in caller itself):
 //   supabase functions deploy daraja-charge
@@ -14,6 +22,7 @@ import {
   buildCallbackUrl, DarajaConfigError, getDarajaConfig, normalisePhone, stkPush,
 } from '../_shared/darajaClient.ts';
 import { validateBillingCart } from '../_shared/billingPrices.ts';
+import { validateDarajaContribution } from '../_shared/darajaContributionValidation.ts';
 import { authorizeOrgAccess } from '../_shared/authorizeOrgAccess.ts';
 
 const corsHeaders = {
@@ -33,7 +42,7 @@ serve(async (req) => {
   try {
     let payload: any;
     try { payload = await req.json(); } catch (_e) { return json({ error: 'Invalid request body' }, 400); }
-    const { org_id, amount, phone, payment_type, notes, member_id } = payload || {};
+    const { org_id, amount, phone, payment_type, notes, member_id, allocations } = payload || {};
     if (!org_id || !amount || !phone) return json({ error: 'Missing required fields' }, 400);
 
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -41,10 +50,29 @@ serve(async (req) => {
     const access = await authorizeOrgAccess(req, supabase, createClient, org_id);
     if (!access.ok) return json({ error: access.error }, access.status);
 
-    // Only subscription and SMS billing goes through this Paybill. The amount
-    // is checked against the server's own price list, not trusted from the client.
-    const cart = validateBillingCart(payment_type, notes, amount);
-    if (!cart.ok) return json({ error: cart.error }, 400);
+    const isContribution = payment_type === 'member_contribution';
+    let expectedAmount: number;
+    let storedAllocations: string | null = null;
+
+    if (isContribution) {
+      const { data: org, error: orgErr } = await supabase
+        .from('organisations')
+        .select('disbursement_method, welfare_disbursement_method')
+        .eq('id', org_id).maybeSingle();
+      if (orgErr || !org) return json({ error: 'Could not load organisation settlement settings.' }, 500);
+
+      const result = validateDarajaContribution(allocations, amount, org);
+      if (!result.ok) return json({ error: result.error }, 400);
+      expectedAmount = result.grossTotal;
+      storedAllocations = JSON.stringify(result.allocations);
+    } else {
+      // Only subscription and SMS billing goes through this path. The
+      // amount is checked against the server's own price list, not
+      // trusted from the client.
+      const cart = validateBillingCart(payment_type, notes, amount);
+      if (!cart.ok) return json({ error: cart.error }, 400);
+      expectedAmount = cart.expected;
+    }
 
     const phone254 = normalisePhone(phone);
     if (!phone254) return json({ error: 'Enter a valid Safaricom number, for example 0712 345 678.' }, 400);
@@ -79,27 +107,27 @@ serve(async (req) => {
     const { data: pr, error: prErr } = await supabase.from('payment_requests').insert({
       org_id,
       member_id: member_id || null,
-      payment_type: payment_type || 'subscription',
+      payment_type: payment_type || (isContribution ? 'member_contribution' : 'subscription'),
       provider: 'daraja',
-      amount: cart.expected,
+      amount: expectedAmount,
       mpesa_ref: ref,
       paystack_ref: ref, // the generic "provider reference" column, replaced by Safaricom's id below
       paystack_status: 'pending',
       status: 'pending',
       notes: notes || '',
       payment_date: new Date().toISOString().split('T')[0],
-      allocations: null,
+      allocations: storedAllocations,
     }).select('id').single();
     if (prErr) throw new Error('DB error: ' + prErr.message);
 
     let push;
     try {
       push = await stkPush(cfg, {
-        amount: cart.expected,
+        amount: expectedAmount,
         phone: phone254,
         callbackUrl: buildCallbackUrl(),
         accountRef: 'GY360-' + String(org_id).replace(/-/g, '').slice(0, 6), // 12 characters
-        desc: 'GY360 billing',                                                // 13 characters
+        desc: isContribution ? 'GY360 contrib' : 'GY360 billing',            // 13 characters
       });
     } catch (e: any) {
       await supabase.from('payment_requests').delete().eq('id', pr.id);

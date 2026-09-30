@@ -10,7 +10,20 @@
 
 import { claimPaymentRequest } from './claimPaymentRequest.ts';
 import { creditPlatformPayment } from './creditPlatformPayment.ts';
+import { creditDarajaContribution } from './creditDarajaContribution.ts';
 import { DarajaConfig, stkQuery } from './darajaClient.ts';
+
+// Platform billing (subscription/SMS) and member contributions credit
+// completely differently - the first tops up the org's own plan/SMS
+// bundle, the second updates members' balances and (for Daraja
+// specifically) queues a real settlement. Routed here once, so both
+// callback and verify paths can't drift apart on which one they call.
+function creditByPaymentType(supabase: any, pr: any, reference: string, source: string) {
+  if (pr.payment_type === 'member_contribution') {
+    return creditDarajaContribution(supabase, pr, reference);
+  }
+  return creditPlatformPayment(supabase, pr, { reference, source });
+}
 
 export type CallbackOutcome =
   | 'invalid' | 'unknown-reference' | 'already-processed' | 'declined'
@@ -112,7 +125,7 @@ export async function processDarajaCallback(
 
   try {
     const receipt = String(meta.MpesaReceiptNumber || checkoutId);
-    await creditPlatformPayment(supabase, claimed, { reference: receipt, source: 'Daraja callback' });
+    await creditByPaymentType(supabase, claimed, receipt, 'Daraja callback');
     return 'credited';
   } catch (e: any) {
     console.error('[daraja-callback] Crediting failed:', e?.message);
@@ -146,7 +159,7 @@ export async function verifyDarajaPayment(
     const claimed = await claimPaymentRequest(supabase, pr);
     if (!claimed) return { status: 'processing' };
     try {
-      await creditPlatformPayment(supabase, claimed, { reference: checkoutId, source: 'Daraja verify (STK query)' });
+      await creditByPaymentType(supabase, claimed, checkoutId, 'Daraja verify (STK query)');
       return { status: 'approved' };
     } catch (e: any) {
       console.error('[daraja-verify] Crediting failed:', e?.message);

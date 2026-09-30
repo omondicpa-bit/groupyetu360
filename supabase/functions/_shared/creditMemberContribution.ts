@@ -146,7 +146,7 @@ export async function creditMemberContribution(supabase: any, pr: any, reference
           amount: regularTotal,
           mpesa_ref: reference,
           transaction_date: pr.payment_date || today,
-          notes: `Auto-approved via Paystack. Ref: ${reference}. ${allocationSummary}${attribution}`,
+          notes: `Auto-approved via ${pr.provider ? pr.provider[0].toUpperCase() + pr.provider.slice(1) : 'Paystack'}. Ref: ${reference}. ${allocationSummary}${attribution}`,
         };
         const firstTypedAlloc = regularAllocs.find((a: any) => a.typeId && a.typeId.length > 10);
         if (firstTypedAlloc) summaryTxn.type_id = firstTypedAlloc.typeId;
@@ -164,7 +164,7 @@ export async function creditMemberContribution(supabase: any, pr: any, reference
           mpesa_ref: reference,
           transaction_date: pr.payment_date || today,
           welfare_event_id: alloc.eventId,
-          notes: `Welfare contribution — ${alloc.typeName}. Auto-approved via Paystack. Ref: ${reference}.${attribution}`,
+          notes: `Welfare contribution — ${alloc.typeName}. Auto-approved via ${pr.provider ? pr.provider[0].toUpperCase() + pr.provider.slice(1) : 'Paystack'}. Ref: ${reference}.${attribution}`,
         });
         if (!welErr) successCount++;
         else console.error('[GY360] welfare transaction insert failed:', welErr.message);
@@ -406,7 +406,7 @@ export async function creditMemberContribution(supabase: any, pr: any, reference
       paystack_status: 'success',
       mpesa_ref: reference,
       approved_at: new Date().toISOString(),
-      notes: (pr.notes || '') + ` | Auto-approved via Paystack. Ref: ${reference}`,
+      notes: (pr.notes || '') + ` | Auto-approved via ${pr.provider ? pr.provider[0].toUpperCase() + pr.provider.slice(1) : 'Paystack'}. Ref: ${reference}`,
     }).eq('id', pr.id);
 
     await supabase.from('activity_log').insert({
