@@ -69,7 +69,7 @@ async function loadMembers() {
   if (bannerEl) {
     if (overLimit) {
       const plan = getEffectivePlan(currentOrg);
-      bannerEl.innerHTML = `⚠ Your group has ${allFetched.length} members but your <strong>${plan.toUpperCase()}</strong> plan allows ${limit}. Showing first ${limit} only. <a href="#" onclick="showPage('billing')" style="color:var(--maroon);font-weight:700">Upgrade to see all →</a>`;
+      bannerEl.innerHTML = `Your group has ${allFetched.length} members but your <strong>${plan.toUpperCase()}</strong> plan allows ${limit}. Showing first ${limit} only. <a href="#" onclick="showPage('billing')" style="color:var(--maroon);font-weight:700">Upgrade to see all</a>`;
       bannerEl.style.display = 'block';
     } else {
       bannerEl.style.display = 'none';
@@ -89,8 +89,34 @@ async function loadMembers() {
       allMembers = allMembers.map(m => ({ ...m, total_contributed: totals[m.id]||0 }));
     } catch(e) {}
   }
-  document.getElementById('members-sub').textContent = allMembers.length + ' members registered';
-  renderMemberGrid(allMembers);
+  const counts = { all: allMembers.length, active: 0, arrears: 0, inactive: 0 };
+  allMembers.forEach(m => { if (counts[m.status] !== undefined) counts[m.status]++; });
+  Object.keys(counts).forEach(k => { const el = document.getElementById('mf-count-' + k); if (el) el.textContent = counts[k]; });
+  document.getElementById('members-sub').textContent =
+    allMembers.length + ' member' + (allMembers.length !== 1 ? 's' : '') + ' · ' + counts.active + ' active';
+
+  // Members behind: one-click route to an SMS reminder (Messages page,
+  // "In arrears" recipients preselected). Only for people allowed to send SMS.
+  const bar = document.getElementById('members-arrears-bar');
+  if (bar) {
+    if (counts.arrears > 0 && canDo('sendSms')) {
+      document.getElementById('members-arrears-text').innerHTML =
+        `<strong>${counts.arrears} member${counts.arrears !== 1 ? 's are' : ' is'} behind</strong> on payments.`;
+      bar.style.display = '';
+    } else {
+      bar.style.display = 'none';
+    }
+  }
+  setMembersView(_membersViewMode);
+}
+
+function remindArrearsMembers() {
+  showPage('messages');
+  setTimeout(() => {
+    const pill = Array.from(document.querySelectorAll('#msg-recipient-pills .msg-recipient-pill'))
+      .find(b => (b.getAttribute('onclick') || '').includes("'arrears'"));
+    if (pill && typeof setRecipient === 'function') setRecipient('arrears', pill);
+  }, 300);
 }
 
 // Track current member filter state
@@ -123,46 +149,75 @@ function applyMemberFilters(q, status) {
   }
   const countEl = document.getElementById('members-count-label');
   if (countEl) countEl.textContent = list.length + ' of ' + allMembers.length + ' members';
-  const gridView = document.getElementById('member-grid');
-  const listView = document.getElementById('member-list-view');
-  if (gridView && gridView.style.display !== 'none') renderMemberGrid(list);
+  if (_membersViewMode === 'grid') renderMemberGrid(list);
   else renderMemberList(list);
 }
 
-let _membersViewMode = 'grid';
-function toggleMembersView() {
-  _membersViewMode = _membersViewMode === 'grid' ? 'list' : 'grid';
+// List view is the default (design system v1): a calm table that scans
+// faster than cards once a group passes a dozen members.
+let _membersViewMode = (typeof window !== 'undefined' && window.innerWidth <= 768) ? 'grid' : 'list';
+function setMembersView(mode) {
+  _membersViewMode = mode === 'grid' ? 'grid' : 'list';
   const grid = document.getElementById('member-grid');
   const list = document.getElementById('member-list-view');
-  const btn = document.getElementById('members-view-toggle');
-  if (_membersViewMode === 'list') {
-    if (grid) grid.style.display = 'none';
-    if (list) list.style.display = '';
-    if (btn) btn.textContent = '☰ List';
-    renderMemberList(allMembers);
-  } else {
-    if (grid) grid.style.display = '';
-    if (list) list.style.display = 'none';
-    if (btn) btn.textContent = '⊞ Grid';
-    renderMemberGrid(allMembers);
-  }
+  if (grid) grid.style.display = _membersViewMode === 'grid' ? '' : 'none';
+  if (list) list.style.display = _membersViewMode === 'list' ? '' : 'none';
+  document.getElementById('members-view-list')?.classList.toggle('active', _membersViewMode === 'list');
+  document.getElementById('members-view-grid')?.classList.toggle('active', _membersViewMode === 'grid');
+  applyMemberFilters(document.getElementById('member-search-input')?.value || '', _memberStatusFilter);
+}
+function toggleMembersView() { setMembersView(_membersViewMode === 'grid' ? 'list' : 'grid'); }
+
+function memberStatusBadge(m) {
+  if (m.status === 'active') return '<span class="badge badge-green">Active</span>';
+  if (m.status === 'arrears') return '<span class="badge badge-warn">Behind</span>';
+  if (m.status === 'deregistered') return '<span class="badge badge-red">Deregistered</span>';
+  return '<span class="badge badge-grey">' + h((m.status || 'inactive').replace(/^./, c => c.toUpperCase())) + '</span>';
 }
 
 function renderMemberList(list) {
   const tbody = document.getElementById('member-list-table');
+  const thead = document.getElementById('member-list-head');
   if (!tbody) return;
-  tbody.innerHTML = list.length ? list.map(m => {
+  const fp = orgFinProfile || {};
+  const balCols = [];
+  if (fp.hasShares) balCols.push({ label: fp.sharesLabel || 'Shares', val: m => m.shares_balance });
+  if (fp.hasSavings) balCols.push({ label: fp.savingsLabel || 'Savings', val: m => m.savings_balance });
+  if (!fp.hasShares && !fp.hasSavings) balCols.push({ label: 'Total contributed', val: m => m.total_contributed });
+  if (thead) thead.innerHTML = `<tr><th>Member</th><th>No.</th>${balCols.map(c => `<th class="ds-num">${h(c.label)}</th>`).join('')}<th>Last paid</th><th>Status</th><th><span class="ds-sr">Actions</span></th></tr>`;
+  const cols = 5 + balCols.length;
+  if (!list.length) {
+    const none = !allMembers.length;
+    tbody.innerHTML = `<tr><td colspan="${cols}"><div class="ds-empty">
+      <div class="ds-empty-icon">${gyIcon('members', 28)}</div>
+      <div class="ds-empty-title">${none ? 'No members yet' : 'No members match'}</div>
+      <div class="ds-empty-sub">${none ? 'Add your first member, or import your list from Excel.' : 'Try a different name, or another filter.'}</div>
+      ${none && canDo('addMember') ? `<button class="btn btn-primary ds-btn-auto" onclick="showModal('addMember')">Add first member</button>` : ''}
+    </div></td></tr>`;
+    return;
+  }
+  const palette = [['var(--maroon-pale)','var(--maroon)'],['var(--teal-pale)','var(--teal-dk)'],['var(--navy-pale)','var(--navy)'],['var(--warning-pale)','var(--warning)']];
+  tbody.innerHTML = list.map((m, i) => {
     const dispNum = m.display_number || (m.internal_number ? String(m.internal_number).padStart(3,'0') : m.member_number) || '—';
-    return `<tr onclick="openMemberDetail('${m.id}')" style="cursor:pointer">
-    <td style="font-weight:700;color:var(--maroon)">#${dispNum}${m.is_founder ? ' <span title="Founding Member" style="font-size:.8rem">🏛</span>' : ''}</td>
-    <td><strong>${h(m.full_name)}</strong><div style="font-size:.68rem;color:var(--ink-faint)">${h(m.email)}</div></td>
-    <td>${h(m.phone)||'—'}</td>
-    <td style="font-weight:600;color:var(--maroon)">Ksh ${Number(m.shares_balance||0).toLocaleString()}</td>
-    <td style="font-weight:600;color:var(--teal)">Ksh ${Number(m.savings_balance||0).toLocaleString()}</td>
-    <td><span class="badge ${m.status==='active'?'badge-green':m.status==='arrears'?'badge-warn':'badge-grey'}">${h(m.status)}</span></td>
-    <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openMemberDetail('${m.id}')">View →</button></td>
-  </tr>`;
-  }).join('') : '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--ink-faint)">No members found</td></tr>';
+    const initials = (m.full_name||'?').split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+    const [bg, ink] = palette[i % palette.length];
+    const lastC = (window._lastContribMap || {})[m.id];
+    const regOk = m.registration_paid;
+    const renewalDue = m.registration_renewal && new Date(m.registration_renewal) < new Date();
+    const regNote = regOk && !renewalDue ? '' : `<span class="ds-row-flag">${renewalDue ? 'Renewal due' : 'Not registered'}</span>`;
+    return `<tr class="ds-row-link" onclick="openMemberDetail('${m.id}')">
+      <td><div class="ds-person">
+        <span class="ds-avatar" style="background:${bg};color:${ink}">${h(initials)}</span>
+        <span class="ds-person-text"><span class="ds-person-name">${h(m.full_name)}${m.is_founder ? ' <span class="ds-founder" title="Founding member">Founder</span>' : ''}</span>
+        <span class="ds-person-sub">${h(m.phone || m.email) || '—'}${regNote}</span></span>
+      </div></td>
+      <td class="ds-muted">#${h(String(dispNum))}</td>
+      ${balCols.map(c => `<td class="ds-num ds-strong">Ksh ${Number(c.val(m)||0).toLocaleString()}</td>`).join('')}
+      <td class="ds-muted">${lastC ? `${h(lastC.date)} · Ksh ${Number(lastC.amount).toLocaleString()}` : 'No payments yet'}</td>
+      <td>${memberStatusBadge(m)}</td>
+      <td class="ds-actions"><button class="ds-icon-btn" onclick="event.stopPropagation();openMemberDetail('${m.id}')" aria-label="Open ${h(m.full_name)}">${gyIcon('chevron', 16)}</button></td>
+    </tr>`;
+  }).join('');
 }
 
 function renderMemberGrid(list) {
@@ -170,10 +225,10 @@ function renderMemberGrid(list) {
   if (!grid) return;
   if (!list.length) {
     grid.innerHTML = `<div style="grid-column:1/-1;padding:3rem;text-align:center">
-      <div style="font-size:2.5rem;margin-bottom:.75rem">◉</div>
+      <div style="display:flex;justify-content:center;color:var(--ink-faint);margin-bottom:.75rem">${gyIcon('members', 28)}</div>
       <div style="font-size:.95rem;font-weight:600;color:var(--ink);margin-bottom:.4rem">No members yet</div>
       <div style="font-size:.8rem;color:var(--ink-faint);margin-bottom:1.25rem">Add your first member to get started</div>
-      <button class="btn btn-primary" style="width:auto;padding:.65rem 1.5rem" onclick="showModal('addMember')">+ Add First Member</button>
+      <button class="btn btn-primary ds-btn-auto" onclick="showModal('addMember')">Add first member</button>
     </div>`;
     return;
   }
@@ -223,12 +278,12 @@ function renderMemberGrid(list) {
           <div class="mc-name">${h(m.full_name)}</div>
           <div class="mc-phone">${h(m.phone||m.email)||'—'}</div>
         </div>
-        <span class="badge ${badgeClass}" style="font-size:.6rem;flex-shrink:0">${m.status||'—'}</span>
+        ${memberStatusBadge(m)}
       </div>
       ${balanceCols ? `<div class="mc-balances">${balanceCols}</div>` : ''}
       <div class="mc-footer">
         <span>${footerLeft}</span>
-        <span class="${regOk&&!renewalDue?'mc-reg-ok':'mc-reg-warn'}">${regOk&&!renewalDue?'✓ Registered':renewalDue?'⚠ Renewal due':'⚠ Unregistered'}</span>
+        <span class="${regOk&&!renewalDue?'mc-reg-ok':'mc-reg-warn'}">${regOk&&!renewalDue?'Registered':renewalDue?'Renewal due':'Not registered'}</span>
       </div>
     </div>`;
   }).join('');

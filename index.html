@@ -24,7 +24,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026100105">
+  <link rel="stylesheet" href="style.css?v=2026100106">
 </head>
 <body>
 
@@ -780,52 +780,60 @@
 
     <!-- MEMBERS -->
     <div class="page" id="page-members">
-      <div class="section-header">
-        <div>
-          <div class="section-title">Member Register</div>
-          <div class="section-sub" id="members-sub">Loading…</div>
+      <div class="ds-page-head">
+        <div class="ds-page-head-text">
+          <h1 class="ds-page-title">Members</h1>
+          <div class="ds-page-sub" id="members-sub">Loading…</div>
         </div>
-        <div style="display:flex;gap:.6rem">
-          <button class="btn btn-secondary btn-sm" id="members-view-toggle" onclick="toggleMembersView()" title="Switch view">⊞ Grid</button>
-          <button class="btn btn-secondary btn-sm" onclick="exportMembersCSV()">⬇ Export CSV</button>
-          <button class="btn btn-primary" id="add-member-btn" onclick="showModal('addMember')">+ Add Member</button>
+        <div class="ds-page-actions">
+          <button class="btn btn-secondary" onclick="exportMembersCSV()"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M4 20h16"/></svg>Export</button>
+          <button class="btn btn-primary ds-btn-auto" id="add-member-btn" onclick="showModal('addMember')"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add member</button>
         </div>
       </div>
 
       <!-- Plan limit banner (shown when org exceeds plan member cap) -->
-      <div id="members-limit-banner" style="display:none;background:#fef3c7;border:1.5px solid #d97706;border-radius:8px;padding:.65rem 1rem;font-size:.8rem;color:#7c2d12;margin-bottom:.85rem"></div>
+      <div id="members-limit-banner" class="alert alert-warn" style="display:none"></div>
 
-      <!-- Status filter pills + search -->
-      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap">
-        <div style="display:flex;gap:.35rem" id="member-status-filters">
-          <button class="mf-pill active" onclick="filterByStatus('all',this)">All</button>
-          <button class="mf-pill" onclick="filterByStatus('active',this)">Active</button>
-          <button class="mf-pill" onclick="filterByStatus('arrears',this)">Arrears</button>
-          <button class="mf-pill" onclick="filterByStatus('inactive',this)">Inactive</button>
-        </div>
-        <div style="flex:1;min-width:200px;position:relative">
-          <span style="position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:var(--ink-faint);font-size:.85rem;pointer-events:none">🔍</span>
-          <input class="search-input" id="member-search-input"
-            placeholder="Search name, phone, email, ID…"
-            oninput="filterMembers(this.value)"
-            style="padding-left:2.2rem;width:100%"/>
-        </div>
-        <div id="members-count-label" style="font-size:.72rem;color:var(--ink-faint);white-space:nowrap"></div>
+      <!-- Members behind on payments: one-click reminder -->
+      <div id="members-arrears-bar" class="ds-callout ds-callout-amber" style="display:none">
+        <span class="ds-callout-icon"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4.5M12 17.5h.01"/></svg></span>
+        <span class="ds-callout-text" id="members-arrears-text"></span>
+        <button class="btn btn-sm ds-callout-btn" id="members-arrears-btn" onclick="remindArrearsMembers()">Send them an SMS reminder</button>
       </div>
 
-      <div class="member-grid" id="member-grid">
-        <div class="loading"><div class="spinner"></div>Loading members…</div>
-      </div>
-
-      <!-- List view (hidden by default) -->
-      <div id="member-list-view" style="display:none">
-        <div class="table-wrap card">
-          <table>
-            <thead><tr><th>#</th><th>Name</th><th>Phone</th><th id="export-col-shares" style="display:none">Shares</th><th id="export-col-savings" style="display:none">Savings</th><th id="export-col-contrib">Total Contributed</th><th>Status</th><th></th></tr></thead>
-            <tbody id="member-list-table"></tbody>
-          </table>
+      <!-- Status filter tabs + search + view switch -->
+      <div class="ds-toolbar">
+        <div class="ds-segmented" id="member-status-filters" role="tablist" aria-label="Filter members">
+          <button class="mf-pill active" role="tab" onclick="filterByStatus('all',this)">All <span class="ds-count" id="mf-count-all"></span></button>
+          <button class="mf-pill" role="tab" onclick="filterByStatus('active',this)">Active <span class="ds-count" id="mf-count-active"></span></button>
+          <button class="mf-pill" role="tab" onclick="filterByStatus('arrears',this)">Behind <span class="ds-count" id="mf-count-arrears"></span></button>
+          <button class="mf-pill" role="tab" onclick="filterByStatus('inactive',this)">Inactive <span class="ds-count" id="mf-count-inactive"></span></button>
+        </div>
+        <label class="ds-search">
+          <svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="member-search-input" type="search" placeholder="Name, phone, email or ID" aria-label="Search members" oninput="filterMembers(this.value)"/>
+        </label>
+        <div id="members-count-label" class="ds-muted"></div>
+        <div class="ds-segmented ds-segmented-icons" aria-label="View">
+          <button class="ds-seg-btn active" id="members-view-list" onclick="setMembersView('list')" aria-label="List view" title="List"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg></button>
+          <button class="ds-seg-btn" id="members-view-grid" onclick="setMembersView('grid')" aria-label="Card view" title="Cards"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></button>
         </div>
       </div>
+
+      <!-- List view (default) -->
+      <div id="member-list-view">
+        <div class="card ds-table-card">
+          <div class="table-wrap">
+            <table class="ds-table">
+              <thead id="member-list-head"></thead>
+              <tbody id="member-list-table"><tr><td style="padding:2rem;text-align:center;color:var(--ink-faint)">Loading members…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card view -->
+      <div class="member-grid" id="member-grid" style="display:none"></div>
     </div>
 
     <!-- FINANCE -->
@@ -5758,16 +5766,16 @@
 
 
   <!-- GroupYetu360 Scripts - load order matters -->
-  <script src="js/icons.js?v=2026100105"></script>
-  <script src="js/auth.js?v=2026100105"></script>
-  <script src="js/utils.js?v=2026100105"></script>
-  <script src="js/dashboard.js?v=2026100105"></script>
-  <script src="js/members.js?v=2026100105"></script>
-  <script src="js/finance.js?v=2026100105"></script>
-  <script src="js/settings.js?v=2026100105"></script>
-  <script src="js/portal.js?v=2026100105"></script>
-  <script src="js/modules.js?v=2026100105"></script>
-  <script src="js/taya.js?v=2026100105"></script>
+  <script src="js/icons.js?v=2026100106"></script>
+  <script src="js/auth.js?v=2026100106"></script>
+  <script src="js/utils.js?v=2026100106"></script>
+  <script src="js/dashboard.js?v=2026100106"></script>
+  <script src="js/members.js?v=2026100106"></script>
+  <script src="js/finance.js?v=2026100106"></script>
+  <script src="js/settings.js?v=2026100106"></script>
+  <script src="js/portal.js?v=2026100106"></script>
+  <script src="js/modules.js?v=2026100106"></script>
+  <script src="js/taya.js?v=2026100106"></script>
   <script>
     // Bootstrap - runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —

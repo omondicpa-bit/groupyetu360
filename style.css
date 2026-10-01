@@ -2970,3 +2970,49 @@ body.mob-dark .mh-pay-hint{color:#94a3b8}
 }
 .mh-body{gap:12px;padding:12px 16px 20px}
 body:not(.mob-dark) .mh-body{background:var(--surface-2)}
+
+/* ── Design system v1: list pages (phase 2c, Members first) ── */
+.ds-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.ds-segmented{display:inline-flex;gap:4px;padding:4px;background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.ds-segmented .mf-pill{border:0;border-radius:var(--radius-sm);background:transparent;color:var(--ink-soft);font-size:13px;font-weight:700;padding:0 12px;min-height:34px;display:inline-flex;align-items:center;gap:6px}
+.ds-segmented .mf-pill:hover{background:var(--surface-2);color:var(--ink);border:0}
+.ds-segmented .mf-pill.active{background:var(--ink);color:#fff;border:0}
+.ds-count{font-weight:600;opacity:.7;font-variant-numeric:tabular-nums}
+.ds-seg-btn{width:34px;height:34px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--ink-faint);display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.ds-seg-btn:hover{background:var(--surface-2);color:var(--ink)}
+.ds-seg-btn.active{background:var(--surface-3);color:var(--ink)}
+.ds-search{display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;flex:1;min-width:220px;max-width:360px;margin-left:auto;border:1px solid var(--border-dk);border-radius:var(--radius);background:var(--surface);color:var(--ink-faint)}
+.ds-search:focus-within{border-color:var(--maroon);box-shadow:0 0 0 3px rgba(128,0,32,.12)}
+.ds-search input{border:0;outline:0;background:transparent;font:inherit;font-size:14px;color:var(--ink);width:100%}
+.ds-muted{color:var(--ink-faint);font-size:13px}
+.ds-callout{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--radius-lg);border:1px solid;margin-bottom:16px;font-size:13.5px}
+.ds-callout-amber{background:var(--warning-pale);border-color:#f3ddbf;color:#5c3500}
+.ds-callout-icon{display:flex;color:var(--warning)}
+.ds-callout-text{flex:1}
+.ds-callout-btn{background:var(--warning);color:#fff;border:0}
+.ds-callout-btn:hover{background:#6f3c00}
+.ds-table-card{overflow:hidden}
+.ds-table td{vertical-align:middle}
+.ds-num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ds-strong{font-weight:700;color:var(--ink)}
+.ds-row-link{cursor:pointer}
+.ds-person{display:flex;align-items:center;gap:12px;min-width:0}
+.ds-avatar{width:36px;height:36px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0}
+.ds-person-text{display:flex;flex-direction:column;min-width:0}
+.ds-person-name{font-weight:700;color:var(--ink)}
+.ds-person-sub{font-size:12.5px;color:var(--ink-faint);display:flex;gap:8px;flex-wrap:wrap}
+.ds-row-flag{color:var(--warning);font-weight:700}
+.ds-founder{font-size:11px;font-weight:700;color:var(--navy);background:var(--navy-pale);padding:1px 6px;border-radius:999px;margin-left:4px}
+.ds-actions{text-align:right;width:56px}
+.ds-icon-btn{width:36px;height:36px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--ink-faint);display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.ds-icon-btn:hover{background:var(--surface-2);color:var(--ink)}
+.ds-empty{padding:40px 16px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
+.ds-empty-icon{color:var(--ink-faint);margin-bottom:6px}
+.ds-empty-title{font-size:15px;font-weight:800;color:var(--ink)}
+.ds-empty-sub{font-size:13.5px;color:var(--ink-faint);margin-bottom:10px}
+.ds-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media(max-width:768px){
+  .ds-search{max-width:none;margin-left:0;flex-basis:100%}
+  .ds-segmented{overflow-x:auto;max-width:100%}
+  #members-count-label{display:none}
+}

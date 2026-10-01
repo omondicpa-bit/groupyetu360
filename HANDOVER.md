@@ -109,7 +109,9 @@ Felix chose Direction A ("Ledger") from the Design canvas "GroupYetu360 UI Redes
 
 **Phase 2b shipped:** member home on mobile (white summary cards, line icons, a large "Make a payment" button, sentence case; dark theme untouched) and the member payment modal (sentence case, maroon primary "Send M-Pesa prompt", clearer waiting/received/not-completed states, full-height sheet on phones). `portal.js` emoji replaced with `gyIcon()`; icons added: check, link, alert, inbox.
 
-**Next phases, one screen per delivery:** members list, contributions, welfare, merry-go-round, table banking, settings, SA payouts. Each one replaces its page hero and inline styles with the components above, matching the canvas.
+**Phase 2c shipped:** Members page. Table view by default on desktop (cards on phones), filter tabs with counts (All, Active, Behind = status `arrears`, Inactive), search with icon, list/card switch, an amber "N members are behind" bar that opens Messages with "In arrears" preselected (`remindArrearsMembers()`), empty states. New shared classes for list pages: `.ds-toolbar`, `.ds-segmented`, `.ds-search`, `.ds-callout-amber`, `.ds-table`, `.ds-person`, `.ds-avatar`, `.ds-num`, `.ds-empty`, `.ds-icon-btn`, `.ds-sr`. Bulk M-Pesa prompts to everyone behind (as drawn on the canvas) are NOT built; that needs a server-side batch STK function with rate limiting.
+
+**Next phases, one screen per delivery:** contributions, welfare, merry-go-round, table banking, settings, SA payouts. Each one replaces its page hero and inline styles with the components above, matching the canvas.
 
 ### 🟢 Collection and payout hardened (1 Oct 2026) - read before touching Daraja code
 Full detail in `SECURITY_AUDIT_2026-10-01.md`. What a future session must know:
