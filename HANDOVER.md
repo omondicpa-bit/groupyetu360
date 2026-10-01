@@ -113,6 +113,8 @@ Felix chose Direction A ("Ledger") from the Design canvas "GroupYetu360 UI Redes
 
 **Phase 2d shipped:** Contributions & money (Finance) page. Light page header replaces the gradient hero; white score and stat cards with line icons; view tabs (Ledger, Expenses, Fines) on the left and record actions on the right; ledger amounts right-aligned, type badges neutral, delete is a quiet trash icon; mobile Money screen in light mode uses white cards. Also app-wide: emoji stripped from the start of all toast messages (90 calls).
 
+**Phase 2e shipped:** Welfare, Merry-go-round and Table banking pages (light page headers; neutral stat and event cards; dark segmented tabs; line icons for event types, collection methods and empty states; sentence case; quiet trash-icon deletes). App-wide: every modal close button (24) is now an icon button with `aria-label="Close"`. WhatsApp share text deliberately keeps its emoji. Remaining interim maroon banners: Projects, Meetings, Messages.
+
 **Dark mode (phones only, `body.mob-dark`):** today it only themes the home/admin-home/money shells and the bottom nav; every other page and modal stays light. All design-system light styles on phones are scoped with `body:not(.mob-dark)`, so dark mode looks as it did. A proper dark mode should come AFTER inline colours are removed page by page: then it is one block that re-values the `:root` tokens under `body.mob-dark`.
 
 **Next phases, one screen per delivery:** contributions, welfare, merry-go-round, table banking, settings, SA payouts. Each one replaces its page hero and inline styles with the components above, matching the canvas.

@@ -24,7 +24,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026100107">
+  <link rel="stylesheet" href="style.css?v=2026100108">
 </head>
 <body>
 
@@ -1234,10 +1234,10 @@
     <div class="page" id="page-mgr">
       <div class="mgr-hero">
         <div>
-          <div class="mgr-hero-title">🔄 Rotating Savings</div>
+          <h1 class="mgr-hero-title">Merry-go-round</h1>
           <div class="mgr-hero-sub" id="mgr-hero-sub">Merry-go-round cycles for your group</div>
         </div>
-        <button class="btn fin-ctrl-btn" onclick="showModal('createRound')">+ New Cycle</button>
+        <button class="btn btn-primary ds-btn-auto" onclick="showModal('createRound')"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New cycle</button>
       </div>
 
       <!-- Cycle list - top-level view -->
@@ -1247,19 +1247,19 @@
 
       <!-- Cycle detail view - everything cycle-specific lives here -->
       <div id="mgr-cycle-detail-view" style="display:none">
-        <button class="btn btn-secondary btn-sm" onclick="backToMGRCycleList()" style="margin-bottom:1rem">← Back to Cycles</button>
+        <button class="btn btn-secondary btn-sm ds-back" onclick="backToMGRCycleList()"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>All cycles</button>
 
         <div class="mgr-tabs">
-          <button class="mgr-tab active" onclick="switchMgrTab(this,'mgr-dtab-record')">₭ Record Contribution</button>
-          <button class="mgr-tab" onclick="switchMgrTab(this,'mgr-dtab-disburse')">💸 Disburse</button>
-          <button class="mgr-tab" onclick="switchMgrTab(this,'mgr-dtab-history');loadMGRCycleHistory()">📜 History</button>
+          <button class="mgr-tab active" onclick="switchMgrTab(this,'mgr-dtab-record')">Record contribution</button>
+          <button class="mgr-tab" onclick="switchMgrTab(this,'mgr-dtab-disburse')">Pay out</button>
+          <button class="mgr-tab" onclick="switchMgrTab(this,'mgr-dtab-history');loadMGRCycleHistory()">History</button>
         </div>
 
         <!-- Record Contribution - scoped to this cycle, no Cycle picker needed -->
         <div class="tab-panel active" id="mgr-dtab-record">
           <div class="mgr-form-card">
             <div class="mgr-form-heading">
-              <div class="mgr-form-icon">₭</div>
+              <div class="mgr-form-icon"><svg class="gy-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg></div>
               <div><div class="mgr-form-title">Record Member Contribution</div><div class="mgr-form-sub">Mark a member as paid for the active round</div></div>
             </div>
             <div class="form-row">
@@ -1292,7 +1292,7 @@
         <div class="tab-panel" id="mgr-dtab-disburse">
           <div class="mgr-form-card">
             <div class="mgr-form-heading">
-              <div class="mgr-form-icon" style="background:rgba(128,0,32,.1)">💸</div>
+              <div class="mgr-form-icon mgr-form-icon-out"><svg class="gy-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M8 7h9v9"/><path d="M4 21h16"/></svg></div>
               <div><div class="mgr-form-title">Record Disbursement</div><div class="mgr-form-sub">Treasurer method only - record when pot is sent to receiver</div></div>
             </div>
             <div class="alert alert-info" style="margin-bottom:1rem">Only required for <strong>Treasurer Collects</strong> cycles. For Direct Pay cycles, members pay the receiver directly. For <strong>Group Account</strong> cycles, disbursement is auto-recorded when all members have paid.</div>
@@ -1339,12 +1339,12 @@
       <!-- ── HERO ── -->
       <div class="wel-hero">
         <div class="wel-hero-left">
-          <div class="wel-hero-title">♡ Welfare Fund</div>
+          <h1 class="wel-hero-title">Welfare</h1>
           <div class="wel-hero-sub" id="wel-hero-sub">Loading rates…</div>
           <div class="wel-rates" id="wel-rates-pills"></div>
         </div>
         <div style="display:flex;gap:.5rem">
-          <button class="btn fin-ctrl-btn" onclick="showModal('welfareEvent')">+ New Event</button>
+          <button class="btn btn-primary ds-btn-auto" onclick="showModal('welfareEvent')"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New event</button>
         </div>
       </div>
 
@@ -3937,10 +3937,10 @@
     <div class="page" id="page-table_banking">
       <div class="mgr-hero">
         <div>
-          <div class="mgr-hero-title">🏦 Table Banking</div>
+          <h1 class="mgr-hero-title">Table banking</h1>
           <div class="mgr-hero-sub" id="tb-hero-sub">Pool contributions and member loans</div>
         </div>
-        <button class="btn fin-ctrl-btn" onclick="showModal('tbNewPool')" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2)">+ New Pool</button>
+        <button class="btn btn-primary ds-btn-auto" onclick="showModal('tbNewPool')"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New pool</button>
       </div>
 
       <!-- Pool list - top-level view -->
@@ -3950,7 +3950,7 @@
 
       <!-- Pool detail view - everything pool-specific lives here -->
       <div id="tb-pool-detail-view" style="display:none">
-        <button class="btn btn-secondary btn-sm" onclick="backToTBPoolList()" style="margin-bottom:1rem">← Back to Pools</button>
+        <button class="btn btn-secondary btn-sm ds-back" onclick="backToTBPoolList()"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>All pools</button>
 
         <div class="tabs">
           <div class="tab active" onclick="switchTab(this,'tb-dtab-loans');loadTBDetailLoans()">Loans</div>
@@ -3961,7 +3961,7 @@
         <!-- Loans - scoped to this pool -->
         <div class="tab-panel active" id="tb-dtab-loans">
           <div style="display:flex;justify-content:flex-end;margin-bottom:.75rem">
-            <button class="btn btn-primary btn-sm" style="width:auto;background:var(--maroon)" onclick="openTBNewLoan()">+ Issue Loan</button>
+            <button class="btn btn-primary btn-sm ds-btn-auto" onclick="openTBNewLoan()"><svg class="gy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Issue loan</button>
           </div>
           <div id="tb-loans-list"><div class="loading"><div class="spinner"></div></div></div>
         </div>
@@ -3970,7 +3970,7 @@
         <div class="tab-panel" id="tb-dtab-record">
           <div class="mgr-form-card">
             <div class="mgr-form-heading">
-              <div class="mgr-form-icon">₭</div>
+              <div class="mgr-form-icon"><svg class="gy-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg></div>
               <div><div class="mgr-form-title">Record Pool Contribution</div><div class="mgr-form-sub">Member payment into this pool</div></div>
             </div>
             <div class="form-row">
@@ -3995,7 +3995,7 @@
         <div class="tab-panel" id="tb-dtab-repay">
           <div class="mgr-form-card">
             <div class="mgr-form-heading">
-              <div class="mgr-form-icon" style="background:rgba(128,0,32,.1)">💸</div>
+              <div class="mgr-form-icon mgr-form-icon-out"><svg class="gy-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M8 7h9v9"/><path d="M4 21h16"/></svg></div>
               <div><div class="mgr-form-title">Record Loan Repayment</div><div class="mgr-form-sub">Principal + interest payment from borrower</div></div>
             </div>
             <div class="form-row">
@@ -4043,7 +4043,7 @@
         <div class="modal-title">Add New Member</div>
         <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.1rem">Financial records can be completed from the member detail page</div>
       </div>
-      <button class="modal-close" onclick="closeModal('addMember')">✕</button>
+      <button class="modal-close" onclick="closeModal('addMember')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div class="modal-body" style="padding:1rem 1.25rem">
 
@@ -4117,7 +4117,7 @@
   <div class="modal" style="max-width:480px">
     <div class="modal-header">
       <div class="modal-title">Record Settlement Payout</div>
-      <button class="modal-close" onclick="closeModal('markSettlementPaid')">✕</button>
+      <button class="modal-close" onclick="closeModal('markSettlementPaid')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div class="modal-body">
       <div id="msp-summary" style="background:var(--surface-2);border-radius:8px;padding:.85rem 1rem;margin-bottom:1rem;font-size:.82rem"></div>
@@ -4146,7 +4146,7 @@
   <div class="modal" style="max-width:640px">
     <div class="modal-header">
       <div class="modal-title">Settlement Details</div>
-      <button class="modal-close" onclick="closeModal('settlementDetails')">✕</button>
+      <button class="modal-close" onclick="closeModal('settlementDetails')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div class="modal-body" id="modal-settlement-details-body" style="max-height:70vh;overflow-y:auto"></div>
   </div>
@@ -4156,7 +4156,7 @@
   <div class="modal" style="max-width:560px">
     <div class="modal-header">
       <div class="modal-title">Record Payment</div>
-      <button class="modal-close" onclick="closeModal('recordPayment')">✕</button>
+      <button class="modal-close" onclick="closeModal('recordPayment')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div class="modal-body" style="padding-bottom:.5rem">
       <div class="form-row">
@@ -4195,7 +4195,7 @@
 
 <div class="modal-overlay" id="modal-scheduleMeeting">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title">Schedule Meeting</div><button class="modal-close" onclick="closeModal('scheduleMeeting')">✕</button></div>
+    <div class="modal-header"><div class="modal-title">Schedule Meeting</div><button class="modal-close" onclick="closeModal('scheduleMeeting')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     <div class="modal-body">
       <div class="form-row"><div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="meet-date"/></div><div class="form-group"><label class="form-label">Time</label><input class="form-input" type="time" id="meet-time" value="20:30"/></div></div>
       <div class="form-row single"><div class="form-group"><label class="form-label">Meeting Type</label><select class="form-select" id="meet-venue" onchange="updateMeetVenueDetailField()"><option value="Online (Virtual)">Online (Virtual)</option><option value="Physical Location">Physical Location</option></select></div></div>
@@ -4210,8 +4210,8 @@
 <div class="modal-overlay" id="modal-welfareEvent">
   <div class="modal" style="max-width:520px">
     <div class="modal-header">
-      <div><div class="modal-title">♡ New Welfare Event</div><div style="font-size:.72rem;color:var(--ink-faint);margin-top:.1rem">Contributions go to the communal welfare fund</div></div>
-      <button class="modal-close" onclick="closeModal('welfareEvent')">✕</button>
+      <div><div class="modal-title">New welfare event</div><div style="font-size:.72rem;color:var(--ink-faint);margin-top:.1rem">Contributions go to the communal welfare fund</div></div>
+      <button class="modal-close" onclick="closeModal('welfareEvent')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div class="modal-body">
       <!-- Event type - driven by org's configured types -->
@@ -4268,7 +4268,7 @@
 
       <!-- Pool preview -->
       <div id="wel-pool-preview" style="display:none;background:var(--teal-pale,#e6f4ef);border:1px solid var(--teal-muted,#9fe1cb);border-radius:5px;padding:.65rem 1rem;margin-bottom:.75rem;font-size:.78rem;color:var(--teal)">
-        💰 Expected pool: <strong id="wel-pool-total">—</strong> from <strong id="wel-pool-members">—</strong> members
+        Expected pool: <strong id="wel-pool-total">—</strong> from <strong id="wel-pool-members">—</strong> members
       </div>
 
       <div class="form-group">
@@ -4309,7 +4309,7 @@
   <div class="modal" style="max-width:560px">
     <div class="modal-header">
       <div><div class="modal-title" id="wc-modal-title">Welfare Contributions</div><div class="modal-sub" id="wc-modal-sub"></div></div>
-      <button class="modal-close" onclick="closeModal('welfareContribs')">✕</button>
+      <button class="modal-close" onclick="closeModal('welfareContribs')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div class="modal-body" style="padding:0">
       <!-- Summary -->
@@ -4351,7 +4351,7 @@
   <div class="modal" style="max-width:460px">
     <div class="modal-header">
       <div><div class="modal-title" id="wcl-modal-title">Close & Disburse</div><div class="modal-sub" id="wcl-collected-total"></div></div>
-      <button class="modal-close" onclick="closeModal('welfareClose')">✕</button>
+      <button class="modal-close" onclick="closeModal('welfareClose')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div class="modal-body">
       <div style="font-size:.78rem;color:var(--ink-faint);margin-bottom:1rem;line-height:1.6">
@@ -4394,7 +4394,7 @@
 
 <div class="modal-overlay" id="modal-addProject">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title">Add Project / Investment</div><button class="modal-close" onclick="closeModal('addProject')">✕</button></div>
+    <div class="modal-header"><div class="modal-title">Add Project / Investment</div><button class="modal-close" onclick="closeModal('addProject')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     <div class="modal-body">
       <div class="form-row single"><div class="form-group"><label class="form-label">Project Name</label><input class="form-input" id="proj-name" placeholder="e.g. Farm D, Rental Property"/></div></div>
       <div class="form-row"><div class="form-group"><label class="form-label">Location</label><input class="form-input" id="proj-location" placeholder="Where is this?"/></div><div class="form-group"><label class="form-label">Acquisition Cost (Ksh)</label><input class="form-input" type="number" id="proj-cost" placeholder="0"/></div></div>
@@ -4406,7 +4406,7 @@
 
 <div class="modal-overlay" id="modal-addOrg">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title">Onboard New Organisation</div><button class="modal-close" onclick="closeModal('addOrg')">✕</button></div>
+    <div class="modal-header"><div class="modal-title">Onboard New Organisation</div><button class="modal-close" onclick="closeModal('addOrg')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     <div class="modal-body">
       <div class="form-row single"><div class="form-group"><label class="form-label">Organisation Name</label><input class="form-input" id="ao-name" placeholder="Full organisation name"/></div></div>
       <div class="form-row"><div class="form-group"><label class="form-label">Registration Number</label><input class="form-input" id="ao-reg" placeholder="e.g. SOCA-XXXXXX"/></div><div class="form-group"><label class="form-label">Paybill Number</label><input class="form-input" id="ao-paybill" placeholder="M-Pesa paybill"/></div></div>
@@ -4427,7 +4427,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:.5rem">
         <button class="btn btn-secondary btn-sm" onclick="printMemberStatement()" title="Print or save as PDF">🖶 Print Statement</button>
-        <button class="modal-close" onclick="closeModal('memberDetail')">✕</button>
+        <button class="modal-close" onclick="closeModal('memberDetail')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
     </div>
     <div class="modal-body">
@@ -4793,7 +4793,7 @@
   <div class="modal" style="max-width:500px">
     <div class="modal-header">
       <div class="modal-title">Approve Member Request</div>
-      <button class="modal-close" onclick="closeModal('approveMember')">✕</button>
+      <button class="modal-close" onclick="closeModal('approveMember')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div class="modal-body">
       <div class="alert alert-info" id="approve-member-info">Loading…</div>
@@ -4828,7 +4828,7 @@
 
 <div class="modal-overlay" id="modal-recordIncome">
   <div class="modal" style="max-width:480px">
-    <div class="modal-header"><div class="modal-title">⚑ Record Income / Revenue</div><button class="modal-close" onclick="closeModal('recordIncome')">✕</button></div>
+    <div class="modal-header"><div class="modal-title">⚑ Record Income / Revenue</div><button class="modal-close" onclick="closeModal('recordIncome')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     <div class="modal-body">
       <div class="alert alert-info">Farm harvests, investment returns, grants, donations.</div>
       <div class="form-row">
@@ -4851,7 +4851,7 @@
 
 <div class="modal-overlay" id="modal-recordExpense">
   <div class="modal" style="max-width:480px">
-    <div class="modal-header"><div class="modal-title">− Record Expense</div><button class="modal-close" onclick="closeModal('recordExpense')">✕</button></div>
+    <div class="modal-header"><div class="modal-title">− Record Expense</div><button class="modal-close" onclick="closeModal('recordExpense')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     <div class="modal-body">
       <div class="alert alert-info">Farm costs, admin spend, bank charges and outflows.</div>
       <div class="form-row">
@@ -4881,7 +4881,7 @@
 
 <div class="modal-overlay" id="modal-addContribType">
   <div class="modal" style="max-width:480px">
-    <div class="modal-header"><div class="modal-title" id="contrib-modal-title">Add Contribution Type</div><button class="modal-close" onclick="closeModal('addContribType')">✕</button></div>
+    <div class="modal-header"><div class="modal-title" id="contrib-modal-title">Add Contribution Type</div><button class="modal-close" onclick="closeModal('addContribType')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     <div class="modal-body">
       <div class="alert alert-info">Define the types of contributions your organisation collects. These will appear as options when recording payments.</div>
       <div class="form-row single"><div class="form-group"><label class="form-label">Contribution Name</label><input class="form-input" id="ct-name" placeholder="e.g. Monthly Shares, Annual Dues, Registration Fee…"/></div></div>
@@ -4957,7 +4957,7 @@
         <div class="modal-title">💰 Year-End Shareout / Dividends</div>
         <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.15rem">Distribute savings and dividends to members</div>
       </div>
-      <button class="modal-close" onclick="closeModal('shareout')">✕</button>
+      <button class="modal-close" onclick="closeModal('shareout')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div class="modal-body">
       <div style="background:var(--warning-pale,#fff9e6);border-left:3px solid var(--warning,#c49a30);padding:.75rem 1rem;border-radius:4px;font-size:.78rem;color:var(--ink-soft);margin-bottom:1rem">
@@ -5053,7 +5053,7 @@
         <div class="modal-title" id="od-org-name">Organisation Detail</div>
         <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.2rem" id="od-org-reg"></div>
       </div>
-      <button class="modal-close" onclick="closeModal('orgDetail')">✕</button>
+      <button class="modal-close" onclick="closeModal('orgDetail')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div class="modal-body" style="padding-top:.5rem">
       <!-- Stats strip -->
@@ -5271,8 +5271,8 @@
 <div class="modal-overlay" id="modal-createRound">
   <div class="modal" style="max-width:560px">
     <div class="modal-header">
-      <div class="modal-title">🔄 New Rotating Savings Cycle</div>
-      <button class="modal-close" onclick="closeModal('createRound')">✕</button>
+      <div class="modal-title">New merry-go-round cycle</div>
+      <button class="modal-close" onclick="closeModal('createRound')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div class="modal-body">
 
@@ -5314,17 +5314,17 @@
         <label class="form-label">Collection Method</label>
         <div class="method-toggle" style="grid-template-columns:1fr 1fr 1fr">
           <div class="method-opt selected" id="cr-method-treasurer" onclick="selectMgrMethod('treasurer')">
-            <div class="method-opt-icon">🏛</div>
+            <div class="method-opt-icon"><svg class="gy-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.2-6 8-6s7 2 8 6"/></svg></div>
             <div class="method-opt-title">Treasurer Collects</div>
             <div class="method-opt-desc">Members pay a designated treasurer who disburses the pot to receiver.</div>
           </div>
           <div class="method-opt" id="cr-method-direct" onclick="selectMgrMethod('direct')">
-            <div class="method-opt-icon">📲</div>
+            <div class="method-opt-icon"><svg class="gy-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg></div>
             <div class="method-opt-title">Members Pay Directly</div>
             <div class="method-opt-desc">Each member sends their share directly to the receiving member.</div>
           </div>
           <div class="method-opt" id="cr-method-group_account" onclick="selectMgrMethod('group_account')">
-            <div class="method-opt-icon">🏦</div>
+            <div class="method-opt-icon"><svg class="gy-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8"/><path d="M3 21h18"/></svg></div>
             <div class="method-opt-title">Group Account</div>
             <div class="method-opt-desc">Members pay into the group bank account. Affects group bank balance.</div>
           </div>
@@ -5339,8 +5339,8 @@
           Select who participates in this cycle. Not all group members need to join - e.g. only a wing or sub-group.
         </div>
         <div style="display:flex;gap:.5rem;margin-bottom:.5rem">
-          <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="mgrSelectAll(true)">✓ Select All</button>
-          <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="mgrSelectAll(false)">✕ Deselect All</button>
+          <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="mgrSelectAll(true)">Select all</button>
+          <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="mgrSelectAll(false)">Clear all</button>
           <span id="cr-selected-count" style="font-size:.72rem;color:var(--ink-faint);align-self:center;margin-left:.25rem">0 selected</span>
         </div>
         <div id="cr-member-picker" style="display:flex;flex-direction:column;gap:.25rem;max-height:180px;overflow-y:auto;border:1px solid var(--border);padding:.5rem;border-radius:4px">
@@ -5535,7 +5535,7 @@
 <div class="modal-overlay" id="modal-upgradePrompt">
   <div class="modal" style="max-width:440px;text-align:center">
     <div class="modal-header" style="justify-content:flex-end">
-      <button class="modal-close" onclick="closeModal('upgradePrompt')">✕</button>
+      <button class="modal-close" onclick="closeModal('upgradePrompt')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div class="modal-body" style="padding-top:0">
       <div style="font-size:2.5rem;margin-bottom:.5rem">🔒</div>
@@ -5554,7 +5554,7 @@
   <div class="modal" style="max-width:480px">
     <div class="modal-header">
       <div class="modal-title">Settlement Detail</div>
-      <button class="modal-close" onclick="closeModal('payoutDetail')">✕</button>
+      <button class="modal-close" onclick="closeModal('payoutDetail')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div class="modal-body" id="sa-payout-detail-body">
       <div class="loading"><div class="spinner"></div>Loading...</div>
@@ -5569,7 +5569,7 @@
         <div class="modal-title" id="sau-name">User Detail</div>
         <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.2rem" id="sau-email"></div>
       </div>
-      <button class="modal-close" onclick="closeModal('saUserDetail')">✕</button>
+      <button class="modal-close" onclick="closeModal('saUserDetail')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div class="modal-body">
 
@@ -5639,7 +5639,7 @@
   <div class="modal" style="max-width:520px">
     <div class="modal-header">
       <div class="modal-title">＋ Register New Organisation</div>
-      <button class="modal-close" onclick="closeModal('registerNewOrg')">✕</button>
+      <button class="modal-close" onclick="closeModal('registerNewOrg')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div class="modal-body">
       <div class="alert alert-info" style="margin-bottom:1rem">
@@ -5679,8 +5679,8 @@
 <!-- MODAL: New Table Banking Pool -->
 <div class="modal-overlay" id="modal-tbNewPool">
   <div class="modal" style="max-width:520px">
-    <div class="modal-header"><div class="modal-title">🏦 New Table Banking Pool</div>
-      <button class="modal-close" onclick="closeModal('tbNewPool')">✕</button></div>
+    <div class="modal-header"><div class="modal-title">New table banking pool</div>
+      <button class="modal-close" onclick="closeModal('tbNewPool')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     <div class="modal-body">
       <div class="form-group"><label class="form-label">Pool / Cycle Name</label>
         <input class="form-input" id="tb-pool-name" placeholder="e.g. 2026 Table Banking Cycle, Women Wing TB"/></div>
@@ -5707,8 +5707,8 @@
           Select who can borrow from this pool. Leave as all members or restrict to a wing/sub-group.
         </div>
         <div style="display:flex;gap:.5rem;margin-bottom:.5rem">
-          <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="tbSelectAll(true)">✓ Select All</button>
-          <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="tbSelectAll(false)">✕ Deselect All</button>
+          <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="tbSelectAll(true)">Select all</button>
+          <button class="btn btn-secondary btn-sm" style="font-size:.72rem" onclick="tbSelectAll(false)">Clear all</button>
           <span id="tb-selected-count" style="font-size:.72rem;color:var(--ink-faint);align-self:center;margin-left:.25rem">0 selected</span>
         </div>
         <div id="tb-member-picker" style="display:flex;flex-direction:column;gap:.25rem;max-height:160px;overflow-y:auto;border:1px solid var(--border);padding:.5rem;border-radius:4px">
@@ -5729,7 +5729,7 @@
 <div class="modal-overlay" id="modal-tbNewLoan">
   <div class="modal" style="max-width:480px">
     <div class="modal-header"><div class="modal-title">💰 Issue Loan</div>
-      <button class="modal-close" onclick="closeModal('tbNewLoan')">✕</button></div>
+      <button class="modal-close" onclick="closeModal('tbNewLoan')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     <div class="modal-body">
       <div class="form-row">
         <div class="form-group"><label class="form-label">Pool</label>
@@ -5766,16 +5766,16 @@
 
 
   <!-- GroupYetu360 Scripts - load order matters -->
-  <script src="js/icons.js?v=2026100107"></script>
-  <script src="js/auth.js?v=2026100107"></script>
-  <script src="js/utils.js?v=2026100107"></script>
-  <script src="js/dashboard.js?v=2026100107"></script>
-  <script src="js/members.js?v=2026100107"></script>
-  <script src="js/finance.js?v=2026100107"></script>
-  <script src="js/settings.js?v=2026100107"></script>
-  <script src="js/portal.js?v=2026100107"></script>
-  <script src="js/modules.js?v=2026100107"></script>
-  <script src="js/taya.js?v=2026100107"></script>
+  <script src="js/icons.js?v=2026100108"></script>
+  <script src="js/auth.js?v=2026100108"></script>
+  <script src="js/utils.js?v=2026100108"></script>
+  <script src="js/dashboard.js?v=2026100108"></script>
+  <script src="js/members.js?v=2026100108"></script>
+  <script src="js/finance.js?v=2026100108"></script>
+  <script src="js/settings.js?v=2026100108"></script>
+  <script src="js/portal.js?v=2026100108"></script>
+  <script src="js/modules.js?v=2026100108"></script>
+  <script src="js/taya.js?v=2026100108"></script>
   <script>
     // Bootstrap - runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —

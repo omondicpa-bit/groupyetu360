@@ -431,18 +431,18 @@ async function loadWelfare() {
     emergency_fund: 'Emergency Fund', custom: 'Custom Event'
   };
   const typeIcon = {
-    member: '🕊', spouse: '🕊', child: '🕊',
-    community: '🤝', annual_party: '🎉', emergency_fund: '⚡', custom: '♡'
+    member: gyIcon('welfare', 20), spouse: gyIcon('welfare', 20), child: gyIcon('welfare', 20),
+    community: gyIcon('members', 20), annual_party: gyIcon('meetings', 20), emergency_fund: gyIcon('alert', 20), custom: gyIcon('welfare', 20)
   };
 
   // ── Render events ──
   const listEl = document.getElementById('welfare-events-list');
   if (!events.length) {
     listEl.innerHTML = `<div class="wel-empty card">
-      <div class="wel-empty-icon">♡</div>
+      <div class="wel-empty-icon">${gyIcon('welfare', 30)}</div>
       <div class="wel-empty-title">No welfare events recorded</div>
       <div class="wel-empty-sub">Create a welfare event when a member needs group support</div>
-      <button class="btn btn-primary" style="width:auto;padding:.65rem 1.5rem" onclick="showModal('welfareEvent')">+ Record First Event</button>
+      <button class="btn btn-primary ds-btn-auto" onclick="showModal('welfareEvent')">Record first event</button>
     </div>`;
     return;
   }
@@ -452,7 +452,7 @@ async function loadWelfare() {
     const isClosed = e.is_active === false;
     const isOpenEnded = !e.contribution_per_member || Number(e.contribution_per_member) <= 0;
     const label = typeLabel[e.event_type] || e.event_type || 'Welfare Event';
-    const icon = typeIcon[e.event_type] || '♡';
+    const icon = typeIcon[e.event_type] || gyIcon('welfare', 20);
     const memberName = isGeneral ? 'General / Community' : (e.members?.full_name || 'Member');
     const dateStr = e.event_date ? new Date(e.event_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : 'Date not set';
     const cardClass = isClosed ? 'closed' : isGeneral ? 'general' : '';
@@ -475,8 +475,8 @@ async function loadWelfare() {
             ${isGeneral?'<span class="badge badge-grey" style="font-size:.6rem;background:var(--teal-pale);color:var(--teal-dk)">General</span>':''}
             ${isOpenEnded?'<span class="badge badge-grey" style="font-size:.6rem;background:var(--gold-pale);color:#8a6d1f">Open Contribution</span>':''}
           </div>
-          <div class="wel-event-member">👤 ${h(memberName)}</div>
-          <div class="wel-event-date">📅 ${dateStr}</div>
+          <div class="wel-event-member">${h(memberName)}</div>
+          <div class="wel-event-date">${dateStr}</div>
         </div>
         <div style="text-align:right">
           ${isOpenEnded
@@ -496,24 +496,23 @@ async function loadWelfare() {
         <strong>Disbursed:</strong> Ksh ${Number(disb.amount).toLocaleString()} — ${h(disb.description||'')} <span style="color:var(--ink-faint)">(${disb.expense_date||''})</span>
       </div>` : ''}
       ${isClosed && !disb ? `<div style="padding:.6rem 1rem;background:var(--maroon-pale);border-top:1px solid var(--border);font-size:.75rem;color:var(--maroon)">
-        ⚠ Closed without a recorded disbursement
+        Closed without a recorded disbursement
       </div>` : ''}
       <div class="wel-event-footer">
         <div class="wel-event-notes">${h(e.notes) || 'No notes'}</div>
         <div style="display:flex;gap:.4rem">
           <button class="btn btn-secondary btn-sm" style="font-size:.7rem"
             onclick="openWelfareContribs('${e.id}','${label.replace(/'/g,"\\'")}',${isOpenEnded ? 0 : Number(e.contribution_per_member)})">
-            👥 Track
+            Track payments
           </button>
           ${!isClosed ? `<button class="btn btn-secondary btn-sm" style="font-size:.7rem"
             onclick="openCloseWelfareModal('${e.id}','${label.replace(/'/g,"\\'")}',${collectedPool})">
-            ✓ Close &amp; Disburse
+            Close &amp; disburse
           </button>` : `<button class="btn btn-secondary btn-sm" style="font-size:.7rem"
             onclick="reopenWelfareEvent('${e.id}')">
             ↺ Reopen
           </button>`}
-          <button class="btn btn-danger btn-sm" style="font-size:.7rem"
-            onclick="deleteWelfareEvent('${e.id}')">✕</button>
+          <button class="ds-icon-btn ds-icon-btn-danger" aria-label="Delete event" onclick="deleteWelfareEvent('${e.id}')">${gyIcon('trash', 16)}</button>
         </div>
       </div>
     </div>`;
@@ -570,7 +569,7 @@ function checkWelfareCloseMismatch() {
   if (warnEl) {
     warnEl.style.display = mismatch ? 'block' : 'none';
     warnEl.textContent = mismatch
-      ? `⚠ Disbursed amount differs from Ksh ${_welCloseCtx.collectedTotal.toLocaleString()} collected — please explain in notes below.`
+      ? `Disbursed amount differs from Ksh ${_welCloseCtx.collectedTotal.toLocaleString()} collected — please explain in notes below.`
       : '';
   }
   if (notesEl) notesEl.required = mismatch;
@@ -777,7 +776,7 @@ async function openWelfareContribs(eventId, eventLabel, amtPerMember) {
         <div style="width:8px;height:8px;border-radius:50%;background:var(--teal);flex-shrink:0"></div>
         <span style="font-size:.82rem">${h(m.full_name)}</span>
       </div>
-      <span class="badge badge-green" style="font-size:.65rem">✓ Ksh ${amountByMember[m.id].toLocaleString()}</span>
+      <span class="badge badge-green">Paid Ksh ${amountByMember[m.id].toLocaleString()}</span>
     </div>`),
     ...(isOpenEnded ? [] : unpaid.map(m=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:.6rem 1.25rem;border-bottom:1px solid var(--border)">
       <div style="display:flex;align-items:center;gap:.6rem">
@@ -1651,10 +1650,10 @@ async function renderMGRCycleList(rounds) {
 
   if (!rounds.length) {
     listEl.innerHTML = `<div class="mgr-empty">
-      <div class="mgr-empty-icon">🔄</div>
+      <div class="mgr-empty-icon">${gyIcon('rotate', 30)}</div>
       <div style="font-size:.95rem;font-weight:700;color:var(--ink);margin-bottom:.4rem">No cycles yet</div>
       <div style="font-size:.8rem;color:var(--ink-faint);margin-bottom:1.25rem">Create your first rotating savings cycle to get started</div>
-      <button class="btn btn-primary" onclick="showModal('createRound')" style="width:auto;background:var(--teal)">+ Create First Cycle</button>
+      <button class="btn btn-primary ds-btn-auto" onclick="showModal('createRound')">Create first cycle</button>
     </div>`;
     return;
   }
@@ -1668,9 +1667,9 @@ async function renderMGRCycleList(rounds) {
     const slots = (allSlots || []).filter(s => s.round_id === r.id);
     const totalMembers = slots.length;
     const received = slots.filter(s => s.received).length;
-    const methodLabel = r.collection_method === 'treasurer' ? '🏛 Treasurer Collects'
-      : r.collection_method === 'group_account' ? '🏦 Group Account'
-      : '📲 Members Pay Directly';
+    const methodLabel = r.collection_method === 'treasurer' ? 'Treasurer collects'
+      : r.collection_method === 'group_account' ? 'Group account'
+      : 'Members pay directly';
     const methodClass = r.collection_method === 'treasurer' ? 'mgr-method-treasurer'
       : r.collection_method === 'group_account' ? 'mgr-method-group'
       : 'mgr-method-direct';
@@ -1741,9 +1740,9 @@ async function loadMGRCycleDetail(roundId) {
   const totalMembers = (slots || []).length;
   const received = (slots || []).filter(s => s.received).length;
   const currentSlot = (slots || []).find(s => !s.received);
-  const methodLabel = r.collection_method === 'treasurer' ? '🏛 Treasurer Collects'
-    : r.collection_method === 'group_account' ? '🏦 Group Account'
-    : '📲 Members Pay Directly';
+  const methodLabel = r.collection_method === 'treasurer' ? 'Treasurer collects'
+    : r.collection_method === 'group_account' ? 'Group account'
+    : 'Members pay directly';
   const methodClass = r.collection_method === 'treasurer' ? 'mgr-method-treasurer'
     : r.collection_method === 'group_account' ? 'mgr-method-group'
     : 'mgr-method-direct';
@@ -1764,7 +1763,7 @@ async function loadMGRCycleDetail(roundId) {
         <div class="slot-num ${numClass}">${s.slot_number}</div>
         <div class="slot-name">${s.members?.full_name || '—'}</div>
         ${isActive ? '<span class="badge badge-green" style="font-size:.58rem">Current</span>' : ''}
-        ${s.received ? '<span class="badge badge-grey" style="font-size:.58rem">✓ Received</span>' : ''}
+        ${s.received ? '<span class="badge badge-grey">Received</span>' : ''}
       </div>
       <div class="slot-body">
         ${!s.received ? `
@@ -1774,8 +1773,8 @@ async function loadMGRCycleDetail(roundId) {
         <div class="slot-contrib-text">
           <span>${paidCount} of ${totalMembers > 0 ? totalMembers - 1 : 0} paid</span>
           <span>${pct}%</span>
-        </div>` : `<div class="slot-received-badge">✓ Received ${s.received_date ? new Date(s.received_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : ''}</div>`}
-        <div class="slot-date">📅 ${scheduledDate}</div>
+        </div>` : `<div class="slot-received-badge">Received ${s.received_date ? new Date(s.received_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : ''}</div>`}
+        <div class="slot-date">${scheduledDate}</div>
       </div>
     </div>`;
   }).join('');
@@ -1989,7 +1988,7 @@ async function loadContribStatusForSlot(slotId) {
             <div class="mgr-contrib-name">${m.full_name?.split(' ')[0] || '—'}</div>
             ${paid ? `<div style="font-size:.62rem;color:var(--teal-dk)">Ksh ${Number(contrib?.amount||0).toLocaleString()}</div>` : ''}
           </div>
-          <div class="mgr-contrib-status ${paid ? 'paid' : 'pending'}">${paid ? '✓ Paid' : '⏳ Pending'}</div>
+          <div class="mgr-contrib-status ${paid ? 'paid' : 'pending'}">${paid ? 'Paid' : 'Pending'}</div>
         </div>`;
       }).join('');
   }
@@ -2257,7 +2256,7 @@ async function loadMGRCycleHistory(roundId) {
       <td>Ksh ${pot}</td>
       <td>${methodLabel}</td>
       <td>${disb?.method || (method === 'direct' ? 'Direct' : '—')}</td>
-      <td><span class="badge badge-green">✓ Received</span></td>
+      <td><span class="badge badge-green">Received</span></td>
     </tr>`;
   }).join('');
 }
@@ -2387,7 +2386,7 @@ async function loadTableBanking() {
   if (!allTBPools.length) {
     document.getElementById('tb-pool-list').innerHTML = `
       <div style="text-align:center;padding:3rem">
-        <div style="font-size:2rem;margin-bottom:.75rem">🏦</div>
+        <div style="display:flex;justify-content:center;color:var(--ink-faint);margin-bottom:.75rem">${gyIcon('bank', 30)}</div>
         <div style="font-size:.9rem;font-weight:700;color:var(--ink);margin-bottom:.4rem">No table banking pools yet</div>
         <div style="font-size:.8rem;color:var(--ink-faint);margin-bottom:1.25rem">Create your first pool to start tracking contributions and loans</div>
         <button class="btn btn-primary" onclick="showModal('tbNewPool')" style="background:var(--teal);width:auto">+ Create First Pool</button>
@@ -2879,7 +2878,7 @@ async function closeTBPool(poolId, poolName) {
 
   if (activeLoans?.length) {
     const names = activeLoans.map(l => l.members?.full_name || 'Unknown').join(', ');
-    if (!confirm(`⚠ There are ${activeLoans.length} active loan(s) outstanding:\n${names}\n\nClose anyway?`)) return;
+    if (!confirm(`There are ${activeLoans.length} active loan(s) outstanding:\n${names}\n\nClose anyway?`)) return;
   }
 
   const { error } = await sb.from('table_banking_pools')
@@ -2967,14 +2966,14 @@ async function loadWelfareTypes() {
       <div style="flex:1">
         <div style="font-size:.84rem;font-weight:600;color:var(--ink)">${t.name}</div>
         <div style="font-size:.7rem;color:var(--ink-faint);margin-top:.1rem">
-          <span style="color:${catColors[t.category]||'var(--ink-faint)'}">● ${t.category||'other'}</span>
+          <span style="color:${catColors[t.category]||'var(--ink-faint)'}">${t.category||'other'}</span>
           · ${t.scope==='general'?'General / Community':'Member-specific'}
         </div>
       </div>
       <div style="font-size:.9rem;font-weight:700;color:var(--maroon);margin-right:1rem">Ksh ${Number(t.default_amount||0).toLocaleString()}</div>
       <div style="display:flex;gap:.35rem">
         <button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="editWelfareType('${t.id}','${t.name.replace(/'/g,"\'")}',${t.default_amount||0},'${t.category||'bereavement'}','${t.scope||'member_specific'}')">Edit</button>
-        <button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteWelfareType('${t.id}','${t.name.replace(/'/g,"\'")}')">✕</button>
+        <button class="ds-icon-btn ds-icon-btn-danger" aria-label="Delete" onclick="deleteWelfareType('${t.id}','${t.name.replace(/'/g,"\'")}')">${gyIcon('trash', 16)}</button>
       </div>
     </div>`).join('');
 }

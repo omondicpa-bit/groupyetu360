@@ -2897,7 +2897,7 @@ tr:hover td{background:#fafbfa}
 
 /* ── Page heroes: one consistent brand band instead of five different
    gradients. Interim, until each page gets its own redesign. ── */
-.wel-hero,.mgr-hero,.tb-hero,.proj-hero,.mtg-hero,.msg-hero{background:#4a0d1c !important;border-radius:var(--radius-lg)}
+.tb-hero,.proj-hero,.mtg-hero,.msg-hero{background:#4a0d1c !important;border-radius:var(--radius-lg)}
 
 /* ── Design system v1: shared page patterns (phase 2) ── */
 .ds-page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:24px}
@@ -3088,3 +3088,65 @@ body:not(.mob-dark) .fin-mob-stat-val{color:var(--ink)}
 body:not(.mob-dark) .fin-mob-tab.active{background:var(--ink);border-color:var(--ink);color:#fff}
 body:not(.mob-dark) .fin-mob-tab-action{border-color:var(--border-dk);color:var(--ink)}
 body:not(.mob-dark) .fin-mob-tab-warn{border-color:var(--border-dk);color:var(--ink)}
+
+/* ── Design system v1: Welfare, Merry-go-round, Table banking (phase 2e) ── */
+.wel-hero,.mgr-hero{background:transparent !important;padding:0;margin-bottom:24px;align-items:flex-end;border-radius:0}
+.wel-hero::before,.wel-hero::after,.mgr-hero::before,.mgr-hero::after{display:none !important}
+.wel-hero-title,.mgr-hero-title{margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+.wel-hero-sub,.mgr-hero-sub{font-size:13.5px;letter-spacing:0;color:var(--ink-faint);margin-top:4px;margin-bottom:0}
+.wel-rates{margin-top:12px;gap:8px}
+.wel-rate-pill{background:var(--surface);border:1px solid var(--border);padding:6px 12px;border-radius:999px;gap:8px}
+.wel-rate-pill-label{font-size:12.5px;color:var(--ink-faint);text-transform:none;letter-spacing:0}
+.wel-rate-pill-val{font-size:13px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+
+.wel-stats,.mgr-stats{gap:16px;margin-bottom:24px}
+.wel-stat,.mgr-stat{border-radius:var(--radius-lg);padding:16px 18px;text-align:left}
+.wel-stat-val,.mgr-stat-val{font-size:24px;font-weight:800;letter-spacing:-.02em;color:var(--ink);font-variant-numeric:tabular-nums}
+.wel-stat-label,.mgr-stat-label{font-size:12.5px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--ink-faint);margin-top:4px}
+
+.wel-event-card{border:1px solid var(--border);border-left:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:12px}
+.wel-event-card:hover{box-shadow:var(--shadow);border-color:var(--border-dk)}
+.wel-event-card.closed{opacity:.75}
+.wel-event-header{padding:16px 20px 12px}
+.wel-event-icon{width:44px;height:44px;border-radius:var(--radius);background:var(--maroon-pale);color:var(--maroon)}
+.wel-event-icon.general{background:var(--teal-pale);color:var(--teal-dk)}
+.wel-event-type{font-size:15px;font-weight:800}
+.wel-event-member{font-size:13px;color:var(--ink-soft)}
+.wel-event-date{font-size:12.5px}
+.wel-event-amt-val{font-size:22px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+.wel-event-amt-label{font-size:12px}
+.wel-event-footer{padding:10px 20px;background:#fafbfa}
+.wel-event-notes{font-size:12.5px}
+.wel-empty-icon,.mgr-empty-icon{display:flex;justify-content:center;color:var(--ink-faint);font-size:inherit}
+.wel-empty-title{font-size:15px;font-weight:800}
+.wel-empty-sub{font-size:13.5px}
+
+.ds-back{margin-bottom:16px;gap:6px}
+.mgr-tabs{gap:6px;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:16px}
+.mgr-tab{border:0;border-radius:var(--radius-sm);background:transparent;color:var(--ink-faint);font-size:13.5px;font-weight:700;padding:0 12px;min-height:36px}
+.mgr-tab:hover{background:var(--surface-3);color:var(--ink);border:0}
+.mgr-tab.active{background:var(--ink);color:#fff}
+.mgr-form-card{border-radius:var(--radius-lg);padding:24px}
+.mgr-form-icon{width:44px;height:44px;border-radius:var(--radius);background:var(--teal-pale);color:var(--teal-dk)}
+.mgr-form-icon-out{background:var(--maroon-pale);color:var(--maroon)}
+.mgr-form-title{font-size:16px;font-weight:800}
+.mgr-form-sub{font-size:13px}
+.mgr-contrib-item{border-radius:var(--radius);padding:10px 12px}
+.mgr-contrib-item.pending{border-color:#f3ddbf;background:var(--warning-pale)}
+.mgr-contrib-name{font-size:13px;font-weight:700}
+.mgr-contrib-status{font-size:12px;font-weight:700}
+.mgr-method-pill{font-size:12px;font-weight:700;padding:3px 9px}
+
+.slot-card{border-radius:var(--radius-lg)}
+.slot-card:hover{border-color:var(--border-dk);box-shadow:var(--shadow)}
+.slot-card.active-slot{border-color:var(--maroon);border-width:2px}
+.slot-header{background:#fafbfa}
+.slot-date{font-size:12px}
+.slot-received-badge{font-size:12px;font-weight:700;border-radius:999px;padding:2px 8px}
+
+.method-opt{border:1px solid var(--border-dk);border-radius:var(--radius-lg);padding:14px}
+.method-opt.selected{border-color:var(--maroon);background:var(--maroon-pale)}
+.method-opt.selected .method-opt-title{color:var(--maroon)}
+.method-opt-icon{display:flex;justify-content:center;color:var(--ink-soft);font-size:inherit;margin-bottom:6px}
+.method-opt-title{font-size:13.5px;font-weight:800}
+.method-opt-desc{font-size:12.5px}
