@@ -78,6 +78,13 @@ export function buildPayoutResultUrl(): string {
   return secret ? `${base}?s=${encodeURIComponent(secret)}` : base;
 }
 
+// Separate QueueTimeOutURL, so a timeout can be told apart from a real
+// failure (audit H1). A timeout does not mean the money stayed put.
+export function buildPayoutTimeoutUrl(): string {
+  const result = buildPayoutResultUrl();
+  return result + (result.includes('?') ? '&' : '?') + 'kind=timeout';
+}
+
 // The callback URL Safaricom posts the STK result to. When DARAJA_CALLBACK_SECRET
 // is set it rides along as ?s=..., and daraja-callback ignores any request that
 // does not carry it. Safaricom callbacks are unsigned, so this is the only way
@@ -88,9 +95,16 @@ export function buildCallbackUrl(): string {
   return secret ? `${base}?s=${encodeURIComponent(secret)}` : base;
 }
 
+// Fails closed (audit 1 Oct 2026, C4). Callbacks are unsigned, so without
+// a secret anyone who found the URL could post a fake "success". With no
+// secret configured every callback is ignored; payments are still settled
+// by daraja-verify, which asks Safaricom directly.
 export function callbackSecretMatches(provided: string | null): boolean {
   const secret = Deno.env.get('DARAJA_CALLBACK_SECRET') || '';
-  if (!secret) return true; // not configured, nothing to enforce
+  if (!secret) {
+    console.error('[daraja] DARAJA_CALLBACK_SECRET is not set. Ignoring callback. Set it with: supabase secrets set DARAJA_CALLBACK_SECRET=<random hex>');
+    return false;
+  }
   if (!provided || provided.length !== secret.length) return false;
   let diff = 0;
   for (let i = 0; i < secret.length; i++) diff |= secret.charCodeAt(i) ^ provided.charCodeAt(i);

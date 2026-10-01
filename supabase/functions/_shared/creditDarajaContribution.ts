@@ -19,7 +19,14 @@ import { getDarajaConfig, getDarajaInitiatorConfig } from './darajaClient.ts';
 import { processSettlement } from './darajaPayoutProcessing.ts';
 
 export async function creditDarajaContribution(supabase: any, pr: any, reference: string) {
-  await creditMemberContribution(supabase, pr, reference);
+  // creditMemberContribution catches its own errors and reports them in its
+  // return value rather than throwing. If it failed, the payment is not
+  // approved, so no settlement may be created for it.
+  const credit: any = await creditMemberContribution(supabase, pr, reference);
+  if (credit && credit.success === false) {
+    console.error('[creditDarajaContribution] Crediting failed, no settlement created for', pr.id, ':', credit.error);
+    return;
+  }
 
   let allocations: any[] = [];
   try { allocations = JSON.parse(pr.allocations || '[]'); } catch (_e) { /* nothing to settle */ }
@@ -41,6 +48,8 @@ export async function creditDarajaContribution(supabase: any, pr: any, reference
     // autopilot or the Payouts page yet, not that anything about the
     // member's payment is wrong. Logged for SA to notice and create
     // manually if it ever happens, not retried blindly here.
+    // A unique index (payment_request_id, fund_type) also lands here if
+    // anything ever tries to settle the same payment twice.
     console.error('[creditDarajaContribution] Could not create settlement rows:', insErr.message);
     return;
   }

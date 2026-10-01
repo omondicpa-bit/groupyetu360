@@ -12,7 +12,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { callbackSecretMatches } from '../_shared/darajaClient.ts';
+import { callbackSecretMatches, getDarajaConfig } from '../_shared/darajaClient.ts';
 import { processDarajaCallback } from '../_shared/darajaProcessing.ts';
 
 const ack = () => new Response(JSON.stringify({ ResultCode: 0, ResultDesc: 'Accepted' }), {
@@ -36,7 +36,9 @@ serve(async (req) => {
     try { body = await req.json(); } catch (_e) { return ack(); }
 
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-    const outcome = await processDarajaCallback(supabase, body);
+    let cfg;
+    try { cfg = getDarajaConfig(); } catch (_e) { cfg = undefined; }
+    const outcome = await processDarajaCallback(supabase, body, { cfg });
     console.log('[daraja-callback] outcome:', outcome, 'checkout:', body?.Body?.stkCallback?.CheckoutRequestID);
   } catch (e: any) {
     console.error('[daraja-callback] Error:', e?.message);

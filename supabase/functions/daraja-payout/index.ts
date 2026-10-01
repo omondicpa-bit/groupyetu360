@@ -60,9 +60,26 @@ serve(async (req) => {
     // A retried failed settlement needs to look pending again before the
     // shared atomic claim (which only ever claims from 'pending') will
     // pick it up.
+    // A payout whose outcome Safaricom never confirmed may already have been
+    // paid. Retrying blind could pay twice, so SA has to say they checked.
+    if (settlement.status === 'failed' && settlement.outcome_uncertain === true && payload?.confirmed_not_sent !== true) {
+      return json({
+        error: 'This payout\'s outcome was never confirmed by Safaricom. Check the M-Pesa portal first, and only retry if the money did not go out.',
+        needs_confirmation: true,
+      }, 409);
+    }
     if (settlement.status === 'failed') {
       await supabase.from('payment_settlements')
-        .update({ status: 'pending', failure_reason: null }).eq('id', settlementId).eq('status', 'failed');
+        .update({ status: 'pending', failure_reason: null, outcome_uncertain: false })
+        .eq('id', settlementId).eq('status', 'failed');
+      if (settlement.outcome_uncertain === true) {
+        await supabase.from('activity_log').insert({
+          org_id: settlement.org_id, user_id: null, user_name: 'Superadmin', user_role: 'superadmin',
+          action: 'UNCERTAIN PAYOUT RETRIED',
+          details: `Settlement ${settlementId} (Ksh ${settlement.amount}) retried after SA confirmed the first attempt did not go out.`,
+          target_type: 'settlement', target_id: settlementId, created_at: new Date().toISOString(),
+        });
+      }
     }
 
     let cfg, initCfg;

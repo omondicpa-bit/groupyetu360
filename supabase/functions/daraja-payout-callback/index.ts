@@ -22,7 +22,9 @@ serve(async (req) => {
   if (req.method !== 'POST') return new Response('OK', { status: 200 });
 
   try {
-    const provided = new URL(req.url).searchParams.get('s');
+    const url = new URL(req.url);
+    const provided = url.searchParams.get('s');
+    const isTimeout = url.searchParams.get('kind') === 'timeout';
     if (!callbackSecretMatches(provided)) {
       console.warn('[daraja-payout-callback] Rejected a callback with a missing or wrong secret.');
       return ack();
@@ -32,8 +34,8 @@ serve(async (req) => {
     try { body = await req.json(); } catch (_e) { return ack(); }
 
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-    const outcome = await handlePayoutCallback(supabase, body);
-    console.log('[daraja-payout-callback] outcome:', outcome, 'conversation:', body?.Result?.ConversationID);
+    const outcome = await handlePayoutCallback(supabase, body, { timeout: isTimeout });
+    console.log('[daraja-payout-callback] outcome:', outcome, isTimeout ? '(timeout)' : '', 'conversation:', body?.Result?.ConversationID);
   } catch (e: any) {
     console.error('[daraja-payout-callback] Error:', e?.message);
   }

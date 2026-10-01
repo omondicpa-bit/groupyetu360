@@ -1485,6 +1485,7 @@ async function openOrgDetail(orgId) {
   // themselves when requesting collection (see saveDisbursementDetails()
   // above). Verify-before-switching-to-Daraja is the whole point of SA
   // being able to see and correct these here.
+  renderDestinationVerified(org);
   sv('od-dest-method', org.disbursement_method || '');
   sv('od-dest-mpesa', org.disbursement_mpesa_number);
   sv('od-dest-bank-name', org.disbursement_bank_name);
@@ -2267,6 +2268,7 @@ const SA_PAYOUT_STATUS_STYLE = {
   processing: { bg: '#e8f0fd', color: '#1a4d8f', label: 'Processing' },
   settled:    { bg: '#e6f4ef', color: '#1e7a50', label: 'Settled' },
   failed:     { bg: '#fde8e8', color: '#7a1212', label: 'Failed' },
+  uncertain:  { bg: '#fff0d6', color: '#8a4b00', label: 'Outcome unknown' },
   cancelled:  { bg: '#f5f5f5', color: '#888',    label: 'Cancelled' },
 };
 
@@ -2311,7 +2313,7 @@ async function loadSAPayouts() {
 
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
   const filter = document.getElementById('sa-payouts-filter')?.value || 'active';
-  const orgCols = 'name, disbursement_method, disbursement_mpesa_number, disbursement_bank_name, disbursement_bank_paybill, disbursement_bank_account_number, welfare_disbursement_method, welfare_disbursement_mpesa_number, welfare_disbursement_bank_name, welfare_disbursement_bank_paybill, welfare_disbursement_bank_account_number';
+  const orgCols = 'name, disbursement_method, disbursement_mpesa_number, disbursement_bank_name, disbursement_bank_paybill, disbursement_bank_account_number, welfare_disbursement_method, welfare_disbursement_mpesa_number, welfare_disbursement_bank_name, welfare_disbursement_bank_paybill, welfare_disbursement_bank_account_number, disbursement_verified';
 
   let query = sb.from('payment_settlements').select(`*, organisations(${orgCols})`).order('created_at', { ascending: false }).limit(200);
   if (filter === 'active') query = query.in('status', ['pending', 'failed']);
@@ -2341,7 +2343,9 @@ async function loadSAPayouts() {
 
   tbody.innerHTML = rows.map((r) => {
     const org = r.organisations;
-    const style = SA_PAYOUT_STATUS_STYLE[r.status] || SA_PAYOUT_STATUS_STYLE.pending;
+    const isUncertain = r.status === 'failed' && r.outcome_uncertain === true;
+    const style = (isUncertain ? SA_PAYOUT_STATUS_STYLE.uncertain : SA_PAYOUT_STATUS_STYLE[r.status]) || SA_PAYOUT_STATUS_STYLE.pending;
+    const unverified = org && org.disbursement_verified === false && (r.status === 'pending' || r.status === 'failed');
     const canProcess = r.status === 'pending' || r.status === 'failed';
     const canCancel = r.status === 'pending';
     return `
@@ -2349,29 +2353,38 @@ async function loadSAPayouts() {
         <td>${h(org?.name || 'Unknown group')}</td>
         <td style="text-transform:capitalize">${h(r.fund_type)}</td>
         <td>Ksh ${Number(r.amount).toLocaleString('en-KE')}</td>
-        <td style="font-size:.75rem;color:var(--ink-faint)">${h(payoutDestinationLabel(r, org))}</td>
+        <td style="font-size:.75rem;color:var(--ink-faint)">${h(payoutDestinationLabel(r, org))}${unverified ? '<div style="margin-top:.2rem;font-size:.66rem;font-weight:700;color:#8a4b00">⚠ Not verified</div>' : ''}</td>
         <td><span class="sa-status" style="background:${style.bg};color:${style.color}">${style.label}</span></td>
         <td style="font-size:.72rem;color:var(--ink-faint)">${new Date(r.created_at).toLocaleString('en-KE', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}</td>
         <td style="white-space:nowrap">
           <button class="btn btn-secondary btn-sm" style="padding:.25rem .5rem;font-size:.68rem" onclick="viewPayoutDetails('${r.id}')">View</button>
-          ${canProcess ? `<button class="btn btn-primary btn-sm" style="padding:.25rem .5rem;font-size:.68rem;margin-left:.3rem" onclick="processPayoutRow('${r.id}', this)">${r.status === 'failed' ? 'Retry' : 'Process'}</button>` : ''}
+          ${canProcess ? `<button class="btn btn-primary btn-sm" style="padding:.25rem .5rem;font-size:.68rem;margin-left:.3rem" onclick="processPayoutRow('${r.id}', this, ${isUncertain})">${r.status === 'failed' ? 'Retry' : 'Process'}</button>` : ''}
           ${canCancel ? `<button class="btn btn-secondary btn-sm" style="padding:.25rem .5rem;font-size:.68rem;margin-left:.3rem;color:#a02020" onclick="cancelPayoutRow('${r.id}')">Cancel</button>` : ''}
         </td>
       </tr>`;
   }).join('');
 }
 
-async function processPayoutRow(id, btnEl) {
+async function processPayoutRow(id, btnEl, uncertain) {
+  // Safaricom never confirmed what happened to the first attempt, so the
+  // money may already be with the group. Retrying blind could pay twice.
+  let confirmedNotSent = false;
+  if (uncertain) {
+    const ok = confirm('Safaricom never confirmed whether this payout went through.\n\nBefore retrying, check the M-Pesa Organization Portal (transactions for shortcode 1273386) for a payment of this amount to this destination.\n\nOnly click OK if you have confirmed the money did NOT go out.');
+    if (!ok) return;
+    confirmedNotSent = true;
+  }
   if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Sending...'; }
   try {
     const { data: { session } } = await sb.auth.getSession();
     const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/daraja-payout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-      body: JSON.stringify({ settlement_id: id }),
+      body: JSON.stringify({ settlement_id: id, confirmed_not_sent: confirmedNotSent }),
     });
     const result = await res.json();
     if (result.outcome === 'sent') toast('Payout sent, waiting for Safaricom to confirm.');
+    else if (result.outcome === 'blocked') toast('Blocked: ' + (result.reason || 'failed a safety check'));
     else if (result.error) toast('Could not send: ' + result.error);
     else toast('Outcome: ' + (result.outcome || 'unknown'));
   } catch (e) {
@@ -3168,6 +3181,17 @@ function toggleSAWelfareDestinationFields() {
   if (bankEl) bankEl.style.display = method === 'bank' ? '' : 'none';
 }
 
+function renderDestinationVerified(org) {
+  const el = document.getElementById('od-dest-verified');
+  if (!el) return;
+  const configured = !!(org.disbursement_method || org.welfare_disbursement_method);
+  if (!configured) { el.innerHTML = ''; return; }
+  const ok = org.disbursement_verified === true;
+  el.innerHTML = ok
+    ? '<div style="padding:.55rem .8rem;border-radius:6px;background:#e6f4ef;color:#1e7a50;font-size:.76rem;font-weight:600">✓ Verified. Payouts can go here.</div>'
+    : '<div style="padding:.55rem .8rem;border-radius:6px;background:#fff3cd;color:#7a5c00;font-size:.76rem;line-height:1.5"><strong>Not verified.</strong> The group set or changed this destination. No payout will go out until you confirm the details with the group and click Verify &amp; Save.</div>';
+}
+
 async function saveSADestination() {
   const orgId = currentDetailOrgId;
   const method = document.getElementById('od-dest-method')?.value || null;
@@ -3213,9 +3237,15 @@ async function saveSADestination() {
     updates.welfare_disbursement_bank_account_number = null;
   }
 
+  // SA saving here is the verification step. A database trigger resets
+  // this flag whenever anyone other than SA changes the destination.
+  updates.disbursement_verified = true;
+  if (!confirm('Verify this destination? Every automated payout for this group will be sent here.')) return;
+
   const { error } = await sb.from('organisations').update(updates).eq('id', orgId);
   if (error) { toast('Could not save: ' + error.message); return; }
-  toast('Settlement destination saved');
+  renderDestinationVerified({ ...updates });
+  toast('Settlement destination verified and saved');
 }
 
 async function saveOrgProviderSettings() {

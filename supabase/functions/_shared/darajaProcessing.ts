@@ -27,7 +27,7 @@ function creditByPaymentType(supabase: any, pr: any, reference: string, source: 
 
 export type CallbackOutcome =
   | 'invalid' | 'unknown-reference' | 'already-processed' | 'declined'
-  | 'amount-mismatch' | 'claim-lost' | 'credited' | 'error';
+  | 'amount-mismatch' | 'contradicted' | 'claim-lost' | 'credited' | 'error';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -64,7 +64,7 @@ function readMetadata(cb: any): Record<string, unknown> {
 export async function processDarajaCallback(
   supabase: any,
   body: any,
-  opts: { retryDelayMs?: number } = {},
+  opts: { retryDelayMs?: number; cfg?: DarajaConfig; fetchFn?: typeof fetch } = {},
 ): Promise<CallbackOutcome> {
   const cb = body?.Body?.stkCallback;
   if (!cb || !cb.CheckoutRequestID) return 'invalid';
@@ -118,6 +118,26 @@ export async function processDarajaCallback(
     await supabase.from('payment_requests')
       .update({ status: 'pending', paystack_status: 'pending' })
       .eq('id', pr.id).eq('status', 'declined');
+  }
+
+  // Second opinion from Safaricom itself (audit C4). The callback already
+  // carried the URL secret, so it is very likely genuine; this catches the
+  // case where the secret has leaked. Only a definite "failed" from the
+  // query blocks crediting. "Pending" is normal in the first seconds after
+  // a PIN, and refusing on that would strand real payments whose payer has
+  // closed the app, so an authenticated callback is trusted then.
+  if (opts.cfg) {
+    try {
+      const q = await stkQuery(opts.cfg, checkoutId, opts.fetchFn);
+      if (q.state === 'failed') {
+        console.error(`[daraja-callback] Callback said success but Safaricom's own query says failed (${q.resultCode}). Not crediting ${checkoutId}.`);
+        await logProblem(supabase, pr, 'CALLBACK CONTRADICTED',
+          `Ref ${checkoutId}: callback reported success, STK Query reported ${q.resultCode} (${q.resultDesc || ''}). Not credited. Check whether the callback secret has leaked.`);
+        return 'contradicted';
+      }
+    } catch (e: any) {
+      console.warn('[daraja-callback] STK Query second opinion unavailable, trusting the authenticated callback:', e?.message);
+    }
   }
 
   const claimed = await claimPaymentRequest(supabase, pr);

@@ -129,3 +129,37 @@ where tablename in ('payment_requests', 'payment_settlements', 'organisations',
                     'settlement_batches', 'transactions', 'members')
 order by tablename, cmd;
 ```
+
+---
+
+## Status after the fix build (1 Oct 2026, same day)
+
+RLS policy text was supplied. It confirmed the findings and widened two of them: `payment_requests` has an `ALL` policy for **every member** of the group (not only admins), so C1 and C2 were open to ordinary members.
+
+| Finding | Status | How |
+|---|---|---|
+| C1 inflate a pending payment | ✅ Fixed | Trigger: clients cannot insert, update or delete Daraja `payment_requests` rows. Outflow guard re-checks against the payment's own allocations. |
+| C2 replay a finished payment | ✅ Fixed | Same trigger, plus unique index on the Daraja checkout id and on `(payment_request_id, fund_type)` for settlements. |
+| C3 change the payout destination | ✅ Fixed | `organisations.disbursement_verified`. A trigger resets it on any non-SA change and stops non-SA setting it. Payouts refuse unverified destinations. SA's "Verify & Save" sets it. |
+| C4 forged callbacks | ✅ Fixed | Callbacks fail closed without `DARAJA_CALLBACK_SECRET`. STK success is cross-checked with Safaricom's STK Query; a definite "failed" from Safaricom blocks crediting. |
+| H1 timeout treated as failure | ✅ Fixed | Separate timeout URL. Timeouts and post-send network errors set `outcome_uncertain`. Retry then needs SA to confirm the money did not go out. |
+| H2 no outflow check | ✅ Fixed | `checkPayoutAllowed()`: source must be an approved Daraja payment of the same group, amount within what that payment allocated to the fund, total settlements within what was collected, destination verified, amount under the ceiling (`DARAJA_PAYOUT_MAX_KES`, default 150,000). |
+| M1 cross-group allocation IDs | ✅ Fixed | `daraja-charge` rejects members, events, pools, slots or types from another group. |
+| M2 SA 2FA | Open | Make 2FA mandatory for superadmin. |
+| Fingo and `daraja-stk` | ✅ Removed | Deleted from the repo; undeploy commands in the delivery. |
+
+Also fixed along the way: `creditDarajaContribution` created settlements even when crediting had failed. It now stops.
+
+Verified locally: the migration was run against a real Postgres (PGlite) with the actual JWT-role mechanism, 23 checks. The Edge Function logic was run under Deno against an in-memory database, 24 checks, including every attack path above.
+
+## New findings from the RLS text (not fixed in this build)
+
+These do not move EPH's money, so they were kept out of the payout build, but they matter for a chama product because they let one member falsify the group's own records.
+
+- 🟠 **`transactions_org` is `ALL` for every member of the group.** Any member can insert, edit or delete contribution records directly through the API, bypassing the treasurer. Should be: members read, admin/treasurer write.
+- 🟠 **`members_org` is `ALL` for every member.** Any member can edit any member's row, including `shares_balance` and `savings_balance`.
+- 🟡 **`org_payment_requests` is `ALL` for every member.** Non-Daraja rows (manual "Report a Payment") can be edited or deleted by any member.
+- 🟡 **Group admins can change their own plan, subscription and SMS bundle.** Trial activation and expiry are written from the browser, so locking these columns first needs those two steps moved server-side.
+- ⚪ Several policies still key off the legacy `profiles.org_id` rather than `user_orgs`, so members of more than one group get inconsistent access.
+
+Recommended next: a role-aware RLS rework for `transactions`, `members` and `payment_requests`, using `user_orgs.role`, tested against every client write path first.

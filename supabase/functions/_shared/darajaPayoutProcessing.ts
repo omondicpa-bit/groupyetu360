@@ -11,14 +11,78 @@
 
 import { claimSettlement } from './claimSettlement.ts';
 import {
-  DarajaConfig, DarajaInitiatorConfig, b2bPayment, b2cPayment,
-  buildPayoutResultUrl, normalisePhone,
+  DarajaConfig, DarajaInitiatorConfig, DarajaRequestError, b2bPayment, b2cPayment,
+  buildPayoutResultUrl, buildPayoutTimeoutUrl, normalisePhone,
 } from './darajaClient.ts';
 
 export type ProcessOutcome =
   | { outcome: 'sent'; method: 'b2c' | 'b2b'; checkoutId: string }
-  | { outcome: 'already-claimed' | 'no-destination' | 'invalid-destination' | 'invalid-method' }
+  | { outcome: 'already-claimed' | 'no-destination' | 'invalid-destination' | 'invalid-method' | 'blocked' ; reason?: string }
   | { outcome: 'error'; error: string };
+
+// Default ceiling for a single automated payout. Override with the
+// DARAJA_PAYOUT_MAX_KES secret. Anything larger waits for a person.
+const DEFAULT_PAYOUT_MAX_KES = 150000;
+
+function payoutCeiling(): number {
+  const raw = Number(Deno.env.get('DARAJA_PAYOUT_MAX_KES'));
+  return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_PAYOUT_MAX_KES;
+}
+
+// Net amount owed to the group for one fund, worked out from the payment's
+// own allocations - the same split creditDarajaContribution uses to create
+// the settlement rows in the first place.
+function netForFund(pr: any, fundType: string): number {
+  let allocations: any[] = [];
+  try { allocations = JSON.parse(pr.allocations || '[]'); } catch (_e) { return 0; }
+  if (!Array.isArray(allocations)) return 0;
+  const isWelfareAlloc = (a: any) => !!(a && a.isWelfare && a.eventId);
+  return allocations
+    .filter((a) => (fundType === 'welfare' ? isWelfareAlloc(a) : !isWelfareAlloc(a)))
+    .reduce((sum, a) => sum + Number(a?.amount || 0), 0);
+}
+
+// The last check before money leaves EPH's paybill (audit H2). Every
+// earlier layer can in principle be bypassed; this one reads only what the
+// system itself recorded about the payment, and refuses anything that
+// would pay out more than was actually collected, more than once, to an
+// unverified destination, or above the ceiling.
+export async function checkPayoutAllowed(supabase: any, settlement: any, org: any): Promise<string | null> {
+  const amount = Number(settlement.amount);
+  if (!Number.isFinite(amount) || amount <= 0) return 'Invalid settlement amount.';
+  if (amount > payoutCeiling()) {
+    return `Amount Ksh ${amount.toLocaleString('en-KE')} is above the automated payout ceiling (Ksh ${payoutCeiling().toLocaleString('en-KE')}). Pay manually, or raise DARAJA_PAYOUT_MAX_KES.`;
+  }
+
+  if (org.disbursement_verified !== true) {
+    return 'This group\'s settlement destination was changed and has not been verified by SA yet. Verify it on the group\'s Settlement Destination card, then retry.';
+  }
+
+  if (!settlement.payment_request_id) return 'Settlement is not linked to a payment.';
+  const { data: pr } = await supabase.from('payment_requests')
+    .select('id, org_id, provider, status, amount, allocations')
+    .eq('id', settlement.payment_request_id).maybeSingle();
+  if (!pr) return 'The payment this settlement came from could not be found.';
+  if (pr.provider !== 'daraja') return 'Only Safaricom Direct payments can be paid out automatically.';
+  if (pr.status !== 'approved') return `The payment this settlement came from is '${pr.status}', not approved.`;
+  if (pr.org_id !== settlement.org_id) return 'Settlement and payment belong to different groups.';
+
+  const owed = netForFund(pr, settlement.fund_type);
+  if (amount > owed + 0.5) {
+    return `Settlement of Ksh ${amount} is more than the Ksh ${owed} this payment allocated to ${settlement.fund_type}.`;
+  }
+
+  const { data: siblings } = await supabase.from('payment_settlements')
+    .select('id, amount, status').eq('payment_request_id', pr.id);
+  const committed = (siblings || [])
+    .filter((r: any) => r.status !== 'cancelled')
+    .reduce((sum: number, r: any) => sum + Number(r.amount || 0), 0);
+  if (committed > Number(pr.amount) + 0.5) {
+    return `Settlements for this payment total Ksh ${committed}, more than the Ksh ${pr.amount} actually collected.`;
+  }
+
+  return null;
+}
 
 async function releaseSettlement(supabase: any, settlementId: string, reason: string) {
   // Sent back to 'failed', not 'pending' - an immediate rejection from
@@ -27,8 +91,26 @@ async function releaseSettlement(supabase: any, settlementId: string, reason: st
   // number is worse than surfacing it once on the Payouts page for SA to
   // fix and re-queue deliberately.
   await supabase.from('payment_settlements')
-    .update({ status: 'failed', failure_reason: reason })
+    .update({ status: 'failed', failure_reason: reason, outcome_uncertain: false })
     .eq('id', settlementId).eq('status', 'processing');
+}
+
+// The request may have reached Safaricom and been paid. Marked failed so it
+// leaves 'processing', but flagged so a retry needs SA to confirm first
+// (audit H1).
+async function releaseUncertain(supabase: any, settlementId: string, reason: string) {
+  await supabase.from('payment_settlements')
+    .update({ status: 'failed', failure_reason: reason, outcome_uncertain: true })
+    .eq('id', settlementId).eq('status', 'processing');
+}
+
+// Safaricom answered with a clear refusal (an error code in a JSON body),
+// so nothing was paid. Anything else after sending - a network error, a
+// 5xx with no body - may or may not have moved money.
+function isDefiniteRejection(e: any): boolean {
+  if (!(e instanceof DarajaRequestError)) return false;
+  const d: any = e.detail;
+  return !!(d && (d.errorCode || (d.ResponseCode !== undefined && String(d.ResponseCode) !== '0')));
 }
 
 export async function processSettlement(
@@ -41,10 +123,18 @@ export async function processSettlement(
   const claimed = await claimSettlement(supabase, settlement);
   if (!claimed) return { outcome: 'already-claimed' };
 
+  let sendAttempted = false;
   try {
     const { data: org, error: orgErr } = await supabase
       .from('organisations').select('*').eq('id', claimed.org_id).maybeSingle();
     if (orgErr || !org) { await releaseSettlement(supabase, claimed.id, 'Organisation not found'); return { outcome: 'error', error: 'org not found' }; }
+
+    const blockedReason = await checkPayoutAllowed(supabase, claimed, org);
+    if (blockedReason) {
+      console.error('[processSettlement] Payout blocked for', claimed.id, ':', blockedReason);
+      await releaseSettlement(supabase, claimed.id, 'Blocked: ' + blockedReason);
+      return { outcome: 'blocked', reason: blockedReason };
+    }
 
     const isWelfare = claimed.fund_type === 'welfare';
     const method = isWelfare ? (org.welfare_disbursement_method || org.disbursement_method) : org.disbursement_method;
@@ -54,6 +144,7 @@ export async function processSettlement(
     }
 
     const resultUrl = buildPayoutResultUrl();
+    const timeoutUrl = buildPayoutTimeoutUrl();
     const remarks = `GY360 ${claimed.fund_type} settlement`.slice(0, 100);
 
     if (method === 'mpesa') {
@@ -63,12 +154,13 @@ export async function processSettlement(
         await releaseSettlement(supabase, claimed.id, 'No valid M-Pesa number configured for this organisation.');
         return { outcome: 'invalid-destination' };
       }
+      sendAttempted = true;
       const res = await b2cPayment(cfg, {
         amount: claimed.amount, phone,
         initiatorName: initCfg.initiatorName, securityCredential: initCfg.securityCredential,
-        resultUrl, timeoutUrl: resultUrl, remarks,
+        resultUrl, timeoutUrl, remarks,
       }, fetchFn);
-      await supabase.from('payment_settlements').update({ checkout_id: res.conversationId, method: 'b2c' }).eq('id', claimed.id);
+      await saveConversationId(supabase, claimed.id, res.conversationId, 'b2c');
       return { outcome: 'sent', method: 'b2c', checkoutId: res.conversationId };
     }
 
@@ -79,21 +171,40 @@ export async function processSettlement(
         await releaseSettlement(supabase, claimed.id, 'No valid bank Paybill and account number configured for this organisation.');
         return { outcome: 'invalid-destination' };
       }
+      sendAttempted = true;
       const res = await b2bPayment(cfg, {
         amount: claimed.amount, receiverShortcode: bankPaybill, accountReference: accountRef,
         initiatorName: initCfg.initiatorName, securityCredential: initCfg.securityCredential,
-        resultUrl, timeoutUrl: resultUrl, remarks,
+        resultUrl, timeoutUrl, remarks,
       }, fetchFn);
-      await supabase.from('payment_settlements').update({ checkout_id: res.conversationId, method: 'b2b' }).eq('id', claimed.id);
+      await saveConversationId(supabase, claimed.id, res.conversationId, 'b2b');
       return { outcome: 'sent', method: 'b2b', checkoutId: res.conversationId };
     }
 
     await releaseSettlement(supabase, claimed.id, `Unknown settlement method: ${method}`);
     return { outcome: 'invalid-method' };
   } catch (e: any) {
-    await releaseSettlement(supabase, settlement.id, e?.message || 'Unknown error');
-    return { outcome: 'error', error: e?.message || 'Unknown error' };
+    const msg = e?.message || 'Unknown error';
+    if (sendAttempted && !isDefiniteRejection(e)) {
+      await releaseUncertain(supabase, settlement.id,
+        `Outcome unknown: ${msg}. Check the M-Pesa portal before retrying - the money may already have been sent.`);
+    } else {
+      await releaseSettlement(supabase, settlement.id, msg);
+    }
+    return { outcome: 'error', error: msg };
   }
+}
+
+// Without the ConversationID saved, the result callback cannot find this
+// row and it would sit in 'processing'. That is the safe direction (it can
+// never be retried by accident), but worth a couple of attempts.
+async function saveConversationId(supabase: any, id: string, conversationId: string, method: 'b2c' | 'b2b') {
+  for (let i = 0; i < 3; i++) {
+    const { error } = await supabase.from('payment_settlements')
+      .update({ checkout_id: conversationId, method }).eq('id', id);
+    if (!error) return;
+  }
+  console.error('[processSettlement] Payout sent but ConversationID could not be saved. Settlement', id, 'conversation', conversationId);
 }
 
 // Writes a successful automated payout into settlement_batches too, the
@@ -139,7 +250,11 @@ async function rollUpIntoSettlementBatches(supabase: any, settlement: any, provi
 
 export type CallbackOutcome = 'invalid' | 'unknown-reference' | 'already-processed' | 'settled' | 'failed' | 'error';
 
-export async function handlePayoutCallback(supabase: any, body: any): Promise<CallbackOutcome> {
+export async function handlePayoutCallback(
+  supabase: any,
+  body: any,
+  opts: { timeout?: boolean } = {},
+): Promise<CallbackOutcome> {
   const result = body?.Result;
   if (!result || !result.ConversationID) return 'invalid';
   const conversationId = String(result.ConversationID);
@@ -149,6 +264,17 @@ export async function handlePayoutCallback(supabase: any, body: any): Promise<Ca
   if (!settlement) return 'unknown-reference';
   if (settlement.status !== 'processing') return 'already-processed';
 
+  // QueueTimeOutURL: Safaricom did not finish in time. That says nothing
+  // about whether the money moved, so it must not look like a clean
+  // failure that invites a retry (audit H1).
+  if (opts.timeout) {
+    const { data: claimed } = await supabase.from('payment_settlements').update({
+      status: 'failed', outcome_uncertain: true,
+      failure_reason: 'Safaricom timed out. Outcome unknown - check the M-Pesa portal before retrying, the money may already have been sent.',
+    }).eq('id', settlement.id).eq('status', 'processing').select().maybeSingle();
+    return claimed ? 'failed' : 'already-processed';
+  }
+
   const resultCode = Number(result.ResultCode);
   if (resultCode !== 0) {
     // Same guarded-update-then-check-it-actually-matched pattern as the
@@ -156,7 +282,8 @@ export async function handlePayoutCallback(supabase: any, body: any): Promise<Ca
     // top of this function is not itself a lock, two callbacks for the
     // same conversation can both pass that check before either one writes.
     const { data: claimed } = await supabase.from('payment_settlements').update({
-      status: 'failed', failure_reason: result.ResultDesc || `Safaricom result code ${resultCode}`,
+      status: 'failed', outcome_uncertain: false,
+      failure_reason: result.ResultDesc || `Safaricom result code ${resultCode}`,
     }).eq('id', settlement.id).eq('status', 'processing').select().maybeSingle();
     return claimed ? 'failed' : 'already-processed';
   }
@@ -179,7 +306,7 @@ export async function handlePayoutCallback(supabase: any, body: any): Promise<Ca
   // had won.
   const { data: claimed, error: updErr } = await supabase.from('payment_settlements').update({
     status: 'settled', provider_reference: providerReference, settled_at: new Date().toISOString(),
-    settlement_fee: fee,
+    settlement_fee: fee, outcome_uncertain: false,
   }).eq('id', settlement.id).eq('status', 'processing').select().maybeSingle();
   if (updErr) { console.error('[daraja-payout-callback] Could not mark settled:', updErr.message); return 'error'; }
   if (!claimed) return 'already-processed';

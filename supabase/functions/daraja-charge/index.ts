@@ -24,6 +24,7 @@ import {
 import { validateBillingCart } from '../_shared/billingPrices.ts';
 import { validateDarajaContribution } from '../_shared/darajaContributionValidation.ts';
 import { authorizeOrgAccess } from '../_shared/authorizeOrgAccess.ts';
+import { checkAllocationsBelongToOrg } from '../_shared/allocationScope.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -63,6 +64,9 @@ serve(async (req) => {
 
       const result = validateDarajaContribution(allocations, amount, org);
       if (!result.ok) return json({ error: result.error }, 400);
+
+      const scopeError = await checkAllocationsBelongToOrg(supabase, org_id, member_id, result.allocations);
+      if (scopeError) return json({ error: scopeError }, 400);
       expectedAmount = result.grossTotal;
       storedAllocations = JSON.stringify(result.allocations);
     } else {

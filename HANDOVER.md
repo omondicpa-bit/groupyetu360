@@ -1,5 +1,5 @@
 # GroupYetu360 — Handover
-**Last updated:** 19 July 2026 (SasaPay integration, settlements, MGR/TB, security session)
+**Last updated:** 1 October 2026 (B2C payouts live, autopilot proven; Safaricom operator structure documented)
 **Repo path:** `C:\Users\Felix\groupyetu360`
 
 ---
@@ -63,39 +63,50 @@ SasaPay's API has no synchronous "check now, get the answer now" endpoint — th
 ### 🟡 IP whitelist for SasaPay — log-only, not enforced
 Deliberately not blocking on this yet — no confidence that Supabase's Edge Function runtime reliably exposes SasaPay's true origin IP rather than an internal proxy IP. Revisit once there's real log data showing what IP actually shows up in practice.
 
-### 🔴 B2C payouts not working yet - exact next steps, read this first
-Autopilot, the Payouts page, settlement tracking, all of it is built and code-complete (see 1 Oct 2026 changelog entry). The ONLY thing blocking an actual working payout is one external Safaricom credential, not a code bug. Here is exactly where it stands:
+### 🟢 B2C payouts live, autopilot proven (1 Oct 2026)
+A real B2C payout went through via the API, then autopilot fired a second one by itself on a fresh Daraja contribution, end to end with no manual step. The blocker was never code. It was the operator account structure on Safaricom's side, resolved as described below.
 
-**What's confirmed NOT the cause**, so don't re-investigate these:
-- Not maker-checker. Approval Configurations for B2C Single Payments and B2B Single Payments are both set to "No Approval" (confirmed in the M-PESA Organization Portal, org.ke.m-pesa.com → Business Center → Approval Configurations).
-- Not the account or the B2C product itself. A manual B2C payment sent directly through the Hub portal succeeded, real money moved. This isolates the problem to the API authentication layer specifically, nothing else.
-- Not STK Push's credentials. Collection has worked repeatedly and uses a completely separate credential system (DARAJA_CONSUMER_KEY/SECRET + DARAJA_PASSKEY). B2C/B2B use DARAJA_INITIATOR_NAME + DARAJA_INITIATOR_SECURITY_CREDENTIAL, unrelated.
+**Operator structure on org.ke.m-pesa.com (shortcode 1273386), confirmed from the portal itself:**
+- `felixomondi` is the **Business Administrator** (Access Channel = Web), not the Business Manager. Earlier versions of this file said otherwise. That was wrong. The Administrator creates operators and assigns roles, but **cannot** set a password on an API operator (the "Set Password" button on the operator's page is greyed out when logged in as felixomondi).
+- `omondifelix` is the **Business Manager** (Access Channel = Web), created 1 Oct 2026 by felixomondi specifically to unlock this. Logged in as omondifelix, Set Password on the API operator is enabled.
+- `felixjakano` is the **API initiator** (Access Channel = API, Operator ID `203206691000405102`). Now **Active**. This is the account `DARAJA_INITIATOR_NAME` points to.
 
-**The actual root cause, found via web search of Safaricom's own documented B2C setup process (Symatech Labs guide and others), not guesswork:** the API initiator is supposed to be a SEPARATE operator account from the Business Manager, created with Access Channel = API, not the Business Manager's own login reused for API calls. `felixomondi` is the Business Manager (Access Channel = Web). Every attempt so far has wrongly used felixomondi as if he were also the API initiator - that's why it keeps failing with a "wrong PIN"-equivalent message, there was never a correct password to find, because felixomondi was the wrong account entirely.
+**Where things actually are in the portal**, so nobody has to rediscover them:
+- Administration → Organization Operator lists every operator. The Operation column is a plain **"Detail"** text link, not an icon, and it does not appear on the row of whoever is logged in.
+- Detail opens the operator's page. **Set Password** is a button at the top right of that page, next to Create Task. It is only enabled for a Business Manager login.
+- The activation email/SMS is the right path for a Web operator, never for an API operator.
+- When creating a Web operator, IPRS = YES verifies the National ID and names against Kenya's population register. It worked first time.
 
-**What's already done, as of 1 Oct 2026:**
-- A second operator, username `felixjakano`, Operator ID `203206691000405102`, Access Channel = API, has been created in org.ke.m-pesa.com → Administration → Organization Operator. Status shows "Pending Active."
-- felixjakano currently has MORE roles than needed (Org Reversals Initiator, Bundle Purchase ORG Initiator, B2C Reversal/Reversal Initiator/Reversal Approver, BusinessPayToBulk ORG API Initiator, alongside the two that are actually needed: `ORG B2C API initiator` and `Business Paybill Org API initiator` which covers B2B). **Trim this list down once B2C is confirmed working** - an automated payout credential should only ever hold what it needs (ORG B2C API initiator, Business Paybill Org API initiator, Balance Query ORG API, and Transaction Status Query ORG API if available). Nothing resembling Business Manager, Administrator, Set Password, or Withdrawal roles belongs on this account.
+**How the working credential was produced:** felixjakano's password (set by omondifelix) → Daraja portal, Generate Security Credential, Production → `DARAJA_INITIATOR_SECURITY_CREDENTIAL`. If felixjakano's password is ever reset, the credential must be regenerated and the secret updated, or every payout will fail with a wrong-PIN-style error.
 
-**Exact next steps, in order:**
-1. Confirm `felixomondi` has the **"Set Restricted ORG API Password"** role (visible in the same Organization Operator table, under felixomondi's Role column). Without this role, felixomondi cannot set felixjakano's password at all - if missing, that's a prerequisite fix first.
-2. In the Organization Operator table, find felixjakano's row and look at the **Operation** column specifically - it's an icon/button, not text, so it won't show in a copy-pasted table. Click it, look for **Set Password**.
-3. Set a password for felixjakano through that flow (not through the "activation link" email, which asks for a password felixjakano doesn't have yet and is the wrong path).
-4. Use THAT password, felixjakano's, not felixomondi's, in the SecurityCredential generator (Test Credentials → Generate Security Credential Value, Production environment).
-5. Update both secrets - the name needs to change, not just the credential:
-   ```
-   supabase secrets set DARAJA_INITIATOR_NAME=felixjakano
-   supabase secrets set DARAJA_INITIATOR_SECURITY_CREDENTIAL=<the new value, no quotes>
-   ```
-6. Reset the stuck test settlement and retry from the Payouts page:
-   ```sql
-   update public.payment_settlements
-   set status = 'pending', method = null, checkout_id = null
-   where id = 'dedbcf82-7526-4b18-b009-e50487e6d433' and status = 'processing';
-   ```
-7. If it STILL fails after this, the credential/account structure theory is wrong and it's worth building the TransactionStatus API check (already approved on the account, URL was in the go-live email) to get Safaricom's own precise failure reason instead of inferring from an SMS again - this was deliberately not built yet since this lead seemed likely to resolve it first.
+**How autopilot actually behaves** (`_shared/creditDarajaContribution.ts`):
+- Only acts on contributions credited after it is switched on. Existing pending settlements are not swept; they still need "Process Payout".
+- Fires at the moment of crediting, not on a daily batch.
+- A contribution split between regular funds and a welfare event becomes two settlement rows, so two payouts.
+- A failed attempt is logged under `[creditDarajaContribution]` and left on the Payouts page for manual retry. The member's contribution is credited either way.
 
-**Separately, unrelated, already resolved:** hub.m-pesaforbusiness.co.ke had an intermittent expired-certificate error for a few days (1 Oct 2026). Confirmed via direct fetch and Felix testing both WiFi and cellular that this was Safaricom's own infrastructure, not his network or device. Resolved on its own. Not a security concern, nothing to action.
+**Still open on this feature:**
+- 🟡 **B2B not yet tested.** Code path is the same `processSettlement()`, but no real paybill destination has been tried. Test once a group with an active paybill as its Settlement Destination exists.
+- 🟡 **Trim felixjakano's roles.** It still holds extras (Org Reversals Initiator, Bundle Purchase ORG Initiator, B2C Reversal/Reversal Initiator/Reversal Approver, BusinessPayToBulk ORG API Initiator). Keep only ORG B2C API initiator, Business Paybill Org API initiator, and Balance Query / Transaction Status Query ORG API if offered. Do the trim after B2B is confirmed, so a missing role can't be confused with a B2B failure.
+- ⚪ felixjakano's Rule Profile shows "Web Operator Rule Profile" despite being an API operator. B2C works with it as is, so leave it alone unless B2B fails for an unexplained reason.
+- ⚪ If a payout ever fails without a clear reason, build the TransactionStatus API check (already approved on the account) to get Safaricom's own failure reason rather than inferring from SMS.
+
+**Separately, unrelated, already resolved:** hub.m-pesaforbusiness.co.ke had an intermittent expired-certificate error for a few days (1 Oct 2026). It was Safaricom's own infrastructure, not Felix's network or device. Resolved on its own. Nothing to action.
+
+### 🟢 Collection and payout hardened (1 Oct 2026) - read before touching Daraja code
+Full detail in `SECURITY_AUDIT_2026-10-01.md`. What a future session must know:
+- **Daraja `payment_requests` rows cannot be written from the browser at all** (trigger `gy360_guard_daraja_payment_requests`). Only Edge Functions (service role) and the SQL editor can. If an SA "approve" button ever errors on a Daraja row, that is the trigger working; fix it in SQL, never by loosening the trigger.
+- **Payouts only go to a verified destination.** `organisations.disbursement_verified` is reset by trigger whenever anyone but SA changes a destination column. SA verifies by clicking "Verify & Save Destination" on the group's Settlement Destination card. A blocked payout shows "Blocked: ... not verified" on the Payouts page.
+- **`checkPayoutAllowed()` in `_shared/darajaPayoutProcessing.ts` is the last line of defence.** Do not bypass or weaken it for convenience. Ceiling is the `DARAJA_PAYOUT_MAX_KES` secret, default 150,000.
+- **"Outcome unknown" payouts** (`outcome_uncertain = true`) come from Safaricom timeouts or network errors after sending. Retry asks SA to confirm in the M-Pesa portal that the money did not go out. The proper fix is the TransactionStatus API check, still not built.
+- **`DARAJA_CALLBACK_SECRET` is now mandatory.** Without it every callback is ignored (payments still complete through `daraja-verify`, payouts would sit in Processing).
+- **Unique indexes:** one Daraja checkout = one payment row; one payment = one settlement per fund.
+
+### 🟠 RLS lets any member write group records - next security priority
+Found from the policy text on 1 Oct 2026. `transactions`, `members` and `payment_requests` each have an `ALL` policy for every member of the group, so any member can create, edit or delete contribution records and balances through the API. EPH's money is safe (the payout guards above don't rely on these tables), but a group's own books are not. Needs a role-aware rework using `user_orgs.role`, tested against every client write path. Also: group admins can change their own plan/SMS bundle, because trial activation and expiry run in the browser.
+
+### 🔴 Android signing keystore is public
+`keystore-base64.txt` (PKCS12, the Play Store signing keystore) has been committed to this public repo since commit `425e917` ("Move Android build to GitHub Actions"). It is password-protected, but it should not be public. Move it into a GitHub Actions secret, decode it in the workflow, and remove the file from the repo. Removing it from the latest commit does not remove it from history, so treat it as exposed regardless. Check whether Play App Signing is enabled (if so, this is only the upload key and Google can reset it).
 
 ### 🟢 Safaricom Direct (Daraja) - live and proven
 Went live 30 September 2026. Felix bought a real SMS bundle (Ksh 75) through it and it credited instantly - callback, atomic claim, and crediting all confirmed working end to end with real Safaricom credentials.
@@ -110,7 +121,7 @@ Felix's decision (30 Sep 2026): the per-org "Active Provider" selector offers on
 Three orgs were affected historically; Felix ran the correction query (subtracts the exact wrongly-credited total from each org's current balance, not a fixed number, so it's safe regardless of what's happened on those accounts since).
 
 ### 🟢 Fingo removed entirely (30 Sep 2026)
-The service itself shut down; no org was using it as their active provider. Removed from both org-level Active Provider selectors, the Collection Activation approval flow, the Payment Service Providers card, and `portal.js`'s charge/verify/fee-calculation routing. The three Edge Functions (`fingo-charge`, `fingo-verify`, `fingo-webhook`) are deleted from the repo - still need `supabase functions delete` run for each to actually undeploy them, git removal alone doesn't do that.
+The service itself shut down; no org was using it as their active provider. Removed from both org-level Active Provider selectors, the Collection Activation approval flow, the Payment Service Providers card, and `portal.js`'s charge/verify/fee-calculation routing. The three Edge Functions (`fingo-charge`, `fingo-verify`, `fingo-webhook`) were actually still in the repo until 1 Oct 2026, when they were removed together with the unused `daraja-stk`, and undeployed with `supabase functions delete`.
 Deliberately NOT touched: the Settlements reconciliation code (`js/settings.js`, roughly lines 3116-3562) still recognizes `'fingo'` as a historical provider value in its queries and color legend, since real past settlement_batches rows used it. Removing that would make historical Fingo transactions unqueryable, not clean up anything.
 
 ### 🟡 sasapay-webhook drops the SMS part of a combined cart
