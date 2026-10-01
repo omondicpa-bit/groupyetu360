@@ -472,7 +472,7 @@ async function loadWelfare() {
             <div class="wel-event-type">${label}</div>
             <span class="badge ${isClosed?'badge-grey':'badge-green'}" style="font-size:.6rem">${isClosed?'Closed':'Open'}</span>
             ${isGeneral?'<span class="badge badge-grey" style="font-size:.6rem;background:var(--teal-pale);color:var(--teal-dk)">General</span>':''}
-            ${isOpenEnded?'<span class="badge badge-grey" style="font-size:.6rem;background:var(--gold-pale);color:#8a6d1f">Open Contribution</span>':''}
+            ${isOpenEnded?'<span class="badge badge-grey" style="font-size:.6rem;background:var(--gold-pale);color:var(--warning)">Open Contribution</span>':''}
           </div>
           <div class="wel-event-member">${h(memberName)}</div>
           <div class="wel-event-date">${dateStr}</div>

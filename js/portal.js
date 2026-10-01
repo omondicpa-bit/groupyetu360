@@ -590,7 +590,7 @@ async function checkSubscriptionAccess() {
             <span style="display:flex;justify-content:center;color:var(--ink-faint)">${gyIcon('lock', 26)}</span>
             <span style="font-size:.82rem;font-weight:600">Subscription expired on ${expDate.toDateString()}. Members have restricted access. Please renew.</span>
           </div>
-          <button onclick="showPage('billing')" style="background:#fff;color:var(--danger);border:none;padding:.3rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;border-radius:2px">Renew Now →</button>`;
+          <button onclick="showPage('billing')" style="background:var(--surface);color:var(--danger);border:none;padding:.3rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;border-radius:2px">Renew Now →</button>`;
         document.body.prepend(banner);
         document.querySelector('.main').style.paddingTop = '42px';
       }
@@ -600,7 +600,7 @@ async function checkSubscriptionAccess() {
       banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:var(--warning);color:#fff;padding:.5rem 1.5rem;z-index:999;display:flex;align-items:center;justify-content:space-between;font-family:var(--font)';
       banner.innerHTML = `
         <span style="font-size:.78rem;font-weight:600">Subscription expires in ${daysLeft} days (${expDate.toDateString()}). Renew early to avoid interruption.</span>
-        <button onclick="showPage('billing')" style="background:#fff;color:var(--warning);border:none;padding:.25rem .75rem;font-size:.72rem;font-weight:700;cursor:pointer">Renew →</button>`;
+        <button onclick="showPage('billing')" style="background:var(--surface);color:var(--warning);border:none;padding:.25rem .75rem;font-size:.72rem;font-weight:700;cursor:pointer">Renew →</button>`;
       document.body.prepend(banner);
       document.querySelector('.main').style.paddingTop = '36px';
     }
@@ -1974,6 +1974,7 @@ async function loadMyNotices() {
 function toggleMobTheme() {
   const isDark = document.body.classList.toggle('mob-dark');
   try { localStorage.setItem('gy360-mob-theme', isDark ? 'dark' : 'light'); } catch(e) {}
+  document.querySelectorAll('.theme-toggle-label').forEach(el => { el.textContent = isDark ? 'Light mode' : 'Dark mode'; });
   const btn = document.getElementById('mob-theme-btn');
   if (btn) btn.innerHTML = isDark ? '<svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>' : '<svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
 }
@@ -1983,6 +1984,7 @@ function initMobTheme() {
     const saved = localStorage.getItem('gy360-mob-theme');
     if (saved === 'dark') {
       document.body.classList.add('mob-dark');
+      document.querySelectorAll('.theme-toggle-label').forEach(el => { el.textContent = 'Light mode'; });
       const btn = document.getElementById('mob-theme-btn');
       if (btn) btn.innerHTML = '<svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>';
     }
@@ -2466,3 +2468,8 @@ async function refreshNotificationStatus() {
     if (disableBtn) disableBtn.style.display = 'none';
   }
 }
+
+// Apply the saved theme on every screen (desktop included), not only when
+// the phone home screen builds.
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initMobTheme);
+else initMobTheme();

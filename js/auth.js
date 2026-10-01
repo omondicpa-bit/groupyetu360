@@ -1479,7 +1479,7 @@ function showPasswordResetScreen(intent) {
         <input class="form-input" type="password" id="new-password-confirm" placeholder="Confirm your password"/>
       </div>
       <div id="new-password-error" class="auth-error" style="display:none"></div>
-      <div id="new-password-success" class="auth-error" style="display:none;color:#0f6e56"></div>
+      <div id="new-password-success" class="auth-error" style="display:none;color:var(--teal)"></div>
       <button class="btn btn-primary" onclick="setNewPassword()" style="width:100%;margin-top:.5rem">
         ${isInvite ? 'Set Password' : 'Set New Password'} →
       </button>`;

@@ -68,7 +68,7 @@ function updateBillingHero(org) {
 
   if (nameEl) nameEl.textContent = planNames[plan] || plan;
   if (metaEl) metaEl.textContent = planMeta[plan] || '';
-  if (bfMem)  bfMem.textContent  = 'Up to ' + planMembers[plan] + ' members';
+  if (bfMem)  bfMem.textContent  = planMembers[plan] === 'Unlimited' ? 'Unlimited members' : 'Up to ' + planMembers[plan] + ' members';
   if (bfSms)  bfSms.textContent  = 'Bulk SMS, pay as you go · Ksh 1.50 per SMS';
   if (bfFeat) bfFeat.textContent = planFeatures[plan] || '';
 
@@ -1365,7 +1365,7 @@ async function loadSAFinance() {
           </div>
           <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%">
             <div class="sa-bar-val" style="font-size:.58rem">${consumedByMonth[m] || ''}</div>
-            <div style="height:${Math.max(usedPct, 2)}px;width:9px;background:#e0e0e0;border-radius:2px 2px 0 0"></div>
+            <div style="height:${Math.max(usedPct, 2)}px;width:9px;background:var(--surface-3);border-radius:2px 2px 0 0"></div>
           </div>
         </div>
         <div class="sa-bar-label">${label}</div>
@@ -2359,7 +2359,7 @@ async function loadSAPayouts() {
         <td style="white-space:nowrap">
           <button class="btn btn-secondary btn-sm" style="padding:.25rem .5rem;font-size:.68rem" onclick="viewPayoutDetails('${r.id}')">View</button>
           ${canProcess ? `<button class="btn btn-primary btn-sm" style="padding:.25rem .5rem;font-size:.68rem;margin-left:.3rem" onclick="processPayoutRow('${r.id}', this, ${isUncertain})">${r.status === 'failed' ? 'Retry' : 'Process'}</button>` : ''}
-          ${canCancel ? `<button class="btn btn-secondary btn-sm" style="padding:.25rem .5rem;font-size:.68rem;margin-left:.3rem;color:#a02020" onclick="cancelPayoutRow('${r.id}')">Cancel</button>` : ''}
+          ${canCancel ? `<button class="btn btn-secondary btn-sm" style="padding:.25rem .5rem;font-size:.68rem;margin-left:.3rem;color:var(--danger)" onclick="cancelPayoutRow('${r.id}')">Cancel</button>` : ''}
         </td>
       </tr>`;
   }).join('');
@@ -2533,39 +2533,37 @@ function renderBillingPlanCards() {
     const isPaid    = plan !== 'starter';
     const midTrialUpgrade = isTrial && isHigher;
 
-    // Highlight current
-    card.style.outline = isCurrent ? '2px solid var(--teal)' : 'none';
+    // Current plan: outlined card with a "Current plan" badge (CSS)
+    card.classList.toggle('is-current', isCurrent);
+    card.classList.toggle('is-lower', !isCurrent && !isHigher && !isExpired);
 
     // Promo sub-text
     if (promoEl && isPaid) {
-      promoEl.innerHTML = (promoOn && !trialUsed && !midTrialUpgrade)
-        ? `<strong style="color:var(--teal)">${promoDays} days free</strong>, then Ksh ${planPrices[plan].toLocaleString()}/yr`
-        : `Ksh ${planPrices[plan].toLocaleString()}/yr`;
+      promoEl.innerHTML = (promoOn && !trialUsed && !midTrialUpgrade && (isHigher || isExpired))
+        ? `<strong>${promoDays} days free</strong>, then Ksh ${planPrices[plan].toLocaleString()} a year`
+        : '';
     }
 
-    // Action button
-    if (plan === 'starter') {
-      btnEl.innerHTML = isCurrent
-        ? '<div style="font-size:.72rem;font-weight:600;color:var(--teal);padding:.4rem 0">Your current plan</div>'
-        : '';
-    } else if (isCurrent && !isExpired) {
-      const expText = org.subscription_expires
-        ? ' · expires ' + new Date(org.subscription_expires).toLocaleDateString('en-KE',{day:'numeric',month:'short',year:'numeric'})
-        : '';
-      btnEl.innerHTML = `<div style="font-size:.72rem;font-weight:600;color:var(--teal);padding:.4rem 0">Current${isTrial?' (trial)':''}${expText}</div>`;
+    const fmtDate = d => new Date(d).toLocaleDateString('en-KE',{day:'numeric',month:'short',year:'numeric'});
+    // Action
+    if (isCurrent && !isExpired) {
+      const note = !isPaid ? 'Your plan'
+        : org.subscription_expires ? `${isTrial ? 'Trial ends' : 'Renews'} ${fmtDate(org.subscription_expires)}` : 'Your plan';
+      btnEl.innerHTML = `<div class="plan-cta-note">${note}</div>`;
     } else if (isHigher || isExpired) {
+      if (plan === 'starter') { btnEl.innerHTML = ''; return; }
       const canFreeTrial = promoOn && !trialUsed && !midTrialUpgrade;
+      const featured = card.classList.contains('plan-card--featured');
+      const cls = featured ? 'btn btn-primary' : 'btn btn-secondary';
       if (canFreeTrial) {
-        btnEl.innerHTML = `<button class="btn btn-primary btn-sm" style="width:100%;font-size:.78rem;font-weight:700;padding:.5rem" onclick="addPlanToCart('${plan}', 0, true)">
-          Try ${planLabels[plan]} free for ${promoDays} days →
-        </button>`;
+        btnEl.innerHTML = `<button class="${cls} plan-btn" onclick="addPlanToCart('${plan}', 0, true)">Start ${promoDays}-day free trial</button>`;
       } else {
         const price = planPrices[plan];
-        const label = midTrialUpgrade ? `Upgrade to ${planLabels[plan]} · Ksh ${price.toLocaleString()}` : `Upgrade · Ksh ${price.toLocaleString()}/yr`;
-        btnEl.innerHTML = `<button class="btn btn-primary btn-sm" style="width:100%;font-size:.75rem;padding:.45rem" onclick="addPlanToCart('${plan}', ${price}, false)">
-          ${label} →
-        </button>`;
+        const verb = isCurrent ? 'Renew' : 'Upgrade to';
+        btnEl.innerHTML = `<button class="${isCurrent ? 'btn btn-primary' : cls} plan-btn" onclick="addPlanToCart('${plan}', ${price}, false)">${verb} ${planLabels[plan]}</button>`;
       }
+    } else {
+      btnEl.innerHTML = `<div class="plan-cta-note muted">Included in your plan</div>`;
     }
   });
 }
@@ -3188,8 +3186,8 @@ function renderDestinationVerified(org) {
   if (!configured) { el.innerHTML = ''; return; }
   const ok = org.disbursement_verified === true;
   el.innerHTML = ok
-    ? '<div style="padding:.55rem .8rem;border-radius:6px;background:#e6f4ef;color:#1e7a50;font-size:.76rem;font-weight:600">Verified. Payouts can go here.</div>'
-    : '<div style="padding:.55rem .8rem;border-radius:6px;background:#fff3cd;color:#7a5c00;font-size:.76rem;line-height:1.5"><strong>Not verified.</strong> The group set or changed this destination. No payout will go out until you confirm the details with the group and click Verify &amp; Save.</div>';
+    ? '<div style="padding:.55rem .8rem;border-radius:6px;background:var(--teal-pale);color:#1e7a50;font-size:.76rem;font-weight:600">Verified. Payouts can go here.</div>'
+    : '<div style="padding:.55rem .8rem;border-radius:6px;background:var(--warning-pale);color:var(--warning);font-size:.76rem;line-height:1.5"><strong>Not verified.</strong> The group set or changed this destination. No payout will go out until you confirm the details with the group and click Verify &amp; Save.</div>';
 }
 
 async function saveSADestination() {
@@ -3755,8 +3753,8 @@ async function viewSettlementDetails(orgId, provider, date, lineType, orgName, r
 // Org-admin read-only view - same data, no mark-paid action available.
 function settlementStatusPill(status) {
   return status === 'paid'
-    ? `<span style="display:inline-flex;align-items:center;gap:.3rem;background:#e8f5e9;color:#2e7d32;font-size:12px;font-weight:700;padding:.28rem .65rem;border-radius:99px">● Paid</span>`
-    : `<span style="display:inline-flex;align-items:center;gap:.3rem;background:#fdecea;color:#c0392b;font-size:12px;font-weight:700;padding:.28rem .65rem;border-radius:99px">● Pending</span>`;
+    ? `<span style="display:inline-flex;align-items:center;gap:.3rem;background:var(--teal-pale);color:var(--teal-dk);font-size:12px;font-weight:700;padding:.28rem .65rem;border-radius:99px">● Paid</span>`
+    : `<span style="display:inline-flex;align-items:center;gap:.3rem;background:var(--danger-pale);color:var(--danger);font-size:12px;font-weight:700;padding:.28rem .65rem;border-radius:99px">● Pending</span>`;
 }
 function providerBadge(provider) {
   const colors = { sasapay: ['#e8f0fd','#1a56c4'], fingo: ['#efe8fd','#6a2fd0'], paystack: ['#e6f6ee','#0f9d58'] };
@@ -3929,7 +3927,7 @@ async function loadOrgSettlements() {
       if (unrequested.length) {
         unrequestedHtml = `
         <div class="card" style="margin-bottom:1.25rem;border:1px solid var(--gold,#c49a30);overflow:hidden">
-          <div style="background:#fff9e6;padding:.7rem 1.25rem;font-weight:700;font-size:.82rem;color:#7a5c00">Welfare Collections Not Yet Requested</div>
+          <div style="background:var(--warning-pale);padding:.7rem 1.25rem;font-weight:700;font-size:.82rem;color:var(--warning)">Welfare Collections Not Yet Requested</div>
           ${unrequested.map((ev, i) => `
             <div style="padding:.85rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;${i < unrequested.length-1 ? 'border-bottom:1px solid var(--border-soft)' : ''}">
               <div>
