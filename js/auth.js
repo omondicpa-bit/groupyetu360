@@ -946,7 +946,7 @@ async function pickerCreateOrg() {
         }).eq('id', currentOrg.id);
         Object.assign(currentOrg, { plan, subscription_status:'trial', subscription_expires: expiresStr, trial_used: true });
         buildSidebar();
-        toast('✓ ' + (typeof PLAN_LABELS!=='undefined'?PLAN_LABELS[plan]:plan) + ' plan activated free until ' + expires.toLocaleDateString('en-KE',{day:'numeric',month:'long',year:'numeric'}));
+        toast('' + (typeof PLAN_LABELS!=='undefined'?PLAN_LABELS[plan]:plan) + ' plan activated free until ' + expires.toLocaleDateString('en-KE',{day:'numeric',month:'long',year:'numeric'}));
       } catch(e) { console.error('Trial activation failed:', e); }
     } else if (payRef) {
       // Promo OFF + ref provided: submit payment request
@@ -961,7 +961,7 @@ async function pickerCreateOrg() {
           status: 'pending',
           notes: 'New group registration payment'
         });
-        toast('✓ Group created on Starter. Payment submitted - ' + (typeof PLAN_LABELS!=='undefined'?PLAN_LABELS[plan]:plan) + ' will be activated after verification.');
+        toast('Group created on Starter. Payment submitted - ' + (typeof PLAN_LABELS!=='undefined'?PLAN_LABELS[plan]:plan) + ' will be activated after verification.');
       } catch(e) { console.error('Payment request failed:', e); }
     } else {
       // Promo OFF + no ref: just notify them
@@ -1422,7 +1422,7 @@ async function registerNewOrg() {
     buildOrgSwitcherDropdown();
     await selectOrg(org.id);
     showPage('dashboard');
-    toast(`✓ Welcome to ${name}!`);
+    toast(`Welcome to ${name}!`);
     window._registeringOrg = false;
   }, 1200);
 }

@@ -121,7 +121,7 @@ async function updateBankBalance(orgId, amount, direction) {
     // used to be a silent console.log only, which is exactly what let ADA's
     // balance sit frozen for a week with nobody aware anything was wrong.
     console.error('[GY360] Bank balance update FAILED:', error.message, { orgId, amount, direction });
-    toast('⚠ Warning: this was recorded, but the bank balance total failed to update. Please check Settings and contact support if the balance looks wrong.');
+    toast('Warning: this was recorded, but the bank balance total failed to update. Please check Settings and contact support if the balance looks wrong.');
     return;
   }
   if (newBalance === null) {
@@ -129,7 +129,7 @@ async function updateBankBalance(orgId, amount, direction) {
     // should never happen in normal operation, but if it does, it must be
     // just as visible as a thrown error, not silently ignored.
     console.error('[GY360] Bank balance update matched no rows — org_id may be invalid:', orgId);
-    toast('⚠ Warning: bank balance total did not update. Please contact support.');
+    toast('Warning: bank balance total did not update. Please contact support.');
     return;
   }
   // Update local org object so dashboard reflects new balance immediately
@@ -1205,7 +1205,7 @@ async function subscribeToPushNotifications(silent) {
     }, { onConflict: 'endpoint' });
 
     if (error) throw new Error(error.message);
-    toast('✓ Notifications enabled');
+    toast('Notifications enabled');
     if (typeof refreshNotificationStatus === 'function') refreshNotificationStatus();
     return true;
   } catch (e) {

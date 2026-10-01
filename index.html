@@ -24,7 +24,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026100106">
+  <link rel="stylesheet" href="style.css?v=2026100107">
 </head>
 <body>
 
@@ -847,12 +847,12 @@
           <div class="mh-inner">
             <div class="mh-row">
               <div>
-                <div class="mh-greeting">Finance</div>
+                <div class="mh-greeting">Money</div>
                 <div class="mh-name" style="font-size:.85rem;font-weight:500" id="fin-mob-org">—</div>
               </div>
               <div style="display:flex;gap:.5rem">
-                <button class="mh-icon-btn" onclick="showShareoutModal()" title="Year-End Shareout">💰</button>
-                <button class="mh-icon-btn" onclick="toggleWithdrawWindow()" id="fin-mob-withdraw-btn" title="Withdraw window">🔓</button>
+                <button class="mh-icon-btn" onclick="showShareoutModal()" title="Year-end shareout" aria-label="Year-end shareout"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12.5" r="2.5"/><path d="M6 10v5M18 10v5"/></svg></button>
+                <button class="mh-icon-btn" onclick="toggleWithdrawWindow()" id="fin-mob-withdraw-btn" title="Withdraw window" aria-label="Open or close the withdraw window"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></svg></button>
               </div>
             </div>
           </div>
@@ -875,22 +875,22 @@
           <!-- 2×2 stat cards -->
           <div class="fin-mob-stats">
             <div class="fin-mob-stat fin-mob-stat-teal" onclick="switchFinTab(document.querySelector('[onclick*=sub-tab-contributions]'),\'sub-tab-contributions\');switchFinTab(document.querySelector('[onclick*=tab-transactions]'),\'tab-transactions\')">
-              <div class="fin-mob-stat-icon">₭</div>
+              <div class="fin-mob-stat-icon"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg></div>
               <div class="fin-mob-stat-label">Contributions</div>
               <div class="fin-mob-stat-val" id="fin-mob-contrib">—</div>
             </div>
             <div class="fin-mob-stat fin-mob-stat-gold" onclick="switchFinTab(document.querySelector('[onclick*=sub-tab-income]'),\'sub-tab-income\');switchFinTab(document.querySelector('[onclick*=tab-transactions]'),\'tab-transactions\')">
-              <div class="fin-mob-stat-icon">⚑</div>
+              <div class="fin-mob-stat-icon"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div>
               <div class="fin-mob-stat-label">Other income</div>
               <div class="fin-mob-stat-val" id="fin-mob-income">—</div>
             </div>
             <div class="fin-mob-stat fin-mob-stat-maroon" onclick="switchFinTab(document.querySelector('[onclick*=tab-expenses]'),\'tab-expenses\')">
-              <div class="fin-mob-stat-icon">−</div>
+              <div class="fin-mob-stat-icon"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M8 7h9v9"/><path d="M4 21h16"/></svg></div>
               <div class="fin-mob-stat-label">Expenses</div>
               <div class="fin-mob-stat-val" id="fin-mob-exp">—</div>
             </div>
             <div class="fin-mob-stat fin-mob-stat-indigo">
-              <div class="fin-mob-stat-icon">≈</div>
+              <div class="fin-mob-stat-icon"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8"/><path d="M3 21h18"/></svg></div>
               <div class="fin-mob-stat-label">Net position</div>
               <div class="fin-mob-stat-val" id="fin-mob-net">—</div>
             </div>
@@ -898,13 +898,13 @@
 
           <!-- Tab row: view tabs + action tabs -->
           <div class="fin-mob-tabs">
-            <button class="fin-mob-tab active" onclick="finMobSwitchTab(this,'tab-transactions')">📋 Ledger</button>
-            <button class="fin-mob-tab" onclick="finMobSwitchTab(this,'tab-expenses')">📤 Expenses</button>
-            <button class="fin-mob-tab" onclick="finMobSwitchTab(this,'tab-fines');loadFinesLedger()">⚠ Fines</button>
-            <button class="fin-mob-tab fin-mob-tab-action" onclick="openRecordPaymentModal()">＋ Payment</button>
-            <button class="fin-mob-tab fin-mob-tab-action" onclick="showModal('recordIncome')">＋ Income</button>
-            <button class="fin-mob-tab fin-mob-tab-action" onclick="showModal('recordExpense')">− Expense</button>
-            <button class="fin-mob-tab fin-mob-tab-warn" onclick="finMobSwitchTab(this,'tab-fine-record')">⚠ Fine</button>
+            <button class="fin-mob-tab active" onclick="finMobSwitchTab(this,'tab-transactions')">Ledger</button>
+            <button class="fin-mob-tab" onclick="finMobSwitchTab(this,'tab-expenses')">Expenses</button>
+            <button class="fin-mob-tab" onclick="finMobSwitchTab(this,'tab-fines');loadFinesLedger()">Fines</button>
+            <button class="fin-mob-tab fin-mob-tab-action" onclick="openRecordPaymentModal()"><svg class="gy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Payment</button>
+            <button class="fin-mob-tab fin-mob-tab-action" onclick="showModal('recordIncome')"><svg class="gy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Income</button>
+            <button class="fin-mob-tab fin-mob-tab-action" onclick="showModal('recordExpense')"><svg class="gy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Expense</button>
+            <button class="fin-mob-tab fin-mob-tab-warn" onclick="finMobSwitchTab(this,'tab-fine-record')"><svg class="gy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Fine</button>
           </div>
 
           <!-- Tab content area - reuses existing desktop tab-panels -->
@@ -921,15 +921,15 @@
       <!-- ── FINANCE HERO STRIP ── -->
       <div class="fin-hero">
         <div class="fin-hero-inner">
-          <div class="fin-hero-title">Finance Overview</div>
+          <h1 class="fin-hero-title">Contributions &amp; money</h1>
           <div class="fin-hero-sub" id="fin-hero-org">—</div>
         </div>
         <div class="fin-hero-controls" id="fin-hero-controls">
-          <button class="btn fin-ctrl-btn" id="fin-shareout-btn" onclick="showShareoutModal()">💰 Year-End Shareout</button>
+          <button class="btn btn-secondary fin-ctrl-btn" id="fin-shareout-btn" onclick="showShareoutModal()">Year-end shareout</button>
           <div class="fin-withdraw-pill" id="fin-withdraw-pill">
             <span class="fin-withdraw-dot" id="fin-withdraw-dot"></span>
-            <span style="font-size:.75rem;color:rgba(255,255,255,.7)">Withdraw:</span>
-            <span id="withdraw-status-label" style="font-size:.75rem;font-weight:600;color:#fff">Closed</span>
+            <span class="fin-withdraw-key">Withdrawals</span>
+            <span id="withdraw-status-label" class="fin-withdraw-val">Closed</span>
             <button id="withdraw-toggle-btn" onclick="toggleWithdrawWindow()" class="fin-toggle-btn">Open</button>
           </div>
         </div>
@@ -939,7 +939,7 @@
       <div class="fin-scorecard">
         <!-- Bank balance - hero number -->
         <div class="fin-score-main">
-          <div class="fin-score-label">Total Account Balance</div>
+          <div class="fin-score-label">Total account balance</div>
           <div class="fin-score-value" id="fin-bank-balance">—</div>
           <div class="fin-score-meta">All funds across group accounts</div>
           <div class="fin-score-bar">
@@ -949,12 +949,12 @@
         <!-- Member split - dynamically shown/hidden based on org type -->
         <div class="fin-score-split" id="fin-score-split">
           <div class="fin-score-item teal" id="fin-member-card">
-            <div class="fin-score-item-label" id="fin-member-label">👥 Member Balances</div>
+            <div class="fin-score-item-label" id="fin-member-label">Member balances</div>
             <div class="fin-score-item-value" id="fin-member-balance">—</div>
             <div class="fin-score-item-note" id="fin-member-note">Savings + shares</div>
           </div>
           <div class="fin-score-item" id="fin-admin-card">
-            <div class="fin-score-item-label">🏛 Admin Balance</div>
+            <div class="fin-score-item-label">Group-held balance</div>
             <div class="fin-score-item-value" id="fin-admin-balance">—</div>
             <div class="fin-score-item-note" id="fin-admin-note">Group-retained funds</div>
           </div>
@@ -964,30 +964,30 @@
       <!-- ── 4 STAT CARDS ── -->
       <div class="fin-stats">
         <div class="fin-stat-card" onclick="switchTab(document.querySelector('[onclick*=sub-tab-contributions]'),'sub-tab-contributions');switchTab(document.querySelector('[onclick*=tab-transactions]'),'tab-transactions')">
-          <div class="fin-stat-icon teal">₭</div>
+          <div class="fin-stat-icon teal"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg></div>
           <div>
-            <div class="fin-stat-label">Member Contributions</div>
+            <div class="fin-stat-label">Member contributions</div>
             <div class="fin-stat-value" id="fin-total-contrib">—</div>
           </div>
         </div>
         <div class="fin-stat-card" onclick="switchTab(document.querySelector('[onclick*=sub-tab-income]'),'sub-tab-income');switchTab(document.querySelector('[onclick*=tab-transactions]'),'tab-transactions')">
-          <div class="fin-stat-icon gold">⚑</div>
+          <div class="fin-stat-icon gold"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div>
           <div>
-            <div class="fin-stat-label">Other Income</div>
+            <div class="fin-stat-label">Other income</div>
             <div class="fin-stat-value" id="fin-total-income">—</div>
           </div>
         </div>
         <div class="fin-stat-card" onclick="switchTab(document.querySelector('[onclick*=tab-expenses]'),'tab-expenses')">
-          <div class="fin-stat-icon warn">−</div>
+          <div class="fin-stat-icon warn"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M8 7h9v9"/><path d="M4 21h16"/></svg></div>
           <div>
-            <div class="fin-stat-label">Total Expenses</div>
+            <div class="fin-stat-label">Total expenses</div>
             <div class="fin-stat-value" id="fin-total-exp">—</div>
           </div>
         </div>
         <div class="fin-stat-card net">
-          <div class="fin-stat-icon net-icon">≈</div>
+          <div class="fin-stat-icon net-icon"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8"/><path d="M3 21h18"/></svg></div>
           <div>
-            <div class="fin-stat-label">Net Position</div>
+            <div class="fin-stat-label">Net position</div>
             <div class="fin-stat-value" id="fin-net">—</div>
           </div>
         </div>
@@ -1008,32 +1008,32 @@
       </div>
 
       <div class="fin-tabs">
-        <button class="fin-tab active" onclick="switchFinTab(this,'tab-transactions')">📋 Ledger</button>
-        <button class="fin-tab" onclick="switchFinTab(this,'tab-expenses')">📤 Expenses</button>
-        <button class="fin-tab" onclick="switchFinTab(this,'tab-fines');loadFinesLedger()">⚠ Fines</button>
-        <button class="fin-tab record" onclick="openRecordPaymentModal()">＋ Record Payment</button>
-        <button class="fin-tab record" onclick="showModal('recordIncome')">＋ Record Income</button>
-        <button class="fin-tab record" onclick="showModal('recordExpense')">＋ Record Expense</button>
-        <button class="fin-tab record" onclick="switchFinTab(this,'tab-fine-record')">⚠ Issue Fine</button>
+        <button class="fin-tab active" onclick="switchFinTab(this,'tab-transactions')">Ledger</button>
+        <button class="fin-tab" onclick="switchFinTab(this,'tab-expenses')">Expenses</button>
+        <button class="fin-tab" onclick="switchFinTab(this,'tab-fines');loadFinesLedger()">Fines</button>
+        <button class="fin-tab record" onclick="openRecordPaymentModal()"><svg class="gy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Record payment</button>
+        <button class="fin-tab record" onclick="showModal('recordIncome')"><svg class="gy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Record income</button>
+        <button class="fin-tab record" onclick="showModal('recordExpense')"><svg class="gy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Record expense</button>
+        <button class="fin-tab record" onclick="switchFinTab(this,'tab-fine-record')"><svg class="gy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Issue fine</button>
       </div>
 
       <!-- TAB: LEDGER -->
       <div class="tab-panel active" id="tab-transactions">
         <div class="fin-sub-tabs">
-          <button class="fin-sub-tab active" onclick="switchFinSubTab(this,'sub-tab-contributions')">Member Contributions</button>
-          <button class="fin-sub-tab" onclick="switchFinSubTab(this,'sub-tab-income')">Other Income</button>
+          <button class="fin-sub-tab active" onclick="switchFinSubTab(this,'sub-tab-contributions')">Member contributions</button>
+          <button class="fin-sub-tab" onclick="switchFinSubTab(this,'sub-tab-income')">Other income</button>
         </div>
         <div class="tab-panel active" id="sub-tab-contributions">
           <div class="table-wrap card" style="margin-top:.75rem">
             <div class="card-header">
-              <div class="card-title">Member Contributions</div>
+              <div class="card-title">Member contributions</div>
               <div style="display:flex;align-items:center;gap:.75rem">
                 <div style="font-size:.72rem;color:var(--ink-faint)" id="fin-contrib-count"></div>
-                <button class="btn btn-secondary btn-sm" onclick="exportContributionsCSV()">⬇ Export CSV</button>
+                <button class="btn btn-secondary btn-sm" onclick="exportContributionsCSV()">Export</button>
               </div>
             </div>
             <table>
-              <thead><tr><th>Date</th><th>Member</th><th>Type</th><th>Amount</th><th>M-Pesa Ref</th><th>Notes</th><th></th></tr></thead>
+              <thead><tr><th>Date</th><th>Member</th><th>Type</th><th class="ds-num">Amount</th><th>M-Pesa ref</th><th>Notes</th><th></th></tr></thead>
               <tbody id="txn-table"><tr><td colspan="7"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr></tbody>
             </table>
           </div>
@@ -1042,10 +1042,10 @@
           <div class="table-wrap card" style="margin-top:.75rem">
             <div class="card-header">
               <div class="card-title">Other Income & Revenue</div>
-              <button class="btn btn-secondary btn-sm" onclick="exportIncomeCSV()">⬇ Export CSV</button>
+              <button class="btn btn-secondary btn-sm" onclick="exportIncomeCSV()">Export</button>
             </div>
             <table>
-              <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Reference</th><th>Project</th><th></th></tr></thead>
+              <thead><tr><th>Date</th><th>Category</th><th>Description</th><th class="ds-num">Amount</th><th>Reference</th><th>Project</th><th></th></tr></thead>
               <tbody id="income-table"><tr><td colspan="7"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr></tbody>
             </table>
           </div>
@@ -1057,10 +1057,10 @@
         <div class="table-wrap card" style="margin-top:.75rem">
           <div class="card-header">
             <div class="card-title">Expense Ledger</div>
-            <button class="btn btn-secondary btn-sm" onclick="exportExpensesCSV()">⬇ Export CSV</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportExpensesCSV()">Export</button>
           </div>
           <table>
-            <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>M-Pesa Ref</th><th>Project</th><th></th></tr></thead>
+            <thead><tr><th>Date</th><th>Category</th><th>Description</th><th class="ds-num">Amount</th><th>M-Pesa ref</th><th>Project</th><th></th></tr></thead>
             <tbody id="exp-table"><tr><td colspan="7"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr></tbody>
           </table>
         </div>
@@ -1073,7 +1073,7 @@
       <div class="tab-panel" id="tab-fines">
         <div class="card" style="margin-top:.75rem">
           <div class="card-header">
-            <div><div class="card-title">⚠ Fines & Penalties</div><div class="card-sub" id="fines-ledger-sub">Loading…</div></div>
+            <div><div class="card-title">Fines &amp; penalties</div><div class="card-sub" id="fines-ledger-sub">Loading…</div></div>
             <div style="display:flex;gap:.5rem">
               <select class="form-select" id="fines-filter" onchange="loadFinesLedger()" style="font-size:.75rem;padding:.3rem .6rem;width:auto">
                 <option value="all">All Statuses</option><option value="pending">Pending</option>
@@ -1089,8 +1089,8 @@
       <div class="tab-panel" id="tab-fine-record">
         <div class="fin-form-card">
           <div class="fin-form-heading">
-            <div class="fin-form-icon" style="background:var(--maroon-pale);color:var(--maroon)">⚠</div>
-            <div><div class="fin-form-title">Issue Fine / Penalty</div><div class="fin-form-sub">Fine stays pending until member pays or admin resolves it</div></div>
+            <div class="fin-form-icon" style="background:var(--warning-pale);color:var(--warning)"><svg class="gy-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4.5M12 17.5h.01"/></svg></div>
+            <div><div class="fin-form-title">Issue a fine</div><div class="fin-form-sub">Fine stays pending until member pays or admin resolves it</div></div>
           </div>
           <div class="form-group">
             <label class="form-label">Reason - Quick Presets</label>
@@ -5766,16 +5766,16 @@
 
 
   <!-- GroupYetu360 Scripts - load order matters -->
-  <script src="js/icons.js?v=2026100106"></script>
-  <script src="js/auth.js?v=2026100106"></script>
-  <script src="js/utils.js?v=2026100106"></script>
-  <script src="js/dashboard.js?v=2026100106"></script>
-  <script src="js/members.js?v=2026100106"></script>
-  <script src="js/finance.js?v=2026100106"></script>
-  <script src="js/settings.js?v=2026100106"></script>
-  <script src="js/portal.js?v=2026100106"></script>
-  <script src="js/modules.js?v=2026100106"></script>
-  <script src="js/taya.js?v=2026100106"></script>
+  <script src="js/icons.js?v=2026100107"></script>
+  <script src="js/auth.js?v=2026100107"></script>
+  <script src="js/utils.js?v=2026100107"></script>
+  <script src="js/dashboard.js?v=2026100107"></script>
+  <script src="js/members.js?v=2026100107"></script>
+  <script src="js/finance.js?v=2026100107"></script>
+  <script src="js/settings.js?v=2026100107"></script>
+  <script src="js/portal.js?v=2026100107"></script>
+  <script src="js/modules.js?v=2026100107"></script>
+  <script src="js/taya.js?v=2026100107"></script>
   <script>
     // Bootstrap - runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —

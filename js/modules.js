@@ -530,7 +530,7 @@ async function deleteWelfareEvent(id) {
 
 async function reopenWelfareEvent(id) {
   await sb.from('welfare_events').update({ is_active: true, closed_by: null, closed_at: null }).eq('id', id);
-  toast('✓ Welfare event reopened — visible to members');
+  toast('Welfare event reopened — visible to members');
   await logActivity('WELFARE REOPEN', 'Welfare event reopened', 'welfare', id);
   loadWelfare();
 }
@@ -588,7 +588,7 @@ async function submitCloseWelfare() {
   if (!recipient) { toast('Please enter who received the funds'); return; }
   const mismatch = Math.abs(amount - _welCloseCtx.collectedTotal) > 0.5;
   if (mismatch && !notes) { toast('Please explain the mismatch between collected and disbursed amounts in the notes'); return; }
-  if (!canDo('recordPayment')) { toast('⚠ You do not have permission to close welfare events.'); return; }
+  if (!canDo('recordPayment')) { toast('You do not have permission to close welfare events.'); return; }
 
   const methodLabel = { mpesa: 'M-Pesa', cash: 'Cash', bank: 'Bank Transfer' }[method] || method;
 
@@ -620,7 +620,7 @@ async function submitCloseWelfare() {
     `Closed "${_welCloseCtx.eventLabel}" — disbursed Ksh ${amount.toLocaleString()} to ${recipient} via ${methodLabel}`,
     'welfare', _welCloseCtx.eventId);
 
-  toast('✓ Welfare event closed and disbursement recorded');
+  toast('Welfare event closed and disbursement recorded');
   closeModal('welfareClose');
   _welCloseCtx = null;
   loadWelfare();
@@ -668,7 +668,7 @@ async function saveWelfareEvent() {
   };
   const { error } = await sb.from('welfare_events').insert(payload);
   if (error) { toast('Error: ' + error.message); return; }
-  toast('✓ Welfare event created');
+  toast('Welfare event created');
   closeModal('welfareEvent');
   loadWelfare();
 }
@@ -1221,7 +1221,7 @@ function loadSmsTemplate(t) {
 
 async function sendSms(opts = {}) {
   const skipConfirm = opts.skipConfirm === true;
-  if (!canDo('sendSms')) { toast('⚠ Only admins can send SMS messages.'); return; }
+  if (!canDo('sendSms')) { toast('Only admins can send SMS messages.'); return; }
   const body = document.getElementById('sms-body').value.trim();
   if (!body) { toast('Please enter a message'); return; }
   const recipientType = document.getElementById('sms-recipients').value;
@@ -1268,11 +1268,11 @@ async function sendSms(opts = {}) {
   // ── Balance gate ──
   const bundle = currentOrg?.sms_bundle || 0;
   if (bundle <= 0) {
-    toast('⚠ SMS bundle empty. Top up via Billing to send messages.');
+    toast('SMS bundle empty. Top up via Billing to send messages.');
     return;
   }
   if (bundle < rawPhones.length) {
-    toast(`⚠ Only ${bundle} SMS remaining — not enough to send to ${rawPhones.length} recipients. Top up first.`);
+    toast(`Only ${bundle} SMS remaining — not enough to send to ${rawPhones.length} recipients. Top up first.`);
     return;
   }
 
@@ -1314,7 +1314,7 @@ async function sendSms(opts = {}) {
     if (failed > 0) {
       toast(`SMS sent to ${sent} recipients. ${failed} failed.`);
     } else {
-      toast(`✓ SMS sent successfully to ${sent} recipients`);
+      toast(`SMS sent successfully to ${sent} recipients`);
     }
   } catch(e) {
     console.error('SMS error:', e);
@@ -1335,7 +1335,7 @@ async function sendSms(opts = {}) {
 
 async function testSms() {
   const bundle = currentOrg?.sms_bundle || 0;
-  if (bundle <= 0) { toast('⚠ SMS bundle empty. Top up via Billing to send messages.'); return; }
+  if (bundle <= 0) { toast('SMS bundle empty. Top up via Billing to send messages.'); return; }
   const body = document.getElementById('sms-body').value.trim() || `GroupYetu360 test SMS. Platform SMS is active and working.`;
   const myPhone = currentProfile?.phone;
   if (!myPhone) { toast('Add your phone number in My Account first'); return; }
@@ -1345,7 +1345,7 @@ async function testSms() {
     console.log('Test SMS result:', result);
     if (result?.sent > 0) {
       await trackSmsUsage(currentOrg.id, result.sent);
-      toast(`✓ Test SMS sent to ${myPhone}. Check your phone!`);
+      toast(`Test SMS sent to ${myPhone}. Check your phone!`);
     } else {
       toast(`Test SMS failed. Check browser console for provider response. Raw: ${JSON.stringify(result)}`);
     }
@@ -1396,7 +1396,7 @@ function renderPaymentMethods(org, containerId, compact) {
         <div style="font-size:.95rem;font-weight:700;color:var(--maroon);margin:.15rem 0">${item.value}</div>
         ${item.sub ? `<div style="font-size:.7rem;color:var(--ink-faint)">${item.sub}</div>` : ''}
       </div>
-      <button onclick="navigator.clipboard.writeText('${item.copy}').then(()=>toast('✓ Copied: ${item.copy}'))"
+      <button onclick="navigator.clipboard.writeText('${item.copy}').then(()=>toast('Copied: ${item.copy}'))"
         style="background:var(--maroon);color:#fff;border:none;padding:.35rem .8rem;font-size:.72rem;font-weight:600;cursor:pointer;font-family:var(--font);flex-shrink:0">Copy</button>
     </div>`).join('');
 }
@@ -1907,7 +1907,7 @@ async function saveRound() {
 
   const { error: slotErr } = await sb.from('round_slots').insert(slots);
   if (slotErr) { toast('Cycle created but slots failed: ' + slotErr.message); }
-  else { toast(`✓ Cycle "${name}" created with ${slots.length} members`); }
+  else { toast(`Cycle "${name}" created with ${slots.length} members`); }
 
   closeModal('createRound');
   document.getElementById('cr-name').value = '';
@@ -2038,7 +2038,7 @@ async function saveRoundContribution() {
     await logActivity('MGR CONTRIBUTION', `MGR contribution: Ksh ${amount.toLocaleString()} from member for round (group account)`, 'mgr', slotId);
   }
 
-  toast('✓ Contribution recorded');
+  toast('Contribution recorded');
 
   // ── Auto-completion check ──
   // After recording, check if ALL members in this cycle have now paid for this slot
@@ -2128,7 +2128,7 @@ async function checkAndAutoCompleteSlot(slotId, roundId, round, date) {
     }
 
     const receiverName = allMembers.find(m => m.id === slot.member_id)?.full_name || 'receiver';
-    toast(`✓ All members paid — round auto-completed. ${receiverName} has received the pot.`);
+    toast(`All members paid — round auto-completed. ${receiverName} has received the pot.`);
   } catch(e) {
     console.log('[GY360] Auto-complete check error:', e.message);
   }
@@ -2206,7 +2206,7 @@ async function saveDisbursement() {
     await logActivity('MGR DISBURSEMENT', `MGR manual disbursement: Ksh ${amount.toLocaleString()} from group account to receiver`, 'mgr', slotId);
   }
 
-  toast('✓ Disbursement recorded — slot marked as received');
+  toast('Disbursement recorded — slot marked as received');
   clearMgrDisForm();
   await loadMGR();
   if (_currentMGRDetailRoundId === roundId) {
@@ -2268,7 +2268,7 @@ async function closeMGRCycle(id, name) {
   const { error } = await sb.from('savings_rounds').update({ status: 'closed' }).eq('id', id);
   if (error) { toast('Error: ' + error.message); return; }
   await logActivity('MGR CYCLE CLOSED', `Rotating savings cycle "${name}" closed`);
-  toast(`✓ Cycle "${name}" closed`);
+  toast(`Cycle "${name}" closed`);
   await loadMGR();
   if (_currentMGRDetailRoundId === id) await loadMGRCycleDetail(id);
 }
@@ -2279,7 +2279,7 @@ async function reopenMGRCycle(id, name) {
   const { error } = await sb.from('savings_rounds').update({ status: 'active' }).eq('id', id);
   if (error) { toast('Error: ' + error.message); return; }
   await logActivity('MGR CYCLE REOPENED', `Rotating savings cycle "${name}" reopened`);
-  toast(`✓ Cycle "${name}" reopened`);
+  toast(`Cycle "${name}" reopened`);
   await loadMGR();
   if (_currentMGRDetailRoundId === id) await loadMGRCycleDetail(id);
 }
@@ -2720,7 +2720,7 @@ async function saveTBPool() {
     default_fine_amount: fineAmount || null,
   });
   if (error) { toast('Error: ' + error.message); return; }
-  toast('✓ Pool created: ' + name + ' (' + selectedIds.length + ' members)');
+  toast('Pool created: ' + name + ' (' + selectedIds.length + ' members)');
   closeModal('tbNewPool');
   document.getElementById('tb-pool-name').value = '';
   await loadTableBanking();
@@ -2747,7 +2747,7 @@ async function saveTBContribution() {
 
   if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Contribution →'; }
   if (error) { toast('Error: ' + error.message); return; }
-  toast('✓ Contribution recorded — Ksh ' + amount.toLocaleString());
+  toast('Contribution recorded — Ksh ' + amount.toLocaleString());
   document.getElementById('tb-rec-amount').value = '';
   document.getElementById('tb-rec-ref').value = '';
   await loadTableBanking();
@@ -2785,7 +2785,7 @@ async function saveTBLoan() {
     issued_by: currentUser.id
   });
   if (error) { toast('Error: ' + error.message); return; }
-  toast('✓ Loan issued — Ksh ' + principal.toLocaleString());
+  toast('Loan issued — Ksh ' + principal.toLocaleString());
   closeModal('tbNewLoan');
   await loadTableBanking();
   if (_currentTBDetailPoolId === poolId) {
@@ -2845,7 +2845,7 @@ async function saveTBRepayment() {
     status: isFullyRepaid ? 'repaid' : 'active'
   }).eq('id', loanId);
 
-  toast(`✓ Repayment recorded — Ksh ${amount.toLocaleString()} (principal: ${principalPaid.toLocaleString()}, interest: ${interestPaid.toLocaleString()})${isFullyRepaid?' · Loan fully repaid! ✓':''}`);
+  toast(`Repayment recorded — Ksh ${amount.toLocaleString()} (principal: ${principalPaid.toLocaleString()}, interest: ${interestPaid.toLocaleString()})${isFullyRepaid?' · Loan fully repaid! ✓':''}`);
   document.getElementById('tb-repay-amount').value = '';
   document.getElementById('tb-repay-split').style.display = 'none';
   await loadTableBanking();
@@ -2859,7 +2859,7 @@ async function saveTBRepayment() {
 async function markLoanRepaid(loanId) {
   if (!confirm('Mark this loan as fully repaid?')) return;
   await sb.from('table_banking_loans').update({ status: 'repaid' }).eq('id', loanId);
-  toast('✓ Loan marked as repaid');
+  toast('Loan marked as repaid');
   if (_currentTBDetailPoolId) {
     await loadTBDetailLoans(_currentTBDetailPoolId);
     await populateTBRepayLoanSelect(_currentTBDetailPoolId);
@@ -2888,7 +2888,7 @@ async function closeTBPool(poolId, poolName) {
 
   if (error) { toast('Error: ' + error.message); return; }
   await logActivity('TB POOL CLOSED', `Table banking pool "${poolName}" closed`);
-  toast(`✓ Pool "${poolName}" closed`);
+  toast(`Pool "${poolName}" closed`);
   await loadTableBanking();
   if (_currentTBDetailPoolId === poolId) await loadTBOverview(poolId);
 }
@@ -2902,7 +2902,7 @@ async function reopenTBPool(poolId, poolName) {
 
   if (error) { toast('Error: ' + error.message); return; }
   await logActivity('TB POOL REOPENED', `Table banking pool "${poolName}" reopened`);
-  toast(`✓ Pool "${poolName}" reopened`);
+  toast(`Pool "${poolName}" reopened`);
   await loadTableBanking();
   if (_currentTBDetailPoolId === poolId) await loadTBOverview(poolId);
 }
@@ -3016,10 +3016,10 @@ async function saveWelfareType() {
   const payload = { org_id: currentOrg.id, name, default_amount: amount, category, scope };
   if (id) {
     await sb.from('welfare_event_types').update(payload).eq('id', id);
-    toast('✓ Event type updated');
+    toast('Event type updated');
   } else {
     await sb.from('welfare_event_types').insert(payload);
-    toast('✓ Event type added');
+    toast('Event type added');
   }
   hideWelfareTypeForm();
   loadWelfareTypes();

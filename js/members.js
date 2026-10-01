@@ -292,14 +292,14 @@ function renderMemberGrid(list) {
 // filterMembers defined above
 
 async function saveMember() {
-  if (!canDo('addMember')) { toast('⚠ You do not have permission to add members.'); return; }
+  if (!canDo('addMember')) { toast('You do not have permission to add members.'); return; }
   if (!currentOrg?.id) return;
 
   // ── Plan member limit check ──
   const limit = getPlanMemberLimit(currentOrg);
   if (isFinite(limit) && allMembers.length >= limit) {
     const plan = getEffectivePlan(currentOrg);
-    toast(`⚠ Member limit reached. Your ${plan.toUpperCase()} plan allows up to ${limit} members. Upgrade to add more.`);
+    toast(`Member limit reached. Your ${plan.toUpperCase()} plan allows up to ${limit} members. Upgrade to add more.`);
     closeModal('addMember');
     showPage('billing');
     return;
@@ -362,7 +362,7 @@ async function saveMember() {
       if (signUpErr) {
         toast('Member added. Invite failed: ' + signUpErr.message + ' — if they already have an account, use "Link Existing User" instead.');
       } else {
-        toast('✓ Member added — portal invite sent to ' + email);
+        toast('Member added — portal invite sent to ' + email);
       }
     } catch(e) {
       toast('Member added. Invite failed: ' + e.message);
@@ -677,7 +677,7 @@ function printMemberStatement() {
 }
 
 async function saveMemberDetail() {
-  if (!canDo('editMember')) { toast('⚠ You do not have permission to edit members.'); return; }
+  if (!canDo('editMember')) { toast('You do not have permission to edit members.'); return; }
   if (!currentMemberId) return;
   const openingShares = parseFloat(document.getElementById('md-edit-opening-shares').value)||0;
   const openingSavings = parseFloat(document.getElementById('md-edit-opening-savings').value)||0;
@@ -772,7 +772,7 @@ async function sendMemberPortalInvite() {
       const result = await linkUserToOrg(existingUserId, 'member', m?.full_name, m?.phone);
       if (result.success) {
         setStatus('✓ Linked — this org added to their workspaces', true);
-        toast('✓ ' + (m?.full_name || 'Member') + ' linked — they can switch to this org at next login');
+        toast('' + (m?.full_name || 'Member') + ' linked — they can switch to this org at next login');
         await logActivity('PORTAL LINKED', 'Linked ' + email + ' to this org', 'member', currentMemberId);
       } else {
         setStatus('✗ ' + (result.error || 'Link failed'), false);
@@ -807,7 +807,7 @@ async function sendMemberPortalInvite() {
       }
 
       setStatus('✓ Invite sent — ' + (m?.full_name || email) + ' will receive an email to set their password', true);
-      toast('✓ Invite sent to ' + email);
+      toast('Invite sent to ' + email);
       await logActivity('PORTAL INVITE', 'Sent invite to ' + email, 'member', currentMemberId);
     }
 
@@ -917,23 +917,23 @@ This will take effect immediately on their next login.`);
         .select('*', { count: 'exact' });
 
       if (error) {
-        toast('❌ Role change failed: ' + error.message);
+        toast('Role change failed: ' + error.message);
         return;
       }
       if (!count) {
-        toast('⚠ No matching workspace grant found — this member may not be linked to this org yet.');
+        toast('No matching workspace grant found — this member may not be linked to this org yet.');
         return;
       }
-      toast(`✓ ${m.full_name} is now ${role}`);
+      toast(`${m.full_name} is now ${role}`);
     } else {
       // No portal account yet — need to invite them first
-      toast('⚠ This member has no portal account yet. Send them a portal invite first, then change their role.');
+      toast('This member has no portal account yet. Send them a portal invite first, then change their role.');
       return;
     }
     await logActivity('SET ROLE', `Changed ${m.full_name} role in this org to ${role}`, 'member', currentMemberId);
     loadMembers();
   } catch(e) {
-    toast('❌ Role change failed: ' + e.message);
+    toast('Role change failed: ' + e.message);
   }
 }
 
@@ -993,7 +993,7 @@ async function deleteMember() {
   if (!currentMemberId) return;
   // Only superadmin can delete members
   if (currentProfile?.role !== 'superadmin') {
-    toast('⚠ Only the platform SuperAdmin can delete members.');
+    toast('Only the platform SuperAdmin can delete members.');
     return;
   }
   const { data: m } = await sb.from('members').select('full_name,is_founder,user_id,org_id').eq('id', currentMemberId).single();
@@ -1012,7 +1012,7 @@ async function deleteMember() {
     const { error: e3 } = await sb.from('attendance').delete().eq('member_id', currentMemberId);
     if (e3) console.warn('attendance delete:', e3.message);
     const { error: e4 } = await sb.from('members').delete().eq('id', currentMemberId);
-    if (e4) { toast('❌ Could not delete member: ' + e4.message); return; }
+    if (e4) { toast('Could not delete member: ' + e4.message); return; }
     // Remove the actual workspace grant — without this, the person still shows up
     // as belonging to this org platform-wide (in All Members / their own picker)
     // even though their member record is gone. This was the real bug.
@@ -1036,14 +1036,14 @@ async function deleteMember() {
     currentMemberId = null;
     loadMembers();
   } catch(e) {
-    toast('❌ Delete failed: ' + e.message);
+    toast('Delete failed: ' + e.message);
   }
 }
 
 async function saUpdateMemberAccount() {
   // Superadmin only — updates auth email and/or password via edge function
   if (currentProfile?.role !== 'superadmin') {
-    toast('⚠ Superadmin only');
+    toast('Superadmin only');
     return;
   }
   const section = document.getElementById('md-sa-account-section');

@@ -111,6 +111,10 @@ Felix chose Direction A ("Ledger") from the Design canvas "GroupYetu360 UI Redes
 
 **Phase 2c shipped:** Members page. Table view by default on desktop (cards on phones), filter tabs with counts (All, Active, Behind = status `arrears`, Inactive), search with icon, list/card switch, an amber "N members are behind" bar that opens Messages with "In arrears" preselected (`remindArrearsMembers()`), empty states. New shared classes for list pages: `.ds-toolbar`, `.ds-segmented`, `.ds-search`, `.ds-callout-amber`, `.ds-table`, `.ds-person`, `.ds-avatar`, `.ds-num`, `.ds-empty`, `.ds-icon-btn`, `.ds-sr`. Bulk M-Pesa prompts to everyone behind (as drawn on the canvas) are NOT built; that needs a server-side batch STK function with rate limiting.
 
+**Phase 2d shipped:** Contributions & money (Finance) page. Light page header replaces the gradient hero; white score and stat cards with line icons; view tabs (Ledger, Expenses, Fines) on the left and record actions on the right; ledger amounts right-aligned, type badges neutral, delete is a quiet trash icon; mobile Money screen in light mode uses white cards. Also app-wide: emoji stripped from the start of all toast messages (90 calls).
+
+**Dark mode (phones only, `body.mob-dark`):** today it only themes the home/admin-home/money shells and the bottom nav; every other page and modal stays light. All design-system light styles on phones are scoped with `body:not(.mob-dark)`, so dark mode looks as it did. A proper dark mode should come AFTER inline colours are removed page by page: then it is one block that re-values the `:root` tokens under `body.mob-dark`.
+
 **Next phases, one screen per delivery:** contributions, welfare, merry-go-round, table banking, settings, SA payouts. Each one replaces its page hero and inline styles with the components above, matching the canvas.
 
 ### 🟢 Collection and payout hardened (1 Oct 2026) - read before touching Daraja code

@@ -32,6 +32,7 @@ var GY_ICON_PATHS = {
   support:   '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z"/><path d="M9 12h.01M12 12h.01M15 12h.01"/>',
   bell:      '<path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/>',
   menu:      '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  trash:     '<path d="M4 7h16"/><path d="M9 7V4.5h6V7"/><path d="M6.5 7l1 13h9l1-13"/>',
   chevron:   '<path d="m9 6 6 6-6 6"/>',
   download:  '<path d="M12 4v11M7 10l5 5 5-5"/><path d="M4 20h16"/>',
   search:    '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',

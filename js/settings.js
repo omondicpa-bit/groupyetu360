@@ -405,7 +405,7 @@ async function executeShareout() {
   }
 
   await logActivity('SHAREOUT', `${reason}. ${processed} members processed. Savings:${inclSav} Shares:${inclShr} Dividend:${inclDiv}`);
-  toast(`✓ Shareout complete - ${processed} members processed`);
+  toast(`Shareout complete - ${processed} members processed`);
   closeModal('shareout');
   loadMembers();
   prefetchData();
@@ -438,7 +438,7 @@ async function toggleWithdrawWindow() {
   const label = document.getElementById('withdraw-status-label');
   const dot = document.getElementById('fin-withdraw-dot');
   if (btn) btn.textContent = newState ? 'Close' : 'Open';
-  if (label) label.textContent = newState ? 'OPEN' : 'Closed';
+  if (label) label.textContent = newState ? 'Open' : 'Closed';
   if (dot) dot.classList.toggle('open', newState);
   toast(`Withdraw window ${newState ? 'opened - members can now request withdrawals' : 'closed'}`);
   await logActivity(newState?'WITHDRAW OPEN':'WITHDRAW CLOSE', `Withdraw window ${newState?'opened':'closed'} by admin`);
@@ -521,7 +521,7 @@ function loadPaymentMethodsSettings(org) {
 }
 
 async function saveSettings() {
-  if (!canDo('editSettings')) { toast('⚠ Only admins can edit organisation settings.'); return; }
+  if (!canDo('editSettings')) { toast('Only admins can edit organisation settings.'); return; }
   if (!currentOrg?.id) return;
   // Build payment methods object
   const paymentMethods = {
@@ -1230,7 +1230,7 @@ async function saResendPortalInvite(email, name) {
   if (!email) { toast('No email on this account'); return; }
   try {
     await sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://app.groupyetu.org/?intent=reset' });
-    toast(`✓ Password reset link sent to ${email}`);
+    toast(`Password reset link sent to ${email}`);
     await logActivity('SA PORTAL INVITE', `Superadmin resent portal invite to ${email} (${name})`);
   } catch(e) { toast('Error: ' + e.message); }
 }
@@ -1610,7 +1610,7 @@ async function saToggleOrgStatus() {
   const newStatus = org.status==='active' ? 'suspended' : 'active';
   if (!confirm(`${newStatus==='suspended'?'Suspend':'Activate'} ${org.name}?`)) return;
   await sb.from('organisations').update({status:newStatus}).eq('id',currentDetailOrgId);
-  toast(`✓ ${org.name} ${newStatus}`);
+  toast(`${org.name} ${newStatus}`);
   org.status = newStatus;
   document.getElementById('od-suspend-btn').textContent = newStatus==='active'?'Suspend':'Activate';
   document.getElementById('od-status').textContent = newStatus.toUpperCase();
@@ -1682,7 +1682,7 @@ async function addSMSCredit(count) {
   const newCount = current + count;
   await sb.from('organisations').update({sms_bundle: newCount}).eq('id',currentDetailOrgId);
   if (bundleEl) bundleEl.value = newCount;
-  toast(`✓ +${count} SMS credit added - total: ${newCount}`);
+  toast(`+${count} SMS credit added - total: ${newCount}`);
   await logActivity('SMS CREDIT ADDED', `Added ${count} SMS to ${currentDetailOrgId}`, 'organisation', currentDetailOrgId);
 }
 
@@ -1693,7 +1693,7 @@ async function saSetBankBalance() {
   await sb.from('organisations').update({bank_balance: newBal, bank_balance_updated: new Date().toISOString().split('T')[0]}).eq('id',currentDetailOrgId);
   document.getElementById('od-bank-balance').textContent = 'Ksh ' + newBal.toLocaleString();
   document.getElementById('od-bank-balance-edit').value = newBal;
-  toast(`✓ Bank balance set to Ksh ${newBal.toLocaleString()}`);
+  toast(`Bank balance set to Ksh ${newBal.toLocaleString()}`);
 }
 
 async function saResetPassword() {
@@ -1701,7 +1701,7 @@ async function saResetPassword() {
   if (!email) { toast('Enter admin email address'); return; }
   const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://app.groupyetu.org/?intent=reset' });
   if (error) { toast('Error: '+error.message); return; }
-  toast(`✓ Password reset link sent to ${email}`);
+  toast(`Password reset link sent to ${email}`);
 }
 
 async function sendMessageToOrgAdmin() {
@@ -1737,11 +1737,11 @@ async function sendMessageToOrgAdmin() {
   if (btn) { btn.disabled = false; btn.textContent = '📱 Send SMS to Admin →'; }
 
   if (result?.sent > 0) {
-    toast(`✓ SMS sent to ${result.sent} admin(s)${result.failed?`, ${result.failed} failed`:''}`);
+    toast(`SMS sent to ${result.sent} admin(s)${result.failed?`, ${result.failed} failed`:''}`);
     document.getElementById('od-admin-message').value = '';
     try { await logActivity('SA MESSAGE TO ADMIN', `Sent SMS to ${result.sent} admin(s) of ${org.name}: "${msg}"`, 'organisation', currentDetailOrgId); } catch(e) {}
   } else {
-    toast('⚠ Failed to send - check SMS provider configuration in Platform Settings');
+    toast('Failed to send - check SMS provider configuration in Platform Settings');
   }
 }
 
@@ -1752,7 +1752,7 @@ async function saDeleteOrg() {
   if (!confirm(`Delete "${org.name}"?\n\nThis cannot be undone.`)) return;
   const { error } = await sb.from('organisations').delete().eq('id',currentDetailOrgId);
   if (error) { toast('Error: '+error.message); return; }
-  toast(`✓ ${org.name} deleted`);
+  toast(`${org.name} deleted`);
   showPage('superadmin');
   loadSuperAdmin();
 }
@@ -1855,7 +1855,7 @@ async function saveOrgDetail() {
   updates.max_contribution_amount = maxContribRaw ? parseFloat(maxContribRaw) : null;
   const { error } = await sb.from('organisations').update(updates).eq('id', currentDetailOrgId);
   if (error) { toast('Error: '+error.message); return; }
-  toast('✓ Organisation updated successfully');
+  toast('Organisation updated successfully');
   closeModal('orgDetail');
   loadSuperAdmin();
 }
@@ -1924,7 +1924,7 @@ async function deleteOrg() {
     // 10. Finally delete the organisation
     const { error } = await sb.from('organisations').delete().eq('id', id);
     if (error) { toast('Error deleting org: ' + error.message); return; }
-    toast('✓ ' + org.name + ' deleted successfully');
+    toast('' + org.name + ' deleted successfully');
     closeModal('orgDetail');
     currentDetailOrgId = null;
     loadSuperAdmin();
@@ -2062,7 +2062,7 @@ async function openApproveModal(pendingId, userId, name, phone, email) {
 }
 
 async function approveMember() {
-  if (!canDo('approveMember')) { toast('⚠ You do not have permission to approve members.'); return; }
+  if (!canDo('approveMember')) { toast('You do not have permission to approve members.'); return; }
   if (!currentPendingId || !currentPendingUserId) return;
   const linkMemberId = document.getElementById('approve-link-member').value;
   const notes = document.getElementById('approve-notes').value.trim();
@@ -2128,7 +2128,7 @@ async function approveMember() {
 }
 
 async function declineMember() {
-  if (!canDo('approveMember')) { toast('⚠ You do not have permission to decline members.'); return; }
+  if (!canDo('approveMember')) { toast('You do not have permission to decline members.'); return; }
   if (!currentPendingId) return;
   const notes = document.getElementById('approve-notes').value.trim();
   const { data: pending } = await sb.from('pending_members').select('full_name').eq('id', currentPendingId).single();
@@ -2844,7 +2844,7 @@ async function activateFreeTrialFromCart_impl() {
     Object.assign(currentOrg, { plan, subscription_status:'trial', subscription_expires: expiresStr, trial_used: true });
     await logActivity('PLAN UPGRADE', `Free trial activated: ${plan} until ${expiresStr}`);
     if (typeof buildNav === 'function') buildNav();
-    toast(`✓ ${PLAN_LABELS[plan]} activated free until ${expires.toLocaleDateString('en-KE',{day:'numeric',month:'long',year:'numeric'})}`);
+    toast(`${PLAN_LABELS[plan]} activated free until ${expires.toLocaleDateString('en-KE',{day:'numeric',month:'long',year:'numeric'})}`);
     clearBillingCart();
     await loadBilling();
   } catch(e) {
@@ -3000,7 +3000,7 @@ async function requestCollectionActivation() {
     if (reqErr) throw new Error(reqErr.message);
 
     try { logActivity('COLLECTION ACTIVATION REQUESTED', `${currentOrg.name} requested instant M-Pesa collection`, 'org', currentOrg.id); } catch(e) {}
-    toast('✓ Request submitted - your GroupYetu360 admin will review it shortly.');
+    toast('Request submitted - your GroupYetu360 admin will review it shortly.');
     if (typeof loadCollectionActivationCard === 'function') loadCollectionActivationCard(currentOrg.id);
   } catch(e) {
     toast('Error submitting request: ' + e.message);
@@ -3102,7 +3102,7 @@ async function approveCollectionRequest(requestId, orgId) {
     if (reqErr) throw new Error(reqErr.message);
 
     try { logActivity('COLLECTION ACTIVATED', `Instant collection approved - active provider: ${activeProvider}`, 'org', orgId); } catch(e) {}
-    toast('✓ Collection activated');
+    toast('Collection activated');
     loadCollectionRequestsQueue();
   } catch(e) {
     toast('Error approving request: ' + e.message);
@@ -3153,7 +3153,7 @@ async function recordDisbursement(orgId) {
     if (bbErr) throw new Error(bbErr.message);
 
     try { logActivity('DISBURSEMENT RECORDED', `Ksh ${amount.toLocaleString()} disbursed via ${method}${reference ? ' · ref: ' + reference : ''}`, 'org', orgId); } catch(e) {}
-    toast('✓ Disbursement recorded');
+    toast('Disbursement recorded');
     ['sa-disb-amount','sa-disb-reference','sa-disb-notes'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
     if (typeof loadOrgDisbursementHistory === 'function') loadOrgDisbursementHistory(orgId);
   } catch(e) {
@@ -3281,7 +3281,7 @@ async function saveOrgProviderSettings() {
     if (orgErr) throw new Error(orgErr.message);
 
     try { logActivity('PROVIDER SETTINGS UPDATED', `Active provider set to ${activeProvider}`, 'org', orgId); } catch(e) {}
-    toast('✓ Provider settings saved');
+    toast('Provider settings saved');
   } catch(e) {
     toast('Error saving provider settings: ' + e.message);
   }
@@ -3427,7 +3427,7 @@ async function sendBroadcast() {
     if (!res.ok || result.error) throw new Error(result.error || 'Broadcast failed');
 
     if (statusEl) statusEl.textContent = `✓ Sent to ${result.sent}/${result.recipient_count} devices (${result.recipient_count} users targeted)`;
-    toast('✓ Broadcast sent');
+    toast('Broadcast sent');
     document.getElementById('bc-title').value = '';
     document.getElementById('bc-body').value = '';
     _bcSelectedOrgIds.clear();
@@ -3666,7 +3666,7 @@ async function markSettlementBatchPaid(batchId, method, reference, date, notes) 
     if (updateErr) throw new Error(updateErr.message);
 
     try { logActivity('SETTLEMENT PAID', `${batch.provider} · ${batch.line_type} · Ksh ${Number(batch.amount).toLocaleString()} · ref ${reference}`, 'org', batch.org_id); } catch(e) {}
-    toast('✓ Settlement recorded as paid');
+    toast('Settlement recorded as paid');
     if (typeof loadSASettlements === 'function') loadSASettlements();
   } catch(e) {
     toast('Error marking paid: ' + e.message);
@@ -3829,7 +3829,7 @@ async function requestWelfareSettlement(welfareEventId) {
     if (insErr) throw new Error(insErr.message);
 
     try { logActivity('WELFARE SETTLEMENT REQUESTED', `${event.event_type} - Ksh ${providers.reduce((s,p)=>s+byProvider[p],0).toLocaleString()}`, 'welfare', welfareEventId); } catch(e) {}
-    toast('✓ Settlement requested - funds will be sent within 24 hours');
+    toast('Settlement requested - funds will be sent within 24 hours');
     if (typeof loadOrgSettlements === 'function') loadOrgSettlements();
   } catch(e) {
     toast('Error requesting settlement: ' + e.message);

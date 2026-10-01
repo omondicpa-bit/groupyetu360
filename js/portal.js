@@ -1823,7 +1823,7 @@ async function submitMemberPayment() {
   // Log member payment submission
   try { logActivity('PAYMENT SUBMITTED', `${currentProfile?.full_name || 'Member'} submitted Ksh ${grandTotal.toLocaleString()} (ref: ${mpesaRef}) — ${allocations.map(a=>a.typeName+': Ksh '+a.amount).join(', ')}`, 'payment', memberId); } catch(e) {}
   // Reload to show pending notice
-  toast(`✓ Payment submitted! Ksh ${grandTotal.toLocaleString()} pending admin approval. Reference: ${mpesaRef}`);
+  toast(`Payment submitted! Ksh ${grandTotal.toLocaleString()} pending admin approval. Reference: ${mpesaRef}`);
 
   closeModal('memberPayment');
   loadMyContributions();
@@ -2412,7 +2412,7 @@ async function submitWithdrawalRequest() {
     try { logActivity('WITHDRAWAL REQUESTED', `${member?.full_name || 'Member'} requested withdrawal of Ksh ${amount.toLocaleString()}${noteEl?.value?.trim() ? ' — '+noteEl.value.trim() : ''}`, 'member', window._myMemberId); } catch(e) {}
     amountEl.value = '';
     if (noteEl) noteEl.value = '';
-    toast('✓ Withdrawal request submitted. Your admin will confirm payment.');
+    toast('Withdrawal request submitted. Your admin will confirm payment.');
     loadMyPendingWithdrawals();
   } catch(e) {
     toast('Error submitting request: ' + e.message);

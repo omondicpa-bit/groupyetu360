@@ -2897,7 +2897,7 @@ tr:hover td{background:#fafbfa}
 
 /* ── Page heroes: one consistent brand band instead of five different
    gradients. Interim, until each page gets its own redesign. ── */
-.fin-hero,.wel-hero,.mgr-hero,.tb-hero,.proj-hero,.mtg-hero,.msg-hero{background:#4a0d1c !important;border-radius:var(--radius-lg)}
+.wel-hero,.mgr-hero,.tb-hero,.proj-hero,.mtg-hero,.msg-hero{background:#4a0d1c !important;border-radius:var(--radius-lg)}
 
 /* ── Design system v1: shared page patterns (phase 2) ── */
 .ds-page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:24px}
@@ -3016,3 +3016,75 @@ body:not(.mob-dark) .mh-body{background:var(--surface-2)}
   .ds-segmented{overflow-x:auto;max-width:100%}
   #members-count-label{display:none}
 }
+
+/* ── Design system v1: Contributions & money (phase 2d) ── */
+.fin-hero{background:transparent !important;padding:0;margin-bottom:24px;align-items:flex-end}
+.fin-hero-title{margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+.fin-hero-sub{font-size:13.5px;letter-spacing:0;color:var(--ink-faint);margin-top:4px}
+.fin-hero-controls{gap:10px}
+.fin-ctrl-btn{background:var(--surface);color:var(--ink);border:1px solid var(--border-dk);border-radius:var(--radius);font-size:13.5px;font-weight:700;padding:0 14px;min-height:40px}
+.fin-ctrl-btn:hover{background:var(--surface-2)}
+.fin-withdraw-pill{background:var(--surface);border:1px solid var(--border-dk);border-radius:var(--radius);padding:0 6px 0 12px;min-height:40px;gap:8px}
+.fin-withdraw-key{font-size:13px;color:var(--ink-faint);font-weight:600}
+.fin-withdraw-val{font-size:13px;font-weight:800;color:var(--ink)}
+.fin-withdraw-dot{background:var(--ink-faint)}
+.fin-withdraw-dot.open{background:var(--teal)}
+.fin-toggle-btn{background:var(--surface-2);color:var(--ink);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12.5px;font-weight:700;padding:0 10px;min-height:30px}
+.fin-toggle-btn:hover{background:var(--surface-3)}
+
+.fin-scorecard{gap:16px;margin-bottom:16px}
+.fin-score-main,.fin-score-item{border:1px solid var(--border);border-left:1px solid var(--border);border-radius:var(--radius-lg);padding:20px}
+.fin-score-label,.fin-score-item-label{font-size:12.5px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--ink-faint)}
+.fin-score-value{font-size:34px;font-weight:800;letter-spacing:-.02em;color:var(--ink);font-variant-numeric:tabular-nums}
+.fin-score-item-value{font-size:22px;font-weight:800;letter-spacing:-.01em;color:var(--ink);font-variant-numeric:tabular-nums}
+.fin-score-item.teal .fin-score-item-value{color:var(--ink)}
+.fin-score-meta,.fin-score-item-note{font-size:12.5px}
+.fin-score-bar-fill{background:var(--teal) !important}
+
+.fin-stats{gap:16px;margin-bottom:24px}
+.fin-stat-card{border-radius:var(--radius-lg);padding:16px;gap:12px}
+.fin-stat-card:hover{transform:none;box-shadow:var(--shadow);border-color:var(--border-dk)}
+.fin-stat-card.net{border-left:1px solid var(--border)}
+.fin-stat-icon{width:40px;height:40px;border-radius:var(--radius)}
+.fin-stat-icon.teal{background:var(--teal-pale);color:var(--teal-dk)}
+.fin-stat-icon.gold{background:var(--surface-2);color:var(--ink-soft)}
+.fin-stat-icon.warn{background:var(--warning-pale);color:var(--warning)}
+.fin-stat-icon.net-icon{background:var(--surface-2);color:var(--ink-soft)}
+.fin-stat-label{font-size:12.5px;font-weight:600;letter-spacing:0;text-transform:none}
+.fin-stat-value{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+
+/* View tabs on the left, record actions pushed to the right */
+.fin-tabs{gap:6px;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:16px;align-items:center}
+.fin-tab{border:0;border-radius:var(--radius-sm);background:transparent;color:var(--ink-faint);font-size:13.5px;font-weight:700;padding:0 12px;min-height:36px;display:inline-flex;align-items:center;gap:6px}
+.fin-tab:hover{background:var(--surface-3);color:var(--ink);border:0}
+.fin-tab.active{background:var(--ink);color:#fff;box-shadow:none}
+.fin-tab.record{border:1px solid var(--border-dk);border-style:solid;background:var(--surface);color:var(--ink)}
+.fin-tab.record:hover{background:var(--surface-2)}
+.fin-tab.record.active{background:var(--ink);border-color:var(--ink);color:#fff}
+.fin-tabs .fin-tab:not(.record) + .fin-tab.record{margin-left:auto}
+.fin-sub-tabs{gap:6px;margin-bottom:4px}
+.fin-sub-tab{border-radius:999px;font-size:13px;font-weight:700;padding:0 12px;min-height:32px;background:var(--surface);border:1px solid var(--border);color:var(--ink-soft)}
+.fin-sub-tab.active{background:var(--maroon-pale);border-color:#ebd0d7;color:var(--maroon)}
+.fin-form-card{border-radius:var(--radius-lg);padding:24px}
+.fin-form-title{font-size:16px;font-weight:800}
+.fin-form-sub{font-size:13px}
+.ds-icon-btn-danger:hover{background:var(--danger-pale);color:var(--danger)}
+
+/* Phones: Money screen in light mode follows the white-card style */
+body:not(.mob-dark) #fin-mob-body{background:var(--surface-2);gap:12px;padding:12px 16px 20px}
+body:not(.mob-dark) .fin-mob-hero-card{background:#fff;border:1px solid var(--border);box-shadow:none}
+.fin-mob-hero-card::before,.fin-mob-stat::before{display:none}
+body:not(.mob-dark) .fin-mob-year-tag{background:var(--warning-pale) !important;color:var(--warning) !important}
+.fin-mob-stats{gap:10px}
+body:not(.mob-dark) .fin-mob-stat{background:#fff !important;border:1px solid var(--border);box-shadow:none !important}
+.fin-mob-stat{border-radius:var(--radius-lg);padding:12px 14px}
+.fin-mob-stat-icon{display:flex;margin-bottom:4px}
+body:not(.mob-dark) .fin-mob-stat-icon{color:var(--ink-faint)}
+.fin-mob-stat-label{font-size:12px;font-weight:700;letter-spacing:0;text-transform:none}
+body:not(.mob-dark) .fin-mob-stat-label{color:var(--ink-faint)}
+.fin-mob-stat-val{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums}
+body:not(.mob-dark) .fin-mob-stat-val{color:var(--ink)}
+.fin-mob-tab{display:inline-flex;align-items:center;gap:4px;font-weight:700;border-radius:999px;min-height:36px}
+body:not(.mob-dark) .fin-mob-tab.active{background:var(--ink);border-color:var(--ink);color:#fff}
+body:not(.mob-dark) .fin-mob-tab-action{border-color:var(--border-dk);color:var(--ink)}
+body:not(.mob-dark) .fin-mob-tab-warn{border-color:var(--border-dk);color:var(--ink)}
