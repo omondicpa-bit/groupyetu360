@@ -109,6 +109,8 @@ async function loadSettings() {
   setVal('settings-name', currentOrg.name);
   setVal('settings-org-code', currentOrg.org_code || 'Not set - contact support');
   loadPaymentMethodsSettings(currentOrg);
+  setVal('settings-mpesa-label', currentOrg.mpesa_account_label);
+  updateMpesaLabelPreview();
   setVal('settings-reg', currentOrg.reg_number);
   setVal('settings-paybill', currentOrg.paybill);
   setVal('settings-account', currentOrg.account_format);
@@ -537,8 +539,14 @@ async function saveSettings() {
     bank_account: document.getElementById('settings-bank-acc')?.value?.trim() || '',
     bank_account_name: document.getElementById('settings-bank-acc-name')?.value?.trim() || '',
   };
+  const mpesaLabel = (document.getElementById('settings-mpesa-label')?.value || '').trim();
+  if (mpesaLabel && !/^[A-Za-z0-9]{1,12}$/.test(mpesaLabel)) {
+    toast('M-Pesa account label: letters and numbers only, up to 12.');
+    return;
+  }
   const updates = {
     name: document.getElementById('settings-name').value.trim(),
+    mpesa_account_label: mpesaLabel || null,
     reg_number: document.getElementById('settings-reg').value.trim(),
     paybill: document.getElementById('settings-paybill')?.value?.trim() || '',
     account_format: document.getElementById('settings-account')?.value?.trim() || '',
@@ -556,6 +564,43 @@ async function saveSettings() {
   Object.assign(currentOrg, updates);
   updateSidebar();
   toast('Settings saved successfully');
+}
+
+// M-Pesa account label - the "for account ..." text in a member's SMS.
+// Mirrors mpesaAccountLabel() in supabase/functions/_shared/darajaClient.ts,
+// which is what Safaricom actually receives. Keep the two in step.
+function mpesaAccountLabelFor(name, custom) {
+  var c = String(custom || '').trim();
+  if (/^[A-Za-z0-9]{1,12}$/.test(c)) return c;
+  var raw = String(name || '');
+  var clean = raw.replace(/[^A-Za-z0-9]/g, '');
+  if (!clean) return '';
+  if (clean.length <= 12) return clean;
+  var words = raw.split(/[^A-Za-z0-9]+/).filter(Boolean);
+  if (words.length >= 2) {
+    var initials = words.map(function (w) { return w[0]; }).join('').toUpperCase().slice(0, 12);
+    if (initials.length >= 2) return initials;
+  }
+  return clean.slice(0, 12);
+}
+
+function onMpesaLabelInput(el) {
+  var cleaned = el.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 12);
+  if (cleaned !== el.value) el.value = cleaned;
+  updateMpesaLabelPreview();
+}
+
+function updateMpesaLabelPreview() {
+  var box = document.getElementById('settings-mpesa-label-preview');
+  if (!box) return;
+  var name = document.getElementById('settings-name')?.value || currentOrg?.name || '';
+  var custom = document.getElementById('settings-mpesa-label')?.value || '';
+  var label = mpesaAccountLabelFor(name, custom) || 'GY360';
+  var esc = function (t) { return String(t).replace(/[&<>"']/g, function (ch) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[ch]; }); };
+  var source = custom.trim() ? '' : '<div style="margin-top:.3rem;font-size:.7rem">Using a label made from your group name. Type one above to choose your own.</div>';
+  box.innerHTML = '<div style="font-weight:600;color:var(--ink);margin-bottom:.2rem">Members will see</div>'
+    + '<div style="font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--ink)">Ksh500.00 sent to EPH TECHNOLOGIES LIMITED for account <strong style="color:var(--maroon)">' + esc(label) + '</strong></div>'
+    + source;
 }
 
 var _editingContribTypeId = null;

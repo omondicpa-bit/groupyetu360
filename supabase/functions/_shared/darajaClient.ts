@@ -159,6 +159,29 @@ async function darajaPost(cfg: DarajaConfig, path: string, body: unknown, fetchF
   throw new DarajaRequestError('Safaricom rejected the access token');
 }
 
+// The "for account ..." text in the customer's M-Pesa SMS. Display only:
+// callbacks match on CheckoutRequestID, never on this. Safaricom allows 12
+// characters; letters and digits only, since spaces and symbols are handled
+// inconsistently. Order: the group's own label if valid, else the name with
+// spaces and symbols removed if it fits, else the initials of a multi-word
+// name, else the name cut to 12. Returns '' if nothing usable, so the caller
+// can fall back. Mirrored in js/settings.js (mpesaAccountLabelFor) for the
+// live preview - keep the two in step.
+export function mpesaAccountLabel(name?: string | null, custom?: string | null): string {
+  const c = String(custom || '').trim();
+  if (/^[A-Za-z0-9]{1,12}$/.test(c)) return c;
+  const raw = String(name || '');
+  const clean = raw.replace(/[^A-Za-z0-9]/g, '');
+  if (!clean) return '';
+  if (clean.length <= 12) return clean;
+  const words = raw.split(/[^A-Za-z0-9]+/).filter(Boolean);
+  if (words.length >= 2) {
+    const initials = words.map((w) => w[0]).join('').toUpperCase().slice(0, 12);
+    if (initials.length >= 2) return initials;
+  }
+  return clean.slice(0, 12);
+}
+
 export interface StkPushParams {
   amount: number;
   phone: string;       // 2547XXXXXXXX

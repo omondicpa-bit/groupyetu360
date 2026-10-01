@@ -19,7 +19,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import {
-  buildCallbackUrl, DarajaConfigError, getDarajaConfig, normalisePhone, stkPush,
+  buildCallbackUrl, DarajaConfigError, getDarajaConfig, mpesaAccountLabel, normalisePhone, stkPush,
 } from '../_shared/darajaClient.ts';
 import { validateBillingCart } from '../_shared/billingPrices.ts';
 import { validateDarajaContribution } from '../_shared/darajaContributionValidation.ts';
@@ -120,13 +120,25 @@ serve(async (req) => {
     }).select('id').single();
     if (prErr) throw new Error('DB error: ' + prErr.message);
 
+    // What the member sees as "for account ..." in their M-Pesa SMS. If the
+    // lookup fails for any reason (including the column not existing yet),
+    // fall back to the old org-id reference rather than block the payment.
+    let accountRef = '';
+    try {
+      const { data: labelOrg } = await supabase
+        .from('organisations').select('name, mpesa_account_label')
+        .eq('id', org_id).maybeSingle();
+      accountRef = mpesaAccountLabel(labelOrg?.name, labelOrg?.mpesa_account_label);
+    } catch (_e) { /* fall back below */ }
+    if (!accountRef) accountRef = 'GY360-' + String(org_id).replace(/-/g, '').slice(0, 6);
+
     let push;
     try {
       push = await stkPush(cfg, {
         amount: expectedAmount,
         phone: phone254,
         callbackUrl: buildCallbackUrl(),
-        accountRef: 'GY360-' + String(org_id).replace(/-/g, '').slice(0, 6), // 12 characters
+        accountRef,                                                    // max 12 characters
         desc: isContribution ? 'GY360 contrib' : 'GY360 billing',            // 13 characters
       });
     } catch (e: any) {
