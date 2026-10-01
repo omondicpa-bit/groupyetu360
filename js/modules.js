@@ -1388,7 +1388,7 @@ function renderPaymentMethods(org, containerId, compact) {
         ${item.sub ? `<div style="font-size:.65rem;color:var(--ink-faint)">${item.sub}</div>` : ''}
       </div>
       <button onclick="navigator.clipboard.writeText('${item.copy}').then(()=>toast('Copied: ${item.copy}'))"
-        style="font-size:.65rem;color:var(--maroon);border:1px solid var(--maroon);background:transparent;padding:.2rem .55rem;cursor:pointer;font-family:'Inter',sans-serif;border-radius:3px;flex-shrink:0">Copy</button>
+        style="font-size:.65rem;color:var(--maroon);border:1px solid var(--maroon);background:transparent;padding:.2rem .55rem;cursor:pointer;font-family:var(--font);border-radius:3px;flex-shrink:0">Copy</button>
     </div>` : `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem .85rem;border:1px solid var(--border);margin-bottom:.5rem;background:var(--surface)">
       <div>
@@ -1397,7 +1397,7 @@ function renderPaymentMethods(org, containerId, compact) {
         ${item.sub ? `<div style="font-size:.7rem;color:var(--ink-faint)">${item.sub}</div>` : ''}
       </div>
       <button onclick="navigator.clipboard.writeText('${item.copy}').then(()=>toast('✓ Copied: ${item.copy}'))"
-        style="background:var(--maroon);color:#fff;border:none;padding:.35rem .8rem;font-size:.72rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;flex-shrink:0">Copy</button>
+        style="background:var(--maroon);color:#fff;border:none;padding:.35rem .8rem;font-size:.72rem;font-weight:600;cursor:pointer;font-family:var(--font);flex-shrink:0">Copy</button>
     </div>`).join('');
 }
 

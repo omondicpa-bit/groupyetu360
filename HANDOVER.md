@@ -1,5 +1,5 @@
 # GroupYetu360 — Handover
-**Last updated:** 1 October 2026 (B2C payouts live, autopilot proven; Safaricom operator structure documented)
+**Last updated:** 1 October 2026 (UI redesign phase 1: design system v1 foundation)
 **Repo path:** `C:\Users\Felix\groupyetu360`
 
 ---
@@ -92,6 +92,20 @@ A real B2C payout went through via the API, then autopilot fired a second one by
 - ⚪ If a payout ever fails without a clear reason, build the TransactionStatus API check (already approved on the account) to get Safaricom's own failure reason rather than inferring from SMS.
 
 **Separately, unrelated, already resolved:** hub.m-pesaforbusiness.co.ke had an intermittent expired-certificate error for a few days (1 Oct 2026). It was Safaricom's own infrastructure, not Felix's network or device. Resolved on its own. Nothing to action.
+
+### 🟡 UI redesign in progress - Design system v1 "Ledger" (from 1 Oct 2026)
+Felix chose Direction A ("Ledger") from the Design canvas "GroupYetu360 UI Redesign" (claude.ai artifact BZRUZHnoECQtZhqxHC4bTH). It holds the reference screens: admin overview, members list, member home on a phone, and the member M-Pesa pay flow. Direction B is on the canvas too but was not chosen.
+
+**Phase 1 shipped (foundation, no logic changes):**
+- Font is Manrope everywhere through `var(--font)`. Inter and Crimson Pro are gone; never hard-code a font-family again.
+- `:root` tokens re-valued in place (neutral surfaces, maroon brand, teal = money in, amber = needs action, red = problem) plus `--radius-*` and `--shadow-*`. Old token names kept so existing inline styles follow along.
+- A "DESIGN SYSTEM V1" layer at the end of `style.css` restyles the shell and shared components: sidebar (now light), nav, cards, stat cards, buttons, inputs, tables, badges, alerts, tabs, modals, toast. Page heroes are a single interim maroon band until each page is redesigned.
+- Navigation regrouped in `buildNav()`: Home / Money / People / Group / Me, flat, no collapsible drawers. Superadmin: Platform / Money / System. Links keep the `showPage('<id>')` onclick shape because `showPage()` matches on it.
+- `js/icons.js` (loaded before `auth.js`): `gyIcon(name, size)` returns a line icon. Use it instead of emoji or Unicode symbols in all new and touched UI.
+
+**Rules for every UI change from now on:** no emoji as icons; no new inline colours (use tokens); no new font-family declarations; sentence case labels, not UPPERCASE; status shown as `.badge-*` pills; figures in tabular numerals.
+
+**Next phases, one screen per delivery:** member home + pay flow (mobile), admin overview, members list, contributions, welfare, merry-go-round, table banking, settings, SA payouts. Each one replaces its page hero and inline styles with the components above, matching the canvas.
 
 ### 🟢 Collection and payout hardened (1 Oct 2026) - read before touching Daraja code
 Full detail in `SECURITY_AUDIT_2026-10-01.md`. What a future session must know:

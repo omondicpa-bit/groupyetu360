@@ -539,7 +539,7 @@ function showUpgradePrompt(page){
   let el=document.getElementById('page-upgrade-prompt');
   if(!el){el=document.createElement('div');el.id='page-upgrade-prompt';el.className='page';document.querySelector('.content')?.appendChild(el);}
   el.className='page active';
-  el.innerHTML=`<div style="max-width:480px;margin:3rem auto;text-align:center;padding:0 1.25rem"><div style="width:72px;height:72px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;margin:0 auto 1.1rem;font-size:2rem">🔒</div><div style="font-family:'Crimson Pro',serif;font-size:1.7rem;font-weight:700;color:var(--maroon);margin-bottom:.4rem">${info.label}</div><p style="font-size:.88rem;color:var(--ink-faint);line-height:1.75;margin-bottom:1.5rem">Not available on your <strong>${cur.charAt(0).toUpperCase()+cur.slice(1)}</strong> plan. Upgrade to <strong style="color:var(--teal)">${req}</strong> to unlock.</p><div style="display:flex;gap:.75rem;justify-content:center"><button class="btn btn-primary" onclick="showPage('billing')" style="background:var(--teal);padding:.72rem 1.5rem">💳 Upgrade Now →</button><button class="btn btn-secondary" onclick="showPage('dashboard')" style="padding:.72rem 1.25rem">← Dashboard</button></div><div style="margin-top:1rem;font-size:.72rem;color:var(--ink-faint)">Basic plan from Ksh 3,000/year · <a href="https://wa.me/254702903544" style="color:var(--teal)" target="_blank">WhatsApp us</a></div></div>`;
+  el.innerHTML=`<div style="max-width:480px;margin:3rem auto;text-align:center;padding:0 1.25rem"><div style="width:72px;height:72px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;margin:0 auto 1.1rem;font-size:2rem">🔒</div><div style="font-family:var(--font);font-size:1.7rem;font-weight:700;color:var(--maroon);margin-bottom:.4rem">${info.label}</div><p style="font-size:.88rem;color:var(--ink-faint);line-height:1.75;margin-bottom:1.5rem">Not available on your <strong>${cur.charAt(0).toUpperCase()+cur.slice(1)}</strong> plan. Upgrade to <strong style="color:var(--teal)">${req}</strong> to unlock.</p><div style="display:flex;gap:.75rem;justify-content:center"><button class="btn btn-primary" onclick="showPage('billing')" style="background:var(--teal);padding:.72rem 1.5rem">💳 Upgrade Now →</button><button class="btn btn-secondary" onclick="showPage('dashboard')" style="padding:.72rem 1.25rem">← Dashboard</button></div><div style="margin-top:1rem;font-size:.72rem;color:var(--ink-faint)">Basic plan from Ksh 3,000/year · <a href="https://wa.me/254702903544" style="color:var(--teal)" target="_blank">WhatsApp us</a></div></div>`;
   document.getElementById('page-title').textContent='Upgrade Required';
 }
 async function checkSubscriptionAccess() {
@@ -568,7 +568,7 @@ async function checkSubscriptionAccess() {
         if (!lock) {
           lock = document.createElement('div');
           lock.id = 'sub-lock-overlay';
-          lock.style.cssText = 'position:fixed;inset:0;background:rgba(90,0,22,.97);z-index:9998;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:Inter,sans-serif;color:#fff;text-align:center;padding:2rem';
+          lock.style.cssText = 'position:fixed;inset:0;background:rgba(90,0,22,.97);z-index:9998;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:var(--font);color:#fff;text-align:center;padding:2rem';
           lock.innerHTML = `
             <div style="font-size:3rem;margin-bottom:1rem">🔒</div>
             <div style="font-size:1.3rem;font-weight:700;margin-bottom:.5rem">${org.name}</div>
@@ -584,7 +584,7 @@ async function checkSubscriptionAccess() {
         // Admin gets a red banner
         const banner = document.createElement('div');
         banner.id = 'sub-warning-banner';
-        banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:var(--danger);color:#fff;padding:.65rem 1.5rem;z-index:999;display:flex;align-items:center;justify-content:space-between;font-family:Inter,sans-serif';
+        banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:var(--danger);color:#fff;padding:.65rem 1.5rem;z-index:999;display:flex;align-items:center;justify-content:space-between;font-family:var(--font)';
         banner.innerHTML = `
           <div style="display:flex;align-items:center;gap:.75rem">
             <span style="font-size:1.1rem">🔒</span>
@@ -597,7 +597,7 @@ async function checkSubscriptionAccess() {
     } else if (isExpiringSoon) {
       const banner = document.createElement('div');
       banner.id = 'sub-warning-banner';
-      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:var(--warning);color:#fff;padding:.5rem 1.5rem;z-index:999;display:flex;align-items:center;justify-content:space-between;font-family:Inter,sans-serif';
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:var(--warning);color:#fff;padding:.5rem 1.5rem;z-index:999;display:flex;align-items:center;justify-content:space-between;font-family:var(--font)';
       banner.innerHTML = `
         <span style="font-size:.78rem;font-weight:600">⚠ Subscription expires in ${daysLeft} days (${expDate.toDateString()}). Renew early to avoid interruption.</span>
         <button onclick="showPage('billing')" style="background:#fff;color:var(--warning);border:none;padding:.25rem .75rem;font-size:.72rem;font-weight:700;cursor:pointer">Renew →</button>`;
@@ -1870,7 +1870,7 @@ async function loadMyMeetings() {
       <div style="display:flex;align-items:center;gap:.75rem">
         <div style="background:var(--teal-pale);border:1px solid var(--teal-mid);padding:.3rem .5rem;text-align:center;min-width:40px;border-radius:4px">
           <div style="font-size:.55rem;font-weight:700;text-transform:uppercase;color:var(--teal-dk)">${d.toLocaleString('default',{month:'short'})}</div>
-          <div style="font-family:'Crimson Pro',serif;font-size:1.3rem;font-weight:700;color:var(--teal-dk);line-height:1">${d.getDate()}</div>
+          <div style="font-family:var(--font);font-size:1.3rem;font-weight:700;color:var(--teal-dk);line-height:1">${d.getDate()}</div>
         </div>
         <div>
           <div style="font-size:.85rem;font-weight:700;color:var(--ink)">${m.agenda||'General Meeting'}</div>
@@ -1889,10 +1889,10 @@ async function loadMyMeetings() {
       attEl.innerHTML = `
         <div style="padding:.75rem 1.25rem">
           <div style="display:flex;justify-content:space-between;margin-bottom:.85rem">
-            <div style="text-align:center"><div style="font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:var(--teal)">${attSummary.present}</div><div style="font-size:.65rem;color:var(--ink-faint);text-transform:uppercase">Present</div></div>
-            <div style="text-align:center"><div style="font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:var(--gold)">${attSummary.apology}</div><div style="font-size:.65rem;color:var(--ink-faint);text-transform:uppercase">Apology</div></div>
-            <div style="text-align:center"><div style="font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:var(--ink-faint)">${attSummary.absent}</div><div style="font-size:.65rem;color:var(--ink-faint);text-transform:uppercase">Absent</div></div>
-            <div style="text-align:center"><div style="font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:var(--maroon)">${rate}%</div><div style="font-size:.65rem;color:var(--ink-faint);text-transform:uppercase">Rate</div></div>
+            <div style="text-align:center"><div style="font-family:var(--font);font-size:1.6rem;font-weight:700;color:var(--teal)">${attSummary.present}</div><div style="font-size:.65rem;color:var(--ink-faint);text-transform:uppercase">Present</div></div>
+            <div style="text-align:center"><div style="font-family:var(--font);font-size:1.6rem;font-weight:700;color:var(--gold)">${attSummary.apology}</div><div style="font-size:.65rem;color:var(--ink-faint);text-transform:uppercase">Apology</div></div>
+            <div style="text-align:center"><div style="font-family:var(--font);font-size:1.6rem;font-weight:700;color:var(--ink-faint)">${attSummary.absent}</div><div style="font-size:.65rem;color:var(--ink-faint);text-transform:uppercase">Absent</div></div>
+            <div style="text-align:center"><div style="font-family:var(--font);font-size:1.6rem;font-weight:700;color:var(--maroon)">${rate}%</div><div style="font-size:.65rem;color:var(--ink-faint);text-transform:uppercase">Rate</div></div>
           </div>
           <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
             <div style="height:100%;width:${rate}%;background:var(--teal);border-radius:3px;transition:width 1s ease"></div>
@@ -2298,7 +2298,7 @@ function showInstallBanner() {
     background: #5a0016; color: #fff;
     padding: .75rem 1.25rem;
     display: flex; align-items: center; justify-content: space-between;
-    z-index: 9999; font-family: Inter, sans-serif; font-size: .82rem;
+    z-index: 9999; font-family: var(--font); font-size: .82rem;
     box-shadow: 0 -4px 20px rgba(0,0,0,.3);
   `;
   banner.innerHTML = `
@@ -2313,14 +2313,14 @@ function showInstallBanner() {
       <button onclick="installPWA()" style="
         background:#c49a30;color:#fff;border:none;
         padding:.4rem .9rem;font-size:.78rem;font-weight:700;
-        cursor:pointer;font-family:Inter,sans-serif;border-radius:2px">
+        cursor:pointer;font-family:var(--font);border-radius:2px">
         Install
       </button>
       <button onclick="dismissInstallBanner()" style="
         background:transparent;color:rgba(255,255,255,.6);
         border:1px solid rgba(255,255,255,.2);
         padding:.4rem .6rem;font-size:.78rem;cursor:pointer;
-        font-family:Inter,sans-serif;border-radius:2px">
+        font-family:var(--font);border-radius:2px">
         ✕
       </button>
     </div>`;

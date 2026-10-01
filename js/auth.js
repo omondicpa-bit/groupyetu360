@@ -1321,18 +1321,18 @@ function buildOrgSwitcherDropdown() {
   const orgs = _userOrgs.filter(o => o.id !== currentOrg?.id);
   let html = '';
   if (orgs.length) {
-    html += '<div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.3);padding:.2rem .4rem .4rem">Switch to</div>';
+    html += '<div class="osd-heading">Switch to</div>';
     html += orgs.map(o => {
       const initials = o.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
       return `<div class="osd-item" onclick="switchOrg('${o.id}')">
-        <div style="width:20px;height:20px;border-radius:4px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:700;color:#fff;flex-shrink:0">${initials}</div>
-        <span>${o.name}</span>
+        <div class="osd-initials">${initials}</div>
+        <span>${h(o.name)}</span>
       </div>`;
     }).join('');
-    html += '<div style="height:1px;background:rgba(255,255,255,.1);margin:.35rem 0"></div>';
+    html += '<div class="osd-divider"></div>';
   }
-  html += `<div class="osd-item osd-add" onclick="registerAnotherOrg()">＋ Add organisation</div>`;
-  html += `<div class="osd-item" onclick="showAllOrgs()">⊞ All workspaces</div>`;
+  html += `<div class="osd-item osd-add" onclick="registerAnotherOrg()">${gyIcon('plus', 14)} Add organisation</div>`;
+  html += `<div class="osd-item" onclick="showAllOrgs()">${gyIcon('overview', 14)} All workspaces</div>`;
   dd.innerHTML = html;
 }
 
@@ -1787,92 +1787,75 @@ function buildNav() {
   const isAdmin = role === 'admin' || role === 'officer' || role === 'treasurer' || isSuperAdmin;
 
   let nav = '';
+  // Design system v1: flat sections named the way a group thinks (Home,
+  // Money, People, Group), one line-icon set, no collapsible drawers that
+  // hide half the app. Every link keeps the showPage('<id>') onclick shape,
+  // because showPage() finds the active item by matching that text.
+  const link = (page, icon, label, extra) =>
+    `<a class="nav-item" onclick="showPage('${page}')" href="#">${gyIcon(icon)}<span class="nav-text">${label}</span>${extra || ''}</a>`;
+  const section = (label) => `<div class="nav-label">${label}</div>`;
 
   if (isSuperAdmin) {
-    nav += `<div class="nav-label">Super Admin</div>
-    <a class="nav-item active" onclick="showPage('superadmin')" href="#"><span class="nav-icon">⊞</span> Platform Overview</a>
-    <a class="nav-item" onclick="showPage('sa_organisations')" href="#"><span class="nav-icon">🏢</span> Organisations</a>
-    <a class="nav-item" onclick="showPage('sa_members')" href="#"><span class="nav-icon">◉</span> All Members</a>
-    <a class="nav-item" onclick="showPage('sa_finance')" href="#"><span class="nav-icon">₭</span> Revenue</a>
-    <a class="nav-item" onclick="showPage('sa_billing')" href="#"><span class="nav-icon">💳</span> Billing</a>
-    <a class="nav-item" onclick="showPage('sa_payouts')" href="#"><span class="nav-icon">💸</span> Payouts</a>
-    <a class="nav-item" onclick="showPage('sa_activity')" href="#"><span class="nav-icon">📋</span> Activity Log</a>
-    <a class="nav-item" onclick="showPage('sa_support')" href="#"><span class="nav-icon">⚙</span> Platform Settings</a>
-    <div class="nav-label" style="margin-top:.5rem">Account</div>
-    <a class="nav-item" onclick="showPage('my_account')" href="#"><span class="nav-icon">🔐</span> Account Settings</a>
-`;
+    nav += section('Platform')
+      + link('superadmin', 'overview', 'Overview')
+      + link('sa_organisations', 'building', 'Organisations')
+      + link('sa_members', 'members', 'All members')
+      + section('Money')
+      + link('sa_finance', 'revenue', 'Revenue')
+      + link('sa_billing', 'billing', 'Billing')
+      + link('sa_payouts', 'payouts', 'Payouts')
+      + section('System')
+      + link('sa_activity', 'activity', 'Activity log')
+      + link('sa_support', 'settings', 'Platform settings')
+      + link('my_account', 'shield', 'Account');
 
   } else if (role === 'member') {
-    nav += `
-    <div class="nav-label">My Portal</div>
-    <a class="nav-item active" onclick="showPage('my_profile')" href="#"><span class="nav-icon">◉</span> My Profile</a>
-    <a class="nav-item" onclick="showPage('my_contributions')" href="#"><span class="nav-icon">₭</span> My Contributions</a>
-    <a class="nav-item" onclick="showPage('my_meetings')" href="#"><span class="nav-icon">◷</span> Meetings</a>
-    <a class="nav-item" onclick="showPage('my_notices')" href="#"><span class="nav-icon">✉</span> Notices</a>
-    <a class="nav-item" onclick="showPage('faq')" href="#"><span class="nav-icon">❓</span> Help & FAQs</a>
-`;
+    nav += section('My group')
+      + link('my_profile', 'overview', 'Home')
+      + link('my_contributions', 'receipt', 'My payments')
+      + link('my_meetings', 'meetings', 'Meetings')
+      + link('my_notices', 'messages', 'Notices')
+      + section('Help')
+      + link('faq', 'help', 'Help & FAQs');
 
   } else {
     // Admin / officer / treasurer
-    const plan = getEffectivePlan(currentOrg);
     const hasBasic = planHasFeature(currentOrg, 'basic');
     const gatedLink = (page, icon, label, ok) => ok
-      ? `<a class="nav-item" onclick="showPage('${page}')" href="#"><span class="nav-icon">${icon}</span> ${label}</a>`
-      : `<a class="nav-item nav-item-locked" onclick="showUpgradePrompt('${page}');return false" href="#"><span class="nav-icon">${icon}</span> ${label} <span style="margin-left:auto;font-size:.7rem">🔒</span></a>`;
+      ? link(page, icon, label)
+      : `<a class="nav-item nav-item-locked" onclick="showUpgradePrompt('${page}');return false" href="#">${gyIcon(icon)}<span class="nav-text">${label}</span><span class="nav-lock" title="Upgrade to unlock">${gyIcon('lock', 14)}</span></a>`;
 
-    // ── MAIN (always visible) ──
-    nav += `<div class="nav-label">Main</div>
-    <a class="nav-item active" onclick="showPage('dashboard')" href="#"><span class="nav-icon">⊞</span> Dashboard</a>
-    <a class="nav-item" onclick="showPage('members')" href="#"><span class="nav-icon">◉</span> Members</a>
-    <a class="nav-item" onclick="showPage('finance')" href="#"><span class="nav-icon">₭</span> Finance</a>
-    <a class="nav-item" onclick="showPage('settlements')" href="#"><span class="nav-icon">💸</span> Settlements</a>
-    <a class="nav-item" onclick="showPage('meetings')" href="#"><span class="nav-icon">◷</span> Meetings</a>`;
+    nav += section('Home')
+      + link('dashboard', 'overview', 'Overview')
+      + (canDo('viewApprovals') ? link('approvals', 'approvals', 'Approvals', '<span class="nav-badge" id="approvals-badge" style="display:none">0</span>') : '');
 
-    // ── POWER TOOLS (collapsible) ──
-    // Officer: read-only, hide SMS/messages; Treasurer: finance tools only
-    const showPowerTools = canDo('sendSms') || canDo('manageMGR') || canDo('manageProjects');
-    if (showPowerTools) {
-      nav += `
-      <button class="nav-collapsible" onclick="toggleNavSection('nav-power-tools',this)" aria-expanded="false">
-        <span>⚡ Power Tools</span>
-        <span class="nav-caret">▾</span>
-      </button>
-      <div class="nav-collapsible-body" id="nav-power-tools" style="display:none">
-        ${canDo('manageMGR') ? `<a class="nav-item nav-item-sub" onclick="showPage('mgr')" href="#"><span class="nav-icon">🔄</span> Rotating Savings</a>` : ''}
-        ${canDo('manageMGR') ? gatedLink('welfare','♡','Welfare',hasBasic) : ''}
-        ${canDo('manageProjects') ? gatedLink('projects','⚑','Projects',hasBasic) : ''}
-        ${canDo('manageMGR') ? gatedLink('table_banking','🏦','Table Banking',hasBasic) : ''}
-        ${canDo('sendSms') ? `<a class="nav-item nav-item-sub" onclick="showPage('messages')" href="#"><span class="nav-icon">✉</span> Messages</a>` : ''}
-      </div>`;
-    }
+    nav += section('Money')
+      + link('finance', 'money', 'Contributions')
+      + (canDo('manageMGR') ? link('mgr', 'rotate', 'Merry-go-round') : '')
+      + (canDo('manageMGR') ? gatedLink('welfare', 'welfare', 'Welfare', hasBasic) : '')
+      + (canDo('manageMGR') ? gatedLink('table_banking', 'bank', 'Table banking', hasBasic) : '')
+      + link('settlements', 'payouts', 'Payouts');
 
-    // ── MY PORTAL (collapsible) ──
-    nav += `
-    <button class="nav-collapsible" onclick="toggleNavSection('nav-my-portal',this)" aria-expanded="false">
-      <span>◉ My Portal</span>
-      <span class="nav-caret">▾</span>
-    </button>
-    <div class="nav-collapsible-body" id="nav-my-portal" style="display:none">
-      <a class="nav-item nav-item-sub" onclick="showPage('my_profile')" href="#"><span class="nav-icon">◉</span> My Profile</a>
-      <a class="nav-item nav-item-sub" onclick="showPage('my_contributions')" href="#"><span class="nav-icon">₭</span> My Contributions</a>
-      <a class="nav-item nav-item-sub" onclick="showPage('faq')" href="#"><span class="nav-icon">❓</span> Help & FAQs</a>
-    </div>`;
+    nav += section('People')
+      + link('members', 'members', 'Members')
+      + link('meetings', 'meetings', 'Meetings')
+      + (canDo('sendSms') ? link('messages', 'messages', 'Messages') : '');
 
-    // ── ADMIN (collapsible) ──
-    const hasAdminNavItems = canDo('viewApprovals') || canDo('editSettings') || canDo('viewBilling');
-    nav += `
-    <button class="nav-collapsible" onclick="toggleNavSection('nav-admin-tools',this)" aria-expanded="false">
-      <span>⚙ Admin</span>
-      <span class="nav-caret">▾</span>
-    </button>
-    <div class="nav-collapsible-body" id="nav-admin-tools" style="display:none">
-      ${canDo('viewApprovals') ? `<a class="nav-item nav-item-sub" onclick="showPage('approvals')" href="#"><span class="nav-icon">✓</span> Approvals <span class="nav-badge" id="approvals-badge" style="display:none">0</span></a>` : ''}
-      ${canDo('editSettings') ? `<a class="nav-item nav-item-sub" onclick="showPage('settings')" href="#"><span class="nav-icon">⚙</span> Settings</a>` : ''}
-      ${canDo('viewBilling') ? `<a class="nav-item nav-item-sub" onclick="showPage('billing')" href="#"><span class="nav-icon">💳</span> Billing & SMS</a>` : ''}
-    </div>`;
+    const groupLinks =
+        (canDo('manageProjects') ? gatedLink('projects', 'projects', 'Projects', hasBasic) : '')
+      + (canDo('editSettings') ? link('settings', 'settings', 'Settings') : '')
+      + (canDo('viewBilling') ? link('billing', 'billing', 'Plan & billing') : '');
+    if (groupLinks) nav += section('Group') + groupLinks;
+
+    nav += section('Me')
+      + link('my_profile', 'profile', 'My profile')
+      + link('my_contributions', 'receipt', 'My payments')
+      + link('faq', 'help', 'Help & FAQs');
   }
 
   document.getElementById('sidebar-nav').innerHTML = nav;
+  const firstNav = document.querySelector('#sidebar-nav .nav-item:not(.nav-item-locked)');
+  if (firstNav) firstNav.classList.add('active');
   buildMobileNav();
   const topbar = document.getElementById('topbar-actions');
   if (isSuperAdmin) {
@@ -1887,7 +1870,7 @@ function buildNav() {
     // member portal
     topbar.innerHTML = `
       <span style="font-size:.75rem;color:var(--maroon);font-weight:600;padding:.4rem .75rem;background:var(--maroon-pale);border:1px solid var(--maroon-muted)">${currentOrg?.name||'My Organisation'}</span>
-      <button class="topbar-btn" onclick="showModal('memberPayment')" style="margin-left:.75rem">💳 Make Payment</button>`;
+      <button class="topbar-btn" onclick="showModal('memberPayment')" style="margin-left:.75rem">Make payment</button>`;
   }
 }
 
@@ -2013,25 +1996,25 @@ function buildMobileNav() {
 
   if (isSuperAdmin) {
     nav.innerHTML = buildMobNavItems([
-      { icon:'⊞', label:'Overview', page:'superadmin' },
-      { icon:'◉', label:'Members', page:'sa_members' },
-      { icon:'₭', label:'Revenue', page:'sa_finance' },
-      { icon:'💳', label:'Billing', page:'sa_billing' },
+      { icon:'overview', label:'Overview', page:'superadmin' },
+      { icon:'building', label:'Groups', page:'sa_organisations' },
+      { icon:'payouts', label:'Payouts', page:'sa_payouts' },
+      { icon:'menu', label:'More', page:'_menu' },
     ]);
   } else if (isMember) {
     nav.innerHTML = buildMobNavItems([
-      { icon:'👤', label:'Profile', page:'my_profile' },
-      { icon:'₭', label:'Payments', page:'my_contributions' },
-      { icon:'📅', label:'Meetings', page:'my_meetings' },
-      { icon:'❓', label:'Help', page:'faq' },
+      { icon:'overview', label:'Home', page:'my_profile' },
+      { icon:'receipt', label:'Payments', page:'my_contributions' },
+      { icon:'meetings', label:'Meetings', page:'my_meetings' },
+      { icon:'help', label:'Help', page:'faq' },
     ]);
   } else if (isAdmin) {
     nav.innerHTML = buildMobNavItems([
-      { icon:'⊞', label:'Dashboard', page:'dashboard' },
-      { icon:'◉', label:'Members', page:'members' },
-      { icon:'₭', label:'Finance', page:'finance' },
-      { icon:'👤', label:'Profile', page:'my_profile' },
-      { icon:'⚙', label:'More', page:'_menu' },
+      { icon:'overview', label:'Home', page:'dashboard' },
+      { icon:'money', label:'Money', page:'finance' },
+      { icon:'members', label:'Members', page:'members' },
+      { icon:'profile', label:'Me', page:'my_profile' },
+      { icon:'menu', label:'More', page:'_menu' },
     ]);
   }
 }
@@ -2040,12 +2023,12 @@ function buildMobNavItems(items) {
   return items.map(item => {
     if (item.page === '_menu') {
       return `<button class="mob-nav-item" onclick="openMobileMenu()">
-        <span class="mob-nav-icon">${item.icon}</span>
+        <span class="mob-nav-icon">${gyIcon(item.icon, 22)}</span>
         <span class="mob-nav-label">${item.label}</span>
       </button>`;
     }
     return `<button class="mob-nav-item" onclick="showPage('${item.page}');closeMobileMenu()" id="mob-nav-${item.page}">
-      <span class="mob-nav-icon">${item.icon}</span>
+      <span class="mob-nav-icon">${gyIcon(item.icon, 22)}</span>
       <span class="mob-nav-label">${item.label}</span>
     </button>`;
   }).join('');

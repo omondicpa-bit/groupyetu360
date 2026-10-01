@@ -301,7 +301,7 @@ async function loadDashboard() {
           <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem">
             <div style="background:var(--maroon-pale);padding:.5rem .65rem;text-align:center;min-width:44px">
               <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--maroon);font-weight:700">${mDate.toLocaleString('default',{month:'short'})}</div>
-              <div style="font-size:1.5rem;font-weight:700;color:var(--maroon);font-family:'Crimson Pro',serif;line-height:1">${mDate.getDate()}</div>
+              <div style="font-size:1.5rem;font-weight:700;color:var(--maroon);font-family:var(--font);line-height:1">${mDate.getDate()}</div>
             </div>
             <div>
               <div style="font-size:.85rem;font-weight:700;color:var(--ink)">${dayLabel}</div>

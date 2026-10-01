@@ -10,7 +10,8 @@
 <!-- Build: v2.5 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <!-- PWA -->
 <link rel="manifest" href="manifest.json">
@@ -23,7 +24,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026100102">
+  <link rel="stylesheet" href="style.css?v=2026100103">
 </head>
 <body>
 
@@ -410,7 +411,7 @@
   <aside class="sidebar">
     <div class="sidebar-brand">
       <div class="brand-logo">GroupYetu<span>360</span></div>
-      <div class="brand-tagline">Community Management</div>
+      <div class="brand-tagline">Group money, done right</div>
     </div>
     <div class="org-badge" id="sidebar-org-badge">
       <button class="org-switcher-btn" onclick="toggleOrgSwitcher()" id="org-switcher-trigger">
@@ -419,7 +420,7 @@
           <div class="org-badge-reg" id="sidebar-org-reg"></div>
           <div class="org-badge-plan" id="sidebar-org-plan">starter</div>
         </div>
-        <span class="org-switcher-arrow" id="org-switcher-arrow">▼</span>
+        <span class="org-switcher-arrow" id="org-switcher-arrow"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg></span>
       </button>
       <div class="org-switcher-dropdown" id="org-switcher-dropdown"></div>
     </div>
@@ -429,19 +430,20 @@
     <div class="sidebar-footer">
       <div class="sidebar-user" id="sidebar-user-name">—</div>
       <div class="sidebar-role" id="sidebar-user-role">—</div>
-      <a onclick="registerAnotherOrg()"
-        style="display:flex;align-items:center;gap:.5rem;font-size:.72rem;color:rgba(255,255,255,.5);cursor:pointer;margin-bottom:.5rem;text-decoration:none;transition:color .15s;padding:.3rem 0"
-        onmouseover="this.style.color='var(--gold-lt)'" onmouseout="this.style.color='rgba(255,255,255,.5)'">
-        <span style="font-size:.9rem">＋</span>
-        <span id="sidebar-new-group-label">Register Another Group</span>
-      </a>
-      <a href="https://wa.me/254702903544?text=Hi%2C%20I%20need%20help%20with%20GroupYetu360" target="_blank" rel="noopener"
-        style="display:flex;align-items:center;gap:.5rem;font-size:.72rem;color:rgba(255,255,255,.5);cursor:pointer;margin-bottom:.5rem;text-decoration:none;transition:color .15s;padding:.3rem 0"
-        onmouseover="this.style.color='var(--gold-lt)'" onmouseout="this.style.color='rgba(255,255,255,.5)'">
-        <span style="font-size:.9rem">💬</span>
-        <span>Contact Support</span>
-      </a>
-      <span class="sidebar-logout" onclick="signOut()">⎋ Sign Out</span>
+      <div class="sidebar-links">
+        <button type="button" class="sidebar-link" onclick="registerAnotherOrg()">
+          <svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          <span id="sidebar-new-group-label">Register Another Group</span>
+        </button>
+        <a class="sidebar-link" href="https://wa.me/254702903544?text=Hi%2C%20I%20need%20help%20with%20GroupYetu360" target="_blank" rel="noopener">
+          <svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z"/></svg>
+          <span>Contact support</span>
+        </a>
+        <button type="button" class="sidebar-link sidebar-logout" onclick="signOut()">
+          <svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l-5-5 5-5"/><path d="M5 12h11"/></svg>
+          <span>Sign out</span>
+        </button>
+      </div>
     </div>
   </aside>
 
@@ -623,7 +625,7 @@
         <div style="position:relative;z-index:1;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:1rem">
           <div>
             <div id="dash-greeting" style="font-size:.72rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:.35rem">Good morning</div>
-            <div id="dash-hero-name" style="font-family:'Crimson Pro',serif;font-size:2rem;font-weight:700;color:#fff;line-height:1.1;margin-bottom:.5rem">—</div>
+            <div id="dash-hero-name" style="font-family:var(--font);font-size:2rem;font-weight:700;color:#fff;line-height:1.1;margin-bottom:.5rem">—</div>
             <div id="dash-hero-org" style="font-size:.8rem;color:rgba(255,255,255,.6);display:flex;align-items:center;gap:.6rem">
               <span id="dash-hero-org-name">—</span>
               <span style="opacity:.4">·</span>
@@ -632,11 +634,11 @@
           </div>
           <div style="display:flex;gap:.75rem;flex-wrap:wrap">
             <div style="text-align:center;padding:.6rem 1rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12)">
-              <div style="font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:#fff" id="dash-hero-members">—</div>
+              <div style="font-family:var(--font);font-size:1.6rem;font-weight:700;color:#fff" id="dash-hero-members">—</div>
               <div style="font-size:.62rem;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.1em">Members</div>
             </div>
             <div style="text-align:center;padding:.6rem 1rem;background:rgba(196,154,48,.15);border:1px solid rgba(196,154,48,.25)">
-              <div style="font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:var(--gold-lt)" id="dash-hero-balance">—</div>
+              <div style="font-family:var(--font);font-size:1.6rem;font-weight:700;color:var(--gold-lt)" id="dash-hero-balance">—</div>
               <div style="font-size:.62rem;color:rgba(196,154,48,.7);text-transform:uppercase;letter-spacing:.1em">Account Balance</div>
             </div>
           </div>
@@ -1161,15 +1163,15 @@
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1rem;margin-bottom:1.5rem">
         <div class="card" style="padding:1.1rem">
           <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.4rem">Awaiting Settlement</div>
-          <div id="settle-stat-pending" style="font-family:'Crimson Pro',serif;font-size:1.7rem;font-weight:700;color:var(--danger)">—</div>
+          <div id="settle-stat-pending" style="font-family:var(--font);font-size:1.7rem;font-weight:700;color:var(--danger)">—</div>
         </div>
         <div class="card" style="padding:1.1rem">
           <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.4rem">Settled This Month</div>
-          <div id="settle-stat-paid" style="font-family:'Crimson Pro',serif;font-size:1.7rem;font-weight:700;color:var(--teal)">—</div>
+          <div id="settle-stat-paid" style="font-family:var(--font);font-size:1.7rem;font-weight:700;color:var(--teal)">—</div>
         </div>
         <div class="card" style="padding:1.1rem">
           <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.4rem">Welfare Pending</div>
-          <div id="settle-stat-welfare" style="font-family:'Crimson Pro',serif;font-size:1.7rem;font-weight:700;color:var(--gold,#c49a30)">—</div>
+          <div id="settle-stat-welfare" style="font-family:var(--font);font-size:1.7rem;font-weight:700;color:var(--gold,#c49a30)">—</div>
         </div>
       </div>
 
@@ -2436,7 +2438,7 @@
         <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem">
           <div>
             <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;opacity:.6;margin-bottom:.3rem">Current Plan</div>
-            <div id="billing-plan-name" style="font-family:'Crimson Pro',serif;font-size:2.2rem;font-weight:700;line-height:1">Starter</div>
+            <div id="billing-plan-name" style="font-family:var(--font);font-size:2.2rem;font-weight:700;line-height:1">Starter</div>
             <div id="billing-plan-meta" style="font-size:.78rem;opacity:.7;margin-top:.25rem">Free · Up to 15 members</div>
           </div>
           <div style="text-align:right;flex-shrink:0">
@@ -2475,7 +2477,7 @@
           <!-- Starter -->
           <div id="plan-card-starter" style="padding:1.1rem;border-right:1px solid var(--border);position:relative">
             <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.35rem">Starter</div>
-            <div style="font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:var(--maroon)">Free</div>
+            <div style="font-family:var(--font);font-size:1.6rem;font-weight:700;color:var(--maroon)">Free</div>
             <div style="font-size:.65rem;color:var(--ink-faint);margin-bottom:.5rem">Forever - no trial</div>
             <div style="font-size:.7rem;font-weight:600;color:var(--teal);background:var(--teal-pale,#e6f4ef);padding:.2rem .45rem;border-radius:3px;display:inline-block;margin-bottom:.75rem">Up to 15 members</div>
             <div style="font-size:.7rem;color:var(--ink-soft);line-height:1.85">
@@ -2488,7 +2490,7 @@
           <!-- Basic -->
           <div id="plan-card-basic" style="padding:1.1rem;border-right:1px solid var(--border);position:relative">
             <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--teal);margin-bottom:.35rem">Basic</div>
-            <div style="font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:var(--maroon)">Ksh 3,000</div>
+            <div style="font-family:var(--font);font-size:1.6rem;font-weight:700;color:var(--maroon)">Ksh 3,000</div>
             <div style="font-size:.65rem;color:var(--ink-faint);margin-bottom:.5rem">Ksh 250/month</div>
             <div style="font-size:.7rem;font-weight:600;color:var(--teal);background:var(--teal-pale,#e6f4ef);padding:.2rem .45rem;border-radius:3px;display:inline-block;margin-bottom:.75rem">Up to 30 members</div>
             <div style="font-size:.7rem;color:var(--ink-soft);line-height:1.85">
@@ -2502,7 +2504,7 @@
           <div id="plan-card-standard" style="padding:1.1rem;border-right:1px solid var(--border);background:var(--maroon-pale);position:relative">
             <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--maroon)"></div>
             <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--maroon);margin-bottom:.35rem">Standard ⭐ Most Popular</div>
-            <div style="font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:var(--maroon)">Ksh 6,000</div>
+            <div style="font-family:var(--font);font-size:1.6rem;font-weight:700;color:var(--maroon)">Ksh 6,000</div>
             <div style="font-size:.65rem;color:var(--ink-faint);margin-bottom:.5rem">Ksh 500/month</div>
             <div style="font-size:.7rem;font-weight:600;color:var(--teal);background:var(--teal-pale,#e6f4ef);padding:.2rem .45rem;border-radius:3px;display:inline-block;margin-bottom:.75rem">Up to 75 members</div>
             <div style="font-size:.7rem;color:var(--ink-soft);line-height:1.85">
@@ -2515,7 +2517,7 @@
           <!-- Pro -->
           <div id="plan-card-pro" style="padding:1.1rem;position:relative">
             <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#c49a30;margin-bottom:.35rem">Pro</div>
-            <div style="font-family:'Crimson Pro',serif;font-size:1.6rem;font-weight:700;color:var(--maroon)">Ksh 12,000</div>
+            <div style="font-family:var(--font);font-size:1.6rem;font-weight:700;color:var(--maroon)">Ksh 12,000</div>
             <div style="font-size:.65rem;color:var(--ink-faint);margin-bottom:.5rem">Ksh 1,000/month</div>
             <div style="font-size:.7rem;font-weight:600;color:var(--teal);background:var(--teal-pale,#e6f4ef);padding:.2rem .45rem;border-radius:3px;display:inline-block;margin-bottom:.75rem">Unlimited members</div>
             <div style="font-size:.7rem;color:var(--ink-soft);line-height:1.85">
@@ -3403,7 +3405,7 @@
             style="display:flex;align-items:center;justify-content:center;gap:.4rem;font-size:.78rem;color:var(--ink-faint);text-decoration:none;padding:.5rem;margin-top:.6rem">
             💬 Contact Support
           </a>
-          <button onclick="signOut()" style="background:transparent;border:1px solid var(--border);border-radius:20px;padding:.55rem 1rem;font-size:.82rem;color:var(--ink-faint);cursor:pointer;width:100%;font-family:'Inter',sans-serif;margin-top:.25rem">⎋ Sign Out</button>
+          <button onclick="signOut()" style="background:transparent;border:1px solid var(--border);border-radius:20px;padding:.55rem 1rem;font-size:.82rem;color:var(--ink-faint);cursor:pointer;width:100%;font-family:var(--font);margin-top:.25rem">⎋ Sign Out</button>
         </div>
       </div>
     </div>
@@ -3495,7 +3497,7 @@
           <div class="card" id="org-balance-card" style="display:none;animation:portalFadeUp .4s ease .35s both">
             <div class="card-header"><div class="card-title">Group Account Balance</div></div>
             <div class="card-body">
-              <div style="font-family:'Crimson Pro',serif;font-size:2rem;font-weight:700;color:var(--maroon)" id="mp-org-balance">—</div>
+              <div style="font-family:var(--font);font-size:2rem;font-weight:700;color:var(--maroon)" id="mp-org-balance">—</div>
               <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.2rem">As of <span id="mp-org-balance-date">—</span></div>
             </div>
           </div>
@@ -3670,22 +3672,22 @@
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.75rem;margin-bottom:1.25rem" id="mc-stats-row">
         <div style="background:linear-gradient(135deg,var(--maroon) 0%,#5a0016 100%);border-radius:8px;padding:1.1rem 1.25rem;color:#fff">
           <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;opacity:.7;margin-bottom:.3rem">Total Paid</div>
-          <div id="mc-total" style="font-family:'Crimson Pro',serif;font-size:1.75rem;font-weight:700;line-height:1">—</div>
+          <div id="mc-total" style="font-family:var(--font);font-size:1.75rem;font-weight:700;line-height:1">—</div>
           <div style="font-size:.68rem;opacity:.65;margin-top:.2rem">All time</div>
         </div>
         <div style="background:var(--surface);border:1px solid var(--border);border-top:3px solid #c49a30;border-radius:8px;padding:1.1rem 1.25rem">
           <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.3rem">This Year</div>
-          <div id="mc-year" style="font-family:'Crimson Pro',serif;font-size:1.75rem;font-weight:700;color:#c49a30;line-height:1">—</div>
+          <div id="mc-year" style="font-family:var(--font);font-size:1.75rem;font-weight:700;color:#c49a30;line-height:1">—</div>
           <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem" id="mc-year-label">2026</div>
         </div>
         <div id="mc-shares-card" style="background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--maroon);border-radius:8px;padding:1.1rem 1.25rem">
           <div id="mc-shares-label" style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.3rem">Shares</div>
-          <div id="mc-shares-bal" style="font-family:'Crimson Pro',serif;font-size:1.75rem;font-weight:700;color:var(--maroon);line-height:1">—</div>
+          <div id="mc-shares-bal" style="font-family:var(--font);font-size:1.75rem;font-weight:700;color:var(--maroon);line-height:1">—</div>
           <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">Equity in group</div>
         </div>
         <div id="mc-savings-card" style="background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--teal);border-radius:8px;padding:1.1rem 1.25rem">
           <div id="mc-savings-label" style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.3rem">Savings</div>
-          <div id="mc-savings-bal" style="font-family:'Crimson Pro',serif;font-size:1.75rem;font-weight:700;color:var(--teal);line-height:1">—</div>
+          <div id="mc-savings-bal" style="font-family:var(--font);font-size:1.75rem;font-weight:700;color:var(--teal);line-height:1">—</div>
           <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">Monthly deposits</div>
         </div>
       </div>
@@ -3768,7 +3770,7 @@
       <div class="mob-hide">
       <div class="msg-hero" style="background:linear-gradient(135deg,#0d3d2e 0%,var(--teal) 60%,#1a1a1a 100%);margin-bottom:1.25rem">
         <div>
-          <div style="font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:#fff">📅 My Meetings</div>
+          <div style="font-family:var(--font);font-size:1.4rem;font-weight:700;color:#fff">📅 My Meetings</div>
           <div id="my-meetings-sub" style="font-size:.72rem;color:rgba(255,255,255,.5);margin-top:.15rem">Upcoming and past meetings</div>
         </div>
         <div style="display:flex;gap:.5rem" id="my-attendance-chips"></div>
@@ -3818,7 +3820,7 @@
       <div class="mob-hide">
       <div class="msg-hero" style="background:linear-gradient(135deg,#1a1a1a 0%,#2d2d2d 50%,#0d3d2e 100%);margin-bottom:1.25rem">
         <div>
-          <div style="font-family:'Crimson Pro',serif;font-size:1.4rem;font-weight:700;color:#fff">📢 Notices</div>
+          <div style="font-family:var(--font);font-size:1.4rem;font-weight:700;color:#fff">📢 Notices</div>
           <div style="font-size:.72rem;color:rgba(255,255,255,.5);margin-top:.15rem">Messages from your group admin</div>
         </div>
         <div id="notices-count-chip" style="font-size:.72rem;color:rgba(255,255,255,.6)"></div>
@@ -5777,15 +5779,16 @@
 
 
   <!-- GroupYetu360 Scripts - load order matters -->
-  <script src="js/auth.js?v=2026100102"></script>
-  <script src="js/utils.js?v=2026100102"></script>
-  <script src="js/dashboard.js?v=2026100102"></script>
-  <script src="js/members.js?v=2026100102"></script>
-  <script src="js/finance.js?v=2026100102"></script>
-  <script src="js/settings.js?v=2026100102"></script>
-  <script src="js/portal.js?v=2026100102"></script>
-  <script src="js/modules.js?v=2026100102"></script>
-  <script src="js/taya.js?v=2026100102"></script>
+  <script src="js/icons.js?v=2026100103"></script>
+  <script src="js/auth.js?v=2026100103"></script>
+  <script src="js/utils.js?v=2026100103"></script>
+  <script src="js/dashboard.js?v=2026100103"></script>
+  <script src="js/members.js?v=2026100103"></script>
+  <script src="js/finance.js?v=2026100103"></script>
+  <script src="js/settings.js?v=2026100103"></script>
+  <script src="js/portal.js?v=2026100103"></script>
+  <script src="js/modules.js?v=2026100103"></script>
+  <script src="js/taya.js?v=2026100103"></script>
   <script>
     // Bootstrap - runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —

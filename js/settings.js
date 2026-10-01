@@ -3565,7 +3565,7 @@ async function loadSASettlements() {
       return `
       <div class="card" style="margin-bottom:1rem;overflow:hidden;padding:0">
         <div style="padding:.85rem 1.25rem;border-bottom:1px solid var(--border-soft);display:flex;justify-content:space-between;align-items:center">
-          <div style="font-weight:700;font-size:.88rem;font-family:'Crimson Pro',serif">${new Date(date).toLocaleDateString('en-KE', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
+          <div style="font-weight:700;font-size:.88rem;font-family:var(--font)">${new Date(date).toLocaleDateString('en-KE', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
           <div style="font-size:.75rem;font-weight:600;color:${pendingTotal > 0 ? 'var(--danger)' : 'var(--teal)'}">${pendingTotal > 0 ? 'Ksh ' + pendingTotal.toLocaleString() + ' pending' : '✓ Fully settled'}</div>
         </div>
         ${dayBatches.map((b, i) => `
@@ -3602,7 +3602,7 @@ async function openMarkPaidForm(batchId) {
     summaryEl.innerHTML = `
       <div style="font-weight:700;margin-bottom:.2rem">${(batch.organisations?.name||'Organisation').replace(/</g,'')}</div>
       <div style="color:var(--ink-faint)">${batch.provider} · ${batch.line_type} · ${batch.welfare_event_id ? 'Welfare event' : new Date(batch.settlement_date).toLocaleDateString()}</div>
-      <div style="font-weight:700;font-size:1.2rem;margin-top:.4rem;font-family:'Crimson Pro',serif">Ksh ${Number(batch.amount).toLocaleString()}</div>`;
+      <div style="font-weight:700;font-size:1.2rem;margin-top:.4rem;font-family:var(--font)">Ksh ${Number(batch.amount).toLocaleString()}</div>`;
   }
 
   // Destination: welfare batches routed 'direct' use their own recipient
@@ -3738,7 +3738,7 @@ async function viewSettlementDetails(orgId, provider, date, lineType, orgName, r
   const modalHtml = `
     <div style="text-align:center;padding:1.5rem 1rem 1.25rem;background:linear-gradient(135deg,var(--maroon-pale,#fdf0f3),#fff);border-radius:10px;margin-bottom:1.25rem">
       <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.3rem">${(orgName || 'Organisation').replace(/</g,'')} · ${new Date(date).toLocaleDateString('en-KE',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</div>
-      <div style="font-family:'Crimson Pro',serif;font-size:2.1rem;font-weight:700;color:var(--maroon)">Ksh ${total.toLocaleString()}</div>
+      <div style="font-family:var(--font);font-size:2.1rem;font-weight:700;color:var(--maroon)">Ksh ${total.toLocaleString()}</div>
       <div style="margin-top:.5rem;display:flex;justify-content:center;gap:.5rem">
         ${provider ? providerBadge(provider) : ''}
         ${lineType ? `<span style="background:var(--surface-2);color:var(--ink-soft);font-size:.68rem;font-weight:700;text-transform:capitalize;padding:.22rem .55rem;border-radius:6px">${lineType}</span>` : ''}
@@ -3952,7 +3952,7 @@ async function loadOrgSettlements() {
       return `
       <div class="card" style="margin-bottom:1rem;overflow:hidden;padding:0">
         <div style="padding:.85rem 1.25rem;border-bottom:1px solid var(--border-soft);display:flex;justify-content:space-between;align-items:center">
-          <div style="font-weight:700;font-size:.88rem;font-family:'Crimson Pro',serif">${new Date(date).toLocaleDateString('en-KE', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
+          <div style="font-weight:700;font-size:.88rem;font-family:var(--font)">${new Date(date).toLocaleDateString('en-KE', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
         </div>
         ${rows.map((b, i) => `
           <div style="padding:.85rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;${i < rows.length-1 ? 'border-bottom:1px solid var(--border-soft)' : ''}">
