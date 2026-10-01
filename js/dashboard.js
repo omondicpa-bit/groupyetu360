@@ -311,7 +311,7 @@ async function loadDashboard() {
           ${m.agenda?`<div style="font-size:.75rem;color:var(--ink-soft);line-height:1.65;padding:.5rem .6rem;background:var(--surface-2);border-left:2px solid var(--maroon)">${m.agenda}</div>`:''}`;
       } else {
         nmEl.innerHTML = `<div style="text-align:center;padding:.5rem 0">
-          <div style="font-size:1.5rem;margin-bottom:.4rem">📅</div>
+          <div style="display:flex;justify-content:center;color:var(--ink-faint);margin-bottom:.4rem">${gyIcon('meetings', 26)}</div>
           <div style="font-size:.78rem;color:var(--ink-faint);margin-bottom:.75rem">No meetings scheduled yet</div>
           <button class="btn btn-primary btn-sm" onclick="showModal('scheduleMeeting')">Schedule a Meeting</button>
         </div>`;
@@ -352,7 +352,7 @@ async function loadCollectionActivationCard(orgId) {
     if (pendingReq) {
       cardEl.innerHTML = `
         <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:.6rem;padding:1rem;display:flex;align-items:center;gap:.75rem">
-          <span style="font-size:1.2rem">⏳</span>
+          <span style="color:var(--warning);display:flex">${gyIcon('approvals', 20)}</span>
           <div>
             <div style="font-weight:700;font-size:.85rem">Instant Collection — Request Submitted</div>
             <div style="font-size:.78rem;color:var(--ink-faint);margin-top:.1rem">Requested ${new Date(pendingReq.requested_at).toLocaleDateString()} — your GroupYetu360 admin will review it shortly.</div>
@@ -365,7 +365,7 @@ async function loadCollectionActivationCard(orgId) {
     cardEl.innerHTML = `
       <div style="background:linear-gradient(135deg,var(--maroon-pale),#fff);border:1px solid var(--maroon-muted);border-radius:.6rem;padding:1.1rem">
         <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem">
-          <span style="font-size:1.3rem">⚡</span>
+          <span style="color:var(--maroon);display:flex">${gyIcon('phone', 20)}</span>
           <div style="font-weight:700;font-size:.9rem;color:var(--maroon)">Enable Instant M-Pesa Collection</div>
         </div>
         <div style="font-size:.8rem;color:var(--ink-soft);margin-bottom:.85rem;line-height:1.5">
@@ -416,7 +416,7 @@ function checkSmsBalanceWarning() {
   warnEl.style.display = 'block';
   warnEl.innerHTML = `
     <div style="display:flex;align-items:flex-start;gap:.75rem">
-      <span style="font-size:1.2rem">⚠️</span>
+      <span style="color:var(--danger);display:flex">${gyIcon('bell', 20)}</span>
       <div>
         <div style="font-weight:700;font-size:.85rem;color:var(--danger);margin-bottom:.2rem">SMS Bundle Empty</div>
         <div style="font-size:.78rem;color:var(--ink-soft);line-height:1.5">
@@ -473,7 +473,7 @@ async function loadDashboardModuleCards(orgId) {
       <div class="card-header">
         <div>
           <div class="card-title" style="display:flex;align-items:center;gap:.5rem">
-            <span style="font-size:1rem">🔄</span> Rotating Savings
+            <span style="display:inline-flex;color:var(--ink-faint)">${gyIcon('rotate', 16)}</span> Merry-go-round
           </div>
           <div class="card-sub">${cycles.length} cycle${cycles.length!==1?'s':''} · ${active.length} active</div>
         </div>
@@ -521,7 +521,7 @@ async function loadDashboardModuleCards(orgId) {
       <div class="card-header">
         <div>
           <div class="card-title" style="display:flex;align-items:center;gap:.5rem">
-            <span style="font-size:1rem">🏦</span> Table Banking
+            <span style="display:inline-flex;color:var(--ink-faint)">${gyIcon('bank', 16)}</span> Table banking
           </div>
           <div class="card-sub">${pools.length} pool${pools.length!==1?'s':''} · ${active.length} active</div>
         </div>
@@ -566,7 +566,7 @@ async function loadDashboardModuleCards(orgId) {
       <div class="card-header">
         <div>
           <div class="card-title" style="display:flex;align-items:center;gap:.5rem">
-            <span style="font-size:1rem">⚠</span> Pending Fines
+            <span style="display:inline-flex;color:var(--warning)">${gyIcon('bell', 16)}</span> Pending fines
           </div>
           <div class="card-sub">${pending.length} fine${pending.length!==1?'s':''} awaiting resolution</div>
         </div>
@@ -808,6 +808,8 @@ function gateQuickActions() {
   // Desktop Quick Actions
   const gates = {
     'qa-add-member':      canDo('addMember'),
+    'dash-head-add-member': canDo('addMember'),
+    'dash-head-record-payment': canDo('recordPayment'),
     'qa-record-payment':  canDo('recordPayment'),
     'qa-send-sms':        canDo('sendSms'),
     'qa-schedule-meeting':canDo('createMeeting'),

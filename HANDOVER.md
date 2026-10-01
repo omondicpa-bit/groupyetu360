@@ -105,7 +105,9 @@ Felix chose Direction A ("Ledger") from the Design canvas "GroupYetu360 UI Redes
 
 **Rules for every UI change from now on:** no emoji as icons; no new inline colours (use tokens); no new font-family declarations; sentence case labels, not UPPERCASE; status shown as `.badge-*` pills; figures in tabular numerals.
 
-**Next phases, one screen per delivery:** member home + pay flow (mobile), admin overview, members list, contributions, welfare, merry-go-round, table banking, settings, SA payouts. Each one replaces its page hero and inline styles with the components above, matching the canvas.
+**Phase 2a shipped:** admin Overview (desktop page header replaces the maroon hero, stat-card icons, quick actions, attention cards; mobile admin home emoji replaced) and the superadmin Platform overview (its inline `<style>` block in `index.html` re-tokenised: no coloured KPI stripes, sentence-case labels, pill badges). New shared classes: `.ds-page-head`, `.ds-page-title`, `.ds-eyebrow`, `.ds-page-actions`, `.ds-stat-icon`, `.ds-attn-amber/red`, `.ds-qa`, `.ds-btn-auto` (`.btn-primary` is full-width by default; add this for inline buttons). Pages with their own inline `<style>` block override style.css, so re-tokenise them in place.
+
+**Next phases, one screen per delivery:** member home + pay flow (mobile), members list, contributions, welfare, merry-go-round, table banking, settings, SA payouts. Each one replaces its page hero and inline styles with the components above, matching the canvas.
 
 ### 🟢 Collection and payout hardened (1 Oct 2026) - read before touching Daraja code
 Full detail in `SECURITY_AUDIT_2026-10-01.md`. What a future session must know:

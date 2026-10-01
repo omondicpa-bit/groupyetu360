@@ -2898,3 +2898,25 @@ tr:hover td{background:#fafbfa}
 /* ── Page heroes: one consistent brand band instead of five different
    gradients. Interim, until each page gets its own redesign. ── */
 .fin-hero,.wel-hero,.mgr-hero,.tb-hero,.proj-hero,.mtg-hero,.msg-hero{background:#4a0d1c !important;border-radius:var(--radius-lg)}
+
+/* ── Design system v1: shared page patterns (phase 2) ── */
+.ds-page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:24px}
+.ds-eyebrow{font-size:13px;font-weight:600;color:var(--ink-faint)}
+.ds-page-title{margin:2px 0 0;font-size:26px;font-weight:800;letter-spacing:-.02em;color:var(--ink);line-height:1.15}
+.ds-page-sub{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13.5px;color:var(--ink-faint);margin-top:4px}
+.ds-dot{opacity:.6}
+.ds-page-actions{display:flex;gap:10px;flex-wrap:wrap}
+.ds-btn-auto{width:auto}
+.ds-stat-icon{width:36px;height:36px;border-radius:var(--radius);background:var(--surface-2);color:var(--ink-soft);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.dash-stat{transition:border-color .15s,box-shadow .15s}
+.dash-stat:hover{transform:none;border-color:var(--border-dk);box-shadow:var(--shadow)}
+.ds-attn{margin-bottom:16px}
+.ds-attn .card-header{border-bottom:0}
+.ds-attn-amber{background:var(--warning-pale);border-color:#f3ddbf}
+.ds-attn-amber .card-title,.ds-attn-amber .card-action{color:var(--warning)}
+.ds-attn-red{background:var(--danger-pale);border-color:#efc9cf}
+.ds-attn-red .card-title,.ds-attn-red .card-action{color:var(--danger)}
+.ds-qa{justify-content:flex-start;gap:10px;min-height:44px;font-size:13px;color:var(--ink)}
+.ds-qa .gy-icon{color:var(--ink-faint)}
+.mob-action-icon{display:flex;align-items:center;justify-content:center}
+.mh-icon-btn{display:inline-flex;align-items:center;justify-content:center}
