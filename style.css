@@ -2920,3 +2920,53 @@ tr:hover td{background:#fafbfa}
 .ds-qa .gy-icon{color:var(--ink-faint)}
 .mob-action-icon{display:flex;align-items:center;justify-content:center}
 .mh-icon-btn{display:inline-flex;align-items:center;justify-content:center}
+
+/* ── Design system v1: mobile home screens (phase 2b) ──
+   Light mode only; the dark theme keeps its own colours. Summary cards
+   become calm white cards (ids set gradients, hence !important). */
+.mh-greeting{font-size:13.5px;font-weight:600;color:var(--ink-faint)}
+.mh-name{font-size:22px;font-weight:800;letter-spacing:-.015em}
+.mh-org-pill{border-radius:999px;font-weight:700;font-size:12.5px}
+.mh-icon-btn{width:40px;height:40px}
+body:not(.mob-dark) .mh-icon-btn{background:#fff;border:1px solid var(--border);color:var(--ink-soft)}
+body:not(.mob-dark) .mh-org-pill{background:#fff;border:1px solid var(--border);color:var(--ink)}
+body:not(.mob-dark) .mh-org-dot{background:var(--maroon-pale);color:var(--maroon)}
+
+body:not(.mob-dark) .mob-summary-card{background:#fff !important;border:1px solid var(--border);box-shadow:none !important}
+.mob-summary-card::before{display:none}
+.mob-sc-label{font-size:12.5px;font-weight:700;letter-spacing:0;text-transform:none}
+body:not(.mob-dark) .mob-sc-label{color:var(--ink-faint)}
+.mob-sc-amount{font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+body:not(.mob-dark) .mob-sc-amount{color:var(--ink)}
+body:not(.mob-dark) .mob-sc-meta{color:var(--ink-soft)}
+body:not(.mob-dark) .mob-sc-tag{background:var(--surface-2);color:var(--ink-soft);border:1px solid var(--border)}
+body:not(.mob-dark) .mob-sc-footer{color:var(--ink-faint);border-top-color:var(--border)}
+body:not(.mob-dark) #adm-sc-contribs-list div{color:var(--ink-soft) !important}
+body:not(.mob-dark) .mob-dot{background:#d9dcda}
+body:not(.mob-dark) .mob-dot.active{background:var(--maroon)}
+
+.mob-action-icon{width:48px;height:48px;border-radius:var(--radius-lg)}
+body:not(.mob-dark) .mob-action-icon{background:#fff;border:1px solid var(--border);box-shadow:none;color:var(--ink-soft)}
+.mob-action-label{font-size:11.5px;font-weight:700;letter-spacing:0;text-transform:none}
+.mob-section-hdr{font-size:14px;font-weight:800}
+body:not(.mob-dark) .mob-see-all{color:var(--maroon);font-weight:700}
+body:not(.mob-dark) .mob-txn-amt{color:var(--teal-dk)}
+body:not(.mob-dark) .mob-promo{background:#fff;border:1px solid var(--border)}
+.mob-promo-icon{display:flex;color:var(--ink-faint)}
+body:not(.mob-dark) .mob-promo-btn{background:var(--surface-2);color:var(--ink);border:1px solid var(--border-dk)}
+
+.mh-pay-card{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.mh-pay-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:54px;border:0;border-radius:var(--radius-lg);background:var(--maroon);color:#fff;font-family:var(--font);font-size:15px;font-weight:800;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mh-pay-btn:active{background:var(--maroon-dk)}
+.mh-pay-hint{font-size:12px;color:var(--ink-faint);text-align:center}
+body.mob-dark .mh-pay-hint{color:#94a3b8}
+
+/* Pay modal becomes a full-height sheet on phones */
+@media(max-width:768px){
+  #modal-memberPayment{align-items:flex-end}
+  #modal-memberPayment .modal{width:100%;max-width:none;max-height:94vh;border-radius:var(--radius-xl) var(--radius-xl) 0 0}
+  #modal-memberPayment .modal-body{padding:16px}
+  .mp-state-box{padding:28px 16px}
+}
+.mh-body{gap:12px;padding:12px 16px 20px}
+body:not(.mob-dark) .mh-body{background:var(--surface-2)}

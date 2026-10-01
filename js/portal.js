@@ -285,7 +285,7 @@ async function loadMyContributions() {
     const role = currentProfile?.role;
     const isAdmin = ['admin','officer','treasurer','superadmin'].includes(role);
     document.getElementById('mc-table').innerHTML = `<tr><td colspan="5" style="padding:2rem;text-align:center">
-      <div style="font-size:1.5rem;margin-bottom:.75rem">🔗</div>
+      <div style="display:flex;justify-content:center;color:var(--ink-faint);margin-bottom:.75rem">${gyIcon('link', 26)}</div>
       <div style="font-size:.9rem;font-weight:600;color:var(--ink);margin-bottom:.4rem">Member record not linked</div>
       <div style="font-size:.8rem;color:var(--ink-faint);line-height:1.7;margin-bottom:1rem">
         ${isAdmin
@@ -383,7 +383,7 @@ async function loadMyContributions() {
       pendingEl.style.display = pendingReqs?.length ? 'block' : 'none';
       pendingEl.innerHTML = pendingReqs?.length
         ? `<div style="background:rgba(196,154,48,.1);border:1px solid var(--gold);border-left:3px solid var(--gold);padding:.65rem 1rem;font-size:.8rem;color:var(--ink)">
-            ⏳ You have <strong>${pendingReqs.length} payment${pendingReqs.length!==1?'s':''} pending approval</strong> (Ksh ${pendingTotal.toLocaleString()} total). Balances will update once your admin approves.
+            You have <strong>${pendingReqs.length} payment${pendingReqs.length!==1?'s':''} pending approval</strong> (Ksh ${pendingTotal.toLocaleString()} total). Balances will update once your admin approves.
            </div>` : '';
     }
   } catch(e) {}
@@ -570,7 +570,7 @@ async function checkSubscriptionAccess() {
           lock.id = 'sub-lock-overlay';
           lock.style.cssText = 'position:fixed;inset:0;background:rgba(90,0,22,.97);z-index:9998;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:var(--font);color:#fff;text-align:center;padding:2rem';
           lock.innerHTML = `
-            <div style="font-size:3rem;margin-bottom:1rem">🔒</div>
+            <div style="display:flex;justify-content:center;color:var(--ink-faint);margin-bottom:1rem">${gyIcon('lock', 26)}</div>
             <div style="font-size:1.3rem;font-weight:700;margin-bottom:.5rem">${org.name}</div>
             <div style="font-size:.95rem;opacity:.85;margin-bottom:1.5rem">Your group's subscription expired on<br><strong>${expDate.toDateString()}</strong></div>
             <div style="font-size:.82rem;opacity:.7;max-width:340px;line-height:1.7">Please ask your group admin to renew the GroupYetu360 subscription to restore access.</div>
@@ -587,7 +587,7 @@ async function checkSubscriptionAccess() {
         banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:var(--danger);color:#fff;padding:.65rem 1.5rem;z-index:999;display:flex;align-items:center;justify-content:space-between;font-family:var(--font)';
         banner.innerHTML = `
           <div style="display:flex;align-items:center;gap:.75rem">
-            <span style="font-size:1.1rem">🔒</span>
+            <span style="display:flex;justify-content:center;color:var(--ink-faint)">${gyIcon('lock', 26)}</span>
             <span style="font-size:.82rem;font-weight:600">Subscription expired on ${expDate.toDateString()}. Members have restricted access. Please renew.</span>
           </div>
           <button onclick="showPage('billing')" style="background:#fff;color:var(--danger);border:none;padding:.3rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;border-radius:2px">Renew Now →</button>`;
@@ -946,7 +946,7 @@ function renderBeneficiaryRows() {
           <div class="mp-bene-avatar">${initials}</div>
           <div class="mp-bene-name">${row.memberName || 'Select member…'}</div>
         </div>
-        <div class="mp-bene-chevron">▼</div>
+        <div class="mp-bene-chevron">${gyIcon('chevrons', 14)}</div>
         ${showRemoveRow ? `<button class="mp-bene-remove" onclick="event.stopPropagation();removeBeneficiaryRow('${row.id}')">✕</button>` : ''}
         ${_mpOpenSearchRowId === row.id ? renderBeneficiarySearchPanel(row.id) : ''}
       </div>
@@ -1364,7 +1364,7 @@ async function loadMGRNoticeCard(memberId) {
     const parts = [];
     if (receiving.length) {
       parts.push(`<div style="display:flex;align-items:center;gap:.75rem;padding:.7rem 1rem;background:linear-gradient(135deg,rgba(15,110,86,.08),var(--surface));border:1px solid var(--teal);border-radius:8px;margin-bottom:.5rem">
-        <span style="font-size:1.5rem">🎉</span>
+        <span style="display:flex;justify-content:center;color:var(--ink-faint)">${gyIcon('check', 24)}</span>
         <div>
           <div style="font-size:.88rem;font-weight:700;color:var(--teal-dk)">You receive the pot this round!</div>
           <div style="font-size:.75rem;color:var(--ink-soft)">${h(receiving[0].cycle.name)} · Round ${receiving[0].slot.slot_number} · ${receiving[0].slot.scheduled_date ? new Date(receiving[0].slot.scheduled_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : ''}</div>
@@ -1373,14 +1373,14 @@ async function loadMGRNoticeCard(memberId) {
     }
     if (unpaid.length) {
       const borderCol = overdue.length ? 'var(--danger)' : 'var(--gold)';
-      const icon = overdue.length ? '⚠' : '🔄';
+      const icon = overdue.length ? gyIcon('alert', 20) : gyIcon('rotate', 20);
       const title = overdue.length
         ? `${overdue.length} MGR payment${overdue.length > 1 ? 's' : ''} overdue`
         : `${unpaid.length} MGR payment${unpaid.length > 1 ? 's' : ''} pending`;
       const totalOwed = unpaid.reduce((s,i) => s + Number(i.cycle.amount_per_member||0), 0);
       parts.push(`<div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.7rem 1rem;background:var(--surface);border:1px solid ${borderCol};border-left:3px solid ${borderCol};border-radius:8px">
         <div style="display:flex;align-items:center;gap:.65rem">
-          <span style="font-size:1.3rem">${icon}</span>
+          <span style="display:flex;color:var(--ink-soft)">${icon}</span>
           <div>
             <div style="font-size:.85rem;font-weight:700;color:var(--ink)">${title}</div>
             <div style="font-size:.72rem;color:var(--ink-faint)">${unpaid.map(i => h(i.cycle.name)).join(' · ')}</div>
@@ -1461,7 +1461,7 @@ async function loadMemberMGRObligations(memberId, sectionId, listId) {
         // This member is the current receiver — show that they're due to receive
         const { data: paidCount } = { data: null }; // simplified — show receiver info
         return `<div style="display:flex;align-items:center;gap:.75rem;padding:.65rem .85rem;background:linear-gradient(135deg,rgba(15,110,86,.08),var(--surface));border:1px solid var(--teal-mid,#0f6e56);border-left:3px solid var(--teal);border-radius:6px">
-          <div style="font-size:1.4rem">🎉</div>
+          <div style="display:flex;justify-content:center;color:var(--ink-faint)">${gyIcon('check', 24)}</div>
           <div style="flex:1">
             <div style="font-size:.85rem;font-weight:700;color:var(--teal-dk)">You are the current receiver!</div>
             <div style="font-size:.75rem;color:var(--ink-soft);margin-top:.15rem">${o.cycle.name} · Round ${o.currentSlot.slot_number} · Due ${o.dueDate}</div>
@@ -1472,7 +1472,7 @@ async function loadMemberMGRObligations(memberId, sectionId, listId) {
 
       if (o.alreadyPaid) {
         return `<div style="display:flex;align-items:center;gap:.75rem;padding:.55rem .85rem;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;opacity:.75">
-          <div style="font-size:1.2rem">✅</div>
+          <div style="display:flex;justify-content:center;color:var(--ink-faint)">${gyIcon('check', 22)}</div>
           <div style="flex:1">
             <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${o.cycle.name} — Round ${o.currentSlot.slot_number}</div>
             <div style="font-size:.72rem;color:var(--teal-dk);margin-top:.1rem">✓ You have paid for this round. Receiver: ${h(o.receiverName)}</div>
@@ -1488,7 +1488,7 @@ async function loadMemberMGRObligations(memberId, sectionId, listId) {
         : o.daysUntil !== null ? `Due in ${o.daysUntil} days` : '';
 
       return `<div style="display:flex;align-items:center;gap:.75rem;padding:.65rem .85rem;background:var(--surface);border:1px solid ${urgencyBorder};border-left:3px solid ${urgencyBorder};border-radius:6px">
-        <div style="font-size:1.4rem">🔄</div>
+        <div style="display:flex;justify-content:center;color:var(--ink-faint)">${gyIcon('rotate', 22)}</div>
         <div style="flex:1">
           <div style="font-size:.85rem;font-weight:700;color:var(--ink)">${h(o.cycle.name)} — Round ${o.currentSlot.slot_number}</div>
           <div style="font-size:.75rem;color:var(--ink-soft);margin-top:.15rem">Pay Ksh ${Number(o.cycle.amount_per_member||0).toLocaleString()} · Receiver: ${h(o.receiverName)}</div>
@@ -1541,13 +1541,13 @@ async function loadTBNoticeCard(memberId) {
       const overdue = myLoans.filter(l => l.due_date && new Date(l.due_date) < new Date());
       const totalOutstanding = myLoans.reduce((s,l) => s + (Number(l.principal||0) - Number(l.total_repaid||0)), 0);
       const borderCol = overdue.length ? 'var(--danger)' : 'var(--gold)';
-      const icon = overdue.length ? '⚠' : '💰';
+      const icon = overdue.length ? gyIcon('alert', 20) : gyIcon('money', 20);
       const title = overdue.length
         ? `${overdue.length} overdue loan${overdue.length>1?'s':''}`
         : `${myLoans.length} active loan${myLoans.length>1?'s':''}`;
       parts.push(`<div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.7rem 1rem;background:var(--surface);border:1px solid ${borderCol};border-left:3px solid ${borderCol};border-radius:8px">
         <div style="display:flex;align-items:center;gap:.65rem">
-          <span style="font-size:1.3rem">${icon}</span>
+          <span style="display:flex;color:var(--ink-soft)">${icon}</span>
           <div>
             <div style="font-size:.85rem;font-weight:700;color:var(--ink)">Table Banking — ${title}</div>
             <div style="font-size:.72rem;color:var(--ink-faint)">${myLoans.map(l=>h(l.table_banking_pools?.name||'Pool')).join(' · ')}</div>
@@ -1564,7 +1564,7 @@ async function loadTBNoticeCard(memberId) {
     const poolsWithoutLoan = myPools.filter(p => !myLoans?.find(l => l.pool_id === p.id));
     if (poolsWithoutLoan.length) {
       parts.push(`<div style="display:flex;align-items:center;gap:.75rem;padding:.6rem 1rem;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;margin-top:.4rem">
-        <span style="font-size:1.1rem">🏦</span>
+        <span style="display:flex;justify-content:center;color:var(--ink-faint)">${gyIcon('bank', 22)}</span>
         <div style="font-size:.78rem;color:var(--ink-soft)">Member of ${poolsWithoutLoan.map(p=>h(p.name)).join(', ')} · ${poolsWithoutLoan[0]?.interest_rate||10}% interest on loans</div>
       </div>`);
     }
@@ -1605,7 +1605,7 @@ async function loadMemberTBObligations(memberId) {
       if (loan) {
         const borderCol = overdue ? 'var(--danger)' : 'var(--gold)';
         return `<div style="display:flex;align-items:center;gap:.75rem;padding:.65rem .85rem;background:var(--surface);border:1px solid ${borderCol};border-left:3px solid ${borderCol};border-radius:6px">
-          <div style="font-size:1.3rem">${overdue ? '⚠' : '💰'}</div>
+          <div style="display:flex;color:var(--ink-soft)">${overdue ? gyIcon('alert', 20) : gyIcon('money', 20)}</div>
           <div style="flex:1">
             <div style="font-size:.85rem;font-weight:700;color:var(--ink)">${h(pool.name)}</div>
             <div style="font-size:.75rem;color:var(--ink-soft)">Active loan · ${loan.interest_rate||10}% interest/month · Due: ${loan.due_date||'—'}</div>
@@ -1620,7 +1620,7 @@ async function loadMemberTBObligations(memberId) {
 
       // Member with no loan — show pool info
       return `<div style="display:flex;align-items:center;gap:.75rem;padding:.6rem .85rem;background:var(--surface-2);border:1px solid var(--border);border-radius:6px">
-        <div style="font-size:1.2rem">🏦</div>
+        <div style="display:flex;justify-content:center;color:var(--ink-faint)">${gyIcon('bank', 22)}</div>
         <div style="flex:1">
           <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${h(pool.name)}</div>
           <div style="font-size:.72rem;color:var(--ink-faint)">${maxLoan} · ${pool.interest_rate||10}% interest/month</div>
@@ -1815,7 +1815,7 @@ async function submitMemberPayment() {
   if (reqErr) {
     // payment_requests table issue — log full error for debugging
     console.error('payment_requests error:', reqErr);
-    toast('⚠ Could not submit payment request: ' + reqErr.message + '. Please run the SQL migration in Supabase.');
+    toast('Could not submit payment request: ' + reqErr.message + '. Please run the SQL migration in Supabase.');
     return;
   }
 
@@ -1941,11 +1941,11 @@ async function loadMyNotices() {
   listEl.innerHTML = logs.length ? logs.map((l,i) => {
     const dateStr = l.sent_at ? new Date(l.sent_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
     return `<div class="mp-notice-card" style="animation-delay:${i*0.04}s">
-      <div class="mp-notice-date">📢 ${dateStr} · ${l.recipient_type==='all'?'All Members':l.recipient_type==='active'?'Active Members':'Members'}</div>
+      <div class="mp-notice-date">${dateStr} · ${l.recipient_type==='all'?'All Members':l.recipient_type==='active'?'Active Members':'Members'}</div>
       <div class="mp-notice-body">${l.body||'—'}</div>
     </div>`;
   }).join('') : `<div style="padding:3rem;text-align:center">
-    <div style="font-size:2rem;margin-bottom:.75rem">📢</div>
+    <div style="display:flex;justify-content:center;color:var(--ink-faint);margin-bottom:.75rem">${gyIcon('messages', 30)}</div>
     <div style="font-size:.85rem;color:var(--ink-faint)">No notices from your admin yet</div>
   </div>`;
 
@@ -1955,11 +1955,11 @@ async function loadMyNotices() {
     mobListEl.innerHTML = logs.length ? logs.map((l,i) => {
       const dateStr = l.sent_at ? new Date(l.sent_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
       return `<div class="mh-notice-card" style="animation:portalFadeUp .3s ease ${i*0.05}s both">
-        <div class="mh-notice-date">📢 ${dateStr}</div>
+        <div class="mh-notice-date">${dateStr}</div>
         <div class="mh-notice-text">${l.body||'—'}</div>
       </div>`;
     }).join('') : `<div style="text-align:center;padding:2.5rem 1rem">
-      <div style="font-size:2rem;margin-bottom:.75rem">📭</div>
+      <div style="display:flex;justify-content:center;color:var(--ink-faint);margin-bottom:.75rem">${gyIcon('inbox', 30)}</div>
       <div style="font-size:.88rem;font-weight:500;color:var(--ink);margin-bottom:.3rem">No notices yet</div>
       <div style="font-size:.78rem;color:var(--ink-faint)">Your admin hasn't sent any messages yet.</div>
     </div>`;
@@ -2235,7 +2235,7 @@ function populateMobileMeetings(upcoming, past, attendanceSummary) {
       const daysAway = d ? Math.ceil((d - new Date()) / 86400000) : null;
       const badge = daysAway !== null ? (daysAway === 0 ? 'Today' : daysAway === 1 ? 'Tomorrow' : 'In ' + daysAway + ' days') : '';
       return `<div class="mh-meeting">
-        <div class="mh-meeting-date">📅 ${dateStr}</div>
+        <div class="mh-meeting-date">${dateStr}</div>
         <div class="mh-meeting-name">${m.title||'Meeting'}</div>
         <div class="mh-meeting-meta">${m.time||''} ${m.location ? '· ' + m.location : ''}</div>
         ${badge ? `<div class="mh-meeting-badge upcoming">${badge}</div>` : ''}
@@ -2376,7 +2376,7 @@ async function loadMyPendingWithdrawals() {
       ${requests.map(r => `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:.45rem .6rem;background:var(--surface-2);border-radius:.4rem;margin-bottom:.3rem;font-size:.78rem">
           <span style="color:var(--ink)">Ksh ${Number(r.amount).toLocaleString()} ${r.note ? '· ' + r.note : ''}</span>
-          <span style="font-size:.68rem;color:var(--warning);font-weight:600">⏳ Pending</span>
+          <span style="font-size:.68rem;color:var(--warning);font-weight:600">Pending</span>
         </div>`).join('')}`;
   } catch(e) { console.log('loadMyPendingWithdrawals:', e.message); }
 }
@@ -2396,7 +2396,7 @@ async function submitWithdrawalRequest() {
     .eq('id', window._myMemberId).single();
   const available = Number(member?.savings_balance || 0) + Number(member?.shares_balance || 0);
   if (amount > available) {
-    toast(`⚠ Amount exceeds your available balance of Ksh ${available.toLocaleString()}`);
+    toast(`Amount exceeds your available balance of Ksh ${available.toLocaleString()}`);
     return;
   }
 
@@ -2439,7 +2439,7 @@ async function refreshNotificationStatus() {
     return;
   }
   if (permission === 'denied') {
-    statusEl.textContent = '🔕 Blocked — enable in browser settings';
+    statusEl.textContent = 'Blocked. Enable notifications in your browser settings.';
     statusEl.style.color = 'var(--danger)';
     if (enableBtn) enableBtn.style.display = 'none';
     if (disableBtn) disableBtn.style.display = 'none';
@@ -2456,7 +2456,7 @@ async function refreshNotificationStatus() {
   } catch(e) {}
 
   if (permission === 'granted' && hasActiveSubscription) {
-    statusEl.textContent = '🔔 Enabled on this device';
+    statusEl.textContent = 'Enabled on this device';
     statusEl.style.color = 'var(--teal)';
     if (enableBtn) enableBtn.style.display = 'none';
     if (disableBtn) disableBtn.style.display = '';

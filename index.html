@@ -24,7 +24,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026100104">
+  <link rel="stylesheet" href="style.css?v=2026100105">
 </head>
 <body>
 
@@ -3533,7 +3533,7 @@
                 <!-- Theme toggle -->
                 <button class="mh-icon-btn" onclick="toggleMobTheme()" id="mob-theme-btn" aria-label="Toggle theme"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
                 <!-- Profile icon -->
-                <button class="mh-icon-btn" onclick="showPage('my_account')" aria-label="My Account">👤</button>
+                <button class="mh-icon-btn" onclick="showPage('my_account')" aria-label="My account"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.2-6 8-6s7 2 8 6"/></svg></button>
               </div>
             </div>
             <div class="mh-org-pill">
@@ -3548,14 +3548,14 @@
 
           <!-- Fines notice -->
           <div class="mh-notice" id="mob-fines-notice" style="display:none">
-            ⚠ You have an <strong>outstanding fine</strong>. Tap Finance below to view.
+            You have an <strong>outstanding fine</strong>. Tap Payments below to view it.
           </div>
 
           <!-- 3 horizontal swipeable summary cards -->
           <div class="mob-cards-scroll">
             <!-- Card 1: My Finances -->
             <div class="mob-summary-card" id="mob-card-finance">
-              <div class="mob-sc-label">My Finances</div>
+              <div class="mob-sc-label">My balance</div>
               <div class="mob-sc-amount" id="mob-sc-balance">—</div>
               <div class="mob-sc-meta" id="mob-sc-balance-meta">Total balance</div>
               <div class="mob-sc-row" id="mob-sc-shares-row" style="display:none">
@@ -3566,14 +3566,14 @@
             </div>
             <!-- Card 2: Next Meeting -->
             <div class="mob-summary-card" id="mob-card-meeting">
-              <div class="mob-sc-label">Next Meeting</div>
+              <div class="mob-sc-label">Next meeting</div>
               <div class="mob-sc-amount" id="mob-sc-mtg-date" style="font-size:1.3rem">—</div>
               <div class="mob-sc-meta" id="mob-sc-mtg-countdown">Loading…</div>
               <div class="mob-sc-footer" id="mob-sc-mtg-venue">—</div>
             </div>
             <!-- Card 3: Group Standing -->
             <div class="mob-summary-card" id="mob-card-group">
-              <div class="mob-sc-label">Group Standing</div>
+              <div class="mob-sc-label">My standing</div>
               <div class="mob-sc-amount" id="mob-sc-group-main">—</div>
               <div class="mob-sc-meta" id="mob-sc-group-meta">—</div>
               <div class="mob-sc-footer" id="mob-sc-group-footer">—</div>
@@ -3586,6 +3586,12 @@
             <div class="mob-dot" id="mob-dot-2"></div>
           </div>
 
+          <!-- Primary action (design system v1): one large, obvious pay button -->
+          <div class="mh-pay-card">
+            <button type="button" class="mh-pay-btn" onclick="openMemberPaymentModal();showModal('memberPayment')"><svg class="gy-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg><span>Make a payment</span></button>
+            <div class="mh-pay-hint">Pay your contributions straight from M-Pesa.</div>
+          </div>
+
           <!-- Quick action buttons row -->
           <div class="mob-action-row">
             <button class="mob-action-btn" onclick="openMemberPaymentModal();showModal('memberPayment')">
@@ -3593,23 +3599,23 @@
               <div class="mob-action-label">Pay</div>
             </button>
             <button class="mob-action-btn" onclick="showPage('my_contributions')">
-              <div class="mob-action-icon">₭</div>
-              <div class="mob-action-label">Finance</div>
+              <div class="mob-action-icon"><svg class="gy-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg></div>
+              <div class="mob-action-label">Payments</div>
             </button>
             <button class="mob-action-btn" onclick="showPage('my_meetings')">
               <div class="mob-action-icon"><svg class="gy-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div>
               <div class="mob-action-label">Meetings</div>
             </button>
             <button class="mob-action-btn" onclick="showPage('my_notices')">
-              <div class="mob-action-icon">📢</div>
+              <div class="mob-action-icon"><svg class="gy-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z"/></svg></div>
               <div class="mob-action-label">Notices</div>
             </button>
           </div>
 
           <!-- Recent transactions -->
           <div class="mob-section-hdr">
-            <span>Recent Activity</span>
-            <button onclick="showPage('my_contributions')" class="mob-see-all">See all ›</button>
+            <span>Recent activity</span>
+            <button onclick="showPage('my_contributions')" class="mob-see-all">See all</button>
           </div>
           <div id="mob-recent-txns">
             <div style="color:var(--ink-faint);font-size:.82rem;padding:.5rem 0">Loading…</div>
@@ -3617,12 +3623,12 @@
 
           <!-- Start your own group promo -->
           <div class="mob-promo">
-            <div class="mob-promo-icon">🚀</div>
+            <div class="mob-promo-icon"><svg class="gy-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.6.8 2.6 2.5 3 5.2"/></svg></div>
             <div class="mob-promo-text">
               <div class="mob-promo-title">Your group, your rules.</div>
               <div class="mob-promo-sub">Start a chama or investment club in minutes</div>
             </div>
-            <button class="mob-promo-btn" onclick="registerAnotherOrg()">Get Started</button>
+            <button class="mob-promo-btn" onclick="registerAnotherOrg()">Get started</button>
           </div>
 
         </div><!-- end mh-body -->
@@ -4567,10 +4573,10 @@
   <div class="modal" style="max-width:520px">
     <div class="modal-header">
       <div>
-        <div class="modal-title">💳 Make a Payment</div>
+        <div class="modal-title">Make a payment</div>
         <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.1rem" id="mp-modal-paybill"></div>
       </div>
-      <button class="modal-close" onclick="closeModal('memberPayment')">✕</button>
+      <button class="modal-close" onclick="closeModal('memberPayment')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div class="modal-body" style="padding-bottom:.5rem">
 
@@ -4579,32 +4585,32 @@
 
       <!-- Mode tabs - only shown when the org has a Paystack subaccount configured -->
       <style>
-        .mp-tabs{display:none;gap:.4rem;margin-bottom:1rem;background:var(--surface-2);border-radius:8px;padding:.3rem}
-        .mp-tab{flex:1;text-align:center;padding:.55rem .5rem;border-radius:6px;font-size:.78rem;font-weight:600;color:var(--ink-faint);cursor:pointer;transition:all .18s}
-        .mp-tab.active{background:#fff;color:var(--maroon);box-shadow:0 1px 4px rgba(0,0,0,.08)}
-        .mp-fee-row{display:flex;justify-content:space-between;font-size:.82rem;padding:.3rem 0}
-        .mp-fee-row.total{border-top:1px solid var(--border);margin-top:.3rem;padding-top:.55rem;font-weight:700;font-size:.95rem;color:var(--maroon)}
-        .mp-pay-btn{width:100%;padding:.85rem;border:none;border-radius:8px;background:var(--teal);color:#fff;font-size:.92rem;font-weight:700;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:.5rem}
-        .mp-pay-btn:hover{background:var(--teal-dk,#085041);transform:translateY(-1px)}
+        .mp-tabs{display:none;gap:4px;margin-bottom:16px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:4px}
+        .mp-tab{flex:1;text-align:center;padding:10px 8px;border-radius:var(--radius-sm);font-size:13.5px;font-weight:700;color:var(--ink-faint);cursor:pointer;transition:all .18s}
+        .mp-tab.active{background:#fff;color:var(--ink);box-shadow:var(--shadow-sm)}
+        .mp-fee-row{display:flex;justify-content:space-between;font-size:13.5px;padding:4px 0;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+        .mp-fee-row.total{border-top:1px solid var(--border);margin-top:4px;padding-top:10px;font-weight:800;font-size:15px;color:var(--ink)}
+        .mp-pay-btn{width:100%;min-height:52px;padding:0 16px;border:none;border-radius:var(--radius-lg);background:var(--maroon);color:#fff;font-size:15px;font-weight:800;cursor:pointer;transition:background .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+        .mp-pay-btn:hover{background:var(--maroon-dk)}
         .mp-pay-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
         /* Payment state machine - pending → processing → success/fail */
         .mp-state-box{display:none;flex-direction:column;align-items:center;text-align:center;padding:1.75rem 1rem;border-radius:10px;margin-top:1rem;transition:all .3s}
         .mp-state-box.show{display:flex}
         .mp-state-pending{background:var(--surface-2);border:1px solid var(--border)}
-        .mp-state-success{background:#e8f5e9;border:1px solid #a5d6a7}
-        .mp-state-fail{background:#fdecea;border:1px solid #f5b3ac}
-        .mp-ring{width:52px;height:52px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--teal);animation:mpSpin .8s linear infinite;margin-bottom:.85rem}
+        .mp-state-success{background:var(--teal-pale);border:1px solid #cfe3da}
+        .mp-state-fail{background:var(--danger-pale);border:1px solid #efc9cf}
+        .mp-ring{width:52px;height:52px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--maroon);animation:mpSpin .8s linear infinite;margin-bottom:.85rem}
         @keyframes mpSpin{to{transform:rotate(360deg)}}
         .mp-check{width:52px;height:52px;margin-bottom:.7rem}
-        .mp-check circle{stroke:#2e7d32;stroke-width:3;fill:none;stroke-dasharray:166;stroke-dashoffset:166;animation:mpCheckCircle .5s ease forwards}
-        .mp-check path{stroke:#2e7d32;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:48;stroke-dashoffset:48;animation:mpCheckMark .3s .45s ease forwards}
+        .mp-check circle{stroke:var(--teal);stroke-width:3;fill:none;stroke-dasharray:166;stroke-dashoffset:166;animation:mpCheckCircle .5s ease forwards}
+        .mp-check path{stroke:var(--teal);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:48;stroke-dashoffset:48;animation:mpCheckMark .3s .45s ease forwards}
         @keyframes mpCheckCircle{to{stroke-dashoffset:0}}
         @keyframes mpCheckMark{to{stroke-dashoffset:0}}
         .mp-x{width:52px;height:52px;margin-bottom:.7rem}
-        .mp-x circle{stroke:#c62828;stroke-width:3;fill:none;stroke-dasharray:166;stroke-dashoffset:166;animation:mpCheckCircle .5s ease forwards}
-        .mp-x path{stroke:#c62828;stroke-width:3;fill:none;stroke-linecap:round;stroke-dasharray:24;stroke-dashoffset:24;animation:mpCheckMark .3s .45s ease forwards}
-        .mp-state-title{font-size:.95rem;font-weight:700;color:var(--ink);margin-bottom:.25rem}
-        .mp-state-sub{font-size:.78rem;color:var(--ink-faint)}
+        .mp-x circle{stroke:var(--danger);stroke-width:3;fill:none;stroke-dasharray:166;stroke-dashoffset:166;animation:mpCheckCircle .5s ease forwards}
+        .mp-x path{stroke:var(--danger);stroke-width:3;fill:none;stroke-linecap:round;stroke-dasharray:24;stroke-dashoffset:24;animation:mpCheckMark .3s .45s ease forwards}
+        .mp-state-title{font-size:18px;font-weight:800;color:var(--ink);margin-bottom:6px}
+        .mp-state-sub{font-size:13.5px;line-height:1.5;color:var(--ink-soft);max-width:320px}
       </style>
       <div id="mp-mode-loading" style="text-align:center;padding:2.5rem 1rem;color:var(--ink-faint);font-size:.85rem">
         <div class="spinner" style="margin:0 auto .6rem"></div>
@@ -4612,18 +4618,18 @@
       </div>
 
       <div class="mp-tabs" id="mp-mode-tabs">
-        <div class="mp-tab active" id="mp-tab-instant" onclick="switchPaymentMode('instant')">⚡ Pay Instantly</div>
-        <div class="mp-tab" id="mp-tab-manual" onclick="switchPaymentMode('manual')">📝 Report a Payment</div>
+        <div class="mp-tab active" id="mp-tab-instant" onclick="switchPaymentMode('instant')">Pay with M-Pesa</div>
+        <div class="mp-tab" id="mp-tab-manual" onclick="switchPaymentMode('manual')">Report a payment</div>
       </div>
 
       <!-- INSTANT PAY (Paystack subaccount - STK Push, auto-confirmed) -->
       <div id="mp-instant-section" style="display:none">
         <style>
-          .mp-bene-row{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:.75rem;margin-bottom:.6rem;position:relative}
+          .mp-bene-row{background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:.75rem;margin-bottom:.6rem;position:relative}
           .mp-bene-top{display:flex;align-items:center;gap:.6rem;margin-bottom:.6rem}
           .mp-bene-chip{display:flex;align-items:center;gap:.5rem;background:#fff;border:1px solid var(--border);border-radius:99px;padding:.3rem .3rem .3rem .3rem;cursor:pointer;transition:border-color .15s;flex:1;min-width:0}
           .mp-bene-chip:hover{border-color:var(--maroon-muted)}
-          .mp-bene-avatar{width:26px;height:26px;border-radius:50%;background:var(--maroon);color:#fff;font-size:.68rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+          .mp-bene-avatar{width:26px;height:26px;border-radius:50%;background:var(--maroon-pale);color:var(--maroon);font-size:.68rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
           .mp-bene-name{font-size:.82rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
           .mp-bene-chevron{margin-left:auto;margin-right:.5rem;color:var(--ink-faint);font-size:.65rem;flex-shrink:0}
           .mp-bene-remove{width:26px;height:26px;border-radius:50%;border:none;background:transparent;color:var(--ink-faint);font-size:1rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
@@ -4637,13 +4643,13 @@
           .mp-bene-search-item{padding:.55rem .8rem;font-size:.82rem;cursor:pointer;display:flex;align-items:center;gap:.5rem;transition:background .1s}
           .mp-bene-search-item:hover{background:var(--surface-2)}
           .mp-bene-search-empty{padding:.75rem .8rem;font-size:.78rem;color:var(--ink-faint)}
-          .mp-add-person{display:inline-flex;align-items:center;gap:.35rem;font-size:.8rem;font-weight:600;color:var(--teal);cursor:pointer;padding:.3rem 0;margin-bottom:.85rem}
+          .mp-add-person{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:700;color:var(--maroon);cursor:pointer;padding:.3rem 0;margin-bottom:.85rem}
           .mp-add-person:hover{text-decoration:underline}
         </style>
 
-        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.6rem">Who is this for, and what's it for?</div>
+        <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:.6rem">Who is this for, and what is it for?</div>
         <div id="mp-beneficiary-rows"></div>
-        <div class="mp-add-person" onclick="addBeneficiaryRow()"><span>＋</span> Add another person</div>
+        <div class="mp-add-person" onclick="addBeneficiaryRow()"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Add another person</div>
 
         <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem">
           <input class="form-input" type="tel" id="mp-instant-phone"
@@ -4657,29 +4663,29 @@
           <div id="mp-cap-warning" style="display:none;font-size:.75rem;color:var(--danger);margin-top:.5rem"></div>
         </div>
         <button class="mp-pay-btn" id="mp-instant-pay-btn" onclick="payInstantContribution()">
-          <span>📲</span> <span id="mp-instant-btn-label">Pay via M-Pesa</span>
+          <svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg> <span id="mp-instant-btn-label">Send M-Pesa prompt</span>
         </button>
 
         <!-- Pending state -->
         <div class="mp-state-box mp-state-pending" id="mp-state-pending">
           <div class="mp-ring"></div>
           <div class="mp-state-title">Check your phone<span id="mp-pending-dots">...</span></div>
-          <div class="mp-state-sub">Enter your M-Pesa PIN to complete the payment</div>
+          <div class="mp-state-sub">We have sent an M-Pesa prompt to your phone. Enter your PIN to finish. This updates by itself.</div>
         </div>
 
         <!-- Success state -->
         <div class="mp-state-box mp-state-success" id="mp-state-success">
           <svg class="mp-check" viewBox="0 0 52 52"><circle cx="26" cy="26" r="24"/><path d="M14 27l7 7 17-17"/></svg>
-          <div class="mp-state-title" style="color:#2e7d32">Payment Confirmed</div>
+          <div class="mp-state-title" style="color:var(--teal-dk)">Payment received</div>
           <div class="mp-state-sub" id="mp-success-detail">Your contribution has been recorded.</div>
         </div>
 
         <!-- Fail state -->
         <div class="mp-state-box mp-state-fail" id="mp-state-fail">
           <svg class="mp-x" viewBox="0 0 52 52"><circle cx="26" cy="26" r="24"/><path d="M17 17l18 18M35 17l-18 18"/></svg>
-          <div class="mp-state-title" style="color:#c62828">Payment Failed</div>
+          <div class="mp-state-title" style="color:var(--danger)">Payment not completed</div>
           <div class="mp-state-sub" id="mp-fail-detail">The prompt was cancelled or timed out.</div>
-          <button class="btn btn-secondary btn-sm" style="margin-top:.85rem" onclick="resetInstantPayState()">Try Again</button>
+          <button class="btn btn-secondary btn-sm" style="margin-top:.85rem" onclick="resetInstantPayState()">Try again</button>
         </div>
       </div>
 
@@ -4695,7 +4701,7 @@
 
       <!-- STEP 1: Enter amount you're paying -->
       <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:1rem;margin-bottom:1rem">
-        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.6rem">Step 1 - How much are you paying?</div>
+        <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:.6rem">How much are you paying?</div>
         <div style="display:flex;align-items:center;gap:.75rem">
           <div style="flex:1">
             <div style="font-size:.72rem;color:var(--ink-faint);margin-bottom:.25rem">Amount (Ksh)</div>
@@ -4714,7 +4720,7 @@
 
       <!-- STEP 2: How to split (auto-calculated, editable) -->
       <div id="mp-split-section" style="display:none">
-        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.5rem">Step 2 - How should we split your payment?</div>
+        <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:.5rem">How should we split it?</div>
         <div style="font-size:.7rem;color:var(--ink-faint);margin-bottom:.75rem">We've suggested a split based on your group's contribution types. Adjust any amount - remaining balance auto-fills.</div>
         <div id="mp-split-list" style="display:flex;flex-direction:column;gap:.4rem"></div>
         <!-- Unallocated remainder -->
@@ -4735,26 +4741,26 @@
 
       <!-- Welfare (if active events) -->
       <div id="mp-option-welfare" style="display:none;margin-bottom:.5rem">
-        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.4rem">Active Welfare Events</div>
+        <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:.4rem">Active welfare events</div>
         <div id="mp-welfare-list" style="display:flex;flex-direction:column;gap:.35rem"></div>
       </div>
 
       <!-- MGR / Rotating Savings (if member is in active cycle) -->
       <div id="mp-option-mgr" style="display:none;margin-bottom:.5rem">
-        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.4rem">🔄 Rotating Savings (MGR)</div>
+        <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:6px">Merry-go-round</div>
         <div id="mp-mgr-list" style="display:flex;flex-direction:column;gap:.35rem"></div>
       </div>
 
       <!-- Table Banking (if member is in active pool) -->
       <div id="mp-option-tb" style="display:none;margin-bottom:.5rem">
-        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.4rem">🏦 Table Banking</div>
+        <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:6px">Table banking</div>
         <div id="mp-tb-list" style="display:flex;flex-direction:column;gap:.35rem"></div>
       </div>
 
       <!-- Total confirmation -->
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:.75rem 1rem;background:var(--maroon-pale);border:1px solid var(--maroon-muted);margin-top:.75rem;border-radius:4px">
-        <span style="font-size:.85rem;font-weight:600;color:var(--maroon)">Total to Pay:</span>
-        <span id="mp-grand-total" style="font-size:1.15rem;font-weight:700;color:var(--maroon)">Ksh 0</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:.75rem 1rem;background:var(--surface-2);border:1px solid var(--border);margin-top:.75rem;border-radius:10px">
+        <span style="font-size:14px;font-weight:700;color:var(--ink)">Total to pay</span>
+        <span id="mp-grand-total" style="font-size:18px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums">Ksh 0</span>
       </div>
       <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.35rem">Send this exact amount to the payment details above, then enter the M-Pesa reference.</div>
 
@@ -5752,16 +5758,16 @@
 
 
   <!-- GroupYetu360 Scripts - load order matters -->
-  <script src="js/icons.js?v=2026100104"></script>
-  <script src="js/auth.js?v=2026100104"></script>
-  <script src="js/utils.js?v=2026100104"></script>
-  <script src="js/dashboard.js?v=2026100104"></script>
-  <script src="js/members.js?v=2026100104"></script>
-  <script src="js/finance.js?v=2026100104"></script>
-  <script src="js/settings.js?v=2026100104"></script>
-  <script src="js/portal.js?v=2026100104"></script>
-  <script src="js/modules.js?v=2026100104"></script>
-  <script src="js/taya.js?v=2026100104"></script>
+  <script src="js/icons.js?v=2026100105"></script>
+  <script src="js/auth.js?v=2026100105"></script>
+  <script src="js/utils.js?v=2026100105"></script>
+  <script src="js/dashboard.js?v=2026100105"></script>
+  <script src="js/members.js?v=2026100105"></script>
+  <script src="js/finance.js?v=2026100105"></script>
+  <script src="js/settings.js?v=2026100105"></script>
+  <script src="js/portal.js?v=2026100105"></script>
+  <script src="js/modules.js?v=2026100105"></script>
+  <script src="js/taya.js?v=2026100105"></script>
   <script>
     // Bootstrap - runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —
