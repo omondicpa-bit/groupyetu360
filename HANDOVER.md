@@ -63,6 +63,40 @@ SasaPay's API has no synchronous "check now, get the answer now" endpoint — th
 ### 🟡 IP whitelist for SasaPay — log-only, not enforced
 Deliberately not blocking on this yet — no confidence that Supabase's Edge Function runtime reliably exposes SasaPay's true origin IP rather than an internal proxy IP. Revisit once there's real log data showing what IP actually shows up in practice.
 
+### 🔴 B2C payouts not working yet - exact next steps, read this first
+Autopilot, the Payouts page, settlement tracking, all of it is built and code-complete (see 1 Oct 2026 changelog entry). The ONLY thing blocking an actual working payout is one external Safaricom credential, not a code bug. Here is exactly where it stands:
+
+**What's confirmed NOT the cause**, so don't re-investigate these:
+- Not maker-checker. Approval Configurations for B2C Single Payments and B2B Single Payments are both set to "No Approval" (confirmed in the M-PESA Organization Portal, org.ke.m-pesa.com → Business Center → Approval Configurations).
+- Not the account or the B2C product itself. A manual B2C payment sent directly through the Hub portal succeeded, real money moved. This isolates the problem to the API authentication layer specifically, nothing else.
+- Not STK Push's credentials. Collection has worked repeatedly and uses a completely separate credential system (DARAJA_CONSUMER_KEY/SECRET + DARAJA_PASSKEY). B2C/B2B use DARAJA_INITIATOR_NAME + DARAJA_INITIATOR_SECURITY_CREDENTIAL, unrelated.
+
+**The actual root cause, found via web search of Safaricom's own documented B2C setup process (Symatech Labs guide and others), not guesswork:** the API initiator is supposed to be a SEPARATE operator account from the Business Manager, created with Access Channel = API, not the Business Manager's own login reused for API calls. `felixomondi` is the Business Manager (Access Channel = Web). Every attempt so far has wrongly used felixomondi as if he were also the API initiator - that's why it keeps failing with a "wrong PIN"-equivalent message, there was never a correct password to find, because felixomondi was the wrong account entirely.
+
+**What's already done, as of 1 Oct 2026:**
+- A second operator, username `felixjakano`, Operator ID `203206691000405102`, Access Channel = API, has been created in org.ke.m-pesa.com → Administration → Organization Operator. Status shows "Pending Active."
+- felixjakano currently has MORE roles than needed (Org Reversals Initiator, Bundle Purchase ORG Initiator, B2C Reversal/Reversal Initiator/Reversal Approver, BusinessPayToBulk ORG API Initiator, alongside the two that are actually needed: `ORG B2C API initiator` and `Business Paybill Org API initiator` which covers B2B). **Trim this list down once B2C is confirmed working** - an automated payout credential should only ever hold what it needs (ORG B2C API initiator, Business Paybill Org API initiator, Balance Query ORG API, and Transaction Status Query ORG API if available). Nothing resembling Business Manager, Administrator, Set Password, or Withdrawal roles belongs on this account.
+
+**Exact next steps, in order:**
+1. Confirm `felixomondi` has the **"Set Restricted ORG API Password"** role (visible in the same Organization Operator table, under felixomondi's Role column). Without this role, felixomondi cannot set felixjakano's password at all - if missing, that's a prerequisite fix first.
+2. In the Organization Operator table, find felixjakano's row and look at the **Operation** column specifically - it's an icon/button, not text, so it won't show in a copy-pasted table. Click it, look for **Set Password**.
+3. Set a password for felixjakano through that flow (not through the "activation link" email, which asks for a password felixjakano doesn't have yet and is the wrong path).
+4. Use THAT password, felixjakano's, not felixomondi's, in the SecurityCredential generator (Test Credentials → Generate Security Credential Value, Production environment).
+5. Update both secrets - the name needs to change, not just the credential:
+   ```
+   supabase secrets set DARAJA_INITIATOR_NAME=felixjakano
+   supabase secrets set DARAJA_INITIATOR_SECURITY_CREDENTIAL=<the new value, no quotes>
+   ```
+6. Reset the stuck test settlement and retry from the Payouts page:
+   ```sql
+   update public.payment_settlements
+   set status = 'pending', method = null, checkout_id = null
+   where id = 'dedbcf82-7526-4b18-b009-e50487e6d433' and status = 'processing';
+   ```
+7. If it STILL fails after this, the credential/account structure theory is wrong and it's worth building the TransactionStatus API check (already approved on the account, URL was in the go-live email) to get Safaricom's own precise failure reason instead of inferring from an SMS again - this was deliberately not built yet since this lead seemed likely to resolve it first.
+
+**Separately, unrelated, already resolved:** hub.m-pesaforbusiness.co.ke had an intermittent expired-certificate error for a few days (1 Oct 2026). Confirmed via direct fetch and Felix testing both WiFi and cellular that this was Safaricom's own infrastructure, not his network or device. Resolved on its own. Not a security concern, nothing to action.
+
 ### 🟢 Safaricom Direct (Daraja) - live and proven
 Went live 30 September 2026. Felix bought a real SMS bundle (Ksh 75) through it and it credited instantly - callback, atomic claim, and crediting all confirmed working end to end with real Safaricom credentials.
 Two CHECK constraints briefly blocked this after the code was already deployed and correctly configured: `platform_settings_subscription_payment_provider_check` and `payment_requests_provider_check` didn't list `'daraja'` as an allowed value. Both were widened, not replaced, so nothing else that was already allowed changed. If a future migration ever touches either constraint, make sure `'daraja'` stays in both lists.

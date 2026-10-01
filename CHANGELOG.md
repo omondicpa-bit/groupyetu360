@@ -1,3 +1,16 @@
+# Changelog - 1 October 2026 session
+
+## Automated settlement (B2C/B2B payouts) - fully built, blocked on one external credential issue
+- Member contributions can now be collected through Daraja (`daraja-charge` extended to accept `member_contribution`, validated against the real tariff-based settlement fee in `darajaContributionValidation.ts`, client-side preview in `utils.js` matches byte-for-byte, 58 cases tested).
+- `payment_settlements` table added: per-contribution, in-flight payout tracking, separate from the org-level `settlement_batches` ledger on purpose, see that table's own comment for why. A successful automated payout writes into `settlement_batches` too, so the existing Settlements page stays accurate without needing to know autopilot exists.
+- New SA Payouts page (`sa_payouts`): autopilot toggle, pending/failed queue, process/cancel per row, full detail modal. Autopilot toggle correctly uses `upsert({id:1,...})` against `platform_settings`, matching the established pattern, not a plain update.
+- Real bug found and fixed: `daraja-verify`'s STK query treated ANY non-zero result code as a definite decline. Safaricom's query endpoint can return ambiguous transient codes right after PIN entry, before the backend settles - this wrongly declined a real, successful Ksh 100 payment. Fixed to only treat a short allowlist of well-known codes (1, 1032, 1037, 2001) as genuine failure, anything else now correctly stays pending. 5 tests added proving the exact bug and the fix.
+- Real bug found and fixed: the SA Billing "Pending Payment Requests" queue had no filter on `payment_type` at all, so a Daraja member contribution could appear there and get clicked "Approve" by a button that only knows how to activate subscriptions/SMS bundles. It silently did neither, just flipped status to approved with nothing actually credited. Filter added, and `approvePayment()` now refuses `member_contribution` rows outright as a second layer of defence.
+- One real stuck transaction (Felix's own Ksh 100 test, `payment_requests.id = dba2b80f-...`) manually corrected via a one-off, audited SQL script after being caught by the above bug, properly credited, settlement row created retroactively.
+- **B2C payouts still do not work end to end** - every attempt so far fails with a message equivalent to "wrong PIN," despite STK Push (collection) working perfectly on a completely separate credential system. Root cause now understood, not yet resolved - see HANDOVER, this is the single most important thing the next session needs to pick up.
+
+---
+
 # Changelog - 30 September 2026 session
 
 ## Safaricom Direct - live and proven
