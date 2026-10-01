@@ -24,7 +24,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026100108">
+  <link rel="stylesheet" href="style.css?v=2026100109">
 </head>
 <body>
 
@@ -1079,7 +1079,7 @@
                 <option value="all">All Statuses</option><option value="pending">Pending</option>
                 <option value="paid">Paid</option><option value="recovered">Recovered</option><option value="waived">Waived</option>
               </select>
-              <button class="btn btn-primary btn-sm" onclick="switchFinTab(document.querySelector('[onclick*=tab-fine-record]'),'tab-fine-record')" style="background:var(--maroon);font-size:.75rem">+ Issue Fine</button>
+              <button class="btn btn-primary btn-sm" onclick="switchFinTab(document.querySelector('[onclick*=tab-fine-record]'),'tab-fine-record')" style="font-size:.75rem">+ Issue Fine</button>
             </div>
           </div>
           <div id="fines-ledger-content"><div class="loading"><div class="spinner"></div>Loading…</div></div>
@@ -1127,7 +1127,7 @@
           </div>
           <div class="form-group"><label class="form-label">Notes (optional)</label><input class="form-input" id="fine-notes" placeholder="e.g. 3rd consecutive absence…"/></div>
           <div class="fin-form-actions">
-            <button class="btn btn-primary" onclick="saveFine()" style="background:var(--maroon)">⚠ Issue Fine →</button>
+            <button class="btn btn-primary" onclick="saveFine()">⚠ Issue Fine →</button>
             <button class="btn btn-secondary" onclick="clearFineForm()">Clear</button>
           </div>
         </div>
@@ -1167,8 +1167,8 @@
       <!-- ── HERO ── -->
       <div class="mtg-hero">
         <div>
-          <div class="mtg-hero-title">📅 Meetings</div>
-          <div class="mtg-hero-sub" id="mtg-hero-sub">Schedule, attendance & minutes</div>
+          <h1 class="mtg-hero-title">Meetings</h1>
+          <div class="mtg-hero-sub" id="mtg-hero-sub">Schedule, attendance and minutes</div>
         </div>
         <div id="meetings-admin-btn"></div>
       </div>
@@ -1181,22 +1181,22 @@
         </div>
         <div class="mtg-stat" style="animation-delay:.07s">
           <div class="mtg-stat-val" id="mtg-stat-total">—</div>
-          <div class="mtg-stat-label">Total This Year</div>
+          <div class="mtg-stat-label">This year</div>
         </div>
         <div class="mtg-stat" style="animation-delay:.14s">
-          <div class="mtg-stat-val" id="mtg-stat-rate" style="color:var(--maroon)">—</div>
-          <div class="mtg-stat-label">Avg Attendance</div>
+          <div class="mtg-stat-val" id="mtg-stat-rate">—</div>
+          <div class="mtg-stat-label">Average attendance</div>
         </div>
       </div>
 
       <!-- ── UPCOMING + PAST ── -->
       <div class="mtg-layout">
         <div>
-          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--teal);margin-bottom:.6rem">Upcoming</div>
+          <div style="font-size:14px;font-weight:800;color:var(--ink);margin-bottom:.6rem">Upcoming</div>
           <div id="upcoming-meetings"><div class="loading"><div class="spinner"></div></div></div>
         </div>
         <div>
-          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.6rem">Recent Past</div>
+          <div style="font-size:14px;font-weight:800;color:var(--ink);margin-bottom:.6rem">Recent Past</div>
           <div id="past-meetings"><div class="loading"><div class="spinner"></div></div></div>
         </div>
       </div>
@@ -1209,9 +1209,9 @@
             <div style="font-size:.7rem;color:var(--ink-faint);margin-top:.15rem">Click a name to cycle: Present → Apology → Absent</div>
           </div>
           <div class="att-counts">
-            <div class="att-count-pill present">✓ <span id="att-present-count">0</span></div>
+            <div class="att-count-pill present">Present <span id="att-present-count">0</span></div>
             <div class="att-count-pill apology">~ <span id="att-apology-count">0</span></div>
-            <div class="att-count-pill absent">✗ <span id="att-absent-count">0</span></div>
+            <div class="att-count-pill absent">Absent <span id="att-absent-count">0</span></div>
           </div>
         </div>
         <div class="att-grid" id="att-grid">
@@ -1219,8 +1219,8 @@
         </div>
         <div style="margin-top:1rem;display:flex;gap:.75rem;align-items:center">
           <button class="btn btn-primary" onclick="saveAttendance()" id="att-save-btn"
-            style="display:none;background:var(--teal);box-shadow:0 3px 10px rgba(15,110,86,.2)">
-            ✓ Save Attendance
+            style="display:none;box-shadow:0 3px 10px rgba(15,110,86,.2)">
+            Save attendance
           </button>
           <button class="btn btn-secondary" onclick="exportAttendance()" id="att-export-btn" style="display:none;font-size:.75rem">
             ↓ Export
@@ -1275,7 +1275,7 @@
               <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="mgr-rec-date"/></div>
             </div>
             <div style="margin-top:1rem;display:flex;gap:.75rem">
-              <button class="btn btn-primary" onclick="saveRoundContribution()" style="background:var(--teal)">Save Contribution →</button>
+              <button class="btn btn-primary" onclick="saveRoundContribution()">Save Contribution →</button>
               <button class="btn btn-secondary" onclick="clearMgrRecForm()">Clear</button>
             </div>
           </div>
@@ -1309,7 +1309,7 @@
               <div class="form-group"><label class="form-label">Notes</label><input class="form-input" id="mgr-dis-notes" placeholder="Any additional details…"/></div>
             </div>
             <div style="margin-top:1rem;display:flex;gap:.75rem">
-              <button class="btn btn-primary" onclick="saveDisbursement()" style="background:var(--maroon)">Record Disbursement →</button>
+              <button class="btn btn-primary" onclick="saveDisbursement()">Record Disbursement →</button>
               <button class="btn btn-secondary" onclick="clearMgrDisForm()">Clear</button>
             </div>
           </div>
@@ -1389,7 +1389,7 @@
           </div>
           <input type="hidden" id="wtf-id"/>
           <div style="display:flex;gap:.5rem">
-            <button class="btn btn-primary btn-sm" onclick="saveWelfareType()" style="background:var(--maroon)">Save Type →</button>
+            <button class="btn btn-primary btn-sm" onclick="saveWelfareType()">Save Type →</button>
             <button class="btn btn-secondary btn-sm" onclick="hideWelfareTypeForm()">Cancel</button>
           </div>
         </div>
@@ -1423,10 +1423,10 @@
       <!-- ── HERO ── -->
       <div class="proj-hero">
         <div>
-          <div class="proj-hero-title">⚑ Projects & Investments</div>
+          <h1 class="proj-hero-title">Projects &amp; investments</h1>
           <div class="proj-hero-sub" id="proj-hero-sub">Track farms, properties and group investments</div>
         </div>
-        <button class="btn fin-ctrl-btn" onclick="showModal('addProject')">+ Add Project</button>
+        <button class="btn btn-primary ds-btn-auto" onclick="showModal('addProject')"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add project</button>
       </div>
 
       <!-- ── STATS ── -->
@@ -1437,11 +1437,11 @@
         </div>
         <div class="proj-stat" style="animation-delay:.06s">
           <div class="proj-stat-val" id="proj-stat-total">—</div>
-          <div class="proj-stat-label">Total Projects</div>
+          <div class="proj-stat-label">Total projects</div>
         </div>
         <div class="proj-stat" style="animation-delay:.12s">
-          <div class="proj-stat-val" id="proj-stat-invested" style="color:var(--maroon)">—</div>
-          <div class="proj-stat-label">Total Invested</div>
+          <div class="proj-stat-val" id="proj-stat-invested">—</div>
+          <div class="proj-stat-label">Total invested</div>
         </div>
         <div class="proj-stat" style="animation-delay:.18s">
           <div class="proj-stat-val" id="proj-stat-completed" style="color:var(--ink-faint)">—</div>
@@ -1468,12 +1468,12 @@
       <!-- ── HERO ── -->
       <div class="msg-hero">
         <div>
-          <div class="msg-hero-title">✉ Messages</div>
+          <h1 class="msg-hero-title">Messages</h1>
           <div id="msg-page-sub" class="msg-hero-sub">Bulk SMS to your group members</div>
         </div>
         <div style="display:flex;align-items:center;gap:.5rem">
           <div class="msg-status-dot inactive" id="msg-status-dot"></div>
-          <span id="msg-status-label" style="font-size:.75rem;color:rgba(255,255,255,.6)">Checking…</span>
+          <span id="msg-status-label" class="msg-status-text">Checking…</span>
         </div>
       </div>
 
@@ -1483,9 +1483,9 @@
           <!-- ── COMPOSE ── -->
           <div class="msg-compose">
             <div class="msg-compose-header">
-              <div class="msg-compose-icon">✉</div>
+              <div class="msg-compose-icon"><svg class="gy-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z"/></svg></div>
               <div>
-                <div class="msg-compose-title">Compose Message</div>
+                <div class="msg-compose-title">New message</div>
                 <div style="font-size:.7rem;color:var(--ink-faint)">Choose recipients then type your message</div>
               </div>
             </div>
@@ -1498,12 +1498,12 @@
                 <option value="custom">Custom Selection</option>
               </select>
               <!-- Recipients as pills -->
-              <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.5rem">Recipients</div>
+              <div style="font-size:14px;font-weight:800;color:var(--ink);margin-bottom:.5rem">Recipients</div>
               <div class="msg-recipient-pills" id="msg-recipient-pills">
-                <button class="msg-recipient-pill active" onclick="setRecipient('all',this)">All Members</button>
-                <button class="msg-recipient-pill" onclick="setRecipient('active',this)">Active Only</button>
-                <button class="msg-recipient-pill" onclick="setRecipient('arrears',this)">In Arrears</button>
-                <button class="msg-recipient-pill" onclick="setRecipient('custom',this)">✓ Choose Members</button>
+                <button class="msg-recipient-pill active" onclick="setRecipient('all',this)">All members</button>
+                <button class="msg-recipient-pill" onclick="setRecipient('active',this)">Active only</button>
+                <button class="msg-recipient-pill" onclick="setRecipient('arrears',this)">Behind on payments</button>
+                <button class="msg-recipient-pill" onclick="setRecipient('custom',this)">Choose members</button>
               </div>
               <div style="font-size:.7rem;color:var(--ink-faint);margin-bottom:.85rem" id="msg-recipient-count"></div>
 
@@ -1527,16 +1527,16 @@
               </style>
 
               <!-- Templates -->
-              <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.5rem">Quick Templates</div>
+              <div style="font-size:14px;font-weight:800;color:var(--ink);margin-bottom:.5rem">Quick Templates</div>
               <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1rem">
-                <button class="btn btn-secondary btn-sm" style="font-size:.7rem" onclick="loadSmsTemplate('meeting')">📅 Meeting</button>
-                <button class="btn btn-secondary btn-sm" style="font-size:.7rem" onclick="loadSmsTemplate('contribution')">₭ Contributions</button>
-                <button class="btn btn-secondary btn-sm" style="font-size:.7rem" onclick="loadSmsTemplate('welfare')">♡ Welfare</button>
-                <button class="btn btn-secondary btn-sm" style="font-size:.7rem" onclick="loadSmsTemplate('agm')">🏛 AGM</button>
+                <button class="btn btn-secondary btn-sm" style="font-size:.7rem" onclick="loadSmsTemplate('meeting')">Meeting</button>
+                <button class="btn btn-secondary btn-sm" style="font-size:.7rem" onclick="loadSmsTemplate('contribution')">Contributions</button>
+                <button class="btn btn-secondary btn-sm" style="font-size:.7rem" onclick="loadSmsTemplate('welfare')">Welfare</button>
+                <button class="btn btn-secondary btn-sm" style="font-size:.7rem" onclick="loadSmsTemplate('agm')">AGM</button>
               </div>
 
               <!-- Compose area -->
-              <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.5rem">Message</div>
+              <div style="font-size:14px;font-weight:800;color:var(--ink);margin-bottom:.5rem">Message</div>
               <textarea class="msg-textarea" id="sms-body" placeholder="Type your message here…" oninput="updateSmsCount(this.value)"></textarea>
               <div class="msg-char-bar"><div class="msg-char-fill" id="msg-char-fill" style="width:0%"></div></div>
               <div style="display:flex;justify-content:space-between;font-size:.68rem;color:var(--ink-faint);margin-top:.3rem">
@@ -1546,7 +1546,7 @@
 
               <!-- Actions -->
               <div class="msg-actions">
-                <button class="msg-send-btn" onclick="sendSms()">📤 Send to <span id="msg-send-count">—</span></button>
+                <button class="msg-send-btn" onclick="sendSms()">Send to <span id="msg-send-count">—</span></button>
                 <button class="btn btn-secondary" onclick="testSms()" style="font-size:.78rem">Test →Me</button>
                 <button class="btn btn-secondary" onclick="document.getElementById('sms-body').value='';updateSmsCount('')" style="font-size:.78rem">Clear</button>
               </div>
@@ -1558,7 +1558,7 @@
 
             <!-- SMS Status + Bundle -->
             <div class="msg-status-card">
-              <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.75rem">SMS Status</div>
+              <div style="font-size:14px;font-weight:800;color:var(--ink);margin-bottom:.75rem">SMS Status</div>
               <div id="sms-status-body"><div class="loading"><div class="spinner"></div></div></div>
               <div style="margin-top:1rem" id="msg-bundle-section" style="display:none">
                 <div style="display:flex;justify-content:space-between;font-size:.72rem;margin-bottom:.3rem">
@@ -1571,7 +1571,7 @@
 
             <!-- Paybill -->
             <div class="msg-status-card">
-              <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:.75rem">Payment Details</div>
+              <div style="font-size:14px;font-weight:800;color:var(--ink);margin-bottom:.75rem">Payment Details</div>
               <div id="msg-payment-methods-display">
                 <div style="font-size:.68rem;color:var(--ink-faint);font-style:italic">Loading payment methods…</div>
               </div>
@@ -1630,7 +1630,7 @@
     <div class="page" id="page-settings">
       <div class="section-header">
         <div><div class="section-title">Settings</div><div class="section-sub" id="settings-hero-sub">Organisation configuration</div></div>
-        <button class="btn btn-primary" onclick="saveSettings()" style="background:var(--maroon)">💾 Save Changes</button>
+        <button class="btn btn-primary" onclick="saveSettings()">💾 Save Changes</button>
       </div>
 
       <!-- Tabs -->
@@ -1671,7 +1671,7 @@
                 <div id="settings-mpesa-label-preview" style="margin-top:.5rem;padding:.6rem .8rem;border-radius:6px;background:var(--surface-2);border:1px solid var(--border);font-size:.74rem;line-height:1.55;color:var(--ink-faint)"></div>
                 <div class="field-hint">Shown in members' M-Pesa SMS when they pay through GroupYetu360. Letters and numbers only, up to 12.</div>
               </div>
-              <div class="form-actions"><button class="btn btn-primary" onclick="saveSettings()" style="background:var(--maroon)">Save Details →</button></div>
+              <div class="form-actions"><button class="btn btn-primary" onclick="saveSettings()">Save Details →</button></div>
             </div>
           </div>
 
@@ -1758,7 +1758,7 @@
                   </div>
                 </div>
               </div>
-              <div class="form-actions" style="margin-top:1rem"><button class="btn btn-primary" onclick="saveSettings()" style="background:var(--maroon)">Save Payment Methods →</button></div>
+              <div class="form-actions" style="margin-top:1rem"><button class="btn btn-primary" onclick="saveSettings()">Save Payment Methods →</button></div>
             </div>
           </div>
 
@@ -1776,7 +1776,7 @@
                   <input class="form-input" type="date" id="settings-bank-date"/>
                 </div>
               </div>
-              <div class="form-actions"><button class="btn btn-primary" onclick="saveSettings()" style="background:var(--maroon)">Save Balance →</button></div>
+              <div class="form-actions"><button class="btn btn-primary" onclick="saveSettings()">Save Balance →</button></div>
             </div>
           </div>
         </div>
@@ -2055,7 +2055,7 @@
         </div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap">
           <button class="btn btn-secondary btn-sm" id="od-suspend-btn" onclick="saToggleOrgStatus()" style="font-size:.75rem">Suspend</button>
-          <button class="btn btn-primary btn-sm" onclick="saveOrgDetail()" style="background:var(--teal);font-size:.75rem">💾 Save Changes</button>
+          <button class="btn btn-primary btn-sm" onclick="saveOrgDetail()" style="font-size:.75rem">💾 Save Changes</button>
         </div>
       </div>
 
@@ -2149,7 +2149,7 @@
                 <button class="btn btn-secondary btn-sm" onclick="extendSubscription(1)" style="font-size:.72rem">+1 Month</button>
                 <button class="btn btn-secondary btn-sm" onclick="extendSubscription(3)" style="font-size:.72rem">+3 Months</button>
                 <button class="btn btn-secondary btn-sm" onclick="extendSubscription(6)" style="font-size:.72rem">+6 Months</button>
-                <button class="btn btn-primary btn-sm" onclick="extendSubscription(12)" style="font-size:.72rem;background:var(--teal)">+1 Year</button>
+                <button class="btn btn-primary btn-sm" onclick="extendSubscription(12)" style="font-size:.72rem;">+1 Year</button>
               </div>
               <div class="form-row">
                 <div class="form-group"><label class="form-label">SMS Credit Balance</label>
@@ -2220,7 +2220,7 @@
                 <label class="form-label">Message</label>
                 <textarea class="form-input" id="od-admin-message" rows="4" placeholder="Message to send to this organisation's admin via SMS…" style="min-height:100px;resize:vertical"></textarea>
               </div>
-              <button id="od-send-admin-sms-btn" class="btn btn-primary" onclick="sendMessageToOrgAdmin()" style="background:var(--teal);width:100%">📱 Send SMS to Admin →</button>
+              <button id="od-send-admin-sms-btn" class="btn btn-primary" onclick="sendMessageToOrgAdmin()" style="width:100%">📱 Send SMS to Admin →</button>
               <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.5rem">Uses your platform SMS credit</div>
             </div>
           </div>
@@ -2388,7 +2388,7 @@
                     <button class="btn btn-secondary btn-sm" onclick="addSMSCredit(100)" style="font-size:.72rem">+100</button>
                     <button class="btn btn-secondary btn-sm" onclick="addSMSCredit(200)" style="font-size:.72rem">+200</button>
                     <button class="btn btn-secondary btn-sm" onclick="addSMSCredit(500)" style="font-size:.72rem">+500</button>
-                    <button class="btn btn-primary btn-sm" onclick="addSMSCredit(1000)" style="font-size:.72rem;background:var(--teal)">+1,000</button>
+                    <button class="btn btn-primary btn-sm" onclick="addSMSCredit(1000)" style="font-size:.72rem;">+1,000</button>
                   </div>
                 </div>
                 <div style="border:1px solid var(--border);border-radius:6px;padding:.85rem 1rem">
@@ -2535,7 +2535,7 @@
             <div style="background:var(--teal-pale,#e6f4ef);border:1.5px solid var(--teal);border-radius:8px;padding:.85rem 1rem;margin-bottom:.85rem;font-size:.8rem;color:var(--teal)">
               🎉 <strong>Free trial available!</strong> Activate your plan now - no payment needed. Trial ends on <strong id="cart-trial-expiry-date"></strong>.
             </div>
-            <button class="btn btn-primary" style="width:100%;background:var(--teal);font-size:.9rem;padding:.75rem;font-weight:700" onclick="activateFreeTrialFromCart()">
+            <button class="btn btn-primary" style="width:100%;font-size:.9rem;padding:.75rem;font-weight:700" onclick="activateFreeTrialFromCart()">
               ✓ Activate Free Trial - Ksh 0
             </button>
             <div id="cart-trial-status" style="font-size:.78rem;margin-top:.5rem"></div>
@@ -3418,7 +3418,7 @@
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;flex-wrap:wrap">
             <div style="flex:1"><div style="font-size:.88rem;font-weight:700;color:var(--maroon);margin-bottom:.3rem">⚠ Outstanding Fine</div>
             <div id="mp-fines-alert-text" style="font-size:.82rem;color:var(--ink-soft);line-height:1.65"></div></div>
-            <button class="btn btn-primary btn-sm" onclick="showPage('my_contributions')" style="background:var(--maroon);font-size:.75rem;flex-shrink:0">View Details →</button>
+            <button class="btn btn-primary btn-sm" onclick="showPage('my_contributions')" style="font-size:.75rem;flex-shrink:0">View Details →</button>
           </div>
         </div>
       </div>
@@ -3519,7 +3519,7 @@
               <label class="form-label">Note (optional)</label>
               <input class="form-input" type="text" id="mp-withdraw-note" placeholder="e.g. School fees, Medical emergency"/>
             </div>
-            <button class="btn btn-primary" style="width:100%;background:var(--teal)" onclick="submitWithdrawalRequest()">⬇ Submit Withdrawal Request</button>
+            <button class="btn btn-primary" style="width:100%;" onclick="submitWithdrawalRequest()">⬇ Submit Withdrawal Request</button>
             <div id="mp-withdraw-pending" style="margin-top:.75rem"></div>
           </div>
         </div>
@@ -3698,7 +3698,7 @@
       <div class="card">
         <div class="card-header">
           <div><div class="card-title">Payment History</div><div class="card-sub" id="mc-history-sub"></div></div>
-          <button class="btn btn-primary btn-sm" onclick="openMemberPaymentModal();showModal('memberPayment')" style="background:var(--maroon);font-size:.75rem">+ Make Payment</button>
+          <button class="btn btn-primary btn-sm" onclick="openMemberPaymentModal();showModal('memberPayment')" style="font-size:.75rem">+ Make Payment</button>
         </div>
         <div id="mc-timeline" style="padding:.5rem 0"><div class="loading"><div class="spinner"></div>Loading…</div></div>
       </div>
@@ -3986,7 +3986,7 @@
                 <input class="form-input" id="tb-rec-ref" placeholder="Optional"/></div>
             </div>
             <div style="margin-top:1rem;display:flex;gap:.75rem">
-              <button class="btn btn-primary" onclick="saveTBContribution()" style="background:var(--teal)">Save Contribution →</button>
+              <button class="btn btn-primary" onclick="saveTBContribution()">Save Contribution →</button>
             </div>
           </div>
         </div>
@@ -4019,7 +4019,7 @@
                 <input class="form-input" id="tb-repay-ref" placeholder="Optional"/></div>
             </div>
             <div style="margin-top:1rem">
-              <button class="btn btn-primary" onclick="saveTBRepayment()" style="background:var(--maroon)">Record Repayment →</button>
+              <button class="btn btn-primary" onclick="saveTBRepayment()">Record Repayment →</button>
             </div>
           </div>
         </div>
@@ -4108,7 +4108,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('addMember')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveMember()" style="background:var(--teal)">Add Member →</button>
+      <button class="btn btn-primary" onclick="saveMember()">Add Member →</button>
     </div>
   </div>
 </div>
@@ -4188,7 +4188,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('recordPayment')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveModalTransaction()" style="background:var(--maroon)">Save Payment</button>
+      <button class="btn btn-primary" onclick="saveModalTransaction()">Save Payment</button>
     </div>
   </div>
 </div>
@@ -4299,7 +4299,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('welfareEvent')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveWelfareEvent()" style="background:var(--maroon)">Create Event →</button>
+      <button class="btn btn-primary" onclick="saveWelfareEvent()">Create Event →</button>
     </div>
   </div>
 </div>
@@ -4522,7 +4522,7 @@
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:.75rem;margin-top:.35rem">
-            <button class="btn btn-primary btn-sm" onclick="saUpdateMemberAccount()" style="background:var(--maroon);font-size:.78rem">Apply Changes →</button>
+            <button class="btn btn-primary btn-sm" onclick="saUpdateMemberAccount()" style="font-size:.78rem">Apply Changes →</button>
             <span id="md-sa-account-status" style="font-size:.75rem"></span>
           </div>
         </div>
@@ -4598,8 +4598,8 @@
         .mp-tab.active{background:#fff;color:var(--ink);box-shadow:var(--shadow-sm)}
         .mp-fee-row{display:flex;justify-content:space-between;font-size:13.5px;padding:4px 0;color:var(--ink-soft);font-variant-numeric:tabular-nums}
         .mp-fee-row.total{border-top:1px solid var(--border);margin-top:4px;padding-top:10px;font-weight:800;font-size:15px;color:var(--ink)}
-        .mp-pay-btn{width:100%;min-height:52px;padding:0 16px;border:none;border-radius:var(--radius-lg);background:var(--maroon);color:#fff;font-size:15px;font-weight:800;cursor:pointer;transition:background .15s;display:flex;align-items:center;justify-content:center;gap:8px}
-        .mp-pay-btn:hover{background:var(--maroon-dk)}
+        .mp-pay-btn{width:100%;min-height:52px;padding:0 16px;border:none;border-radius:var(--radius-lg);background:var(--action);color:#fff;font-size:15px;font-weight:800;cursor:pointer;transition:background .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+        .mp-pay-btn:hover{background:var(--action-dk)}
         .mp-pay-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
         /* Payment state machine - pending → processing → success/fail */
         .mp-state-box{display:none;flex-direction:column;align-items:center;text-align:center;padding:1.75rem 1rem;border-radius:10px;margin-top:1rem;transition:all .3s}
@@ -4783,7 +4783,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('memberPayment')">Cancel</button>
-      <button class="btn btn-primary" id="mp-manual-confirm-btn" onclick="submitMemberPayment()" style="background:var(--teal);box-shadow:0 3px 10px rgba(15,110,86,.2)">Confirm Payment →</button>
+      <button class="btn btn-primary" id="mp-manual-confirm-btn" onclick="submitMemberPayment()" style="box-shadow:0 3px 10px rgba(15,110,86,.2)">Confirm Payment →</button>
     </div>
   </div>
 </div>
@@ -5040,7 +5040,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('shareout')">Cancel</button>
-      <button class="btn btn-primary" onclick="executeShareout()" style="background:var(--maroon)">Execute Shareout →</button>
+      <button class="btn btn-primary" onclick="executeShareout()">Execute Shareout →</button>
     </div>
   </div>
 </div>
@@ -5361,7 +5361,7 @@
 
     </div>
     <div class="modal-footer">
-      <button class="btn btn-primary" onclick="saveRound()" style="background:var(--teal)">Create Cycle →</button>
+      <button class="btn btn-primary" onclick="saveRound()">Create Cycle →</button>
       <button class="btn btn-secondary" onclick="closeModal('createRound')">Cancel</button>
     </div>
   </div>
@@ -5460,7 +5460,7 @@
             <input class="form-input" id="picker-pay-ref" placeholder="M-Pesa reference (e.g. QBC4X8YZ)" style="font-size:.78rem;margin-bottom:.4rem"/>
             <div style="font-size:.65rem;color:var(--ink-faint,#767676)">Your group will be created on Starter now. Plan activates after payment is verified.</div>
           </div>
-          <button class="btn btn-primary" onclick="pickerCreateOrg()" style="width:100%;background:var(--teal);font-size:.82rem" id="picker-create-btn">
+          <button class="btn btn-primary" onclick="pickerCreateOrg()" style="width:100%;font-size:.82rem" id="picker-create-btn">
             Create Group →
           </button>
         </div>
@@ -5521,7 +5521,7 @@
         </div>
       </div>
       <div style="margin-top:1rem;display:flex;gap:.5rem">
-        <button class="btn btn-primary btn-sm" onclick="savePickerMyAccount()" style="background:var(--teal);font-size:.78rem">Save Changes</button>
+        <button class="btn btn-primary btn-sm" onclick="savePickerMyAccount()" style="font-size:.78rem">Save Changes</button>
         <button class="btn btn-secondary btn-sm" onclick="hidePickerMyAccount()" style="font-size:.78rem">Cancel</button>
       </div>
       <div id="picker-account-msg" style="font-size:.75rem;margin-top:.5rem"></div>
@@ -5542,7 +5542,7 @@
       <div style="font-size:1.1rem;font-weight:700;color:var(--maroon);margin-bottom:.5rem">Upgrade Required</div>
       <div id="upgrade-prompt-msg" style="font-size:.85rem;color:var(--ink-soft);margin-bottom:1.25rem;line-height:1.6"></div>
       <div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap">
-        <button class="btn btn-primary" style="background:var(--maroon)" onclick="closeModal('upgradePrompt');showPage('billing')">View Plans & Upgrade →</button>
+        <button class="btn btn-primary" onclick="closeModal('upgradePrompt');showPage('billing')">View Plans & Upgrade →</button>
         <button class="btn btn-secondary" onclick="closeModal('upgradePrompt')">Maybe Later</button>
       </div>
     </div>
@@ -5615,7 +5615,7 @@
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:.75rem;margin-top:.25rem">
-          <button class="btn btn-primary btn-sm" onclick="saUpdateUserAccount()" style="background:var(--maroon);font-size:.78rem">Apply Changes →</button>
+          <button class="btn btn-primary btn-sm" onclick="saUpdateUserAccount()" style="font-size:.78rem">Apply Changes →</button>
           <button class="btn btn-secondary btn-sm" onclick="saResendPortalInvite(document.getElementById('sau-email').textContent, document.getElementById('sau-name').textContent)" style="font-size:.75rem">✉ Resend Invite</button>
           <span id="sau-sa-status" style="font-size:.75rem"></span>
         </div>
@@ -5669,7 +5669,7 @@
       <div class="auth-success" id="new-org-success"></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-primary" onclick="registerNewOrg()" style="background:var(--teal)">Create Organisation →</button>
+      <button class="btn btn-primary" onclick="registerNewOrg()">Create Organisation →</button>
       <button class="btn btn-secondary" onclick="closeModal('registerNewOrg')">Cancel</button>
     </div>
   </div>
@@ -5719,7 +5719,7 @@
         <input class="form-input" id="tb-pool-notes" placeholder="Optional notes"/></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-primary" onclick="saveTBPool()" style="background:var(--teal)">Create Pool →</button>
+      <button class="btn btn-primary" onclick="saveTBPool()">Create Pool →</button>
       <button class="btn btn-secondary" onclick="closeModal('tbNewPool')">Cancel</button>
     </div>
   </div>
@@ -5758,7 +5758,7 @@
         <input class="form-input" id="tb-loan-notes" placeholder="Loan purpose etc."/></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-primary" onclick="saveTBLoan()" style="background:var(--maroon)">Issue Loan →</button>
+      <button class="btn btn-primary" onclick="saveTBLoan()">Issue Loan →</button>
       <button class="btn btn-secondary" onclick="closeModal('tbNewLoan')">Cancel</button>
     </div>
   </div>
@@ -5766,16 +5766,16 @@
 
 
   <!-- GroupYetu360 Scripts - load order matters -->
-  <script src="js/icons.js?v=2026100108"></script>
-  <script src="js/auth.js?v=2026100108"></script>
-  <script src="js/utils.js?v=2026100108"></script>
-  <script src="js/dashboard.js?v=2026100108"></script>
-  <script src="js/members.js?v=2026100108"></script>
-  <script src="js/finance.js?v=2026100108"></script>
-  <script src="js/settings.js?v=2026100108"></script>
-  <script src="js/portal.js?v=2026100108"></script>
-  <script src="js/modules.js?v=2026100108"></script>
-  <script src="js/taya.js?v=2026100108"></script>
+  <script src="js/icons.js?v=2026100109"></script>
+  <script src="js/auth.js?v=2026100109"></script>
+  <script src="js/utils.js?v=2026100109"></script>
+  <script src="js/dashboard.js?v=2026100109"></script>
+  <script src="js/members.js?v=2026100109"></script>
+  <script src="js/finance.js?v=2026100109"></script>
+  <script src="js/settings.js?v=2026100109"></script>
+  <script src="js/portal.js?v=2026100109"></script>
+  <script src="js/modules.js?v=2026100109"></script>
+  <script src="js/taya.js?v=2026100109"></script>
   <script>
     // Bootstrap - runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —

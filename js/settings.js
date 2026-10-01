@@ -2556,13 +2556,13 @@ function renderBillingPlanCards() {
     } else if (isHigher || isExpired) {
       const canFreeTrial = promoOn && !trialUsed && !midTrialUpgrade;
       if (canFreeTrial) {
-        btnEl.innerHTML = `<button class="btn btn-primary btn-sm" style="width:100%;background:var(--teal);font-size:.78rem;font-weight:700;padding:.5rem" onclick="addPlanToCart('${plan}', 0, true)">
+        btnEl.innerHTML = `<button class="btn btn-primary btn-sm" style="width:100%;font-size:.78rem;font-weight:700;padding:.5rem" onclick="addPlanToCart('${plan}', 0, true)">
           🎉 Try ${planLabels[plan]} free for ${promoDays} days →
         </button>`;
       } else {
         const price = planPrices[plan];
         const label = midTrialUpgrade ? `Upgrade to ${planLabels[plan]} · Ksh ${price.toLocaleString()}` : `Upgrade · Ksh ${price.toLocaleString()}/yr`;
-        btnEl.innerHTML = `<button class="btn btn-primary btn-sm" style="width:100%;background:var(--maroon);font-size:.75rem;padding:.45rem" onclick="addPlanToCart('${plan}', ${price}, false)">
+        btnEl.innerHTML = `<button class="btn btn-primary btn-sm" style="width:100%;font-size:.75rem;padding:.45rem" onclick="addPlanToCart('${plan}', ${price}, false)">
           ${label} →
         </button>`;
       }

@@ -26,6 +26,9 @@
   --shadow-sm:0 1px 2px rgba(22,24,26,.05);
   --shadow:0 1px 3px rgba(22,24,26,.06),0 6px 16px rgba(22,24,26,.06);
   --shadow-lg:0 12px 40px rgba(22,24,26,.16);
+  /* Primary action colour (Felix's choice, Oct 2026): teal buttons.
+     Maroon stays the brand colour: logo, active menu item, emphasis. */
+  --action:#0f6e56;--action-dk:#0b5a46;--action-ring:rgba(15,110,86,.16);
   --sidebar-w:252px;
 }
 html{scroll-behavior:smooth}
@@ -2897,7 +2900,7 @@ tr:hover td{background:#fafbfa}
 
 /* ── Page heroes: one consistent brand band instead of five different
    gradients. Interim, until each page gets its own redesign. ── */
-.tb-hero,.proj-hero,.mtg-hero,.msg-hero{background:#4a0d1c !important;border-radius:var(--radius-lg)}
+
 
 /* ── Design system v1: shared page patterns (phase 2) ── */
 .ds-page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:24px}
@@ -3150,3 +3153,71 @@ body:not(.mob-dark) .fin-mob-tab-warn{border-color:var(--border-dk);color:var(--
 .method-opt-icon{display:flex;justify-content:center;color:var(--ink-soft);font-size:inherit;margin-bottom:6px}
 .method-opt-title{font-size:13.5px;font-weight:800}
 .method-opt-desc{font-size:12.5px}
+
+/* ── Primary actions are teal (overrides earlier maroon button rules) ── */
+.btn-primary{background:var(--action)}
+.btn-primary:hover{background:var(--action-dk)}
+.topbar-btn{background:var(--action)}
+.topbar-btn:hover{background:var(--action-dk)}
+.mh-pay-btn{background:var(--action)}
+.mh-pay-btn:active{background:var(--action-dk)}
+.form-input:focus,.form-select:focus,.form-textarea:focus,.search-input:focus{border-color:var(--action);box-shadow:0 0 0 3px var(--action-ring)}
+.ds-search:focus-within{border-color:var(--action);box-shadow:0 0 0 3px var(--action-ring)}
+:focus-visible{outline-color:var(--action)}
+/* Sidebar collapse button sits inside the sidebar's top-right corner, so it
+   never covers a page title; when collapsed it parks at the left edge and
+   the content shifts right to make room. */
+.sidebar-toggle{top:22px;left:calc(var(--sidebar-w) - 44px);width:32px;height:32px}
+.sidebar-toggle.collapsed{left:12px}
+.main.expanded .content{padding-left:64px}
+@media(max-width:768px){.main.expanded .content{padding-left:16px}}
+
+/* ── Design system v1: Projects, Meetings, Messages (phase 2f) ── */
+.proj-hero,.mtg-hero,.msg-hero{background:transparent !important;padding:0;margin-bottom:24px;align-items:flex-end;border-radius:0}
+.proj-hero::before,.proj-hero::after,.mtg-hero::before,.mtg-hero::after,.msg-hero::before,.msg-hero::after{display:none !important}
+.proj-hero-title,.mtg-hero-title,.msg-hero-title{margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+.proj-hero-sub,.mtg-hero-sub,.msg-hero-sub{font-size:13.5px;color:var(--ink-faint);margin-top:4px}
+.msg-status-text{font-size:13px;font-weight:600;color:var(--ink-soft)}
+.ds-inline-icon{display:inline-flex;align-items:center;gap:5px}
+
+.proj-stats,.mtg-stats{gap:16px;margin-bottom:24px}
+.proj-stat,.mtg-stat{border-radius:var(--radius-lg);padding:16px 18px;text-align:left}
+.proj-stat-val,.mtg-stat-val{font-size:24px;font-weight:800;letter-spacing:-.02em;color:var(--ink);font-variant-numeric:tabular-nums}
+.proj-stat-label,.mtg-stat-label{font-size:12.5px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--ink-faint);margin-top:4px}
+
+.farm-card{border-radius:var(--radius-lg);overflow:hidden}
+.farm-card:hover{transform:none;box-shadow:var(--shadow);border-color:var(--border-dk)}
+.farm-card::before{display:none}
+.farm-name{font-size:15px;font-weight:800}
+.farm-location{font-size:12.5px}
+.farm-stat{font-size:13px}
+.proj-type-icon{border-radius:var(--radius);background:var(--teal-pale);color:var(--teal-dk);font-size:inherit}
+
+.mtg-card{border-radius:var(--radius-lg);border-left-width:1px}
+.mtg-card:hover{transform:none;box-shadow:var(--shadow)}
+.mtg-card.selected{border-color:var(--action);box-shadow:0 0 0 3px var(--action-ring)}
+.mtg-cal{border-radius:var(--radius)}
+.mtg-cal-month{font-size:11px;letter-spacing:.04em;color:var(--maroon)}
+.mtg-cal-day{font-size:20px;font-weight:800;color:var(--ink)}
+.mtg-title{font-size:14.5px;font-weight:800}
+.mtg-meta{font-size:12.5px}
+.mtg-countdown{font-size:12px;font-weight:700;border-radius:999px}
+.mtg-countdown.soon{background:var(--warning-pale);color:var(--warning)}
+.att-section{border-radius:var(--radius-lg);padding:20px}
+.att-meeting-name{font-size:15px;font-weight:800}
+.att-count-pill{font-size:12.5px;font-weight:700;padding:4px 10px}
+.att-count-pill.apology{background:var(--warning-pale);color:var(--warning)}
+.att-btn{border-radius:var(--radius);border-width:1px}
+.att-btn-status{font-size:12px;letter-spacing:0;text-transform:none}
+.att-btn.apology{background:var(--warning-pale);border-color:#f3ddbf;color:var(--warning)}
+
+.msg-compose,.msg-status-card{border-radius:var(--radius-lg);overflow:hidden}
+.msg-compose-icon{background:var(--teal-pale);color:var(--teal-dk);border-radius:var(--radius);display:flex;align-items:center;justify-content:center}
+.msg-compose-title{font-size:15px;font-weight:800}
+.msg-recipient-pill{border-radius:999px;font-size:13px;font-weight:700;min-height:34px;padding:0 12px;border:1px solid var(--border-dk);background:var(--surface);color:var(--ink-soft)}
+.msg-recipient-pill:hover{border-color:var(--border-dk);background:var(--surface-2);color:var(--ink)}
+.msg-recipient-pill.active{background:var(--ink);border-color:var(--ink);color:#fff;box-shadow:none}
+.msg-textarea{border-radius:var(--radius);border:1px solid var(--border-dk);font-size:14px}
+.msg-textarea:focus{border-color:var(--action);box-shadow:0 0 0 3px var(--action-ring)}
+.msg-send-btn{background:var(--action);border-radius:var(--radius);font-weight:800}
+.msg-send-btn:hover{background:var(--action-dk);transform:none}

@@ -481,7 +481,7 @@ async function loadMyContributions() {
       <div style="font-size:2.5rem;margin-bottom:.75rem">₭</div>
       <div style="font-size:.9rem;font-weight:600;color:var(--ink);margin-bottom:.35rem">No payments recorded yet</div>
       <div style="font-size:.8rem;color:var(--ink-faint);margin-bottom:1rem">Your payment history will appear here once your admin records them.</div>
-      <button class="btn btn-primary btn-sm" onclick="openMemberPaymentModal();showModal('memberPayment')" style="background:var(--maroon)">Make a Payment →</button>
+      <button class="btn btn-primary btn-sm" onclick="openMemberPaymentModal();showModal('memberPayment')">Make a Payment →</button>
     </div>`;
     return;
   }
@@ -539,7 +539,7 @@ function showUpgradePrompt(page){
   let el=document.getElementById('page-upgrade-prompt');
   if(!el){el=document.createElement('div');el.id='page-upgrade-prompt';el.className='page';document.querySelector('.content')?.appendChild(el);}
   el.className='page active';
-  el.innerHTML=`<div style="max-width:480px;margin:3rem auto;text-align:center;padding:0 1.25rem"><div style="width:72px;height:72px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;margin:0 auto 1.1rem;font-size:2rem">🔒</div><div style="font-family:var(--font);font-size:1.7rem;font-weight:700;color:var(--maroon);margin-bottom:.4rem">${info.label}</div><p style="font-size:.88rem;color:var(--ink-faint);line-height:1.75;margin-bottom:1.5rem">Not available on your <strong>${cur.charAt(0).toUpperCase()+cur.slice(1)}</strong> plan. Upgrade to <strong style="color:var(--teal)">${req}</strong> to unlock.</p><div style="display:flex;gap:.75rem;justify-content:center"><button class="btn btn-primary" onclick="showPage('billing')" style="background:var(--teal);padding:.72rem 1.5rem">💳 Upgrade Now →</button><button class="btn btn-secondary" onclick="showPage('dashboard')" style="padding:.72rem 1.25rem">← Dashboard</button></div><div style="margin-top:1rem;font-size:.72rem;color:var(--ink-faint)">Basic plan from Ksh 3,000/year · <a href="https://wa.me/254702903544" style="color:var(--teal)" target="_blank">WhatsApp us</a></div></div>`;
+  el.innerHTML=`<div style="max-width:480px;margin:3rem auto;text-align:center;padding:0 1.25rem"><div style="width:72px;height:72px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;margin:0 auto 1.1rem;font-size:2rem">🔒</div><div style="font-family:var(--font);font-size:1.7rem;font-weight:700;color:var(--maroon);margin-bottom:.4rem">${info.label}</div><p style="font-size:.88rem;color:var(--ink-faint);line-height:1.75;margin-bottom:1.5rem">Not available on your <strong>${cur.charAt(0).toUpperCase()+cur.slice(1)}</strong> plan. Upgrade to <strong style="color:var(--teal)">${req}</strong> to unlock.</p><div style="display:flex;gap:.75rem;justify-content:center"><button class="btn btn-primary" onclick="showPage('billing')" style="padding:.72rem 1.5rem">💳 Upgrade Now →</button><button class="btn btn-secondary" onclick="showPage('dashboard')" style="padding:.72rem 1.25rem">← Dashboard</button></div><div style="margin-top:1rem;font-size:.72rem;color:var(--ink-faint)">Basic plan from Ksh 3,000/year · <a href="https://wa.me/254702903544" style="color:var(--teal)" target="_blank">WhatsApp us</a></div></div>`;
   document.getElementById('page-title').textContent='Upgrade Required';
 }
 async function checkSubscriptionAccess() {
@@ -1388,7 +1388,7 @@ async function loadMGRNoticeCard(memberId) {
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div style="font-size:.9rem;font-weight:700;color:var(--maroon)">Ksh ${totalOwed.toLocaleString()}</div>
-          <button class="btn btn-primary btn-sm" onclick="openMemberPaymentModal();showModal('memberPayment')" style="background:var(--teal);font-size:.65rem;margin-top:.3rem;padding:.25rem .6rem">Pay Now →</button>
+          <button class="btn btn-primary btn-sm" onclick="openMemberPaymentModal();showModal('memberPayment')" style="font-size:.65rem;margin-top:.3rem;padding:.25rem .6rem">Pay Now →</button>
         </div>
       </div>`);
     }

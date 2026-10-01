@@ -13,8 +13,8 @@ async function loadMeetings() {
   if (adminBtn) {
     adminBtn.innerHTML = canSchedule ? `
       <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-        <button class="btn fin-ctrl-btn" onclick="sendMeetingReminders()" id="reminder-btn">📱 Reminders</button>
-        <button class="btn btn-primary" onclick="showModal('scheduleMeeting')">+ Schedule Meeting</button>
+        <button class="btn btn-secondary" onclick="sendMeetingReminders()" id="reminder-btn">${gyIcon('bell', 16)}Send reminders</button>
+        <button class="btn btn-primary ds-btn-auto" onclick="showModal('scheduleMeeting')">${gyIcon('plus', 16)}Schedule meeting</button>
       </div>` : '';
   }
 
@@ -72,7 +72,7 @@ async function loadMeetings() {
     const isSoon = daysAway > 0 && daysAway <= 3;
     const countdownClass = isToday ? 'today' : isSoon ? 'soon' : '';
     const countdownText = isPast ? '' :
-      isToday ? '📍 Today' :
+      isToday ? 'Today' :
       daysAway === 1 ? '⏰ Tomorrow' :
       `In ${daysAway} days`;
 
@@ -85,11 +85,11 @@ async function loadMeetings() {
         <div style="flex:1;min-width:0">
           <div class="mtg-title">${m.agenda ? m.agenda.slice(0,40)+(m.agenda.length>40?'…':'') : (isPast ? 'Past Meeting' : 'General Meeting')}</div>
           <div class="mtg-meta">
-            <span>🕐 ${m.meeting_time||'Time TBA'}</span>
-            <span>📍 ${m.venue||'Venue TBA'}</span>
+            <span class="ds-inline-icon">${gyIcon('clock', 14)}${m.meeting_time||'Time TBA'}</span>
+            <span class="ds-inline-icon">${gyIcon('pin', 14)}${m.venue||'Venue TBA'}</span>
           </div>
           ${!isPast && countdownText ? `<div class="mtg-countdown ${countdownClass}">${countdownText}</div>` : ''}
-          ${isPast ? `<div style="margin-top:.3rem"><span class="badge ${m.minutes?'badge-green':'badge-grey'}" style="font-size:.62rem">${m.minutes?'✓ Minutes filed':'Pending minutes'}</span></div>` : ''}
+          ${isPast ? `<div style="margin-top:.3rem"><span class="badge ${m.minutes?'badge-green':'badge-grey'}" style="font-size:.62rem">${m.minutes?'Minutes filed':'Pending minutes'}</span></div>` : ''}
         </div>
       </div>
       <div class="mtg-card-actions">
@@ -98,9 +98,8 @@ async function loadMeetings() {
           ${isPast?'View Attendance':'Take Attendance'}
         </button>
         ${isPast && !m.minutes ? `<button class="btn btn-secondary btn-sm" style="font-size:.7rem;color:var(--maroon)"
-          onclick="event.stopPropagation();openTaya('meeting_minutes','${m.id}')">✨ Draft with Taya</button>` : ''}
-        ${canSchedule ? `<button class="btn btn-danger btn-sm" style="font-size:.7rem"
-          onclick="event.stopPropagation();deleteMeeting('${m.id}')">✕</button>` : ''}
+          onclick="event.stopPropagation();openTaya('meeting_minutes','${m.id}')">${gyIcon('sparkle', 14)}Draft with Taya</button>` : ''}
+        ${canSchedule ? `<button class="ds-icon-btn ds-icon-btn-danger" aria-label="Delete meeting" onclick="event.stopPropagation();deleteMeeting('${m.id}')">${gyIcon('trash', 16)}</button>` : ''}
       </div>
     </div>`;
   };
@@ -110,9 +109,9 @@ async function loadMeetings() {
   if (upEl) upEl.innerHTML = upcoming.length ?
     upcoming.map(m => renderCard(m, false)).join('') :
     `<div style="padding:1.5rem;text-align:center">
-      <div style="font-size:1.5rem;margin-bottom:.5rem">📅</div>
+      <div style="display:flex;justify-content:center;color:var(--ink-faint);margin-bottom:.5rem">${gyIcon('meetings', 26)}</div>
       <div style="font-size:.82rem;color:var(--ink-faint);margin-bottom:.75rem">No upcoming meetings</div>
-      ${canSchedule ? '<button class="btn btn-primary btn-sm" onclick="showModal(`scheduleMeeting`)">Schedule One</button>' : ''}
+      ${canSchedule ? '<button class="btn btn-primary btn-sm" onclick="showModal(`scheduleMeeting`)">Schedule one</button>' : ''}
     </div>`;
 
   // ── Past ──
@@ -144,7 +143,7 @@ function exportAttendance() {
 
 async function selectMeeting(meetingId, dateStr) {
   selectedMeetingId = meetingId;
-  document.getElementById('att-meeting-label').textContent = '📅 Recording attendance for: ' + dateStr;
+  document.getElementById('att-meeting-label').textContent = 'Recording attendance for ' + dateStr;
   document.getElementById('att-save-btn').style.display = 'inline-flex';
   const expBtn = document.getElementById('att-export-btn');
   if (expBtn) expBtn.style.display = 'inline-flex';
@@ -226,7 +225,7 @@ async function sendMeetingReminders() {
     });
     if (!confirmed) return;
 
-    if (btn) { btn.disabled = true; btn.textContent = '⏳ Sending...'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
 
     // Send reminder for each upcoming meeting
     let totalSent = 0;
@@ -280,7 +279,7 @@ async function sendMeetingReminders() {
 
     if (statusEl) {
       statusEl.style.display = 'block';
-      statusEl.innerHTML = `<div class="alert alert-success">✓ Reminders sent to ${totalSent} members for ${meetings.length} upcoming meeting${meetings.length>1?'s':''}.` + `</div>`;
+      statusEl.innerHTML = `<div class="alert alert-success">Reminders sent to ${totalSent} members for ${meetings.length} upcoming meeting${meetings.length>1?'s':''}.` + `</div>`;
       setTimeout(() => { statusEl.style.display = 'none'; }, 8000);
     }
 
@@ -291,7 +290,7 @@ async function sendMeetingReminders() {
     }
   }
 
-  if (btn) { btn.disabled = false; btn.textContent = '📱 Send Reminders'; }
+  if (btn) { btn.disabled = false; btn.innerHTML = gyIcon('bell', 16) + 'Send reminders'; }
 }
 
 function updateMeetVenueDetailField() {
@@ -831,20 +830,14 @@ function toggleWelfareCategory(cat) {
 
 
 // ── PROJECTS ──
-// Project type icons and labels
-const projTypeIcon = {
-  farm: '🌾', property: '🏘', business: '💼', vehicle: '🚗',
-  equipment: '⚙', livestock: '🐄', other: '⚑'
-};
-
 function getProjectIcon(p) {
   const name = (p.name + ' ' + (p.notes||'')).toLowerCase();
-  if (name.includes('farm') || name.includes('shamba') || name.includes('crop') || name.includes('harvest')) return '🌾';
-  if (name.includes('house') || name.includes('plot') || name.includes('land') || name.includes('property')) return '🏘';
-  if (name.includes('vehicle') || name.includes('car') || name.includes('matatu') || name.includes('truck')) return '🚗';
-  if (name.includes('livestock') || name.includes('cow') || name.includes('goat') || name.includes('dairy')) return '🐄';
-  if (name.includes('business') || name.includes('shop') || name.includes('trade')) return '💼';
-  return '⚑';
+  if (name.includes('farm') || name.includes('shamba') || name.includes('crop') || name.includes('harvest')) return gyIcon('leaf', 22);
+  if (name.includes('house') || name.includes('plot') || name.includes('land') || name.includes('property')) return gyIcon('home', 22);
+  if (name.includes('vehicle') || name.includes('car') || name.includes('matatu') || name.includes('truck')) return gyIcon('truck', 22);
+  if (name.includes('livestock') || name.includes('cow') || name.includes('goat') || name.includes('dairy')) return gyIcon('leaf', 22);
+  if (name.includes('business') || name.includes('shop') || name.includes('trade')) return gyIcon('briefcase', 22);
+  return gyIcon('projects', 22);
 }
 
 function renderProjectCard(p, idx) {
@@ -860,7 +853,7 @@ function renderProjectCard(p, idx) {
         <div class="proj-type-icon ${isActive?'':'completed'}">${icon}</div>
         <div style="flex:1;min-width:0">
           <div class="farm-name">${p.name}</div>
-          <div class="farm-location">📍 ${p.location||'Location not set'}</div>
+          <div class="farm-location ds-inline-icon">${gyIcon('pin', 14)}${p.location||'Location not set'}</div>
           <span class="badge ${isActive?'badge-green':'badge-grey'}" style="font-size:.6rem">${p.status}</span>
         </div>
       </div>
@@ -885,10 +878,10 @@ function renderProjectCard(p, idx) {
     <div class="farm-card-footer">
       <button class="btn btn-secondary btn-sm" style="font-size:.7rem"
         onclick="toggleProjectStatus('${p.id}','${p.status}')">
-        ${isActive ? '✓ Mark Complete' : '↺ Reactivate'}
+        ${isActive ? 'Mark complete' : 'Reactivate'}
       </button>
       <button class="btn btn-danger btn-sm" style="font-size:.7rem"
-        onclick="deleteProject('${p.id}','${p.name.replace(/'/g,"&apos;")}')">✕ Delete</button>
+        onclick="deleteProject('${p.id}','${p.name.replace(/'/g,"&apos;")}')">Delete</button>
     </div>
   </div>`;
 }
@@ -900,7 +893,7 @@ function filterProjects(status, btn) {
   const grid = document.getElementById('projects-grid');
   if (!filtered.length) {
     grid.innerHTML = `<div style="grid-column:1/-1;padding:2.5rem;text-align:center">
-      <div style="font-size:2rem;margin-bottom:.5rem">⚑</div>
+      <div style="display:flex;justify-content:center;color:var(--ink-faint);margin-bottom:.5rem">${gyIcon('projects', 28)}</div>
       <div style="font-size:.85rem;color:var(--ink-faint)">${status==='all'?'No projects yet — add your first investment':'No '+status+' projects'}</div>
     </div>`;
     return;
@@ -1121,7 +1114,7 @@ async function loadMessages() {
   const dot = document.getElementById('msg-status-dot');
   const lbl = document.getElementById('msg-status-label');
   if (dot) dot.className = 'msg-status-dot ' + (smsActive ? 'active' : 'inactive');
-  if (lbl) lbl.textContent = smsActive ? 'SMS Active' : 'SMS Inactive';
+  if (lbl) lbl.textContent = smsActive ? 'SMS is on' : 'SMS is off';
 
   const statusEl = document.getElementById('sms-status-body');
   if (statusEl) {
@@ -1155,7 +1148,7 @@ async function loadMessages() {
             <div style="font-size:.65rem;color:var(--ink-faint);margin-top:.2rem;text-transform:uppercase;letter-spacing:.04em">Sent This Month</div>
           </div>
         </div>
-        ${bundle === 0 ? `<div style="margin-top:.65rem;font-size:.72rem;color:var(--danger);font-weight:600">⚠ Bundle empty — top up via Billing to send messages</div>` : bundle < 20 ? `<div style="margin-top:.65rem;font-size:.72rem;color:var(--warning);font-weight:600">⚠ Low balance — consider topping up soon</div>` : ''}`;
+        ${bundle === 0 ? `<div style="margin-top:.65rem;font-size:.72rem;color:var(--danger);font-weight:600">SMS bundle is empty. Top up under Plan &amp; billing to send messages.</div>` : bundle < 20 ? `<div style="margin-top:.65rem;font-size:.72rem;color:var(--warning);font-weight:600">⚠ Low balance — consider topping up soon</div>` : ''}`;
     } else {
       statusEl.innerHTML = `
         <div style="display:flex;align-items:center;gap:.75rem">
@@ -1363,21 +1356,21 @@ function renderPaymentMethods(org, containerId, compact) {
   const methods = org?.payment_methods || {};
   const items = [];
   if (methods.paybill && methods.paybill_number) {
-    items.push({ icon: '📱', label: 'M-Pesa Paybill', value: methods.paybill_number, sub: 'Account: ' + (methods.paybill_account || methods.account_format || 'Your Full Name'), copy: methods.paybill_number });
+    items.push({ icon: gyIcon('phone', 16), label: 'M-Pesa Paybill', value: methods.paybill_number, sub: 'Account: ' + (methods.paybill_account || methods.account_format || 'Your Full Name'), copy: methods.paybill_number });
   } else if (org?.paybill) {
-    items.push({ icon: '📱', label: 'M-Pesa Paybill', value: org.paybill, sub: 'Account: ' + (org.account_format || 'Your Full Name'), copy: org.paybill });
+    items.push({ icon: gyIcon('phone', 16), label: 'M-Pesa Paybill', value: org.paybill, sub: 'Account: ' + (org.account_format || 'Your Full Name'), copy: org.paybill });
   }
   if (methods.till && methods.till_number) {
-    items.push({ icon: '🏪', label: 'Buy Goods (Till)', value: methods.till_number, sub: '', copy: methods.till_number });
+    items.push({ icon: gyIcon('store', 16), label: 'Buy Goods (Till)', value: methods.till_number, sub: '', copy: methods.till_number });
   }
   if (methods.send && methods.send_phone) {
-    items.push({ icon: '💸', label: 'M-Pesa Send Money', value: methods.send_phone, sub: '', copy: methods.send_phone });
+    items.push({ icon: gyIcon('send', 16), label: 'M-Pesa Send Money', value: methods.send_phone, sub: '', copy: methods.send_phone });
   }
   if (methods.pochi && methods.pochi_phone) {
-    items.push({ icon: '🏦', label: 'Pochi La Biashara', value: methods.pochi_phone, sub: '', copy: methods.pochi_phone });
+    items.push({ icon: gyIcon('phone', 16), label: 'Pochi La Biashara', value: methods.pochi_phone, sub: '', copy: methods.pochi_phone });
   }
   if (methods.bank && methods.bank_name) {
-    items.push({ icon: '🏛', label: methods.bank_name, value: methods.bank_account, sub: methods.bank_account_name, copy: methods.bank_account });
+    items.push({ icon: gyIcon('bank', 16), label: methods.bank_name, value: methods.bank_account, sub: methods.bank_account_name, copy: methods.bank_account });
   }
   if (!items.length) { el.innerHTML = '<div style="font-size:.78rem;color:var(--ink-faint)">No payment methods configured. Ask your admin to set them in Settings.</div>'; return; }
   el.innerHTML = items.map(item => compact ? `
@@ -2389,9 +2382,9 @@ async function loadTableBanking() {
         <div style="display:flex;justify-content:center;color:var(--ink-faint);margin-bottom:.75rem">${gyIcon('bank', 30)}</div>
         <div style="font-size:.9rem;font-weight:700;color:var(--ink);margin-bottom:.4rem">No table banking pools yet</div>
         <div style="font-size:.8rem;color:var(--ink-faint);margin-bottom:1.25rem">Create your first pool to start tracking contributions and loans</div>
-        <button class="btn btn-primary" onclick="showModal('tbNewPool')" style="background:var(--teal);width:auto">+ Create First Pool</button>
+        <button class="btn btn-primary ds-btn-auto" onclick="showModal('tbNewPool')">Create first pool</button>
       </div>`;
-    document.getElementById('tb-hero-sub').textContent = 'No pools yet — create one to get started';
+    document.getElementById('tb-hero-sub').textContent = 'No pools yet. Create one to get started.';
     return;
   }
 
