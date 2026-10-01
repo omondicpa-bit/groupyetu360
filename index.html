@@ -24,7 +24,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026100109">
+  <link rel="stylesheet" href="style.css?v=2026100110">
 </head>
 <body>
 
@@ -1138,20 +1138,20 @@
     <!-- MEETINGS -->
     <div class="page" id="page-settlements">
       <div class="section-header">
-        <div><div class="section-title">💸 Settlements</div><div class="section-sub">Money collected on your behalf, settled to your account daily</div></div>
+        <div><div class="section-title">Payouts to your account</div><div class="section-sub">Money collected on your behalf, settled to your account daily</div></div>
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1rem;margin-bottom:1.5rem">
         <div class="card" style="padding:1.1rem">
-          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.4rem">Awaiting Settlement</div>
+          <div style="font-size:13px;font-weight:700;color:var(--ink-faint);margin-bottom:.4rem">Awaiting Settlement</div>
           <div id="settle-stat-pending" style="font-family:var(--font);font-size:1.7rem;font-weight:700;color:var(--danger)">—</div>
         </div>
         <div class="card" style="padding:1.1rem">
-          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.4rem">Settled This Month</div>
+          <div style="font-size:13px;font-weight:700;color:var(--ink-faint);margin-bottom:.4rem">Settled This Month</div>
           <div id="settle-stat-paid" style="font-family:var(--font);font-size:1.7rem;font-weight:700;color:var(--teal)">—</div>
         </div>
         <div class="card" style="padding:1.1rem">
-          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.4rem">Welfare Pending</div>
+          <div style="font-size:13px;font-weight:700;color:var(--ink-faint);margin-bottom:.4rem">Welfare Pending</div>
           <div id="settle-stat-welfare" style="font-family:var(--font);font-size:1.7rem;font-weight:700;color:var(--gold,#c49a30)">—</div>
         </div>
       </div>
@@ -1591,7 +1591,7 @@
     <div class="page" id="page-approvals">
       <div class="fin-hero" style="background:linear-gradient(135deg,#0d3d2e 0%,var(--teal) 55%,#1a1a1a 100%);margin-bottom:1.25rem">
         <div>
-          <div class="fin-hero-title">✓ Approvals</div>
+          <h1 class="fin-hero-title">Approvals</h1>
           <div class="fin-hero-sub">Member join requests and payment verifications</div>
         </div>
         <div id="approvals-hero-count" style="display:flex;align-items:center;gap:.5rem;font-size:.78rem;color:rgba(255,255,255,.7)"></div>
@@ -1630,15 +1630,15 @@
     <div class="page" id="page-settings">
       <div class="section-header">
         <div><div class="section-title">Settings</div><div class="section-sub" id="settings-hero-sub">Organisation configuration</div></div>
-        <button class="btn btn-primary" onclick="saveSettings()">💾 Save Changes</button>
+        <button class="btn btn-primary" onclick="saveSettings()">Save changes</button>
       </div>
 
       <!-- Tabs -->
       <div class="fin-tabs" style="margin-bottom:1.25rem">
-        <button class="fin-tab active" onclick="switchSettingsTab(this,'st-general')">🏢 General</button>
-        <button class="fin-tab" onclick="switchSettingsTab(this,'st-payments')">💳 Payments</button>
-        <button class="fin-tab" onclick="switchSettingsTab(this,'st-contributions')">₭ Contributions</button>
-        <button class="fin-tab" onclick="switchSettingsTab(this,'st-team')">👥 Team</button>
+        <button class="fin-tab active" onclick="switchSettingsTab(this,'st-general')">General</button>
+        <button class="fin-tab" onclick="switchSettingsTab(this,'st-payments')">Payments</button>
+        <button class="fin-tab" onclick="switchSettingsTab(this,'st-contributions')">Contributions</button>
+        <button class="fin-tab" onclick="switchSettingsTab(this,'st-team')">Team</button>
       </div>
 
       <!-- ── TAB: GENERAL ── -->
@@ -1671,7 +1671,7 @@
                 <div id="settings-mpesa-label-preview" style="margin-top:.5rem;padding:.6rem .8rem;border-radius:6px;background:var(--surface-2);border:1px solid var(--border);font-size:.74rem;line-height:1.55;color:var(--ink-faint)"></div>
                 <div class="field-hint">Shown in members' M-Pesa SMS when they pay through GroupYetu360. Letters and numbers only, up to 12.</div>
               </div>
-              <div class="form-actions"><button class="btn btn-primary" onclick="saveSettings()">Save Details →</button></div>
+              <div class="form-actions"><button class="btn btn-primary" onclick="saveSettings()">Save details</button></div>
             </div>
           </div>
 
@@ -1679,11 +1679,11 @@
             <div class="card-header"><div class="card-title">Security & Access</div></div>
             <div class="card-body">
               <div style="border:1px solid var(--border);border-radius:6px;padding:.85rem 1rem;background:var(--surface)">
-                <div style="font-size:.78rem;font-weight:600;color:var(--ink);margin-bottom:.3rem">💬 SMS</div>
+                <div style="font-size:.78rem;font-weight:600;color:var(--ink);margin-bottom:.3rem">SMS</div>
                 <div style="font-size:.75rem;color:var(--ink-faint);line-height:1.65">SMS is managed by GroupYetu360. Credit and usage are in <a onclick="showPage('billing')" style="color:var(--maroon);cursor:pointer;font-weight:600">Billing & SMS →</a></div>
               </div>
               <div style="border:1px solid var(--border);border-radius:6px;padding:.85rem 1rem;margin-top:.75rem;background:var(--surface)">
-                <div style="font-size:.78rem;font-weight:600;color:var(--ink);margin-bottom:.3rem">🔐 Two-Factor Authentication</div>
+                <div style="font-size:.78rem;font-weight:600;color:var(--ink);margin-bottom:.3rem">Two-factor authentication</div>
                 <div style="font-size:.75rem;color:var(--ink-faint);line-height:1.65">2FA is managed per user. SuperAdmin can enable it for admin and treasurer accounts via <strong>SA → All Users → View</strong>.</div>
               </div>
             </div>
@@ -1704,7 +1704,7 @@
                 <div style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
                   <label style="display:flex;align-items:center;gap:.65rem;padding:.75rem 1rem;cursor:pointer;background:var(--surface)">
                     <input type="checkbox" id="pm-paybill-enabled" style="accent-color:var(--maroon);width:16px;height:16px" onchange="togglePaymentMethod('paybill',this.checked)"/>
-                    <span style="font-size:.84rem;font-weight:600">📱 M-Pesa Paybill</span>
+                    <span style="font-size:.84rem;font-weight:600">M-Pesa Paybill</span>
                   </label>
                   <div id="pm-paybill-fields" style="display:none;padding:.75rem 1rem;border-top:1px solid var(--border)">
                     <div class="form-row">
@@ -1717,7 +1717,7 @@
                 <div style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
                   <label style="display:flex;align-items:center;gap:.65rem;padding:.75rem 1rem;cursor:pointer;background:var(--surface)">
                     <input type="checkbox" id="pm-till-enabled" style="accent-color:var(--maroon);width:16px;height:16px" onchange="togglePaymentMethod('till',this.checked)"/>
-                    <span style="font-size:.84rem;font-weight:600">🏪 M-Pesa Till (Buy Goods)</span>
+                    <span style="font-size:.84rem;font-weight:600">M-Pesa Till (Buy Goods)</span>
                   </label>
                   <div id="pm-till-fields" style="display:none;padding:.75rem 1rem;border-top:1px solid var(--border)">
                     <div class="form-group"><label class="form-label">Till Number</label><input class="form-input" id="settings-till" placeholder="e.g. 123456"/></div>
@@ -1727,7 +1727,7 @@
                 <div style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
                   <label style="display:flex;align-items:center;gap:.65rem;padding:.75rem 1rem;cursor:pointer;background:var(--surface)">
                     <input type="checkbox" id="pm-send-enabled" style="accent-color:var(--maroon);width:16px;height:16px" onchange="togglePaymentMethod('send',this.checked)"/>
-                    <span style="font-size:.84rem;font-weight:600">📲 M-Pesa Send Money</span>
+                    <span style="font-size:.84rem;font-weight:600">M-Pesa Send Money</span>
                   </label>
                   <div id="pm-send-fields" style="display:none;padding:.75rem 1rem;border-top:1px solid var(--border)">
                     <div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" id="settings-send-phone" placeholder="e.g. 0702903544"/></div>
@@ -1737,7 +1737,7 @@
                 <div style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
                   <label style="display:flex;align-items:center;gap:.65rem;padding:.75rem 1rem;cursor:pointer;background:var(--surface)">
                     <input type="checkbox" id="pm-pochi-enabled" style="accent-color:var(--maroon);width:16px;height:16px" onchange="togglePaymentMethod('pochi',this.checked)"/>
-                    <span style="font-size:.84rem;font-weight:600">🛍 Pochi La Biashara</span>
+                    <span style="font-size:.84rem;font-weight:600">Pochi La Biashara</span>
                   </label>
                   <div id="pm-pochi-fields" style="display:none;padding:.75rem 1rem;border-top:1px solid var(--border)">
                     <div class="form-group"><label class="form-label">Pochi Phone Number</label><input class="form-input" id="settings-pochi" placeholder="e.g. 0702903544"/></div>
@@ -1747,7 +1747,7 @@
                 <div style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
                   <label style="display:flex;align-items:center;gap:.65rem;padding:.75rem 1rem;cursor:pointer;background:var(--surface)">
                     <input type="checkbox" id="pm-bank-enabled" style="accent-color:var(--maroon);width:16px;height:16px" onchange="togglePaymentMethod('bank',this.checked)"/>
-                    <span style="font-size:.84rem;font-weight:600">🏦 Bank Transfer</span>
+                    <span style="font-size:.84rem;font-weight:600">Bank Transfer</span>
                   </label>
                   <div id="pm-bank-fields" style="display:none;padding:.75rem 1rem;border-top:1px solid var(--border)">
                     <div class="form-row">
@@ -1758,7 +1758,7 @@
                   </div>
                 </div>
               </div>
-              <div class="form-actions" style="margin-top:1rem"><button class="btn btn-primary" onclick="saveSettings()">Save Payment Methods →</button></div>
+              <div class="form-actions" style="margin-top:1rem"><button class="btn btn-primary" onclick="saveSettings()">Save payment methods</button></div>
             </div>
           </div>
 
@@ -1776,7 +1776,7 @@
                   <input class="form-input" type="date" id="settings-bank-date"/>
                 </div>
               </div>
-              <div class="form-actions"><button class="btn btn-primary" onclick="saveSettings()">Save Balance →</button></div>
+              <div class="form-actions"><button class="btn btn-primary" onclick="saveSettings()">Save balance</button></div>
             </div>
           </div>
         </div>
@@ -2169,7 +2169,7 @@
             </div>
           </div>
           <div class="card">
-            <div class="card-header"><div class="card-title">Payment History</div></div>
+            <div class="card-header"><div class="card-title">Payment history</div></div>
             <div id="od-payment-history"><div class="loading"><div class="spinner"></div></div></div>
           </div>
         </div>
@@ -2411,36 +2411,36 @@
     <!-- ══ BILLING & SMS PAGE ══ -->
     <div class="page" id="page-billing">
       <div class="section-header">
-        <div><div class="section-title">Billing & SMS</div><div class="section-sub">Subscription and usage</div></div>
+        <div><div class="section-title">Plan &amp; billing</div><div class="section-sub">Subscription and usage</div></div>
       </div>
 
       <!-- ── PLAN HERO ── -->
-      <div id="billing-hero" style="border-radius:12px;padding:1.5rem 1.75rem;margin-bottom:1.25rem;background:linear-gradient(135deg,var(--maroon) 0%,#5a0016 100%);color:#fff">
+      <div id="billing-hero" style="border-radius:var(--radius-lg);padding:24px;margin-bottom:16px;background:var(--surface);border:1px solid var(--border);color:var(--ink)">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem">
           <div>
-            <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;opacity:.6;margin-bottom:.3rem">Current Plan</div>
-            <div id="billing-plan-name" style="font-family:var(--font);font-size:2.2rem;font-weight:700;line-height:1">Starter</div>
-            <div id="billing-plan-meta" style="font-size:.78rem;opacity:.7;margin-top:.25rem">Free · Up to 15 members</div>
+            <div style="font-size:12.5px;font-weight:600;color:var(--ink-faint);margin-bottom:4px">Current plan</div>
+            <div id="billing-plan-name" style="font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.1">Starter</div>
+            <div id="billing-plan-meta" style="font-size:13.5px;color:var(--ink-faint);margin-top:4px">Free · Up to 15 members</div>
           </div>
           <div style="text-align:right;flex-shrink:0">
-            <div id="billing-status-badge" style="display:inline-flex;align-items:center;gap:.4rem;background:rgba(255,255,255,.15);padding:.3rem .85rem;border-radius:20px;font-size:.72rem;font-weight:700;margin-bottom:.4rem">
-              <span style="width:6px;height:6px;background:#4ade80;border-radius:50%;display:inline-block"></span> ACTIVE
+            <div id="billing-status-badge" style="display:inline-flex;align-items:center;gap:6px;background:var(--teal-pale);color:var(--teal-dk);padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;margin-bottom:6px">
+              <span style="width:6px;height:6px;background:var(--teal);border-radius:50%;display:inline-block"></span> Active
             </div>
-            <div id="billing-expiry-text" style="font-size:.7rem;opacity:.65">No expiry</div>
+            <div id="billing-expiry-text" style="font-size:12.5px;color:var(--ink-faint)">No expiry</div>
           </div>
         </div>
-        <div style="display:flex;gap:1.5rem;margin-top:1rem;padding-top:.85rem;border-top:1px solid rgba(255,255,255,.15);flex-wrap:wrap">
-          <div id="bf-members" style="font-size:.75rem;opacity:.85">👥 Up to 15 members</div>
-          <div id="bf-sms" style="font-size:.75rem;opacity:.85">💬 SMS: pay as you go</div>
-          <div id="bf-features" style="font-size:.75rem;opacity:.85">✓ Members, Finance, Meetings</div>
+        <div style="display:flex;gap:24px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);flex-wrap:wrap">
+          <div id="bf-members" style="font-size:13px;color:var(--ink-soft)"></div>
+          <div id="bf-sms" style="font-size:13px;color:var(--ink-soft)"></div>
+          <div id="bf-features" style="font-size:13px;color:var(--ink-soft)"></div>
         </div>
       </div>
 
       <!-- ── SMS BALANCE ── -->
       <div class="card" style="margin-bottom:1.25rem">
         <div class="card-header">
-          <div><div class="card-title">📱 SMS Credit</div></div>
-          <div id="billing-sms-balance" style="font-size:1.1rem;font-weight:700;color:var(--maroon)">— SMS</div>
+          <div><div class="card-title">SMS credit</div></div>
+          <div id="billing-sms-balance" style="font-size:18px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums">— SMS</div>
         </div>
         <div class="card-body" style="padding:.75rem 1.25rem">
           <div style="font-size:.78rem;color:var(--ink-faint)">Ksh 1.50 per SMS · credit never expires · buy a bundle below to top up</div>
@@ -2450,19 +2450,19 @@
       <!-- ── PLANS & PRICING ── -->
       <div class="card" style="margin-bottom:1.25rem">
         <div class="card-header">
-          <div class="card-title">🚀 Plans & Pricing</div>
+          <div class="card-title">Plans &amp; pricing</div>
           <div id="billing-promo-banner" style="display:none;font-size:.72rem;font-weight:600;color:var(--teal);background:var(--teal-pale,#e6f4ef);padding:.25rem .7rem;border-radius:20px"></div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));border-top:1px solid var(--border)">
 
           <!-- Starter -->
           <div id="plan-card-starter" style="padding:1.1rem;border-right:1px solid var(--border);position:relative">
-            <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.35rem">Starter</div>
+            <div style="font-size:12.5px;font-weight:700;color:var(--ink-faint);margin-bottom:.35rem">Starter</div>
             <div style="font-family:var(--font);font-size:1.6rem;font-weight:700;color:var(--maroon)">Free</div>
             <div style="font-size:.65rem;color:var(--ink-faint);margin-bottom:.5rem">Forever - no trial</div>
             <div style="font-size:.7rem;font-weight:600;color:var(--teal);background:var(--teal-pale,#e6f4ef);padding:.2rem .45rem;border-radius:3px;display:inline-block;margin-bottom:.75rem">Up to 15 members</div>
             <div style="font-size:.7rem;color:var(--ink-soft);line-height:1.85">
-              ✓ Members &amp; portals<br>✓ Finance<br>✓ Meetings<br>✓ MGR<br>✓ SMS (pay as you go)<br>
+              Members &amp; portals<br>Finance<br>Meetings<br>MGR<br>SMS (pay as you go)<br>
               <span style="color:var(--ink-faint)">- Welfare<br>- Projects<br>- Table Banking</span>
             </div>
             <div id="plan-btn-starter" style="margin-top:1rem"></div>
@@ -2470,12 +2470,12 @@
 
           <!-- Basic -->
           <div id="plan-card-basic" style="padding:1.1rem;border-right:1px solid var(--border);position:relative">
-            <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--teal);margin-bottom:.35rem">Basic</div>
+            <div style="font-size:12.5px;font-weight:700;color:var(--teal);margin-bottom:.35rem">Basic</div>
             <div style="font-family:var(--font);font-size:1.6rem;font-weight:700;color:var(--maroon)">Ksh 3,000</div>
             <div style="font-size:.65rem;color:var(--ink-faint);margin-bottom:.5rem">Ksh 250/month</div>
             <div style="font-size:.7rem;font-weight:600;color:var(--teal);background:var(--teal-pale,#e6f4ef);padding:.2rem .45rem;border-radius:3px;display:inline-block;margin-bottom:.75rem">Up to 30 members</div>
             <div style="font-size:.7rem;color:var(--ink-soft);line-height:1.85">
-              ✓ All Starter features<br>✓ Welfare management<br>✓ Projects &amp; investments<br>✓ Table Banking<br>✓ Priority support<br>✓ WhatsApp support
+              All Starter features<br>Welfare management<br>Projects &amp; investments<br>Table Banking<br>Priority support<br>WhatsApp support
             </div>
             <div id="billing-promo-basic" style="font-size:.65rem;color:var(--ink-faint);margin-top:.6rem"></div>
             <div id="plan-btn-basic" style="margin-top:.75rem"></div>
@@ -2484,12 +2484,12 @@
           <!-- Standard -->
           <div id="plan-card-standard" style="padding:1.1rem;border-right:1px solid var(--border);background:var(--maroon-pale);position:relative">
             <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--maroon)"></div>
-            <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--maroon);margin-bottom:.35rem">Standard ⭐ Most Popular</div>
+            <div style="font-size:12.5px;font-weight:700;color:var(--maroon);margin-bottom:.35rem">Standard · Most popular</div>
             <div style="font-family:var(--font);font-size:1.6rem;font-weight:700;color:var(--maroon)">Ksh 6,000</div>
             <div style="font-size:.65rem;color:var(--ink-faint);margin-bottom:.5rem">Ksh 500/month</div>
             <div style="font-size:.7rem;font-weight:600;color:var(--teal);background:var(--teal-pale,#e6f4ef);padding:.2rem .45rem;border-radius:3px;display:inline-block;margin-bottom:.75rem">Up to 75 members</div>
             <div style="font-size:.7rem;color:var(--ink-soft);line-height:1.85">
-              ✓ All Basic features<br>✓ M-Pesa STK Push<br>✓ Auto payment recording<br>✓ MGR round management<br>✓ On-site training (Nairobi)
+              All Basic features<br>M-Pesa STK Push<br>Auto payment recording<br>MGR round management<br>On-site training (Nairobi)
             </div>
             <div id="billing-promo-standard" style="font-size:.65rem;color:var(--ink-faint);margin-top:.6rem"></div>
             <div id="plan-btn-standard" style="margin-top:.75rem"></div>
@@ -2497,12 +2497,12 @@
 
           <!-- Pro -->
           <div id="plan-card-pro" style="padding:1.1rem;position:relative">
-            <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#c49a30;margin-bottom:.35rem">Pro</div>
+            <div style="font-size:12.5px;font-weight:700;color:#c49a30;margin-bottom:.35rem">Pro</div>
             <div style="font-family:var(--font);font-size:1.6rem;font-weight:700;color:var(--maroon)">Ksh 12,000</div>
             <div style="font-size:.65rem;color:var(--ink-faint);margin-bottom:.5rem">Ksh 1,000/month</div>
             <div style="font-size:.7rem;font-weight:600;color:var(--teal);background:var(--teal-pale,#e6f4ef);padding:.2rem .45rem;border-radius:3px;display:inline-block;margin-bottom:.75rem">Unlimited members</div>
             <div style="font-size:.7rem;color:var(--ink-soft);line-height:1.85">
-              ✓ All Standard features<br>✓ Custom features<br>✓ Advanced reports<br>✓ Dedicated account manager<br>✓ Priority 24/7 support<br>✓ Nationwide on-site training
+              All Standard features<br>Custom features<br>Advanced reports<br>Dedicated account manager<br>Priority 24/7 support<br>Nationwide on-site training
             </div>
             <div id="billing-promo-pro" style="font-size:.65rem;color:var(--ink-faint);margin-top:.6rem"></div>
             <div id="plan-btn-pro" style="margin-top:.75rem"></div>
@@ -2517,8 +2517,8 @@
       <!-- ── CART & CHECKOUT ── -->
       <div class="card" id="billing-cart-card" style="display:none;margin-bottom:1.25rem;border:2px solid var(--teal)">
         <div class="card-header" style="background:var(--teal-pale,#e6f4ef)">
-          <div><div class="card-title" style="color:var(--teal)">🛒 Your Order</div></div>
-          <button onclick="clearBillingCart()" style="background:none;border:none;cursor:pointer;font-size:.75rem;color:var(--ink-faint)">Clear ✕</button>
+          <div><div class="card-title" style="color:var(--teal)">Your order</div></div>
+          <button onclick="clearBillingCart()" class="btn btn-ghost btn-sm">Clear</button>
         </div>
         <div class="card-body">
           <!-- Cart items -->
@@ -2533,10 +2533,10 @@
           <!-- Free trial activation (shown when total = 0 and plan in cart) -->
           <div id="cart-free-trial-section" style="display:none">
             <div style="background:var(--teal-pale,#e6f4ef);border:1.5px solid var(--teal);border-radius:8px;padding:.85rem 1rem;margin-bottom:.85rem;font-size:.8rem;color:var(--teal)">
-              🎉 <strong>Free trial available!</strong> Activate your plan now - no payment needed. Trial ends on <strong id="cart-trial-expiry-date"></strong>.
+              <strong>Free trial available.</strong> Activate your plan now - no payment needed. Trial ends on <strong id="cart-trial-expiry-date"></strong>.
             </div>
             <button class="btn btn-primary" style="width:100%;font-size:.9rem;padding:.75rem;font-weight:700" onclick="activateFreeTrialFromCart()">
-              ✓ Activate Free Trial - Ksh 0
+              Activate free trial (Ksh 0)
             </button>
             <div id="cart-trial-status" style="font-size:.78rem;margin-top:.5rem"></div>
           </div>
@@ -2557,8 +2557,8 @@
 
             <!-- Method switcher tabs (hidden if only one method active) -->
             <div id="cart-method-tabs" style="display:flex;margin-bottom:1rem">
-              <button class="pay-tab-btn" id="tab-paystack" onclick="switchPayTab('paystack')">⚡ Pay Instantly</button>
-              <button class="pay-tab-btn" id="tab-manual" onclick="switchPayTab('manual')">🏦 Pay Manually</button>
+              <button class="pay-tab-btn" id="tab-paystack" onclick="switchPayTab('paystack')">Pay with M-Pesa</button>
+              <button class="pay-tab-btn" id="tab-manual" onclick="switchPayTab('manual')">Pay manually</button>
             </div>
 
             <!-- ── PAYSTACK TAB ── -->
@@ -2574,19 +2574,19 @@
               </div>
               <button onclick="submitCartPaystack()" id="cart-paystack-btn"
                 style="width:100%;background:var(--maroon);color:#fff;border:none;border-radius:10px;padding:.85rem;font-size:.95rem;font-weight:700;cursor:pointer;transition:opacity .2s;display:flex;align-items:center;justify-content:center;gap:.5rem">
-                <span>⚡</span><span id="stk-btn-label">Send M-Pesa Prompt</span>
+                <svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg><span id="stk-btn-label">Send M-Pesa prompt</span>
               </button>
               <div id="cart-paystack-status" style="font-size:.78rem;margin-top:.5rem;text-align:center;min-height:1.1rem"></div>
               <!-- Waiting state -->
               <div id="cart-paystack-pending" style="display:none;margin-top:.75rem;background:#f0fff4;border:1.5px solid #86efac;border-radius:10px;padding:1rem 1.25rem;text-align:center">
-                <div style="font-size:1.5rem;margin-bottom:.35rem">📲</div>
+                <div style="display:flex;justify-content:center;color:var(--teal-dk);margin-bottom:.35rem"><svg class="gy-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg></div>
                 <div style="font-size:.85rem;font-weight:700;color:#166534;margin-bottom:.2rem">Check your phone!</div>
                 <div style="font-size:.75rem;color:#166534;margin-bottom:.75rem">Enter your M-Pesa PIN on the prompt - your plan will activate automatically.</div>
                 <div style="font-size:.68rem;color:#4ade80">Checking payment status<span id="stk-dots">…</span></div>
               </div>
               <!-- Success state -->
               <div id="cart-paystack-success" style="display:none;margin-top:.75rem;background:#f0fff4;border:1.5px solid #86efac;border-radius:10px;padding:1.25rem;text-align:center">
-                <div style="font-size:2rem;margin-bottom:.35rem">🎉</div>
+                <div style="display:flex;justify-content:center;color:var(--teal-dk);margin-bottom:.35rem"><svg class="gy-icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="m7.5 12.5 3 3 6-6.5"/></svg></div>
                 <div style="font-size:.92rem;font-weight:700;color:#166534">Payment Confirmed!</div>
                 <div style="font-size:.75rem;color:#166534;margin-top:.25rem">Your plan is now active. Reloading…</div>
               </div>
@@ -2604,7 +2604,7 @@
                 ⏱ Plan activated within minutes of SA approval. WhatsApp <strong>0702 903 544</strong> for faster processing.
               </div>
               <button onclick="submitCartPayment()" style="width:100%;background:var(--maroon);color:#fff;border:none;border-radius:10px;padding:.85rem;font-size:.9rem;font-weight:700;cursor:pointer">
-                ✓ I Have Paid - Submit Reference
+                I have paid: submit reference
               </button>
               <div id="cart-pay-status" style="font-size:.78rem;margin-top:.5rem;text-align:center"></div>
             </div>
@@ -2615,7 +2615,7 @@
       <!-- ── BUY SMS BUNDLE ── -->
       <div class="card" style="margin-bottom:1.25rem">
         <div class="card-header">
-          <div class="card-title">💬 Buy SMS Credit</div>
+          <div class="card-title">Buy SMS credit</div>
           <div class="card-sub">Pre-load credit · Ksh 1.50/SMS · never expires</div>
         </div>
         <div class="card-body">
@@ -2626,19 +2626,19 @@
             <button class="pay-pill sms" data-sms="500" data-amount="750" onclick="addSMSToCart(this)">500 SMS · Ksh 750</button>
             <button class="pay-pill sms" data-sms="1000" data-amount="1500" onclick="addSMSToCart(this)">1,000 SMS · Ksh 1,500</button>
           </div>
-          <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.6rem">Select a bundle to add to your order above ↑</div>
+          <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.6rem">Select a bundle to add it to your order above.</div>
         </div>
       </div>
 
       <!-- ── PAYMENT HISTORY ── -->
       <div class="card" style="margin-bottom:1.25rem">
-        <div class="card-header"><div class="card-title">📋 Payment History</div></div>
+        <div class="card-header"><div class="card-title">Payment history</div></div>
         <div id="payment-history"><div class="loading"><div class="spinner"></div>Loading…</div></div>
       </div>
 
       <!-- ── FAQ ── -->
       <div class="card">
-        <div class="card-header"><div class="card-title">❓ Frequently Asked Questions</div></div>
+        <div class="card-header"><div class="card-title">Frequently asked questions</div></div>
         <div class="card-body" style="padding:0">
           <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">What happens if my trial expires? <span class="faq-arrow">▾</span></div><div class="faq-a">Your group reverts to Starter (up to 15 members). Premium features are paused - your data is never deleted. Renew to reactivate immediately.</div></div>
           <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Can I get a second free trial? <span class="faq-arrow">▾</span></div><div class="faq-a">No. Each group gets one free trial ever. Once used - even if the promo is still running - future upgrades require payment. This is to keep the offer fair for all groups.</div></div>
@@ -2691,7 +2691,7 @@
 
     <!-- SUPERADMIN BILLING PAGE -->
     <div class="page" id="page-sa_billing">
-      <div class="section-header"><div><div class="section-title">Billing Management</div><div class="section-sub">Review and approve payment requests</div></div></div>
+      <div class="section-header"><div><div class="section-title">Billing</div><div class="section-sub">Review and approve payment requests</div></div></div>
 
       <!-- Stats -->
       <div class="stats-row">
@@ -2705,7 +2705,7 @@
       <div class="ps-accordion">
         <div class="ps-accordion-header" onclick="toggleAccordion(this)">
           <div class="ps-acc-left">
-            <div class="ps-acc-icon" style="background:#fff4dc">⏳</div>
+            <div class="ps-acc-icon" style="background:var(--warning-pale);color:var(--warning)"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
             <div><div class="ps-acc-title">Pending Payment Requests</div><div class="ps-acc-sub">Manual payments awaiting SA review</div></div>
           </div>
           <div style="display:flex;align-items:center;gap:.75rem">
@@ -2722,7 +2722,7 @@
       <div class="ps-accordion">
         <div class="ps-accordion-header" onclick="toggleAccordion(this)">
           <div class="ps-acc-left">
-            <div class="ps-acc-icon" style="background:#e8f0fd">⚡</div>
+            <div class="ps-acc-icon" style="background:var(--teal-pale);color:var(--teal-dk)"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg></div>
             <div><div class="ps-acc-title">Collection Activation Requests</div><div class="ps-acc-sub">Orgs requesting instant M-Pesa collection</div></div>
           </div>
           <div style="display:flex;align-items:center;gap:.75rem">
@@ -2740,7 +2740,7 @@
       <div class="ps-accordion">
         <div class="ps-accordion-header" onclick="toggleAccordion(this)">
           <div class="ps-acc-left">
-            <div class="ps-acc-icon" style="background:#fdecea">💸</div>
+            <div class="ps-acc-icon" style="background:var(--maroon-pale);color:var(--maroon)"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M8 7h9v9"/><path d="M4 21h16"/></svg></div>
             <div><div class="ps-acc-title">Settlements</div><div class="ps-acc-sub">SasaPay collections, grouped by date</div></div>
           </div>
           <div style="display:flex;align-items:center;gap:.75rem">
@@ -2758,7 +2758,7 @@
       <div class="ps-accordion">
         <div class="ps-accordion-header" onclick="toggleAccordion(this)">
           <div class="ps-acc-left">
-            <div class="ps-acc-icon" style="background:#fde8f0">📢</div>
+            <div class="ps-acc-icon" style="background:var(--surface-2);color:var(--ink-soft)"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z"/></svg></div>
             <div><div class="ps-acc-title">Broadcast Composer</div><div class="ps-acc-sub">Push notifications to all users, orgs, or individuals</div></div>
           </div>
           <span class="ps-acc-chevron">▼</span>
@@ -2781,13 +2781,13 @@
           </div>
 
           <div id="bc-orgs-picker" style="display:none;margin-bottom:1rem">
-            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.5rem">Organisations</div>
+            <div style="font-size:13px;font-weight:700;color:var(--ink-faint);margin-bottom:.5rem">Organisations</div>
             <input class="form-input" placeholder="Search organisations…" oninput="filterBroadcastOrgList(this.value)" style="margin-bottom:.5rem"/>
             <div id="bc-orgs-list" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:.5rem"></div>
           </div>
 
           <div id="bc-members-picker" style="display:none;margin-bottom:1rem">
-            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.5rem">Individual Users</div>
+            <div style="font-size:13px;font-weight:700;color:var(--ink-faint);margin-bottom:.5rem">Individual Users</div>
             <div style="font-size:.7rem;color:var(--ink-faint);margin-bottom:.5rem">One entry per person, regardless of how many groups they belong to.</div>
             <input class="form-input" placeholder="Search by name…" oninput="filterBroadcastMemberList(this.value)" style="margin-bottom:.5rem"/>
             <div id="bc-members-list" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:.5rem"></div>
@@ -2800,7 +2800,7 @@
           </div>
 
           <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border)">
-            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.5rem">Recent Broadcasts</div>
+            <div style="font-size:13px;font-weight:700;color:var(--ink-faint);margin-bottom:.5rem">Recent Broadcasts</div>
             <div id="bc-history"><div class="loading"><div class="spinner"></div>Loading…</div></div>
           </div>
         </div>
@@ -2810,7 +2810,7 @@
       <div class="ps-accordion">
         <div class="ps-accordion-header" onclick="toggleAccordion(this)">
           <div class="ps-acc-left">
-            <div class="ps-acc-icon" style="background:#e8f5e9">📋</div>
+            <div class="ps-acc-icon" style="background:var(--surface-2);color:var(--ink-soft)"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg></div>
             <div><div class="ps-acc-title">All Subscriptions</div><div class="ps-acc-sub">Every organisation's plan and billing status</div></div>
           </div>
           <span class="ps-acc-chevron">▼</span>
@@ -2824,7 +2824,7 @@
     <!-- SUPERADMIN ACTIVITY LOG -->
     <div class="page" id="page-sa_activity">
       <div class="section-header">
-        <div><div class="section-title">Activity Log</div><div class="section-sub">Audit trail of all admin actions across all organisations</div></div>
+        <div><div class="section-title">Activity log</div><div class="section-sub">Audit trail of all admin actions across all organisations</div></div>
       </div>
       <div class="card">
         <div class="card-header">
@@ -2907,7 +2907,7 @@
               <option value="settled">Settled (last 7 days)</option>
               <option value="all">Everything (last 7 days)</option>
             </select>
-            <button class="btn btn-secondary btn-sm" onclick="loadSAPayouts()">↻ Refresh</button>
+            <button class="btn btn-secondary btn-sm" onclick="loadSAPayouts()">Refresh</button>
           </div>
         </div>
         <div id="sa-payouts-list"><div class="loading"><div class="spinner"></div>Loading...</div></div>
@@ -2924,7 +2924,7 @@
 
     <!-- SUPERADMIN SUPPORT SETTINGS -->
     <div class="page" id="page-sa_support">
-      <div class="section-header"><div><div class="section-title">Platform Settings</div><div class="section-sub">Configure contact details, integrations and payment controls</div></div></div>
+      <div class="section-header"><div><div class="section-title">Platform settings</div><div class="section-sub">Configure contact details, integrations and payment controls</div></div></div>
 
       <style>
         .ps-accordion{border:1.5px solid var(--border);border-radius:10px;margin-bottom:1rem;overflow:hidden;max-width:680px}
@@ -3007,7 +3007,7 @@
               </div>
             </div>
           </div>
-          <div class="ps-save-bar"><button class="btn btn-primary" onclick="saveSupportSettings()">Save Changes</button></div>
+          <div class="ps-save-bar"><button class="btn btn-primary" onclick="saveSupportSettings()">Save changes</button></div>
         </div>
       </div>
 
@@ -3043,7 +3043,7 @@
           <div class="form-row single">
             <div class="form-group"><label class="form-label">M-Pesa Paybill (optional)</label><input class="form-input" id="sp-paybill" placeholder="e.g. 522522"/></div>
           </div>
-          <div class="ps-save-bar"><button class="btn btn-primary" onclick="saveSupportSettings()">Save Changes</button></div>
+          <div class="ps-save-bar"><button class="btn btn-primary" onclick="saveSupportSettings()">Save changes</button></div>
         </div>
       </div>
 
@@ -3074,7 +3074,7 @@
           <div class="form-row single">
             <div class="form-group"><label class="form-label">Shortcode / Sender ID</label><input class="form-input" id="sp-celcom-shortcode" placeholder="e.g. EPH TECH"/></div>
           </div>
-          <div class="ps-save-bar"><button class="btn btn-primary" onclick="saveSupportSettings()">Save Changes</button></div>
+          <div class="ps-save-bar"><button class="btn btn-primary" onclick="saveSupportSettings()">Save changes</button></div>
         </div>
       </div>
 
@@ -3115,7 +3115,7 @@
           <div style="font-size:.72rem;color:var(--ink-faint);margin:-.25rem 0 .75rem;line-height:1.5">
             This is for subscription and SMS bundle billing only, separate from member contributions, which are set per-org on each org's Details tab. Credentials for each provider are set below, under Payment Service Providers. Safaricom Direct also needs the DARAJA secrets set and daraja-callback deployed, see that card for the checklist.
           </div>
-          <div class="ps-save-bar"><button class="btn btn-primary" onclick="saveSupportSettings()">Save Changes</button></div>
+          <div class="ps-save-bar"><button class="btn btn-primary" onclick="saveSupportSettings()">Save changes</button></div>
         </div>
       </div>
 
@@ -3238,7 +3238,7 @@
             </div>
 
           </div>
-          <div class="ps-save-bar"><button class="btn btn-primary" onclick="saveSupportSettings()">Save Changes</button></div>
+          <div class="ps-save-bar"><button class="btn btn-primary" onclick="saveSupportSettings()">Save changes</button></div>
         </div>
       </div>
 
@@ -3267,7 +3267,7 @@
           <div class="form-row single">
             <div class="form-group"><label class="form-label">Private Key <span id="sp-vapid-private-saved" style="display:none;color:var(--teal);font-size:.68rem;font-weight:700">✓ SAVED</span></label><input class="form-input" type="password" id="sp-vapid-private-key" placeholder="Private key (enter to update)" autocomplete="new-password"/></div>
           </div>
-          <div class="ps-save-bar"><button class="btn btn-primary" onclick="saveSupportSettings()">Save Changes</button></div>
+          <div class="ps-save-bar"><button class="btn btn-primary" onclick="saveSupportSettings()">Save changes</button></div>
         </div>
       </div>
 
@@ -3278,7 +3278,7 @@
 
       <!-- DESKTOP -->
       <div class="mob-hide">
-        <div class="section-header"><div><div class="section-title">My Account</div><div class="section-sub">Update your personal information and password</div></div></div>
+        <div class="section-header"><div><div class="section-title">My account</div><div class="section-sub">Update your personal information and password</div></div></div>
         <div class="grid-2">
           <div class="card">
             <div class="card-header"><div class="card-title">Personal Information</div></div>
@@ -3286,7 +3286,7 @@
               <div class="form-row single"><div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="acct-name" placeholder="Your full name"/></div></div>
               <div class="form-row single"><div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" id="acct-phone" placeholder="07XXXXXXXX"/></div></div>
               <div class="form-row single"><div class="form-group"><label class="form-label">Email Address</label><input class="form-input" id="acct-email" disabled style="background:var(--surface-3);color:var(--ink-faint)"/><div id="acct-email-hint" style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">Email cannot be changed here. Contact your group admin.</div></div></div>
-              <div class="form-actions"><button class="btn btn-primary" onclick="saveAccountInfo()">Save Changes</button></div>
+              <div class="form-actions"><button class="btn btn-primary" onclick="saveAccountInfo()">Save changes</button></div>
             </div>
           </div>
           <div class="card">
@@ -3299,7 +3299,7 @@
             </div>
           </div>
           <div class="card" id="acct-2fa-card" style="display:none">
-            <div class="card-header"><div class="card-title">🔐 Two-Factor Authentication</div></div>
+            <div class="card-header"><div class="card-title">Two-factor authentication</div></div>
             <div class="card-body">
               <div style="font-size:.78rem;color:var(--ink-faint);line-height:1.6;margin-bottom:.85rem">
                 When enabled, a 6-digit code is emailed to you at every sign-in. Strongly recommended for admin, treasurer and superadmin accounts.
@@ -3345,7 +3345,7 @@
                 <input class="mh-form-input" id="acct-email" disabled/>
                 <div class="mh-form-hint" id="acct-email-hint-mob">Email cannot be changed here. Contact your group admin.</div>
               </div>
-              <button class="mh-btn-teal" onclick="saveAccountInfo()">Save Changes</button>
+              <button class="mh-btn-teal" onclick="saveAccountInfo()">Save changes</button>
             </div>
           </div>
           <div class="mh-section-label" style="margin-top:.25rem">Change Password</div>
@@ -3364,7 +3364,7 @@
             </div>
           </div>
           <div id="acct-2fa-card-mob" style="display:none">
-            <div class="mh-section-label" style="margin-top:.25rem">Two-Factor Authentication</div>
+            <div class="mh-section-label" style="margin-top:.25rem">Two-factor authentication</div>
             <div class="mh-card">
               <div class="mh-card-body" style="display:flex;flex-direction:column;gap:.65rem">
                 <div style="font-size:.75rem;color:var(--ink-faint);line-height:1.55">
@@ -3384,7 +3384,7 @@
           </div>
           <a href="https://wa.me/254702903544?text=Hi%2C%20I%20need%20help%20with%20GroupYetu360" target="_blank" rel="noopener"
             style="display:flex;align-items:center;justify-content:center;gap:.4rem;font-size:.78rem;color:var(--ink-faint);text-decoration:none;padding:.5rem;margin-top:.6rem">
-            💬 Contact Support
+            Contact Support
           </a>
           <button onclick="signOut()" style="background:transparent;border:1px solid var(--border);border-radius:20px;padding:.55rem 1rem;font-size:.82rem;color:var(--ink-faint);cursor:pointer;width:100%;font-family:var(--font);margin-top:.25rem">⎋ Sign Out</button>
         </div>
@@ -3652,7 +3652,7 @@
       <!-- DESKTOP -->
       <div class="mob-hide">
       <div class="section-header">
-        <div><div class="section-title">My Contributions</div><div class="section-sub">Your payment history and balances</div></div>
+        <div><div class="section-title">My payments</div><div class="section-sub">Your payment history and balances</div></div>
       </div>
       <div id="mc-fines-notice" style="margin-bottom:.75rem;display:none"></div>
       <div id="mc-pending-notice" style="margin-bottom:.75rem;display:none"></div>
@@ -3697,7 +3697,7 @@
       </div>
       <div class="card">
         <div class="card-header">
-          <div><div class="card-title">Payment History</div><div class="card-sub" id="mc-history-sub"></div></div>
+          <div><div class="card-title">Payment history</div><div class="card-sub" id="mc-history-sub"></div></div>
           <button class="btn btn-primary btn-sm" onclick="openMemberPaymentModal();showModal('memberPayment')" style="font-size:.75rem">+ Make Payment</button>
         </div>
         <div id="mc-timeline" style="padding:.5rem 0"><div class="loading"><div class="spinner"></div>Loading…</div></div>
@@ -3835,7 +3835,7 @@
 
     <!-- SUPERADMIN: ALL MEMBERS -->
     <div class="page" id="page-sa_members">
-      <div class="section-header"><div><div class="section-title">All Users</div><div class="section-sub">Every registered account on the platform</div></div></div>
+      <div class="section-header"><div><div class="section-title">All users</div><div class="section-sub">Every registered account on the platform</div></div></div>
       <div class="search-bar"><input class="search-input" placeholder="Search by name, email or phone…" oninput="filterSAMembers(this.value)"/></div>
       <div class="table-wrap card">
         <table>
@@ -4528,7 +4528,7 @@
         </div>
 
         <div class="form-actions">
-          <button class="btn btn-primary" onclick="saveMemberDetail()">Save Changes</button>
+          <button class="btn btn-primary" onclick="saveMemberDetail()">Save changes</button>
           <button class="btn btn-secondary btn-sm" onclick="promoteToAdmin()" id="promote-btn" style="margin-left:.5rem">👤 Set Portal Role</button>
           <button class="btn btn-danger btn-sm" onclick="deleteMember()" id="delete-member-btn" style="margin-left:auto;display:none">Delete Member</button>
         </div>
@@ -5212,7 +5212,7 @@
       </div>
       <div style="display:flex;gap:.75rem">
         <button class="btn btn-secondary" onclick="closeModal('orgDetail')">Cancel</button>
-        <button class="btn btn-primary" onclick="saveOrgDetail()">Save Changes</button>
+        <button class="btn btn-primary" onclick="saveOrgDetail()">Save changes</button>
       </div>
     </div>
   </div>
@@ -5521,7 +5521,7 @@
         </div>
       </div>
       <div style="margin-top:1rem;display:flex;gap:.5rem">
-        <button class="btn btn-primary btn-sm" onclick="savePickerMyAccount()" style="font-size:.78rem">Save Changes</button>
+        <button class="btn btn-primary btn-sm" onclick="savePickerMyAccount()" style="font-size:.78rem">Save changes</button>
         <button class="btn btn-secondary btn-sm" onclick="hidePickerMyAccount()" style="font-size:.78rem">Cancel</button>
       </div>
       <div id="picker-account-msg" style="font-size:.75rem;margin-top:.5rem"></div>
@@ -5766,16 +5766,16 @@
 
 
   <!-- GroupYetu360 Scripts - load order matters -->
-  <script src="js/icons.js?v=2026100109"></script>
-  <script src="js/auth.js?v=2026100109"></script>
-  <script src="js/utils.js?v=2026100109"></script>
-  <script src="js/dashboard.js?v=2026100109"></script>
-  <script src="js/members.js?v=2026100109"></script>
-  <script src="js/finance.js?v=2026100109"></script>
-  <script src="js/settings.js?v=2026100109"></script>
-  <script src="js/portal.js?v=2026100109"></script>
-  <script src="js/modules.js?v=2026100109"></script>
-  <script src="js/taya.js?v=2026100109"></script>
+  <script src="js/icons.js?v=2026100110"></script>
+  <script src="js/auth.js?v=2026100110"></script>
+  <script src="js/utils.js?v=2026100110"></script>
+  <script src="js/dashboard.js?v=2026100110"></script>
+  <script src="js/members.js?v=2026100110"></script>
+  <script src="js/finance.js?v=2026100110"></script>
+  <script src="js/settings.js?v=2026100110"></script>
+  <script src="js/portal.js?v=2026100110"></script>
+  <script src="js/modules.js?v=2026100110"></script>
+  <script src="js/taya.js?v=2026100110"></script>
   <script>
     // Bootstrap - runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —

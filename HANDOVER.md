@@ -117,6 +117,8 @@ Felix chose Direction A ("Ledger") from the Design canvas "GroupYetu360 UI Redes
 
 **Phase 2f shipped (1 Oct 2026):** Projects, Meetings, Messages on the design system. **Felix's colour decision: primary action buttons are TEAL** (`--action`, `--action-dk`, `--action-ring` tokens). Maroon stays the brand colour (logo, active menu item, emphasis), not the button colour. Inline `background:var(--maroon|--teal)` was stripped from 45 primary buttons so the class decides; never add inline colours to `.btn-primary` again. Sidebar collapse button now sits inside the sidebar's top-right corner so it never covers page titles.
 
+**Phase 2g shipped:** Settings, Plan & billing (plan card is now a white card; status badge colours set in `updateBillingHero`), Payouts to your account, Approvals, My account, and the superadmin Billing, Payouts, Activity log, Platform settings, Users, Revenue pages. `.section-header` is restyled globally to match `.ds-page-head`, so any page using it gets the new header. Founder marks are now a small "Founder" pill (`.ds-founder`), not the 🏛 emoji. Payout status pills use tokens.
+
 **Dark mode (phones only, `body.mob-dark`):** today it only themes the home/admin-home/money shells and the bottom nav; every other page and modal stays light. All design-system light styles on phones are scoped with `body:not(.mob-dark)`, so dark mode looks as it did. A proper dark mode should come AFTER inline colours are removed page by page: then it is one block that re-values the `:root` tokens under `body.mob-dark`.
 
 **Next phases, one screen per delivery:** contributions, welfare, merry-go-round, table banking, settings, SA payouts. Each one replaces its page hero and inline styles with the components above, matching the canvas.

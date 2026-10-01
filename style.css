@@ -3221,3 +3221,13 @@ body:not(.mob-dark) .fin-mob-tab-warn{border-color:var(--border-dk);color:var(--
 .msg-textarea:focus{border-color:var(--action);box-shadow:0 0 0 3px var(--action-ring)}
 .msg-send-btn{background:var(--action);border-radius:var(--radius);font-weight:800}
 .msg-send-btn:hover{background:var(--action-dk);transform:none}
+
+/* ── Design system v1: Settings, Billing, superadmin pages (phase 2g) ── */
+.section-header{align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:24px;padding:0}
+.section-title{font-size:26px;font-weight:800;letter-spacing:-.02em;color:var(--ink);line-height:1.15}
+.section-sub{font-size:13.5px;color:var(--ink-faint);margin-top:4px}
+@media(max-width:768px){.section-title{font-size:22px}}
+.faq-q{font-size:14px;font-weight:700;color:var(--ink)}
+.faq-a{font-size:13.5px;color:var(--ink-soft);line-height:1.6}
+.pay-tab-btn{font-family:var(--font);font-weight:700;border-radius:var(--radius-sm)}
+.ps-acc-icon{border-radius:var(--radius)}

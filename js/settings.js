@@ -68,18 +68,18 @@ function updateBillingHero(org) {
 
   if (nameEl) nameEl.textContent = planNames[plan] || plan;
   if (metaEl) metaEl.textContent = planMeta[plan] || '';
-  if (bfMem)  bfMem.textContent  = '👥 Up to ' + planMembers[plan] + ' members';
-  if (bfSms)  bfSms.textContent  = '💬 Bulk SMS - pay as you go · Ksh 1.50/SMS';
-  if (bfFeat) bfFeat.textContent = '✓ ' + (planFeatures[plan]||'');
+  if (bfMem)  bfMem.textContent  = 'Up to ' + planMembers[plan] + ' members';
+  if (bfSms)  bfSms.textContent  = 'Bulk SMS, pay as you go · Ksh 1.50 per SMS';
+  if (bfFeat) bfFeat.textContent = planFeatures[plan] || '';
 
   if (expires && expEl) {
     const days = Math.ceil((new Date(expires) - new Date()) / 86400000);
     if (days < 0) {
       expEl.textContent = 'Expired ' + new Date(expires).toDateString();
-      if (badgeEl) badgeEl.innerHTML = '<span style="width:6px;height:6px;background:#f87171;border-radius:50%;display:inline-block"></span> EXPIRED';
+      if (badgeEl) { badgeEl.innerHTML = '<span style="width:6px;height:6px;background:var(--danger);border-radius:50%;display:inline-block"></span> Expired'; badgeEl.style.background = 'var(--danger-pale)'; badgeEl.style.color = 'var(--danger)'; }
     } else if (days < 30) {
       expEl.textContent = 'Expires in ' + days + ' days (' + new Date(expires).toDateString() + ')';
-      if (badgeEl) badgeEl.innerHTML = '<span style="width:6px;height:6px;background:#fbbf24;border-radius:50%;display:inline-block"></span> EXPIRING SOON';
+      if (badgeEl) { badgeEl.innerHTML = '<span style="width:6px;height:6px;background:var(--warning);border-radius:50%;display:inline-block"></span> Expiring soon'; badgeEl.style.background = 'var(--warning-pale)'; badgeEl.style.color = 'var(--warning)'; }
     } else {
       expEl.textContent = 'Active until ' + new Date(expires).toDateString();
     }
@@ -151,7 +151,7 @@ async function loadSettings() {
           ${t.is_active===false
             ? `<button class="btn btn-secondary btn-sm" onclick="restoreContribType('${t.id}','${t.name.replace(/'/g,"&apos;")}')">Restore</button>`
             : `<button class="btn btn-secondary btn-sm" onclick="editContribType('${t.id}')">Edit</button>
-               <button class="btn btn-danger btn-sm" onclick="deleteContribType('${t.id}','${t.name.replace(/'/g,"&apos;")}')">✕</button>`}
+               <button class="ds-icon-btn ds-icon-btn-danger" aria-label="Delete type" onclick="deleteContribType('${t.id}','${t.name.replace(/'/g,"&apos;")}')">${gyIcon('trash', 16)}</button>`}
         </td>
       </tr>`).join('')}</tbody></table></div>
       <div style="padding:.75rem 1.25rem"><button class="btn btn-secondary btn-sm" onclick="showModal('addContribType')">+ Add Contribution Type</button></div>` :
@@ -629,12 +629,12 @@ function updateContribTypeHint(val) {
   const hint = document.getElementById('ct-income-hint');
   if (!hint) return;
   const hints = {
-    admin_income: { bg:'var(--warning-pale)', c:'var(--warning)', msg:'📋 Goes to the group account only. Does NOT add to member personal balances. Shown as "Total Contributed" on member profiles.' },
-    member_savings: { bg:'var(--teal-pale)', c:'var(--teal-dk)', msg:'💰 Added to each member\'s Savings balance. Shown on member card and profile. Withdrawable at year end.' },
-    member_shares: { bg:'var(--maroon-pale)', c:'var(--maroon)', msg:'📈 Added to each member\'s Shares balance. Represents equity in the group.' },
-    welfare: { bg:'var(--surface-2)', c:'var(--ink-faint)', msg:'♡ Welfare fund contribution. Linked to welfare events on the platform.' },
-    mgr: { bg:'var(--teal-pale)', c:'var(--teal-dk)', msg:'🔄 Tracked under Rotating Savings. Links to merry-go-round cycles.' },
-    table_banking: { bg:'var(--surface-2)', c:'var(--ink-faint)', msg:'🏦 Tracked under Table Banking. Adds to the pool balance.' },
+    admin_income: { bg:'var(--warning-pale)', c:'var(--warning)', msg:'Goes to the group account only. Does NOT add to member personal balances. Shown as "Total Contributed" on member profiles.' },
+    member_savings: { bg:'var(--teal-pale)', c:'var(--teal-dk)', msg:'Added to each member\'s Savings balance. Shown on member card and profile. Withdrawable at year end.' },
+    member_shares: { bg:'var(--maroon-pale)', c:'var(--maroon)', msg:'Added to each member\'s Shares balance. Represents equity in the group.' },
+    welfare: { bg:'var(--surface-2)', c:'var(--ink-faint)', msg:'Welfare fund contribution. Linked to welfare events on the platform.' },
+    mgr: { bg:'var(--teal-pale)', c:'var(--teal-dk)', msg:'Tracked under Rotating Savings. Links to merry-go-round cycles.' },
+    table_banking: { bg:'var(--surface-2)', c:'var(--ink-faint)', msg:'Tracked under Table Banking. Adds to the pool balance.' },
   };
   const h = hints[val] || hints.admin_income;
   hint.style.background = h.bg;
@@ -762,9 +762,9 @@ async function loadSuperAdmin() {
   set('ph-active', activeOrgs.length);
   set('ph-trial', trialOrgs.length);
   set('ph-suspended', suspendedOrgs.length);
-  set('ph-expiring', expiringSoon.length || '✓ None');
+  set('ph-expiring', expiringSoon.length || 'None');
   set('ph-sms-total', totalSmsBalance.toLocaleString() + ' SMS');
-  set('ph-pending', pendingPays.length || '✓ None');
+  set('ph-pending', pendingPays.length || 'None');
 
   // ── Alert banners ──
   const payAlert = document.getElementById('sa-payment-alert');
@@ -893,7 +893,7 @@ function _renderSAOrgRow(o) {
     : '—';
   const smsBundle = (o.sms_bundle || 0);
   const smsBadge = smsBundle < 50 && smsBundle > 0
-    ? '<span style="color:var(--danger);font-size:.65rem"> ⚠ Low</span>'
+    ? '<span style="color:var(--danger);font-size:.65rem"> Low</span>'
     : '';
 
   return `<tr onclick="openOrgDetail('${o.id}')">
@@ -1069,7 +1069,7 @@ function renderSAUsers(list) {
       ? '<span class="badge badge-green" style="font-size:.58rem">ADMIN</span>'
       : '<span class="badge badge-grey" style="font-size:.58rem">MEMBER</span>';
     return `<tr>
-      <td><strong>${u.full_name||'—'}</strong>${isFounder ? ' <span title="Founding member in at least one group" style="font-size:.8rem">🏛</span>' : ''}<div style="font-size:.65rem;color:var(--ink-faint)">${u.email||'—'}</div></td>
+      <td><strong>${u.full_name||'—'}</strong>${isFounder ? ' <span class="ds-founder" title="Founding member in at least one group">Founder</span>' : ''}<div style="font-size:.65rem;color:var(--ink-faint)">${u.email||'—'}</div></td>
       <td style="font-size:.78rem">${u.phone||'—'}</td>
       <td>${orgBadges}</td>
       <td>${roleBadge}</td>
@@ -1133,7 +1133,7 @@ async function saViewUser(userId) {
       `<div style="padding:1rem;text-align:center;color:var(--ink-faint);font-size:.82rem">
         No group memberships found.
         <div style="margin-top:.5rem">
-          <button class="btn btn-secondary btn-sm" onclick="saResendPortalInvite('${u.email}','${u.full_name||''}')">✉ Resend Portal Invite</button>
+          <button class="btn btn-secondary btn-sm" onclick="saResendPortalInvite('${u.email}','${u.full_name||''}')">Resend Portal Invite</button>
         </div>
       </div>`
     );
@@ -1149,7 +1149,7 @@ async function saViewUser(userId) {
       return `<div style="display:flex;align-items:center;gap:.75rem;padding:.65rem .85rem;border-bottom:0.5px solid var(--border)">
         <div style="flex:1;min-width:0">
           <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${org.name||'Unknown'}</div>
-          <div style="font-size:.68rem;color:var(--ink-faint)">${uo.role||'member'} · Member #${dispNum}${isFounder?' 🏛':''}</div>
+          <div style="font-size:.68rem;color:var(--ink-faint)">${uo.role||'member'} · Member #${dispNum}${isFounder?' <span class="ds-founder">Founder</span>':''}</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div style="font-size:.78rem;font-weight:600;color:var(--maroon)">Ksh ${bal.toLocaleString()}</div>
@@ -1167,7 +1167,7 @@ async function saViewUser(userId) {
       rows.push(`<div style="display:flex;align-items:center;gap:.75rem;padding:.65rem .85rem;border-bottom:0.5px solid var(--border);opacity:.75">
         <div style="flex:1;min-width:0">
           <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${org.name||'Unknown'} <span style="font-size:.62rem;color:var(--ink-faint)">(email-linked)</span></div>
-          <div style="font-size:.68rem;color:var(--ink-faint)">member · #${dispNum}${m.is_founder?' 🏛':''}</div>
+          <div style="font-size:.68rem;color:var(--ink-faint)">member · #${dispNum}${m.is_founder?' <span class="ds-founder">Founder</span>':''}</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div style="font-size:.78rem;font-weight:600;color:var(--maroon)">Ksh ${bal.toLocaleString()}</div>
@@ -1215,14 +1215,14 @@ async function saDeleteUser() {
   try {
     const { error } = await sb.rpc('delete_user_completely', { p_user_id: userId });
     if (error) throw new Error(error.message);
-    if (statusEl) { statusEl.textContent = '✓ User deleted.'; statusEl.style.color = 'var(--success)'; }
+    if (statusEl) { statusEl.textContent = 'User deleted.'; statusEl.style.color = 'var(--success)'; }
     await logActivity('SA DELETE USER', `Superadmin permanently deleted user ${userId} (${userName})`);
     setTimeout(async () => {
       closeModal('saUserDetail');
       await loadSAMembers();
     }, 1200);
   } catch(e) {
-    if (statusEl) { statusEl.textContent = '✗ ' + e.message; statusEl.style.color = 'var(--danger)'; }
+    if (statusEl) { statusEl.textContent = '' + e.message; statusEl.style.color = 'var(--danger)'; }
   }
 }
 
@@ -1241,7 +1241,7 @@ async function saUpdateUserAccount() {
   const newEmail = document.getElementById('sau-sa-email')?.value?.trim();
   const newPassword = document.getElementById('sau-sa-password')?.value;
   const statusEl = document.getElementById('sau-sa-status');
-  if (!userId) { if (statusEl) { statusEl.textContent = '⚠ No user ID'; statusEl.style.color = 'var(--warning)'; } return; }
+  if (!userId) { if (statusEl) { statusEl.textContent = 'No user ID'; statusEl.style.color = 'var(--warning)'; } return; }
   if (!newEmail && !newPassword) { if (statusEl) { statusEl.textContent = 'Enter a new email or password.'; statusEl.style.color = 'var(--ink-faint)'; } return; }
   if (statusEl) { statusEl.textContent = 'Updating…'; statusEl.style.color = 'var(--ink-faint)'; }
   try {
@@ -1256,13 +1256,13 @@ async function saUpdateUserAccount() {
       body: JSON.stringify(body)
     });
     const result = await res.json();
-    if (!res.ok || result.error) { if (statusEl) { statusEl.textContent = '✗ ' + (result.error||'Failed'); statusEl.style.color = 'var(--danger)'; } return; }
+    if (!res.ok || result.error) { if (statusEl) { statusEl.textContent = '' + (result.error||'Failed'); statusEl.style.color = 'var(--danger)'; } return; }
     // Update profile table too
     const profileUpdates = {};
     if (newEmail) profileUpdates.email = newEmail;
     if (Object.keys(profileUpdates).length) await sb.from('profiles').update(profileUpdates).eq('id', userId);
     if (statusEl) {
-      statusEl.textContent = '✓ ' + [newEmail ? `Email → ${newEmail}` : '', newPassword ? 'Password updated' : ''].filter(Boolean).join(' · ');
+      statusEl.textContent = '' + [newEmail ? `Email → ${newEmail}` : '', newPassword ? 'Password updated' : ''].filter(Boolean).join(' · ');
       statusEl.style.color = 'var(--success)';
     }
     if (document.getElementById('sau-sa-email')) document.getElementById('sau-sa-email').value = '';
@@ -1270,7 +1270,7 @@ async function saUpdateUserAccount() {
     await logActivity('SA ACCOUNT UPDATE', `Superadmin updated auth for user ${userId}${newEmail?' - email changed':''}${newPassword?' - password reset':''}`);
     // Refresh user list
     await loadSAMembers();
-  } catch(e) { if (statusEl) { statusEl.textContent = '✗ ' + e.message; statusEl.style.color = 'var(--danger)'; } }
+  } catch(e) { if (statusEl) { statusEl.textContent = '' + e.message; statusEl.style.color = 'var(--danger)'; } }
 }
 
 // ── SUPERADMIN: REVENUE PAGE ──
@@ -1734,7 +1734,7 @@ async function sendMessageToOrgAdmin() {
   const btn = document.getElementById('od-send-admin-sms-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
   const result = await sendSMS(phones, msg, currentDetailOrgId);
-  if (btn) { btn.disabled = false; btn.textContent = '📱 Send SMS to Admin →'; }
+  if (btn) { btn.disabled = false; btn.textContent = 'Send SMS to Admin →'; }
 
   if (result?.sent > 0) {
     toast(`SMS sent to ${result.sent} admin(s)${result.failed?`, ${result.failed} failed`:''}`);
@@ -1765,12 +1765,12 @@ function renderODMembers(members) {
     const hasPortal = !!m.portal_email;
     const dispNum = m.display_number || (m.internal_number ? String(m.internal_number).padStart(3,'0') : m.member_number) || '—';
     return `<tr>
-      <td style="font-weight:700;color:var(--maroon)">${dispNum}${m.is_founder ? ' 🏛' : ''}</td>
+      <td style="font-weight:700;color:var(--maroon)">${dispNum}${m.is_founder ? ' <span class="ds-founder">Founder</span>' : ''}</td>
       <td><strong>${m.full_name}</strong><div style="font-size:.68rem;color:var(--ink-faint)">${m.email||''}</div></td>
       <td style="font-size:.78rem">${m.phone||'—'}</td>
       <td><span class="badge ${m.status==='active'?'badge-green':m.status==='arrears'?'badge-warn':m.status==='deregistered'?'badge-red':'badge-grey'}" style="font-size:.62rem">${m.status}</span></td>
       <td style="font-weight:600">Ksh ${bal.toLocaleString()}</td>
-      <td><span class="${hasPortal?'badge badge-green':'badge badge-grey'}" style="font-size:.6rem">${hasPortal?'✓ Linked':'—'}</span></td>
+      <td><span class="${hasPortal?'badge badge-green':'badge badge-grey'}" style="font-size:.6rem">${hasPortal?'Linked':'—'}</span></td>
       <td><button class="btn btn-secondary btn-sm" style="font-size:.65rem" onclick="saViewMember('${m.id}','${m.org_id}')">View</button></td>
     </tr>`;
   }).join('') : '<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--ink-faint)">No members yet</td></tr>';
@@ -2046,7 +2046,7 @@ async function openApproveModal(pendingId, userId, name, phone, email) {
   currentPendingId = pendingId;
   currentPendingUserId = userId;
   document.getElementById('approve-member-info').innerHTML =
-    `👤 <strong>${name}</strong> · ${phone||'No phone'} · ${email||'No email'}`;
+    `<strong>${name}</strong> · ${phone||'No phone'} · ${email||'No email'}`;
   // Populate existing members dropdown
   const memberOpts = '<option value="">- Create as new member -</option>' +
     allMembers.map(m => `<option value="${m.id}">${h(m.full_name)} (#${m.member_number||'—'})</option>`).join('');
@@ -2264,12 +2264,12 @@ function payoutDestinationLabel(settlement, org) {
 }
 
 const SA_PAYOUT_STATUS_STYLE = {
-  pending:    { bg: '#fff3cd', color: '#7a5c00', label: 'Pending' },
-  processing: { bg: '#e8f0fd', color: '#1a4d8f', label: 'Processing' },
-  settled:    { bg: '#e6f4ef', color: '#1e7a50', label: 'Settled' },
-  failed:     { bg: '#fde8e8', color: '#7a1212', label: 'Failed' },
-  uncertain:  { bg: '#fff0d6', color: '#8a4b00', label: 'Outcome unknown' },
-  cancelled:  { bg: '#f5f5f5', color: '#888',    label: 'Cancelled' },
+  pending:    { bg: 'var(--warning-pale)', color: 'var(--warning)', label: 'Pending' },
+  processing: { bg: 'var(--navy-pale)', color: 'var(--navy)', label: 'Processing' },
+  settled:    { bg: 'var(--teal-pale)', color: 'var(--teal-dk)', label: 'Settled' },
+  failed:     { bg: 'var(--danger-pale)', color: 'var(--danger)', label: 'Failed' },
+  uncertain:  { bg: 'var(--warning-pale)', color: 'var(--warning)', label: 'Outcome unknown' },
+  cancelled:  { bg: 'var(--surface-3)', color: 'var(--ink-faint)', label: 'Cancelled' },
 };
 
 async function loadSAAutopilotState() {
@@ -2353,7 +2353,7 @@ async function loadSAPayouts() {
         <td>${h(org?.name || 'Unknown group')}</td>
         <td style="text-transform:capitalize">${h(r.fund_type)}</td>
         <td>Ksh ${Number(r.amount).toLocaleString('en-KE')}</td>
-        <td style="font-size:.75rem;color:var(--ink-faint)">${h(payoutDestinationLabel(r, org))}${unverified ? '<div style="margin-top:.2rem;font-size:.66rem;font-weight:700;color:#8a4b00">⚠ Not verified</div>' : ''}</td>
+        <td style="font-size:.75rem;color:var(--ink-faint)">${h(payoutDestinationLabel(r, org))}${unverified ? '<div style="margin-top:.2rem;font-size:.66rem;font-weight:700;color:#8a4b00">Not verified</div>' : ''}</td>
         <td><span class="sa-status" style="background:${style.bg};color:${style.color}">${style.label}</span></td>
         <td style="font-size:.72rem;color:var(--ink-faint)">${new Date(r.created_at).toLocaleString('en-KE', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}</td>
         <td style="white-space:nowrap">
@@ -2515,7 +2515,7 @@ function renderBillingPlanCards() {
   const promoBanner = document.getElementById('billing-promo-banner');
   if (promoBanner) {
     if (promoOn && !trialUsed) {
-      promoBanner.textContent = `🎉 ${promoDays}-day free trial on first upgrade!`;
+      promoBanner.textContent = `${promoDays}-day free trial on first upgrade!`;
       promoBanner.style.display = '';
     } else {
       promoBanner.style.display = 'none';
@@ -2546,18 +2546,18 @@ function renderBillingPlanCards() {
     // Action button
     if (plan === 'starter') {
       btnEl.innerHTML = isCurrent
-        ? '<div style="font-size:.72rem;font-weight:600;color:var(--teal);padding:.4rem 0">✓ Your current plan</div>'
+        ? '<div style="font-size:.72rem;font-weight:600;color:var(--teal);padding:.4rem 0">Your current plan</div>'
         : '';
     } else if (isCurrent && !isExpired) {
       const expText = org.subscription_expires
         ? ' · expires ' + new Date(org.subscription_expires).toLocaleDateString('en-KE',{day:'numeric',month:'short',year:'numeric'})
         : '';
-      btnEl.innerHTML = `<div style="font-size:.72rem;font-weight:600;color:var(--teal);padding:.4rem 0">✓ Current${isTrial?' (trial)':''}${expText}</div>`;
+      btnEl.innerHTML = `<div style="font-size:.72rem;font-weight:600;color:var(--teal);padding:.4rem 0">Current${isTrial?' (trial)':''}${expText}</div>`;
     } else if (isHigher || isExpired) {
       const canFreeTrial = promoOn && !trialUsed && !midTrialUpgrade;
       if (canFreeTrial) {
         btnEl.innerHTML = `<button class="btn btn-primary btn-sm" style="width:100%;font-size:.78rem;font-weight:700;padding:.5rem" onclick="addPlanToCart('${plan}', 0, true)">
-          🎉 Try ${planLabels[plan]} free for ${promoDays} days →
+          Try ${planLabels[plan]} free for ${promoDays} days →
         </button>`;
       } else {
         const price = planPrices[plan];
@@ -2618,13 +2618,13 @@ function refreshCartUI() {
       : `${PLAN_LABELS[_billingCart.plan]} plan - 1 year`;
     const amt = _billingCart.planIsFree ? 'FREE' : `Ksh ${_billingCart.planAmount.toLocaleString()}`;
     itemsHTML += `<div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border);font-size:.82rem">
-      <span>🚀 ${label}</span>
+      <span>${label}</span>
       <span style="font-weight:700;color:${_billingCart.planIsFree?'var(--teal)':'var(--maroon)'}">${amt}</span>
     </div>`;
   }
   if (hasSMS) {
     itemsHTML += `<div style="display:flex;justify-content:space-between;padding:.5rem 0;font-size:.82rem">
-      <span>💬 ${_billingCart.sms} SMS credit</span>
+      <span>${_billingCart.sms} SMS credit</span>
       <span style="font-weight:700;color:var(--maroon)">Ksh ${_billingCart.smsAmount.toLocaleString()}</span>
     </div>`;
   }
@@ -2712,11 +2712,11 @@ async function submitCartPaystack_impl() {
   const dotsEl   = document.getElementById('stk-dots');
 
   if (!phone || phone.length < 9) {
-    if (statusEl) { statusEl.textContent = '⚠ Enter a valid M-Pesa number'; statusEl.style.color = 'var(--warning)'; }
+    if (statusEl) { statusEl.textContent = 'Enter a valid M-Pesa number'; statusEl.style.color = 'var(--warning)'; }
     return;
   }
   if (total <= 0) {
-    if (statusEl) { statusEl.textContent = '⚠ No items in cart'; statusEl.style.color = 'var(--warning)'; }
+    if (statusEl) { statusEl.textContent = 'No items in cart'; statusEl.style.color = 'var(--warning)'; }
     return;
   }
 
@@ -2816,7 +2816,7 @@ async function submitCartPaystack_impl() {
 
   } catch(e) {
     if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
-    if (statusEl) { statusEl.textContent = '✗ ' + e.message; statusEl.style.color = 'var(--danger)'; }
+    if (statusEl) { statusEl.textContent = '' + e.message; statusEl.style.color = 'var(--danger)'; }
   }
 }
 
@@ -2848,7 +2848,7 @@ async function activateFreeTrialFromCart_impl() {
     clearBillingCart();
     await loadBilling();
   } catch(e) {
-    if (statusEl) { statusEl.textContent = '✗ ' + e.message; statusEl.style.color = 'var(--danger)'; }
+    if (statusEl) { statusEl.textContent = '' + e.message; statusEl.style.color = 'var(--danger)'; }
   }
 }
 
@@ -2856,7 +2856,7 @@ async function submitCartPayment_impl() {
   const ref    = document.getElementById('cart-pay-ref')?.value?.trim();
   const amount = document.getElementById('cart-pay-amount')?.value;
   const statusEl = document.getElementById('cart-pay-status');
-  if (!ref) { if (statusEl) { statusEl.textContent = '⚠ Please enter your M-Pesa reference'; statusEl.style.color = 'var(--warning)'; } return; }
+  if (!ref) { if (statusEl) { statusEl.textContent = 'Please enter your M-Pesa reference'; statusEl.style.color = 'var(--warning)'; } return; }
   if (statusEl) { statusEl.textContent = 'Submitting…'; statusEl.style.color = 'var(--ink-faint)'; }
 
   try {
@@ -2884,11 +2884,11 @@ async function submitCartPayment_impl() {
     });
     if (error) throw new Error(error.message);
     await logActivity('PAYMENT SUBMITTED', `Ksh ${amount} · ref ${ref} · ${notes}`);
-    if (statusEl) { statusEl.textContent = '✓ Payment submitted! Your plan will be activated within minutes.'; statusEl.style.color = 'var(--success)'; }
+    if (statusEl) { statusEl.textContent = 'Payment submitted! Your plan will be activated within minutes.'; statusEl.style.color = 'var(--success)'; }
     document.getElementById('cart-pay-ref').value = '';
     clearBillingCart();
     setTimeout(() => loadPaymentHistory(), 1500);
-  } catch(e) { if (statusEl) { statusEl.textContent = '✗ ' + e.message; statusEl.style.color = 'var(--danger)'; } }
+  } catch(e) { if (statusEl) { statusEl.textContent = '' + e.message; statusEl.style.color = 'var(--danger)'; } }
 }
 
 function renderCartBankDetails() {
@@ -3188,7 +3188,7 @@ function renderDestinationVerified(org) {
   if (!configured) { el.innerHTML = ''; return; }
   const ok = org.disbursement_verified === true;
   el.innerHTML = ok
-    ? '<div style="padding:.55rem .8rem;border-radius:6px;background:#e6f4ef;color:#1e7a50;font-size:.76rem;font-weight:600">✓ Verified. Payouts can go here.</div>'
+    ? '<div style="padding:.55rem .8rem;border-radius:6px;background:#e6f4ef;color:#1e7a50;font-size:.76rem;font-weight:600">Verified. Payouts can go here.</div>'
     : '<div style="padding:.55rem .8rem;border-radius:6px;background:#fff3cd;color:#7a5c00;font-size:.76rem;line-height:1.5"><strong>Not verified.</strong> The group set or changed this destination. No payout will go out until you confirm the details with the group and click Verify &amp; Save.</div>';
 }
 
@@ -3426,7 +3426,7 @@ async function sendBroadcast() {
     const result = await res.json();
     if (!res.ok || result.error) throw new Error(result.error || 'Broadcast failed');
 
-    if (statusEl) statusEl.textContent = `✓ Sent to ${result.sent}/${result.recipient_count} devices (${result.recipient_count} users targeted)`;
+    if (statusEl) statusEl.textContent = `Sent to ${result.sent}/${result.recipient_count} devices (${result.recipient_count} users targeted)`;
     toast('Broadcast sent');
     document.getElementById('bc-title').value = '';
     document.getElementById('bc-body').value = '';
@@ -3566,7 +3566,7 @@ async function loadSASettlements() {
       <div class="card" style="margin-bottom:1rem;overflow:hidden;padding:0">
         <div style="padding:.85rem 1.25rem;border-bottom:1px solid var(--border-soft);display:flex;justify-content:space-between;align-items:center">
           <div style="font-weight:700;font-size:.88rem;font-family:var(--font)">${new Date(date).toLocaleDateString('en-KE', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
-          <div style="font-size:.75rem;font-weight:600;color:${pendingTotal > 0 ? 'var(--danger)' : 'var(--teal)'}">${pendingTotal > 0 ? 'Ksh ' + pendingTotal.toLocaleString() + ' pending' : '✓ Fully settled'}</div>
+          <div style="font-size:.75rem;font-weight:600;color:${pendingTotal > 0 ? 'var(--danger)' : 'var(--teal)'}">${pendingTotal > 0 ? 'Ksh ' + pendingTotal.toLocaleString() + ' pending' : 'Fully settled'}</div>
         </div>
         ${dayBatches.map((b, i) => `
           <div style="padding:.85rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;${i < dayBatches.length-1 ? 'border-bottom:1px solid var(--border-soft)' : ''}">
@@ -3620,7 +3620,7 @@ async function openMarkPaidForm(batchId) {
   } else if (org.disbursement_method === 'mpesa') {
     destHtml = `<div style="font-weight:700;margin-bottom:.2rem">→ Group's M-Pesa</div><div>${org.disbursement_mpesa_number||'—'}</div>`;
   } else {
-    destHtml = `<div style="color:var(--danger)">⚠ No disbursement details on file for this org - check before paying out.</div>`;
+    destHtml = `<div style="color:var(--danger)">No disbursement details on file for this org - check before paying out.</div>`;
   }
   if (destEl) destEl.innerHTML = destHtml;
 
@@ -3769,13 +3769,13 @@ function providerBadge(provider) {
 // consistent with how welfare already worked before MGR/TB existed); TB
 // and regular are identified by line_type directly.
 function settlementLineLabel(b) {
-  if (b.welfare_event_id) return '♡ ' + (b.welfare_events?.event_type || 'Welfare Event').replace(/</g,'');
+  if (b.welfare_event_id) return '' + (b.welfare_events?.event_type || 'Welfare Event').replace(/</g,'');
   if (b.round_slot_id) {
     const roundName = b.round_slots?.savings_rounds?.name || 'MGR Round';
     const slotNum = b.round_slots?.slot_number;
-    return '🔄 ' + roundName.replace(/</g,'') + (slotNum ? ' - Round ' + slotNum : '');
+    return '' + roundName.replace(/</g,'') + (slotNum ? ' - Round ' + slotNum : '');
   }
-  if (b.line_type === 'table_banking') return '🏦 Table Banking';
+  if (b.line_type === 'table_banking') return 'Table Banking';
   return 'Regular';
 }
 
@@ -3929,7 +3929,7 @@ async function loadOrgSettlements() {
       if (unrequested.length) {
         unrequestedHtml = `
         <div class="card" style="margin-bottom:1.25rem;border:1px solid var(--gold,#c49a30);overflow:hidden">
-          <div style="background:#fff9e6;padding:.7rem 1.25rem;font-weight:700;font-size:.82rem;color:#7a5c00">🔔 Welfare Collections Not Yet Requested</div>
+          <div style="background:#fff9e6;padding:.7rem 1.25rem;font-weight:700;font-size:.82rem;color:#7a5c00">Welfare Collections Not Yet Requested</div>
           ${unrequested.map((ev, i) => `
             <div style="padding:.85rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;${i < unrequested.length-1 ? 'border-bottom:1px solid var(--border-soft)' : ''}">
               <div>
