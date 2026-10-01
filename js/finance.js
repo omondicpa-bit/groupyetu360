@@ -398,7 +398,7 @@ function renderPayLines() {
         min="0"/>
       ${_payLines.length > 1
         ? `<button type="button" onclick="removePayLine(${i})"
-            style="background:none;border:none;color:var(--ink-faint);cursor:pointer;font-size:1rem;padding:0 .2rem;line-height:1" title="Remove">✕</button>`
+            style="background:none;border:none;color:var(--ink-faint);cursor:pointer;font-size:1rem;padding:0 .2rem;line-height:1" title="Remove" aria-label="Remove"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`
         : '<span style="width:1.4rem"></span>'}
     </div>`).join('');
   // Restore selected type values
@@ -689,7 +689,7 @@ async function loadFinesLedger(){
     const memberBal=Number(f.members?.shares_balance||0)+Number(f.members?.savings_balance||0);
     const canRecover=hasMemberBal&&f.status==='pending'&&memberBal>=Number(f.amount);
     const actions=f.status==='pending'
-      ?`<div style="display:flex;gap:.35rem;flex-wrap:wrap"><button class="btn btn-primary btn-sm" style="font-size:.68rem;" onclick="markFinePaid('${f.id}')">✓ Mark Paid</button>${canRecover?`<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="recoverFineFromBalance('${f.id}')">↩ Recover</button>`:''}<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="waiveFine('${f.id}')">- Waive</button><button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteFine('${f.id}')">✕</button></div>`
+      ?`<div style="display:flex;gap:.35rem;flex-wrap:wrap"><button class="btn btn-primary btn-sm" style="font-size:.68rem;" onclick="markFinePaid('${f.id}')">Mark Paid</button>${canRecover?`<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="recoverFineFromBalance('${f.id}')">↩ Recover</button>`:''}<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="waiveFine('${f.id}')">- Waive</button><button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteFine('${f.id}')" aria-label="Close"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`
       :`<span style="font-size:.72rem;color:var(--ink-faint)">${f.recovery_method?'via '+f.recovery_method:''}${paidInfo}</span>`;
     return `<tr><td style="font-size:.78rem;color:var(--ink-faint);white-space:nowrap">${dateStr}</td><td><div style="display:flex;align-items:center;gap:.55rem"><div style="width:28px;height:28px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:var(--maroon);flex-shrink:0">${h(initials)}</div><div><div style="font-size:.82rem;font-weight:600">${h(f.members?.full_name)||'—'}</div><div style="font-size:.67rem;color:var(--ink-faint)">#${h(f.members?.member_number)||'—'}</div></div></div></td><td style="font-size:.8rem;color:var(--ink-soft);max-width:200px">${h(f.reason)}${f.notes?`<div style="font-size:.7rem;color:var(--ink-faint)">${h(f.notes)}</div>`:''}</td><td><strong style="color:var(--maroon)">Ksh ${Number(f.amount).toLocaleString()}</strong></td><td>${badge}</td><td>${actions}</td></tr>`;
   }).join('')}</tbody></table></div>`;
@@ -751,7 +751,7 @@ async function loadMemberPendingFines(memberId){
     if(noticeEl){
       if(!pending.length){noticeEl.style.display='none';return;}
       noticeEl.style.display='block';
-      noticeEl.innerHTML=`<div style="background:var(--maroon-pale);border:1px solid var(--maroon-muted);border-left:4px solid var(--maroon);padding:.85rem 1rem;border-radius:4px"><div style="font-size:.85rem;font-weight:700;color:var(--maroon);margin-bottom:.5rem">⚠ Outstanding Fine${pending.length!==1?'s':''} - Ksh ${total.toLocaleString()}</div>${pending.map(f=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:.35rem 0;border-bottom:1px solid rgba(128,0,32,.1)"><div><div style="font-size:.82rem;color:var(--ink-soft)">${h(f.reason)}</div><div style="font-size:.7rem;color:var(--ink-faint)">${f.issued_date||''}</div></div><strong style="color:var(--maroon);margin-left:.75rem;flex-shrink:0">Ksh ${Number(f.amount).toLocaleString()}</strong></div>`).join('')}<div style="margin-top:.75rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem"><span style="font-size:.75rem;color:var(--ink-faint)">Pay via M-Pesa to your group payment details and inform your admin.</span><button class="btn btn-primary btn-sm" onclick="openFinePaymentModal()" style="font-size:.78rem;flex-shrink:0">💳 Pay Fine</button></div></div>`;
+      noticeEl.innerHTML=`<div style="background:var(--maroon-pale);border:1px solid var(--maroon-muted);border-left:4px solid var(--maroon);padding:.85rem 1rem;border-radius:4px"><div style="font-size:.85rem;font-weight:700;color:var(--maroon);margin-bottom:.5rem">Outstanding Fine${pending.length!==1?'s':''} - Ksh ${total.toLocaleString()}</div>${pending.map(f=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:.35rem 0;border-bottom:1px solid rgba(128,0,32,.1)"><div><div style="font-size:.82rem;color:var(--ink-soft)">${h(f.reason)}</div><div style="font-size:.7rem;color:var(--ink-faint)">${f.issued_date||''}</div></div><strong style="color:var(--maroon);margin-left:.75rem;flex-shrink:0">Ksh ${Number(f.amount).toLocaleString()}</strong></div>`).join('')}<div style="margin-top:.75rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem"><span style="font-size:.75rem;color:var(--ink-faint)">Pay via M-Pesa to your group payment details and inform your admin.</span><button class="btn btn-primary btn-sm" onclick="openFinePaymentModal()" style="font-size:.78rem;flex-shrink:0">Pay Fine</button></div></div>`;
     }
   }catch(e){console.log('Fines load skipped:',e.message);}
 }
@@ -767,7 +767,7 @@ async function openFinePaymentModal(){
   window._pendingFineTotal=total;
   let el=document.getElementById('modal-fine-payment-inline');
   if(!el){el=document.createElement('div');el.id='modal-fine-payment-inline';el.className='modal-overlay';document.body.appendChild(el);el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');});}
-  el.innerHTML=`<div class="modal" style="max-width:460px"><div class="modal-header"><div><div class="modal-title">Pay outstanding Fine${pending.length!==1?'s':''}</div><div style="font-size:.72rem;color:var(--ink-faint);margin-top:.1rem">Ksh ${total.toLocaleString()} total outstanding</div></div><button class="modal-close" onclick="document.getElementById('modal-fine-payment-inline').classList.remove('open')">✕</button></div><div class="modal-body"><div id="fine-pay-methods" style="margin-bottom:1rem"></div><div style="background:var(--maroon-pale);border:1px solid var(--maroon-muted);border-radius:6px;padding:.85rem 1rem;margin-bottom:1rem"><div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--maroon);margin-bottom:.5rem">Fine Details</div>${pending.map(f=>`<div style="display:flex;justify-content:space-between;padding:.3rem 0;font-size:.82rem;border-bottom:1px solid rgba(128,0,32,.1)"><span style="color:var(--ink-soft)">${h(f.reason)}</span><strong style="color:var(--maroon)">Ksh ${Number(f.amount).toLocaleString()}</strong></div>`).join('')}<div style="display:flex;justify-content:space-between;padding:.4rem 0 0;font-size:.85rem;font-weight:700"><span>Total</span><span style="color:var(--maroon)">Ksh ${total.toLocaleString()}</span></div></div><div class="form-row"><div class="form-group"><label class="form-label">M-Pesa Reference</label><input class="form-input" id="fine-pay-ref" placeholder="e.g. QBC4X8YZDE"/></div><div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="fine-pay-date" value="${new Date().toISOString().split('T')[0]}"/></div></div></div><div class="modal-footer"><button class="btn btn-secondary" onclick="document.getElementById('modal-fine-payment-inline').classList.remove('open')">Cancel</button><button class="btn btn-primary" onclick="submitFinePayment()">Submit Fine Payment →</button></div></div>`;
+  el.innerHTML=`<div class="modal" style="max-width:460px"><div class="modal-header"><div><div class="modal-title">Pay outstanding Fine${pending.length!==1?'s':''}</div><div style="font-size:.72rem;color:var(--ink-faint);margin-top:.1rem">Ksh ${total.toLocaleString()} total outstanding</div></div><button class="modal-close" onclick="document.getElementById('modal-fine-payment-inline').classList.remove('open')" aria-label="Remove"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="modal-body"><div id="fine-pay-methods" style="margin-bottom:1rem"></div><div style="background:var(--maroon-pale);border:1px solid var(--maroon-muted);border-radius:6px;padding:.85rem 1rem;margin-bottom:1rem"><div style="font-size:.7rem;font-weight:700;color:var(--maroon);margin-bottom:.5rem">Fine Details</div>${pending.map(f=>`<div style="display:flex;justify-content:space-between;padding:.3rem 0;font-size:.82rem;border-bottom:1px solid rgba(128,0,32,.1)"><span style="color:var(--ink-soft)">${h(f.reason)}</span><strong style="color:var(--maroon)">Ksh ${Number(f.amount).toLocaleString()}</strong></div>`).join('')}<div style="display:flex;justify-content:space-between;padding:.4rem 0 0;font-size:.85rem;font-weight:700"><span>Total</span><span style="color:var(--maroon)">Ksh ${total.toLocaleString()}</span></div></div><div class="form-row"><div class="form-group"><label class="form-label">M-Pesa Reference</label><input class="form-input" id="fine-pay-ref" placeholder="e.g. QBC4X8YZDE"/></div><div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="fine-pay-date" value="${new Date().toISOString().split('T')[0]}"/></div></div></div><div class="modal-footer"><button class="btn btn-secondary" onclick="document.getElementById('modal-fine-payment-inline').classList.remove('open')">Cancel</button><button class="btn btn-primary" onclick="submitFinePayment()">Submit Fine Payment →</button></div></div>`;
   try{renderPaymentMethods(currentOrg,'fine-pay-methods',false);}catch(e){}
   el.classList.add('open');
 }
@@ -853,7 +853,7 @@ async function loadPendingPayments() {
           </div>
           ${allocations.length ? `
           <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:.5rem .75rem;margin-bottom:.35rem">
-            <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.35rem">Payment Breakdown</div>
+            <div style="font-size:12px;font-weight:700;color:var(--ink-faint);margin-bottom:.35rem">Payment Breakdown</div>
             ${allocations.map(a => `
               <div style="display:flex;justify-content:space-between;font-size:.75rem;padding:.2rem 0;border-bottom:1px solid var(--border)">
                 <span style="color:var(--ink-soft)">${h(a.typeName) || 'Payment'}</span>
@@ -883,21 +883,21 @@ async function loadPendingPayments() {
 
   // Pending section
   if (pending.length) {
-    html += `<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--warning);margin-bottom:.6rem">
+    html += `<div style="font-size:.7rem;font-weight:700;color:var(--warning);margin-bottom:.6rem">
       Awaiting approval (${pending.length})</div>`;
     html += pending.map(r => renderPayRequest(r, true)).join('');
   }
 
   // Approved section
   if (approved.length) {
-    html += `<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--teal);margin:1rem 0 .6rem">
+    html += `<div style="font-size:.7rem;font-weight:700;color:var(--teal);margin:1rem 0 .6rem">
       Recently approved (${approved.length})</div>`;
     html += approved.slice(0, 10).map(r => renderPayRequest(r, false)).join('');
   }
 
   // Declined section
   if (declined.length) {
-    html += `<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--danger);margin:1rem 0 .6rem">
+    html += `<div style="font-size:.7rem;font-weight:700;color:var(--danger);margin:1rem 0 .6rem">
       Declined (${declined.length})</div>`;
     html += declined.slice(0, 5).map(r => renderPayRequest(r, false)).join('');
   }
@@ -1208,7 +1208,7 @@ async function loadWithdrawalRequests() {
 
     listEl.innerHTML = `
       <table style="width:100%;border-collapse:collapse">
-        <thead><tr style="font-size:.65rem;text-transform:uppercase;color:var(--ink-faint);border-bottom:1px solid var(--border)">
+        <thead><tr style="font-size:12px;color:var(--ink-faint);border-bottom:1px solid var(--border)">
           <th style="padding:.5rem 1.25rem;text-align:left">Member</th>
           <th style="padding:.5rem .5rem;text-align:left">Amount</th>
           <th style="padding:.5rem .5rem;text-align:left">Note</th>
@@ -1228,7 +1228,7 @@ async function loadWithdrawalRequests() {
             <td style="padding:.6rem .5rem;color:var(--ink-faint)">${new Date(r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</td>
             <td style="padding:.6rem .5rem;display:flex;gap:.35rem">
               ${canPay
-                ? `<button class="btn btn-primary btn-sm" style="font-size:.68rem;" onclick="approveWithdrawal('${r.id}','${r.member_id}',${r.amount})">✓ Confirm Paid</button>`
+                ? `<button class="btn btn-primary btn-sm" style="font-size:.68rem;" onclick="approveWithdrawal('${r.id}','${r.member_id}',${r.amount})">Confirm Paid</button>`
                 : `<span style="font-size:.68rem;color:var(--danger)">Insufficient balance</span>`}
               <button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="declineWithdrawal('${r.id}')">Decline</button>
             </td>

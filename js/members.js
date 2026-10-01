@@ -413,7 +413,7 @@ async function openMemberDetail(memberId) {
     if (modalHeader) modalHeader.appendChild(founderBadge);
   }
   if (isFounder) {
-    founderBadge.innerHTML = '🏛 Founding Member · Group Admin';
+    founderBadge.innerHTML = 'Founding Member · Group Admin';
     founderBadge.style.display = '';
   } else {
     founderBadge.style.display = 'none';
@@ -570,7 +570,7 @@ async function openMemberDetail(memberId) {
   const debitCreditTab = document.getElementById('debit-credit-tab');
   if (debitCreditTab) debitCreditTab.style.display = isSelf ? 'none' : '';
   const modalTitle = document.querySelector('#modal-memberDetail .modal-title');
-  if (modalTitle) modalTitle.textContent = isSelf ? '👤 My Member Record' : 'Member Details';
+  if (modalTitle) modalTitle.textContent = isSelf ? 'My Member Record' : 'Member Details';
 
   // Dynamic Debit/Credit account options based on org type
   populateMemberAdjOptions();
@@ -655,9 +655,9 @@ function printMemberStatement() {
       </div>
 
       <div style="display:flex;gap:1rem;margin-bottom:1.5rem">
-        <div style="flex:1;border:1px solid #ddd;border-radius:6px;padding:.85rem"><div style="font-size:.68rem;color:#888;text-transform:uppercase">Shares Balance</div><div style="font-size:1.15rem;font-weight:700;color:#800020">Ksh ${Number(m.shares_balance||0).toLocaleString()}</div></div>
-        <div style="flex:1;border:1px solid #ddd;border-radius:6px;padding:.85rem"><div style="font-size:.68rem;color:#888;text-transform:uppercase">Savings Balance</div><div style="font-size:1.15rem;font-weight:700">Ksh ${Number(m.savings_balance||0).toLocaleString()}</div></div>
-        <div style="flex:1;border:1px solid #ddd;border-radius:6px;padding:.85rem;background:#f4f9f7"><div style="font-size:.68rem;color:#888;text-transform:uppercase">Total Balance</div><div style="font-size:1.15rem;font-weight:700;color:#0f6e56">Ksh ${totalBal.toLocaleString()}</div></div>
+        <div style="flex:1;border:1px solid #ddd;border-radius:6px;padding:.85rem"><div style="font-size:12px;color:#888;">Shares Balance</div><div style="font-size:1.15rem;font-weight:700;color:#800020">Ksh ${Number(m.shares_balance||0).toLocaleString()}</div></div>
+        <div style="flex:1;border:1px solid #ddd;border-radius:6px;padding:.85rem"><div style="font-size:12px;color:#888;">Savings Balance</div><div style="font-size:1.15rem;font-weight:700">Ksh ${Number(m.savings_balance||0).toLocaleString()}</div></div>
+        <div style="flex:1;border:1px solid #ddd;border-radius:6px;padding:.85rem;background:#f4f9f7"><div style="font-size:12px;color:#888;">Total Balance</div><div style="font-size:1.15rem;font-weight:700;color:#0f6e56">Ksh ${totalBal.toLocaleString()}</div></div>
       </div>
 
       <div style="font-size:.85rem;font-weight:700;margin-bottom:.5rem">Transaction History</div>
@@ -739,7 +739,7 @@ async function sendMemberPortalInvite() {
     statusEl.style.display = 'block';
     statusEl.innerHTML = '<span style="color:' + (ok ? 'var(--teal)' : 'var(--maroon)') + '">' + msg + '</span>';
   };
-  setStatus('⏳ Processing…', true);
+  setStatus('Processing…', true);
 
   await sb.from('members').update({ portal_email: email }).eq('id', currentMemberId);
   const { data: m } = await sb.from('members').select('full_name,phone').eq('id', currentMemberId).single();
@@ -760,7 +760,7 @@ async function sendMemberPortalInvite() {
           .select('user_id').eq('user_id', existingUserId).eq('org_id', currentOrg.id).maybeSingle();
 
         if (existingGrant) {
-          setStatus('✓ Already linked — this member can already access this org', true);
+          setStatus('Already linked — this member can already access this org', true);
           toast((m.full_name || 'Member') + ' is already linked to this org');
           return;
         }
@@ -771,11 +771,11 @@ async function sendMemberPortalInvite() {
       // ── EXISTING USER — link via RPC (bypasses RLS) ──────────────────
       const result = await linkUserToOrg(existingUserId, 'member', m?.full_name, m?.phone);
       if (result.success) {
-        setStatus('✓ Linked — this org added to their workspaces', true);
+        setStatus('Linked — this org added to their workspaces', true);
         toast('' + (m?.full_name || 'Member') + ' linked — they can switch to this org at next login');
         await logActivity('PORTAL LINKED', 'Linked ' + email + ' to this org', 'member', currentMemberId);
       } else {
-        setStatus('✗ ' + (result.error || 'Link failed'), false);
+        setStatus('' + (result.error || 'Link failed'), false);
         toast('Error: ' + (result.error || 'Link failed'));
       }
 
@@ -797,7 +797,7 @@ async function sendMemberPortalInvite() {
 
       if (signUpErr) {
         // Account already exists — link them directly, no email needed
-        setStatus('⚠ Account exists — please use "Link Existing User" instead', false);
+        setStatus('Account exists — please use "Link Existing User" instead', false);
         toast('Account already exists for ' + email);
         return;
       }
@@ -806,13 +806,13 @@ async function sendMemberPortalInvite() {
         await linkUserToOrg(authData.user.id, 'member', m?.full_name, m?.phone);
       }
 
-      setStatus('✓ Invite sent — ' + (m?.full_name || email) + ' will receive an email to set their password', true);
+      setStatus('Invite sent — ' + (m?.full_name || email) + ' will receive an email to set their password', true);
       toast('Invite sent to ' + email);
       await logActivity('PORTAL INVITE', 'Sent invite to ' + email, 'member', currentMemberId);
     }
 
   } catch(e) {
-    setStatus('✗ ' + e.message, false);
+    setStatus('' + e.message, false);
     toast('Error: ' + e.message);
   }
 }
@@ -854,7 +854,7 @@ async function promoteToAdmin() {
   const roles = ['admin','treasurer','officer','member'];
   const isFounder = m.is_founder;
   if (isFounder && !isSuperAdmin) {
-    toast("⚠ Only the platform SuperAdmin can change the founding member's role.");
+    toast("Only the platform SuperAdmin can change the founding member's role.");
     return;
   }
 
@@ -878,12 +878,12 @@ async function promoteToAdmin() {
             text-transform:capitalize;transition:all .15s"
             onmouseover="this.style.borderColor='#800020';this.style.background='#fff5f7'"
             onmouseout="if('${r}'!=='${currentRole}'){this.style.borderColor='#e0e0e0';this.style.background='#fafafa'}">
-            ${r==='admin'?'🔑 ':r==='treasurer'?'💰 ':r==='officer'?'📋 ':'👤 '}${r.charAt(0).toUpperCase()+r.slice(1)}
+            ${r==='admin'?'':r==='treasurer'?'':r==='officer'?'':''}${r.charAt(0).toUpperCase()+r.slice(1)}
           </button>`).join('')}
       </div>
       ${isFounder && isSuperAdmin ? `
         <div style="background:#fff5f7;border:1px solid #f0c0c0;border-radius:6px;padding:.6rem .85rem;font-size:.72rem;color:#800020;margin-bottom:1rem">
-          ⚠ You are changing the founding member's role. This will affect their admin access.
+          You are changing the founding member's role. This will affect their admin access.
         </div>` : ''}
       <div style="display:flex;gap:.5rem;justify-content:flex-end">
         <button onclick="document.getElementById('role-picker-overlay').remove()" style="padding:.5rem 1rem;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:.82rem">Cancel</button>
@@ -1054,7 +1054,7 @@ async function saUpdateMemberAccount() {
   const statusEl = document.getElementById('md-sa-account-status');
 
   if (!userId) {
-    if (statusEl) { statusEl.textContent = '⚠ No auth account linked to this member yet.'; statusEl.style.color = 'var(--warning)'; }
+    if (statusEl) { statusEl.textContent = 'No auth account linked to this member yet.'; statusEl.style.color = 'var(--warning)'; }
     return;
   }
   if (!newEmail && !newPassword) {
@@ -1084,7 +1084,7 @@ async function saUpdateMemberAccount() {
     const result = await res.json();
 
     if (!res.ok || result.error) {
-      if (statusEl) { statusEl.textContent = '✗ ' + (result.error || 'Update failed'); statusEl.style.color = 'var(--danger)'; }
+      if (statusEl) { statusEl.textContent = '' + (result.error || 'Update failed'); statusEl.style.color = 'var(--danger)'; }
       return;
     }
 
@@ -1094,7 +1094,7 @@ async function saUpdateMemberAccount() {
     }
 
     if (statusEl) {
-      statusEl.textContent = '✓ ' + [newEmail ? `Email → ${newEmail}` : '', newPassword ? 'Password updated' : ''].filter(Boolean).join(' · ');
+      statusEl.textContent = '' + [newEmail ? `Email → ${newEmail}` : '', newPassword ? 'Password updated' : ''].filter(Boolean).join(' · ');
       statusEl.style.color = 'var(--success)';
     }
     // Clear fields
@@ -1104,7 +1104,7 @@ async function saUpdateMemberAccount() {
     await logActivity('SA ACCOUNT UPDATE', `Superadmin updated auth account for member ${currentMemberId}${newEmail?' — email changed':''}${newPassword?' — password reset':''}`, 'member', currentMemberId);
 
   } catch(e) {
-    if (statusEl) { statusEl.textContent = '✗ ' + e.message; statusEl.style.color = 'var(--danger)'; }
+    if (statusEl) { statusEl.textContent = '' + e.message; statusEl.style.color = 'var(--danger)'; }
   }
 }
 

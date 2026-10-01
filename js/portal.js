@@ -66,7 +66,7 @@ async function saveTwoFA(isMobile) {
     const { error } = await sb.from('profiles').update({ two_fa_enabled: enabled }).eq('id', currentUser.id);
     if (error) throw error;
     if (currentProfile) currentProfile.two_fa_enabled = enabled;
-    if (msgEl) { msgEl.textContent = '✓ 2FA ' + (enabled ? 'enabled' : 'disabled') + ' — takes effect on your next sign-in'; msgEl.style.color = 'var(--teal,#2a9d8f)'; msgEl.style.display = 'block'; }
+    if (msgEl) { msgEl.textContent = '2FA ' + (enabled ? 'enabled' : 'disabled') + ' — takes effect on your next sign-in'; msgEl.style.color = 'var(--teal,#2a9d8f)'; msgEl.style.display = 'block'; }
     toast('2FA ' + (enabled ? 'enabled' : 'disabled'));
     try { await logActivity('2FA ' + (enabled ? 'ENABLED' : 'DISABLED'), `${currentProfile?.full_name || 'User'} (${currentProfile?.role}) ${enabled?'enabled':'disabled'} two-factor authentication`); } catch(e) {}
   } catch(e) {
@@ -94,7 +94,7 @@ async function saveNewPassword() {
   if (newPass !== confirmPass) { toast('Passwords do not match'); return; }
   const { error } = await sb.auth.updateUser({ password: newPass });
   if (error) { toast('Error: '+error.message); return; }
-  if (msgEl) { msgEl.textContent = '✓ Password updated successfully'; msgEl.className = 'alert alert-success'; msgEl.style.display = 'flex'; }
+  if (msgEl) { msgEl.textContent = 'Password updated successfully'; msgEl.className = 'alert alert-success'; msgEl.style.display = 'flex'; }
   document.getElementById('acct-new-pass').value = '';
   document.getElementById('acct-confirm-pass').value = '';
   toast('Password updated successfully');
@@ -248,9 +248,9 @@ async function loadMyProfile() {
     if (chipsEl) {
       const statusClass = myRecord.status==='active'?'teal':myRecord.status==='arrears'?'gold':'';
       chipsEl.innerHTML = `
-        <div class="mp-hero-chip ${statusClass}">${myRecord.status==='active'?'✓ Active':myRecord.status==='arrears'?'⚠ Arrears':'Inactive'}</div>
+        <div class="mp-hero-chip ${statusClass}">${myRecord.status==='active'?'Active':myRecord.status==='arrears'?'Arrears':'Inactive'}</div>
         <div class="mp-hero-chip">#${myRecord.member_number||'—'}</div>
-        ${myRecord.registration_paid?'<div class="mp-hero-chip teal">✓ Registered</div>':'<div class="mp-hero-chip gold">⚠ Unregistered</div>'}
+        ${myRecord.registration_paid?'<div class="mp-hero-chip teal">Registered</div>':'<div class="mp-hero-chip gold">Unregistered</div>'}
       `;
     }
     // Details table — hide Savings/mo if org has no savings
@@ -501,7 +501,7 @@ async function loadMyContributions() {
     return `
     <div style="margin-bottom:1.25rem">
       <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 1.25rem;background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
-        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft)">${group.label}</div>
+        <div style="font-size:.72rem;font-weight:700;color:var(--ink-soft)">${group.label}</div>
         <div style="font-size:.75rem;font-weight:700;color:var(--maroon)">Ksh ${monthTotal.toLocaleString()}</div>
       </div>
       ${group.entries.map(e => {
@@ -539,7 +539,7 @@ function showUpgradePrompt(page){
   let el=document.getElementById('page-upgrade-prompt');
   if(!el){el=document.createElement('div');el.id='page-upgrade-prompt';el.className='page';document.querySelector('.content')?.appendChild(el);}
   el.className='page active';
-  el.innerHTML=`<div style="max-width:480px;margin:3rem auto;text-align:center;padding:0 1.25rem"><div style="width:72px;height:72px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;margin:0 auto 1.1rem;font-size:2rem">🔒</div><div style="font-family:var(--font);font-size:1.7rem;font-weight:700;color:var(--maroon);margin-bottom:.4rem">${info.label}</div><p style="font-size:.88rem;color:var(--ink-faint);line-height:1.75;margin-bottom:1.5rem">Not available on your <strong>${cur.charAt(0).toUpperCase()+cur.slice(1)}</strong> plan. Upgrade to <strong style="color:var(--teal)">${req}</strong> to unlock.</p><div style="display:flex;gap:.75rem;justify-content:center"><button class="btn btn-primary" onclick="showPage('billing')" style="padding:.72rem 1.5rem">💳 Upgrade Now →</button><button class="btn btn-secondary" onclick="showPage('dashboard')" style="padding:.72rem 1.25rem">← Dashboard</button></div><div style="margin-top:1rem;font-size:.72rem;color:var(--ink-faint)">Basic plan from Ksh 3,000/year · <a href="https://wa.me/254702903544" style="color:var(--teal)" target="_blank">WhatsApp us</a></div></div>`;
+  el.innerHTML=`<div style="max-width:480px;margin:3rem auto;text-align:center;padding:0 1.25rem"><div style="width:72px;height:72px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;margin:0 auto 1.1rem;font-size:2rem">🔒</div><div style="font-family:var(--font);font-size:1.7rem;font-weight:700;color:var(--maroon);margin-bottom:.4rem">${info.label}</div><p style="font-size:.88rem;color:var(--ink-faint);line-height:1.75;margin-bottom:1.5rem">Not available on your <strong>${cur.charAt(0).toUpperCase()+cur.slice(1)}</strong> plan. Upgrade to <strong style="color:var(--teal)">${req}</strong> to unlock.</p><div style="display:flex;gap:.75rem;justify-content:center"><button class="btn btn-primary" onclick="showPage('billing')" style="padding:.72rem 1.5rem">Upgrade Now →</button><button class="btn btn-secondary" onclick="showPage('dashboard')" style="padding:.72rem 1.25rem">← Dashboard</button></div><div style="margin-top:1rem;font-size:.72rem;color:var(--ink-faint)">Basic plan from Ksh 3,000/year · <a href="https://wa.me/254702903544" style="color:var(--teal)" target="_blank">WhatsApp us</a></div></div>`;
   document.getElementById('page-title').textContent='Upgrade Required';
 }
 async function checkSubscriptionAccess() {
@@ -575,8 +575,8 @@ async function checkSubscriptionAccess() {
             <div style="font-size:.95rem;opacity:.85;margin-bottom:1.5rem">Your group's subscription expired on<br><strong>${expDate.toDateString()}</strong></div>
             <div style="font-size:.82rem;opacity:.7;max-width:340px;line-height:1.7">Please ask your group admin to renew the GroupYetu360 subscription to restore access.</div>
             <div style="margin-top:2rem;display:flex;gap:1rem;flex-wrap:wrap;justify-content:center">
-              <a href="https://wa.me/254702903544" target="_blank" style="background:#25D366;color:#fff;padding:.6rem 1.25rem;border-radius:2rem;font-size:.82rem;font-weight:600;text-decoration:none">💬 WhatsApp Support</a>
-              <a href="mailto:support@groupyetu.org" style="background:rgba(255,255,255,.15);color:#fff;padding:.6rem 1.25rem;border-radius:2rem;font-size:.82rem;font-weight:600;text-decoration:none">✉ Email Support</a>
+              <a href="https://wa.me/254702903544" target="_blank" style="background:#25D366;color:#fff;padding:.6rem 1.25rem;border-radius:2rem;font-size:.82rem;font-weight:600;text-decoration:none">WhatsApp Support</a>
+              <a href="mailto:support@groupyetu.org" style="background:rgba(255,255,255,.15);color:#fff;padding:.6rem 1.25rem;border-radius:2rem;font-size:.82rem;font-weight:600;text-decoration:none">Email Support</a>
             </div>`;
           document.body.appendChild(lock);
         }
@@ -599,7 +599,7 @@ async function checkSubscriptionAccess() {
       banner.id = 'sub-warning-banner';
       banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:var(--warning);color:#fff;padding:.5rem 1.5rem;z-index:999;display:flex;align-items:center;justify-content:space-between;font-family:var(--font)';
       banner.innerHTML = `
-        <span style="font-size:.78rem;font-weight:600">⚠ Subscription expires in ${daysLeft} days (${expDate.toDateString()}). Renew early to avoid interruption.</span>
+        <span style="font-size:.78rem;font-weight:600">Subscription expires in ${daysLeft} days (${expDate.toDateString()}). Renew early to avoid interruption.</span>
         <button onclick="showPage('billing')" style="background:#fff;color:var(--warning);border:none;padding:.25rem .75rem;font-size:.72rem;font-weight:700;cursor:pointer">Renew →</button>`;
       document.body.prepend(banner);
       document.querySelector('.main').style.paddingTop = '36px';
@@ -670,7 +670,7 @@ async function openMemberPaymentModal() {
   if (alertEl && myRecord) {
     if (myRecord.status === 'arrears') {
       alertEl.style.display = 'block';
-      alertEl.innerHTML = '<div style="background:rgba(160,96,16,.1);border:1px solid var(--gold);border-left:3px solid var(--gold);padding:.65rem 1rem;font-size:.78rem;color:var(--ink)">⚠ Your account is in <strong>arrears</strong>. Please make a payment to bring your contributions up to date.</div>';
+      alertEl.innerHTML = '<div style="background:rgba(160,96,16,.1);border:1px solid var(--gold);border-left:3px solid var(--gold);padding:.65rem 1rem;font-size:.78rem;color:var(--ink)">Your account is in <strong>arrears</strong>. Please make a payment to bring your contributions up to date.</div>';
     } else {
       alertEl.style.display = 'none';
     }
@@ -947,7 +947,7 @@ function renderBeneficiaryRows() {
           <div class="mp-bene-name">${row.memberName || 'Select member…'}</div>
         </div>
         <div class="mp-bene-chevron">${gyIcon('chevrons', 14)}</div>
-        ${showRemoveRow ? `<button class="mp-bene-remove" onclick="event.stopPropagation();removeBeneficiaryRow('${row.id}')">✕</button>` : ''}
+        ${showRemoveRow ? `<button class="mp-bene-remove" onclick="event.stopPropagation();removeBeneficiaryRow('${row.id}')" aria-label="Remove"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>` : ''}
         ${_mpOpenSearchRowId === row.id ? renderBeneficiarySearchPanel(row.id) : ''}
       </div>
       <div style="display:flex;flex-direction:column;gap:.4rem">
@@ -958,7 +958,7 @@ function renderBeneficiaryRows() {
             </select>
             <input class="form-input mp-bene-amount" type="number" placeholder="Amount" value="${item.amount||''}"
               oninput="updateBeneficiaryAmount('${row.id}','${item.itemId}', this.value)"/>
-            ${row.items.length > 1 ? `<button type="button" onclick="removeBeneficiaryItem('${row.id}','${item.itemId}')" style="background:none;border:none;color:var(--ink-faint);font-size:1rem;cursor:pointer;padding:0 .3rem" title="Remove this item">✕</button>` : ''}
+            ${row.items.length > 1 ? `<button type="button" onclick="removeBeneficiaryItem('${row.id}','${item.itemId}')" style="background:none;border:none;color:var(--ink-faint);font-size:1rem;cursor:pointer;padding:0 .3rem" title="Remove this item" aria-label="Remove"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>` : ''}
           </div>`).join('')}
         <button type="button" onclick="addBeneficiaryItem('${row.id}')" style="align-self:flex-start;background:none;border:none;color:var(--teal);font-size:.75rem;font-weight:600;cursor:pointer;padding:.15rem 0">+ Add another item for ${row.memberName || 'this person'}</button>
       </div>
@@ -1063,7 +1063,7 @@ async function recalcInstantFee() {
   if (cap && net > cap) {
     if (capWarningEl) {
       capWarningEl.style.display = 'block';
-      capWarningEl.textContent = `⚠ Maximum total right now is Ksh ${Number(cap).toLocaleString()} — contact your group admin for larger amounts.`;
+      capWarningEl.textContent = `Maximum total right now is Ksh ${Number(cap).toLocaleString()} — contact your group admin for larger amounts.`;
     }
     if (payBtn) payBtn.disabled = true;
   } else {
@@ -1475,7 +1475,7 @@ async function loadMemberMGRObligations(memberId, sectionId, listId) {
           <div style="display:flex;justify-content:center;color:var(--ink-faint)">${gyIcon('check', 22)}</div>
           <div style="flex:1">
             <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${o.cycle.name} — Round ${o.currentSlot.slot_number}</div>
-            <div style="font-size:.72rem;color:var(--teal-dk);margin-top:.1rem">✓ You have paid for this round. Receiver: ${h(o.receiverName)}</div>
+            <div style="font-size:.72rem;color:var(--teal-dk);margin-top:.1rem">You have paid for this round. Receiver: ${h(o.receiverName)}</div>
           </div>
           <span class="badge badge-green" style="font-size:.62rem;flex-shrink:0">Paid</span>
         </div>`;
@@ -1483,7 +1483,7 @@ async function loadMemberMGRObligations(memberId, sectionId, listId) {
 
       const urgencyColor = o.isOverdue ? 'var(--danger)' : o.isDueSoon ? 'var(--warning)' : 'var(--ink-faint)';
       const urgencyBorder = o.isOverdue ? 'var(--danger)' : o.isDueSoon ? 'var(--gold)' : 'var(--border)';
-      const urgencyLabel = o.isOverdue ? `⚠ Overdue by ${Math.abs(o.daysUntil)} days`
+      const urgencyLabel = o.isOverdue ? `Overdue by ${Math.abs(o.daysUntil)} days`
         : o.isDueSoon ? `Due in ${o.daysUntil} day${o.daysUntil !== 1 ? 's' : ''}`
         : o.daysUntil !== null ? `Due in ${o.daysUntil} days` : '';
 
@@ -1609,7 +1609,7 @@ async function loadMemberTBObligations(memberId) {
           <div style="flex:1">
             <div style="font-size:.85rem;font-weight:700;color:var(--ink)">${h(pool.name)}</div>
             <div style="font-size:.75rem;color:var(--ink-soft)">Active loan · ${loan.interest_rate||10}% interest/month · Due: ${loan.due_date||'—'}</div>
-            ${overdue ? `<div style="font-size:.7rem;font-weight:600;color:var(--danger)">⚠ Overdue</div>` : ''}
+            ${overdue ? `<div style="font-size:.7rem;font-weight:600;color:var(--danger)">Overdue</div>` : ''}
           </div>
           <div style="text-align:right;flex-shrink:0">
             <div style="font-size:.85rem;font-weight:700;color:var(--maroon)">Ksh ${outstanding.toLocaleString()}</div>
@@ -1694,7 +1694,7 @@ function smartSplitPayment(totalStr) {
   const unallocEl = document.getElementById('mp-unallocated');
   if (unallocEl) {
     unallocEl.style.display = remaining > 0 ? 'block' : 'none';
-    unallocEl.textContent = remaining > 0 ? `⚠ Ksh ${remaining.toLocaleString()} unallocated — adjust the amounts above to split the full payment` : '';
+    unallocEl.textContent = remaining > 0 ? `Ksh ${remaining.toLocaleString()} unallocated — adjust the amounts above to split the full payment` : '';
   }
 }
 
@@ -1709,8 +1709,8 @@ function recalcSplitRemainder(changedIdx, total) {
   if (unallocEl) {
     unallocEl.style.display = Math.abs(remaining) > 0.5 ? 'block' : 'none';
     unallocEl.textContent = remaining > 0
-      ? `⚠ Ksh ${remaining.toLocaleString()} still unallocated`
-      : remaining < -0.5 ? `⚠ Amounts exceed total by Ksh ${Math.abs(remaining).toLocaleString()}`
+      ? `Ksh ${remaining.toLocaleString()} still unallocated`
+      : remaining < -0.5 ? `Amounts exceed total by Ksh ${Math.abs(remaining).toLocaleString()}`
       : '';
   }
 }
@@ -1857,8 +1857,8 @@ async function loadMyMeetings() {
   if (chipsEl && attSummary.total > 0) {
     const rate = Math.round((attSummary.present/attSummary.total)*100);
     chipsEl.innerHTML = `
-      <div style="background:rgba(255,255,255,.1);padding:.3rem .7rem;border-radius:99px;font-size:.7rem;color:rgba(255,255,255,.8)">✓ ${attSummary.present} Present</div>
-      <div style="background:rgba(255,255,255,.08);padding:.3rem .7rem;border-radius:99px;font-size:.7rem;color:rgba(255,255,255,.6)">${rate}% Rate</div>`;
+      <span class="badge badge-green">${attSummary.present} present</span>
+      <span class="badge badge-grey">${rate}% attendance</span>`;
   }
 
   // Upcoming
@@ -1869,7 +1869,7 @@ async function loadMyMeetings() {
     return `<div class="mp-meeting-card" style="animation-delay:${i*0.06}s">
       <div style="display:flex;align-items:center;gap:.75rem">
         <div style="background:var(--teal-pale);border:1px solid var(--teal-mid);padding:.3rem .5rem;text-align:center;min-width:40px;border-radius:4px">
-          <div style="font-size:.55rem;font-weight:700;text-transform:uppercase;color:var(--teal-dk)">${d.toLocaleString('default',{month:'short'})}</div>
+          <div style="font-size:12px;font-weight:700;color:var(--teal-dk)">${d.toLocaleString('default',{month:'short'})}</div>
           <div style="font-family:var(--font);font-size:1.3rem;font-weight:700;color:var(--teal-dk);line-height:1">${d.getDate()}</div>
         </div>
         <div>
@@ -1889,10 +1889,10 @@ async function loadMyMeetings() {
       attEl.innerHTML = `
         <div style="padding:.75rem 1.25rem">
           <div style="display:flex;justify-content:space-between;margin-bottom:.85rem">
-            <div style="text-align:center"><div style="font-family:var(--font);font-size:1.6rem;font-weight:700;color:var(--teal)">${attSummary.present}</div><div style="font-size:.65rem;color:var(--ink-faint);text-transform:uppercase">Present</div></div>
-            <div style="text-align:center"><div style="font-family:var(--font);font-size:1.6rem;font-weight:700;color:var(--gold)">${attSummary.apology}</div><div style="font-size:.65rem;color:var(--ink-faint);text-transform:uppercase">Apology</div></div>
-            <div style="text-align:center"><div style="font-family:var(--font);font-size:1.6rem;font-weight:700;color:var(--ink-faint)">${attSummary.absent}</div><div style="font-size:.65rem;color:var(--ink-faint);text-transform:uppercase">Absent</div></div>
-            <div style="text-align:center"><div style="font-family:var(--font);font-size:1.6rem;font-weight:700;color:var(--maroon)">${rate}%</div><div style="font-size:.65rem;color:var(--ink-faint);text-transform:uppercase">Rate</div></div>
+            <div style="text-align:center"><div style="font-family:var(--font);font-size:1.6rem;font-weight:700;color:var(--teal)">${attSummary.present}</div><div style="font-size:12px;color:var(--ink-faint);">Present</div></div>
+            <div style="text-align:center"><div style="font-family:var(--font);font-size:1.6rem;font-weight:700;color:var(--gold)">${attSummary.apology}</div><div style="font-size:12px;color:var(--ink-faint);">Apology</div></div>
+            <div style="text-align:center"><div style="font-family:var(--font);font-size:1.6rem;font-weight:700;color:var(--ink-faint)">${attSummary.absent}</div><div style="font-size:12px;color:var(--ink-faint);">Absent</div></div>
+            <div style="text-align:center"><div style="font-family:var(--font);font-size:1.6rem;font-weight:700;color:var(--maroon)">${rate}%</div><div style="font-size:12px;color:var(--ink-faint);">Rate</div></div>
           </div>
           <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
             <div style="height:100%;width:${rate}%;background:var(--teal);border-radius:3px;transition:width 1s ease"></div>
@@ -1914,7 +1914,7 @@ async function loadMyMeetings() {
           <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
           <div style="font-size:.7rem;color:var(--ink-faint)">${m.venue||'Online'}</div>
         </div>
-        <span class="badge ${m.minutes?'badge-green':'badge-grey'}" style="font-size:.62rem">${m.minutes?'✓ Minutes':'Pending'}</span>
+        <span class="badge ${m.minutes?'badge-green':'badge-grey'}" style="font-size:.62rem">${m.minutes?'Minutes':'Pending'}</span>
       </div>
     </div>`;
   }).join('') : '<div style="padding:1.5rem;text-align:center;font-size:.82rem;color:var(--ink-faint)">No past meetings recorded</div>';
@@ -2262,7 +2262,7 @@ function populateMobileMeetings(upcoming, past, attendanceSummary) {
       return `<div class="mh-meeting" style="border-left-color:${attended===true?'var(--teal)':attended===false?'var(--danger)':'var(--border)'}">
         <div class="mh-meeting-name">${m.title||'Meeting'}</div>
         <div class="mh-meeting-meta">${dateStr}${m.location ? ' · ' + m.location : ''}</div>
-        ${attended===true ? '<div class="mh-meeting-badge past-ok">✓ Attended</div>' : attended===false ? '<div class="mh-meeting-badge past-no">✗ Absent</div>' : ''}
+        ${attended===true ? '<div class="mh-meeting-badge past-ok">Attended</div>' : attended===false ? '<div class="mh-meeting-badge past-no">Absent</div>' : ''}
       </div>`;
     }).join('') : '<div style="color:var(--ink-faint);font-size:.82rem;padding:.5rem 0">No past meetings recorded</div>';
   }
@@ -2321,8 +2321,7 @@ function showInstallBanner() {
         border:1px solid rgba(255,255,255,.2);
         padding:.4rem .6rem;font-size:.78rem;cursor:pointer;
         font-family:var(--font);border-radius:2px">
-        ✕
-      </button>
+        </button>
     </div>`;
   document.body.appendChild(banner);
 }

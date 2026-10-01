@@ -1141,14 +1141,14 @@ async function loadMessages() {
         <div style="display:flex;gap:.75rem">
           <div style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:.5rem;padding:.6rem .75rem;text-align:center">
             <div style="font-size:1.3rem;font-weight:700;color:${balColor};line-height:1">${bundle}</div>
-            <div style="font-size:.65rem;color:var(--ink-faint);margin-top:.2rem;text-transform:uppercase;letter-spacing:.04em">SMS Balance</div>
+            <div style="font-size:12px;color:var(--ink-faint);margin-top:.2rem;">SMS Balance</div>
           </div>
           <div style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:.5rem;padding:.6rem .75rem;text-align:center">
             <div style="font-size:1.3rem;font-weight:700;color:var(--ink);line-height:1">${sentThisMonth}</div>
-            <div style="font-size:.65rem;color:var(--ink-faint);margin-top:.2rem;text-transform:uppercase;letter-spacing:.04em">Sent This Month</div>
+            <div style="font-size:12px;color:var(--ink-faint);margin-top:.2rem;">Sent This Month</div>
           </div>
         </div>
-        ${bundle === 0 ? `<div style="margin-top:.65rem;font-size:.72rem;color:var(--danger);font-weight:600">SMS bundle is empty. Top up under Plan &amp; billing to send messages.</div>` : bundle < 20 ? `<div style="margin-top:.65rem;font-size:.72rem;color:var(--warning);font-weight:600">⚠ Low balance — consider topping up soon</div>` : ''}`;
+        ${bundle === 0 ? `<div style="margin-top:.65rem;font-size:.72rem;color:var(--danger);font-weight:600">SMS bundle is empty. Top up under Plan &amp; billing to send messages.</div>` : bundle < 20 ? `<div style="margin-top:.65rem;font-size:.72rem;color:var(--warning);font-weight:600">Low balance — consider topping up soon</div>` : ''}`;
     } else {
       statusEl.innerHTML = `
         <div style="display:flex;align-items:center;gap:.75rem">
@@ -2542,19 +2542,19 @@ async function loadTBOverview(poolId) {
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1.25rem">
       <div style="background:var(--surface);border:1px solid var(--border);padding:.75rem;text-align:center;border-radius:4px">
         <div style="font-size:1.1rem;font-weight:700;color:var(--teal)">Ksh ${totalIn.toLocaleString()}</div>
-        <div style="font-size:.6rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-top:.15rem">Total In</div>
+        <div style="font-size:12px;color:var(--ink-faint);margin-top:.15rem">Total In</div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);padding:.75rem;text-align:center;border-radius:4px">
         <div style="font-size:1.1rem;font-weight:700;color:var(--maroon)">Ksh ${(totalLoaned-totalRepaid).toLocaleString()}</div>
-        <div style="font-size:.6rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-top:.15rem">Outstanding</div>
+        <div style="font-size:12px;color:var(--ink-faint);margin-top:.15rem">Outstanding</div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);padding:.75rem;text-align:center;border-radius:4px">
         <div style="font-size:1.1rem;font-weight:700;color:var(--gold)">Ksh ${poolBal.toLocaleString()}</div>
-        <div style="font-size:.6rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-top:.15rem">Available</div>
+        <div style="font-size:12px;color:var(--ink-faint);margin-top:.15rem">Available</div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);padding:.75rem;text-align:center;border-radius:4px">
         <div style="font-size:1.1rem;font-weight:700;color:var(--ink)">Ksh ${interestEarned.toLocaleString()}</div>
-        <div style="font-size:.6rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin-top:.15rem">Interest Earned</div>
+        <div style="font-size:12px;color:var(--ink-faint);margin-top:.15rem">Interest Earned</div>
       </div>
     </div>
 
@@ -2583,7 +2583,7 @@ async function loadTBOverview(poolId) {
 
       <!-- Active Loans -->
       <div>
-        <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.65rem">Active Loans (${activeLoans.length})</div>
+        <div style="font-size:.75rem;font-weight:700;color:var(--ink-faint);margin-bottom:.65rem">Active Loans (${activeLoans.length})</div>
         ${activeLoans.length ? activeLoans.map(l => {
           const outstanding = Number(l.principal||0) - Number(l.total_repaid||0);
           const pct = Math.round((Number(l.total_repaid||0)/Number(l.principal||1))*100);

@@ -738,7 +738,7 @@ async function resend2FACode() {
     });
     const otpData = await otpRes.json();
     if (!otpRes.ok || !otpData.success) throw new Error(otpData.error || 'Failed');
-    if (sucEl) { sucEl.textContent = '✓ New code sent. Check your inbox.'; }
+    if (sucEl) { sucEl.textContent = 'New code sent. Check your inbox.'; }
     clearOtpBoxes();
     startResendCooldown(30);
   } catch(e) {
@@ -787,7 +787,7 @@ function updatePasswordChecklist(pw, suffix) {
     const el = document.getElementById(id);
     if (!el) return;
     el.classList.toggle('met', met);
-    el.textContent = (met ? '✓ ' : '○ ') + el.textContent.replace(/^[✓○]\s*/, '');
+    el.textContent = (met ? '' : '○ ') + el.textContent.replace(/^[✓○]\s*/, '');
   };
   set('pw-check-len' + suffix, checks.len);
   set('pw-check-upper' + suffix, checks.upper);
@@ -834,7 +834,7 @@ async function registerAccount() {
   });
   if (authErr) { sucEl.classList.remove('show'); errEl.textContent = authErr.message; errEl.classList.add('show'); if (submitBtn) submitBtn.disabled = false; return; }
 
-  sucEl.textContent = '✓ Account created! Check your email to confirm and get started.';
+  sucEl.textContent = 'Account created! Check your email to confirm and get started.';
   sucEl.classList.add('show');
   // Do NOT auto sign-in - user must confirm email first (Supabase "Confirm email" is ON)
   // They will be redirected back to the app after clicking the confirmation link.
@@ -887,7 +887,7 @@ function updatePickerPromoTags() {
   const promoDays = parseInt(_platformSettings['promo_days'] || '60');
   document.querySelectorAll('.picker-promo-tag').forEach(el => {
     if (promoOn) {
-      el.textContent = `🎉 ${promoDays} days free`;
+      el.textContent = `${promoDays} days free`;
       el.style.display = '';
     } else {
       el.style.display = 'none';
@@ -1002,7 +1002,7 @@ async function pickerJoinOrg() {
       phone: currentProfile?.phone || null,
       status: 'pending'
     });
-    if (sucEl) { sucEl.textContent = `✓ Request sent to ${org.name}. Your admin will approve you shortly.`; sucEl.style.display = 'block'; }
+    if (sucEl) { sucEl.textContent = `Request sent to ${org.name}. Your admin will approve you shortly.`; sucEl.style.display = 'block'; }
     if (errEl) errEl.style.display = 'none';
     if (document.getElementById('picker-org-code')) document.getElementById('picker-org-code').value = '';
   } catch(e) {
@@ -1162,7 +1162,7 @@ async function checkSubscriptionStatus() {
     currentOrg.subscription_status = 'expired';
     // Rebuild sidebar to reflect downgrade
     buildSidebar();
-    showBanner('⚠ Your subscription has expired. You have been moved to the Starter plan. <a href="#" onclick="showPage(\'billing\')">Upgrade now →</a>', 'warning');
+    showBanner('Your subscription has expired. You have been moved to the Starter plan. <a href="#" onclick="showPage(\'billing\')">Upgrade now →</a>', 'warning');
   }
 }
 
@@ -1212,7 +1212,7 @@ function showBanner(html, type='info') {
   el.style.background = bgs[type]||bgs.info;
   el.style.color = colors[type]||colors.info;
   el.style.borderBottom = `2px solid ${colors[type]||colors.info}`;
-  el.innerHTML = `<span>${html}</span><button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:inherit">✕</button>`;
+  el.innerHTML = `<span>${html}</span><button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:inherit" aria-label="Remove"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`;
 }
 
 // showUpgradePrompt() is defined in portal.js (canonical full-page upgrade UX).
@@ -1409,7 +1409,7 @@ async function registerNewOrg() {
     console.log('[GY360] Founder member created:', founderMember);
   }
 
-  sucEl.textContent = '✓ Organisation created! Switching to it now…';
+  sucEl.textContent = 'Organisation created! Switching to it now…';
   sucEl.classList.add('show');
 
   // Log activity
@@ -1563,7 +1563,7 @@ async function setNewPassword() {
   if(errEl) errEl.style.display='none';
   const { error } = await sb.auth.updateUser({ password: pw });
   if (error) { if(errEl){errEl.textContent=error.message;errEl.style.display='block';} return; }
-  if(sucEl){sucEl.textContent='✓ Password set! Signing you out so you can log in fresh…';sucEl.style.display='block';}
+  if(sucEl){sucEl.textContent='Password set! Signing you out so you can log in fresh…';sucEl.style.display='block';}
   // Deliberate, predictable behaviour: never leave a live session sitting on this
   // screen - sign out and require a normal login rather than silently continuing
   // into the app. This is what closes the "refresh logs me straight in" bug.
@@ -1638,7 +1638,7 @@ async function savePickerMyAccount() {
       if (isElevated) currentProfile.two_fa_enabled = twoFa;
     }
 
-    msgEl.textContent = '✓ Saved';
+    msgEl.textContent = 'Saved';
     msgEl.style.color = 'var(--teal)';
     setTimeout(() => { msgEl.textContent = ''; hidePickerMyAccount(); }, 1500);
   } catch(e) {
@@ -1728,7 +1728,7 @@ function updateTopbarActions(page) {
   if (memberPages.includes(page) || role === 'member') {
     topbar.innerHTML = `
       <span style="font-size:.75rem;color:var(--ink-soft);font-weight:500;padding:.35rem .75rem;background:var(--surface);border:1px solid var(--border);border-radius:4px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle" title="${currentOrg?.name||''}">${(currentOrg?.name||'').replace(/\b\w/g,c=>c.toUpperCase()).toLowerCase().replace(/\b\w/g,c=>c.toUpperCase())}</span>
-      <button class="topbar-btn" onclick="openMemberPaymentModal();showModal('memberPayment')" style="margin-left:.75rem">💳 Make Payment</button>`;
+      <button class="topbar-btn" onclick="openMemberPaymentModal();showModal('memberPayment')" style="margin-left:.75rem">Make Payment</button>`;
     return;
   }
 
@@ -1747,7 +1747,7 @@ function updateTopbarActions(page) {
         break;
       case 'meetings':
         topbar.innerHTML = `
-          <button class="topbar-btn outline" onclick="sendMeetingReminders()">📱 Send Reminders</button>
+          <button class="topbar-btn outline" onclick="sendMeetingReminders()">Send Reminders</button>
           <button class="topbar-btn" onclick="showModal('scheduleMeeting')">+ Schedule Meeting</button>`;
         break;
       case 'welfare':
@@ -1758,7 +1758,7 @@ function updateTopbarActions(page) {
         break;
       case 'messages':
         topbar.innerHTML = `<button class="topbar-btn outline" onclick="testSms()">Test SMS</button>
-          <button class="topbar-btn" onclick="sendSms()">📤 Send SMS</button>`;
+          <button class="topbar-btn" onclick="sendSms()">Send SMS</button>`;
         break;
       case 'mgr':
         topbar.innerHTML = `<button class="topbar-btn" onclick="showModal('createRound')">+ New Cycle</button>`;
@@ -1887,11 +1887,11 @@ function updateSidebar() {
   if (newGroupLabel) {
     const r = currentProfile?.role;
     if (r === 'admin' || r === 'officer' || r === 'treasurer') {
-      newGroupLabel.textContent = '✦ Register Another Group';
+      newGroupLabel.textContent = 'Register Another Group';
     } else if (r === 'member') {
-      newGroupLabel.textContent = '🌱 Start Your Own Group';
+      newGroupLabel.textContent = 'Start Your Own Group';
     } else {
-      newGroupLabel.textContent = '🌱 Start a New Group';
+      newGroupLabel.textContent = 'Start a New Group';
     }
   }
 }

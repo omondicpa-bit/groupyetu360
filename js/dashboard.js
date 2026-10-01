@@ -300,7 +300,7 @@ async function loadDashboard() {
         nmEl.innerHTML = `
           <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem">
             <div style="background:var(--maroon-pale);padding:.5rem .65rem;text-align:center;min-width:44px">
-              <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--maroon);font-weight:700">${mDate.toLocaleString('default',{month:'short'})}</div>
+              <div style="font-size:12px;color:var(--maroon);font-weight:700">${mDate.toLocaleString('default',{month:'short'})}</div>
               <div style="font-size:1.5rem;font-weight:700;color:var(--maroon);font-family:var(--font);line-height:1">${mDate.getDate()}</div>
             </div>
             <div>
@@ -481,11 +481,11 @@ async function loadDashboardModuleCards(orgId) {
       </div>
       <div style="padding:.75rem 1.25rem 1rem;display:grid;grid-template-columns:1fr 1fr;gap:.65rem">
         <div style="background:var(--surface);border-radius:6px;padding:.65rem .85rem">
-          <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Pot Per Round</div>
+          <div style="font-size:12px;color:var(--ink-faint);margin-bottom:.2rem">Pot Per Round</div>
           <div style="font-size:1.15rem;font-weight:700;color:var(--maroon)">Ksh ${potSize.toLocaleString()}</div>
         </div>
         <div style="background:var(--surface);border-radius:6px;padding:.65rem .85rem">
-          <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Members</div>
+          <div style="font-size:12px;color:var(--ink-faint);margin-bottom:.2rem">Members</div>
           <div style="font-size:1.15rem;font-weight:700;color:var(--ink)">${memberCount}</div>
         </div>
       </div>
@@ -529,15 +529,15 @@ async function loadDashboardModuleCards(orgId) {
       </div>
       <div style="padding:.75rem 1.25rem 1rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:.65rem">
         <div style="background:var(--surface);border-radius:6px;padding:.65rem .75rem">
-          <div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Contributions</div>
+          <div style="font-size:12px;color:var(--ink-faint);margin-bottom:.2rem">Contributions</div>
           <div style="font-size:1rem;font-weight:700;color:var(--teal)">Ksh ${(totalContribs/1000).toFixed(0)}K</div>
         </div>
         <div style="background:var(--surface);border-radius:6px;padding:.65rem .75rem">
-          <div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Loans Out</div>
+          <div style="font-size:12px;color:var(--ink-faint);margin-bottom:.2rem">Loans Out</div>
           <div style="font-size:1rem;font-weight:700;color:var(--maroon)">Ksh ${(totalLoansOut/1000).toFixed(0)}K</div>
         </div>
         <div style="background:var(--surface);border-radius:6px;padding:.65rem .75rem">
-          <div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Active Loans</div>
+          <div style="font-size:12px;color:var(--ink-faint);margin-bottom:.2rem">Active Loans</div>
           <div style="font-size:1rem;font-weight:700;color:var(--ink)">${activeLoans.length}</div>
         </div>
       </div>

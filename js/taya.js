@@ -774,10 +774,10 @@ async function tayaGenerateDraft(message) {
 
 function tayaCreateDraftShell(mode, context) {
   const labels = {
-    meeting_minutes: '📝 Draft: Meeting minutes',
-    financial_summary: '📊 Draft: Financial summary',
-    arrears_message: '💬 Draft: Arrears reminder',
-    send_message: '💬 Draft: Message to members',
+    meeting_minutes: 'Draft: Meeting minutes',
+    financial_summary: 'Draft: Financial summary',
+    arrears_message: 'Draft: Arrears reminder',
+    send_message: 'Draft: Message to members',
   };
   const cardId = 'taya-draft-' + Date.now();
   tayaAppend(`
@@ -830,8 +830,8 @@ function tayaFinalizeDraftCard(mode, cardId, text) {
 function tayaAddRefineChips(mode, cardId) {
   const isMessagingMode = mode === 'arrears_message' || mode === 'send_message';
   const chips = isMessagingMode
-    ? [['✂️ Shorter', 'Make it noticeably shorter, ideally under 160 characters.'], ['🎩 More formal', 'Make the tone more formal and businesslike.'], ['🔁 Regenerate', 'Write a fresh alternative version, different wording, same purpose.']]
-    : [['✂️ Shorter', 'Make it noticeably shorter and more concise.'], ['🎩 More formal', 'Make the tone more formal.'], ['🔁 Regenerate', 'Write a fresh alternative version, different wording, same content.']];
+    ? [['Shorter', 'Make it noticeably shorter, ideally under 160 characters.'], ['More formal', 'Make the tone more formal and businesslike.'], ['Regenerate', 'Write a fresh alternative version, different wording, same purpose.']]
+    : [['Shorter', 'Make it noticeably shorter and more concise.'], ['More formal', 'Make the tone more formal.'], ['Regenerate', 'Write a fresh alternative version, different wording, same content.']];
   const rowId = cardId + '-refine';
   const chipsHtml = chips.map(([label, instruction]) =>
     `<div class="taya-chip" style="font-size:.65rem;padding:.35rem .6rem" onclick="tayaRefineDraft('${cardId}', ${JSON.stringify(instruction)})">${label}</div>`
@@ -980,7 +980,7 @@ async function tayaSendNow(cardId) {
   const preview = text.length > 70 ? text.slice(0, 70) + '…' : text;
   tayaAppend(`
     <div class="taya-confirm-card" id="${confirmId}">
-      <div class="taya-confirm-head">⚠️ Confirm send</div>
+      <div class="taya-confirm-head">Confirm send</div>
       <div class="taya-confirm-body">
         Send to <strong>${h(label)}</strong> (${phones.length} recipient${phones.length !== 1 ? 's' : ''})?<br><br>
         <span style="color:var(--ink-faint);font-style:italic">"${h(preview)}"</span><br><br>

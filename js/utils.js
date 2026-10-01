@@ -256,7 +256,7 @@ async function loadSupport() {
       <div style="display:flex;align-items:center;gap:1rem;padding:1rem;background:var(--surface-2);border:1px solid var(--border)">
         <div style="font-size:1.8rem">📞</div>
         <div>
-          <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint)">Phone / WhatsApp</div>
+          <div style="font-size:.7rem;color:var(--ink-faint)">Phone / WhatsApp</div>
           <div style="font-size:1rem;font-weight:700;color:var(--ink)">${phone}</div>
           <a href="${wa}" target="_blank" style="font-size:.75rem;color:var(--maroon);font-weight:600">Open in WhatsApp →</a>
         </div>
@@ -264,7 +264,7 @@ async function loadSupport() {
       <div style="display:flex;align-items:center;gap:1rem;padding:1rem;background:var(--surface-2);border:1px solid var(--border)">
         <div style="font-size:1.8rem">✉️</div>
         <div>
-          <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint)">Email</div>
+          <div style="font-size:.7rem;color:var(--ink-faint)">Email</div>
           <div style="font-size:1rem;font-weight:700;color:var(--ink)">${email}</div>
           <a href="mailto:${email}" style="font-size:.75rem;color:var(--maroon);font-weight:600">Send Email →</a>
         </div>

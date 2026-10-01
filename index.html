@@ -24,7 +24,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026100110">
+  <link rel="stylesheet" href="style.css?v=2026100111">
 </head>
 <body>
 
@@ -1589,12 +1589,12 @@
 
     <!-- APPROVALS -->
     <div class="page" id="page-approvals">
-      <div class="fin-hero" style="background:linear-gradient(135deg,#0d3d2e 0%,var(--teal) 55%,#1a1a1a 100%);margin-bottom:1.25rem">
+      <div class="fin-hero">
         <div>
           <h1 class="fin-hero-title">Approvals</h1>
           <div class="fin-hero-sub">Member join requests and payment verifications</div>
         </div>
-        <div id="approvals-hero-count" style="display:flex;align-items:center;gap:.5rem;font-size:.78rem;color:rgba(255,255,255,.7)"></div>
+        <div id="approvals-hero-count" style="display:flex;align-items:center;gap:.5rem;font-size:13px;color:var(--ink-faint)"></div>
       </div>
       <div class="tabs">
         <div class="tab active" onclick="switchTab(this,'tab-pending-approvals')">
@@ -2350,7 +2350,7 @@
             </div>
             <div class="ps-save-bar"><button class="btn btn-primary btn-sm" onclick="recordDisbursement(currentDetailOrgId)">Record Disbursement</button></div>
             <div style="margin-top:1rem">
-              <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.4rem">Recent Disbursements</div>
+              <div style="font-size:.72rem;font-weight:700;color:var(--ink-faint);margin-bottom:.4rem">Recent Disbursements</div>
               <div id="sa-disb-history"><div class="loading"><div class="spinner"></div>Loading…</div></div>
             </div>
           </div>
@@ -2569,7 +2569,7 @@
                 <div class="stk-amount-pill">Ksh <span id="stk-display-amount">0</span></div>
               </div>
               <div style="margin:.75rem 0">
-                <label class="form-label" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em">M-Pesa Number</label>
+                <label class="form-label" style="font-size:.72rem;">M-Pesa Number</label>
                 <input class="form-input stk-phone-input" id="cart-paystack-phone" placeholder="07XX XXX XXX" type="tel" style="font-size:16px"/>
               </div>
               <button onclick="submitCartPaystack()" id="cart-paystack-btn"
@@ -2598,7 +2598,7 @@
               <div style="background:var(--surface-2);border-left:3px solid var(--maroon);border-radius:0 8px 8px 0;padding:.85rem 1rem;margin-bottom:1rem;font-size:.8rem;line-height:1.9" id="cart-bank-details"></div>
               <div class="form-group" style="margin-bottom:.75rem">
                 <label class="form-label">M-Pesa Transaction Reference</label>
-                <input class="form-input" id="cart-pay-ref" placeholder="e.g. QBC4X8YZDE" style="font-size:16px;letter-spacing:.08em;text-transform:uppercase"/>
+                <input class="form-input" id="cart-pay-ref" placeholder="e.g. QBC4X8YZDE" style="font-size:16px;"/>
               </div>
               <div style="background:#fff9e6;border:1px solid #e6c94a;border-radius:8px;padding:.65rem 1rem;font-size:.75rem;color:#7a5c00;margin-bottom:.85rem">
                 ⏱ Plan activated within minutes of SA approval. WhatsApp <strong>0702 903 544</strong> for faster processing.
@@ -2845,7 +2845,7 @@
         </div>
         <div id="sa-activity-list"><div class="loading"><div class="spinner"></div>Loading...</div></div>
         <table style="width:100%;border-collapse:collapse;display:none" id="sa-activity-table">
-          <thead><tr style="font-size:.65rem;text-transform:uppercase;color:var(--ink-faint);border-bottom:1px solid var(--border)">
+          <thead><tr style="font-size:12px;color:var(--ink-faint);border-bottom:1px solid var(--border)">
             <th style="padding:.5rem 1.25rem;text-align:left">Time</th>
             <th style="padding:.5rem;text-align:left">Action</th>
             <th style="padding:.5rem;text-align:left">User</th>
@@ -2882,15 +2882,15 @@
       <!-- Summary -->
       <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem" id="sa-payouts-summary">
         <div class="card" style="flex:1;min-width:140px;padding:.9rem 1.1rem">
-          <div style="font-size:.68rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem">Pending</div>
+          <div style="font-size:12px;color:var(--ink-faint);margin-bottom:.3rem">Pending</div>
           <div style="font-size:1.3rem;font-weight:700;color:var(--ink)" id="sa-payouts-stat-pending">-</div>
         </div>
         <div class="card" style="flex:1;min-width:140px;padding:.9rem 1.1rem">
-          <div style="font-size:.68rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem">Failed</div>
+          <div style="font-size:12px;color:var(--ink-faint);margin-bottom:.3rem">Failed</div>
           <div style="font-size:1.3rem;font-weight:700;color:#a02020" id="sa-payouts-stat-failed">-</div>
         </div>
         <div class="card" style="flex:1;min-width:140px;padding:.9rem 1.1rem">
-          <div style="font-size:.68rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem">Settled Today</div>
+          <div style="font-size:12px;color:var(--ink-faint);margin-bottom:.3rem">Settled Today</div>
           <div style="font-size:1.3rem;font-weight:700;color:var(--teal)" id="sa-payouts-stat-settled">-</div>
         </div>
       </div>
@@ -3455,7 +3455,7 @@
           <div class="card-body" style="padding:.75rem 1.25rem">
             <table style="width:100%"><tbody id="mp-details"></tbody></table>
             <div style="margin-top:.85rem;padding-top:.75rem;border-top:1px solid var(--border)">
-              <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.6rem">My Contributions by Type</div>
+              <div style="font-size:12px;font-weight:700;color:var(--ink-faint);margin-bottom:.6rem">My Contributions by Type</div>
               <div id="mp-contrib-summary"></div>
             </div>
           </div>
@@ -3657,25 +3657,25 @@
       <div id="mc-fines-notice" style="margin-bottom:.75rem;display:none"></div>
       <div id="mc-pending-notice" style="margin-bottom:.75rem;display:none"></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.75rem;margin-bottom:1.25rem" id="mc-stats-row">
-        <div style="background:linear-gradient(135deg,var(--maroon) 0%,#5a0016 100%);border-radius:8px;padding:1.1rem 1.25rem;color:#fff">
-          <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;opacity:.7;margin-bottom:.3rem">Total Paid</div>
-          <div id="mc-total" style="font-family:var(--font);font-size:1.75rem;font-weight:700;line-height:1">—</div>
-          <div style="font-size:.68rem;opacity:.65;margin-top:.2rem">All time</div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;color:var(--ink)">
+          <div style="font-size:12.5px;font-weight:600;color:var(--ink-faint);margin-bottom:6px">Total paid</div>
+          <div id="mc-total" style="font-size:24px;font-weight:800;letter-spacing:-.02em;color:var(--ink);line-height:1.1;font-variant-numeric:tabular-nums">—</div>
+          <div style="font-size:12.5px;color:var(--ink-faint);margin-top:6px">All time</div>
         </div>
-        <div style="background:var(--surface);border:1px solid var(--border);border-top:3px solid #c49a30;border-radius:8px;padding:1.1rem 1.25rem">
-          <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.3rem">This Year</div>
-          <div id="mc-year" style="font-family:var(--font);font-size:1.75rem;font-weight:700;color:#c49a30;line-height:1">—</div>
-          <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem" id="mc-year-label">2026</div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px">
+          <div style="font-size:12.5px;font-weight:600;color:var(--ink-faint);margin-bottom:6px">This year</div>
+          <div id="mc-year" style="font-size:24px;font-weight:800;letter-spacing:-.02em;color:var(--ink);line-height:1.1;font-variant-numeric:tabular-nums">—</div>
+          <div style="font-size:12.5px;color:var(--ink-faint);margin-top:6px" id="mc-year-label">2026</div>
         </div>
-        <div id="mc-shares-card" style="background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--maroon);border-radius:8px;padding:1.1rem 1.25rem">
-          <div id="mc-shares-label" style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.3rem">Shares</div>
-          <div id="mc-shares-bal" style="font-family:var(--font);font-size:1.75rem;font-weight:700;color:var(--maroon);line-height:1">—</div>
-          <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">Equity in group</div>
+        <div id="mc-shares-card" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px">
+          <div id="mc-shares-label" style="font-size:12.5px;font-weight:600;color:var(--ink-faint);margin-bottom:6px">Shares</div>
+          <div id="mc-shares-bal" style="font-size:24px;font-weight:800;letter-spacing:-.02em;color:var(--ink);line-height:1.1;font-variant-numeric:tabular-nums">—</div>
+          <div style="font-size:12.5px;color:var(--ink-faint);margin-top:6px">Equity in group</div>
         </div>
-        <div id="mc-savings-card" style="background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--teal);border-radius:8px;padding:1.1rem 1.25rem">
-          <div id="mc-savings-label" style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.3rem">Savings</div>
-          <div id="mc-savings-bal" style="font-family:var(--font);font-size:1.75rem;font-weight:700;color:var(--teal);line-height:1">—</div>
-          <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">Monthly deposits</div>
+        <div id="mc-savings-card" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px">
+          <div id="mc-savings-label" style="font-size:12.5px;font-weight:600;color:var(--ink-faint);margin-bottom:6px">Savings</div>
+          <div id="mc-savings-bal" style="font-size:24px;font-weight:800;letter-spacing:-.02em;color:var(--ink);line-height:1.1;font-variant-numeric:tabular-nums">—</div>
+          <div style="font-size:12.5px;color:var(--ink-faint);margin-top:6px">Monthly deposits</div>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 280px;gap:1rem;margin-bottom:1.25rem">
@@ -3755,24 +3755,24 @@
     <div class="page" id="page-my_meetings">
       <!-- DESKTOP -->
       <div class="mob-hide">
-      <div class="msg-hero" style="background:linear-gradient(135deg,#0d3d2e 0%,var(--teal) 60%,#1a1a1a 100%);margin-bottom:1.25rem">
+      <div class="msg-hero">
         <div>
-          <div style="font-family:var(--font);font-size:1.4rem;font-weight:700;color:#fff">📅 My Meetings</div>
-          <div id="my-meetings-sub" style="font-size:.72rem;color:rgba(255,255,255,.5);margin-top:.15rem">Upcoming and past meetings</div>
+          <h1 class="msg-hero-title">My meetings</h1>
+          <div id="my-meetings-sub" class="msg-hero-sub">Upcoming and past meetings</div>
         </div>
         <div style="display:flex;gap:.5rem" id="my-attendance-chips"></div>
       </div>
       <div class="grid-2" style="margin-bottom:1rem">
         <div>
-          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--teal);margin-bottom:.6rem">Upcoming</div>
+          <div style="font-size:.7rem;font-weight:700;color:var(--teal);margin-bottom:.6rem">Upcoming</div>
           <div id="my-upcoming-meetings"><div class="loading"><div class="spinner"></div></div></div>
         </div>
         <div>
-          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.6rem">My Attendance Summary</div>
+          <div style="font-size:.7rem;font-weight:700;color:var(--ink-faint);margin-bottom:.6rem">My Attendance Summary</div>
           <div id="my-attendance-record"><div class="loading"><div class="spinner"></div></div></div>
         </div>
       </div>
-      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:.6rem">Past Meetings</div>
+      <div style="font-size:.7rem;font-weight:700;color:var(--ink-faint);margin-bottom:.6rem">Past Meetings</div>
       <div id="my-past-meetings"><div class="loading"><div class="spinner"></div></div></div>
       </div><!-- end .mob-hide -->
 
@@ -3805,12 +3805,12 @@
     <div class="page" id="page-my_notices">
       <!-- DESKTOP -->
       <div class="mob-hide">
-      <div class="msg-hero" style="background:linear-gradient(135deg,#1a1a1a 0%,#2d2d2d 50%,#0d3d2e 100%);margin-bottom:1.25rem">
+      <div class="msg-hero">
         <div>
-          <div style="font-family:var(--font);font-size:1.4rem;font-weight:700;color:#fff">📢 Notices</div>
-          <div style="font-size:.72rem;color:rgba(255,255,255,.5);margin-top:.15rem">Messages from your group admin</div>
+          <h1 class="msg-hero-title">Notices</h1>
+          <div class="msg-hero-sub">Messages from your group admin</div>
         </div>
-        <div id="notices-count-chip" style="font-size:.72rem;color:rgba(255,255,255,.6)"></div>
+        <div id="notices-count-chip" style="font-size:13px;color:var(--ink-faint)"></div>
       </div>
       <div id="my-notices-list"><div class="loading"><div class="spinner"></div>Loading...</div></div>
       </div><!-- end .mob-hide -->
@@ -4040,7 +4040,7 @@
   <div class="modal" style="max-width:520px">
     <div class="modal-header">
       <div>
-        <div class="modal-title">Add New Member</div>
+        <div class="modal-title">Add member</div>
         <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.1rem">Financial records can be completed from the member detail page</div>
       </div>
       <button class="modal-close" onclick="closeModal('addMember')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
@@ -4079,21 +4079,21 @@
       <div class="form-group">
         <label class="form-label">Registration Fee</label>
         <select class="form-select" id="nm-reg">
-          <option value="true">Paid ✓</option>
+          <option value="true">Paid</option>
           <option value="false">Pending</option>
         </select>
       </div>
 
       <!-- Portal Access -->
       <div style="border-top:0.5px solid var(--border);margin:.85rem 0 .75rem"></div>
-      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.55rem">Portal Access <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></div>
+      <div style="font-size:.72rem;font-weight:700;color:var(--ink-faint);margin-bottom:.55rem">Portal Access <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></div>
       <div class="form-group">
         <label class="form-label">Email Address</label>
         <input class="form-input" type="email" id="nm-email" placeholder="member@email.com"
           oninput="document.getElementById('nm-invite-row').style.display=this.value.trim()?'flex':'none'"/>
       </div>
       <div id="nm-invite-row" style="display:none;background:var(--teal-pale);border:1px solid var(--teal-mid);border-radius:6px;padding:.6rem .85rem;font-size:.78rem;color:var(--ink);margin-top:-.35rem;margin-bottom:.5rem;align-items:center;gap:.5rem">
-        <span style="flex:1">✉ A portal invite will be sent to this email after saving.</span>
+        <span style="flex:1">A portal invite will be sent to this email after saving.</span>
         <label style="display:flex;align-items:center;gap:.35rem;font-size:.75rem;cursor:pointer">
           <input type="checkbox" id="nm-send-invite" checked style="accent-color:var(--teal)"/> Send invite
         </label>
@@ -4108,7 +4108,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('addMember')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveMember()">Add Member →</button>
+      <button class="btn btn-primary" onclick="saveMember()">Add Member</button>
     </div>
   </div>
 </div>
@@ -4181,7 +4181,7 @@
         <div id="modal-pay-lines" style="display:flex;flex-direction:column;gap:.45rem"></div>
       </div>
       <div style="display:flex;justify-content:flex-end;align-items:center;gap:.75rem;padding:.7rem 0 .2rem;border-top:1px solid var(--border);margin-top:.5rem">
-        <span style="font-size:.78rem;color:var(--ink-faint);font-weight:600;letter-spacing:.06em">TOTAL</span>
+        <span style="font-size:.78rem;color:var(--ink-faint);font-weight:600;">TOTAL</span>
         <span id="modal-pay-total" style="font-size:1.05rem;font-weight:700;color:var(--maroon)">Ksh 0</span>
       </div>
       <div id="modal-pay-error" style="font-size:.78rem;color:var(--warning);margin-top:.4rem;min-height:1.2em"></div>
@@ -4299,7 +4299,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('welfareEvent')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveWelfareEvent()">Create Event →</button>
+      <button class="btn btn-primary" onclick="saveWelfareEvent()">Create Event</button>
     </div>
   </div>
 </div>
@@ -4315,15 +4315,15 @@
       <!-- Summary -->
       <div style="display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--border)">
         <div id="wc-expected-row" style="padding:.85rem 1rem;border-right:1px solid var(--border)">
-          <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Expected Pool</div>
+          <div style="font-size:12.5px;font-weight:700;color:var(--ink-faint);margin-bottom:.2rem">Expected Pool</div>
           <div id="wc-expected" style="font-size:1.1rem;font-weight:700;color:var(--teal)">—</div>
         </div>
         <div style="padding:.85rem 1rem;border-right:1px solid var(--border)">
-          <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Collected</div>
+          <div style="font-size:12.5px;font-weight:700;color:var(--ink-faint);margin-bottom:.2rem">Collected</div>
           <div id="wc-collected" style="font-size:1.1rem;font-weight:700;color:var(--success,green)">—</div>
         </div>
         <div id="wc-outstanding-row" style="padding:.85rem 1rem">
-          <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Outstanding</div>
+          <div style="font-size:12.5px;font-weight:700;color:var(--ink-faint);margin-bottom:.2rem">Outstanding</div>
           <div id="wc-outstanding" style="font-size:1.1rem;font-weight:700;color:var(--maroon)">—</div>
         </div>
       </div>
@@ -4340,7 +4340,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="shareWelfareContribsToWhatsApp()">💬 Share to WhatsApp</button>
+      <button class="btn btn-secondary" onclick="shareWelfareContribsToWhatsApp()">Share to WhatsApp</button>
       <button class="btn btn-secondary" onclick="closeModal('welfareContribs')">Close</button>
     </div>
   </div>
@@ -4387,7 +4387,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('welfareClose')">Cancel</button>
-      <button class="btn btn-primary" onclick="submitCloseWelfare()">✓ Close & Record Disbursement</button>
+      <button class="btn btn-primary" onclick="submitCloseWelfare()">Close & Record Disbursement</button>
     </div>
   </div>
 </div>
@@ -4426,7 +4426,7 @@
         <div id="md-founder-badge" class="md-founder-badge" style="display:none"></div>
       </div>
       <div style="display:flex;align-items:center;gap:.5rem">
-        <button class="btn btn-secondary btn-sm" onclick="printMemberStatement()" title="Print or save as PDF">🖶 Print Statement</button>
+        <button class="btn btn-secondary btn-sm" onclick="printMemberStatement()" title="Print or save as PDF">Print Statement</button>
         <button class="modal-close" onclick="closeModal('memberDetail')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
     </div>
@@ -4481,13 +4481,13 @@
         </div>
         <div class="form-group"><label class="form-label">Registration Fee</label>
           <select class="form-select" id="md-edit-reg">
-            <option value="true">Paid ✓</option>
+            <option value="true">Paid</option>
             <option value="false">Pending</option>
           </select>
         </div>
         <!-- Portal Access - hidden for founder (managed via their own account) -->
         <div id="md-portal-access-section">
-          <div style="font-size:.72rem;font-weight:600;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em;margin:.75rem 0 .5rem">Portal Access</div>
+          <div style="font-size:.72rem;font-weight:600;color:var(--ink-faint);margin:.75rem 0 .5rem">Portal Access</div>
           <!-- Normal members: show email + invite -->
           <div id="md-portal-normal">
             <div class="form-row">
@@ -4495,7 +4495,7 @@
                 <label class="form-label">Email Address</label>
                 <div style="display:flex;gap:.5rem;align-items:flex-start">
                   <input class="form-input" type="email" id="md-edit-email" placeholder="member@email.com" style="flex:1"/>
-                  <button class="btn btn-secondary btn-sm" onclick="sendMemberPortalInvite()" style="white-space:nowrap;padding:.52rem .85rem;font-size:.75rem;flex-shrink:0">✉ Send Invite</button>
+                  <button class="btn btn-secondary btn-sm" onclick="sendMemberPortalInvite()" style="white-space:nowrap;padding:.52rem .85rem;font-size:.75rem;flex-shrink:0">Send Invite</button>
                 </div>
                 <div id="md-invite-status" style="display:none;font-size:.74rem;margin-top:.35rem"></div>
               </div>
@@ -4503,13 +4503,13 @@
           </div>
           <!-- Founder: read-only note -->
           <div id="md-portal-founder" style="display:none;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:.75rem 1rem;font-size:.8rem;color:var(--ink-faint)">
-            🔐 This member's portal access is tied to their account login. Email and password can only be changed by the member themselves via My Account, or by a Superadmin using the Account Management section below.
+            This member's portal access is tied to their account login. Email and password can only be changed by the member themselves via My Account, or by a Superadmin using the Account Management section below.
           </div>
         </div>
 
         <!-- Superadmin Account Management - always visible to superadmin only -->
         <div id="md-sa-account-section" style="display:none;margin-top:.85rem;padding:.85rem 1rem;background:var(--maroon-pale);border:1.5px solid var(--maroon);border-radius:8px">
-          <div style="font-size:.72rem;font-weight:700;color:var(--maroon);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.6rem">⚙ Superadmin - Account Management</div>
+          <div style="font-size:.72rem;font-weight:700;color:var(--maroon);margin-bottom:.6rem">Superadmin - Account Management</div>
           <div style="font-size:.75rem;color:var(--ink-faint);margin-bottom:.75rem">Update this member's auth account directly. Changes take effect immediately.</div>
           <div class="form-row">
             <div class="form-group">
@@ -4522,14 +4522,14 @@
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:.75rem;margin-top:.35rem">
-            <button class="btn btn-primary btn-sm" onclick="saUpdateMemberAccount()" style="font-size:.78rem">Apply Changes →</button>
+            <button class="btn btn-primary btn-sm" onclick="saUpdateMemberAccount()" style="font-size:.78rem">Apply Changes</button>
             <span id="md-sa-account-status" style="font-size:.75rem"></span>
           </div>
         </div>
 
         <div class="form-actions">
           <button class="btn btn-primary" onclick="saveMemberDetail()">Save changes</button>
-          <button class="btn btn-secondary btn-sm" onclick="promoteToAdmin()" id="promote-btn" style="margin-left:.5rem">👤 Set Portal Role</button>
+          <button class="btn btn-secondary btn-sm" onclick="promoteToAdmin()" id="promote-btn" style="margin-left:.5rem">Set Portal Role</button>
           <button class="btn btn-danger btn-sm" onclick="deleteMember()" id="delete-member-btn" style="margin-left:auto;display:none">Delete Member</button>
         </div>
       </div>
@@ -4637,7 +4637,7 @@
           .mp-bene-top{display:flex;align-items:center;gap:.6rem;margin-bottom:.6rem}
           .mp-bene-chip{display:flex;align-items:center;gap:.5rem;background:#fff;border:1px solid var(--border);border-radius:99px;padding:.3rem .3rem .3rem .3rem;cursor:pointer;transition:border-color .15s;flex:1;min-width:0}
           .mp-bene-chip:hover{border-color:var(--maroon-muted)}
-          .mp-bene-avatar{width:26px;height:26px;border-radius:50%;background:var(--maroon-pale);color:var(--maroon);font-size:.68rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+          .mp-bene-avatar{width:26px;height:26px;border-radius:50%;background:var(--maroon-pale);color:var(--maroon);font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
           .mp-bene-name{font-size:.82rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
           .mp-bene-chevron{margin-left:auto;margin-right:.5rem;color:var(--ink-faint);font-size:.65rem;flex-shrink:0}
           .mp-bene-remove{width:26px;height:26px;border-radius:50%;border:none;background:transparent;color:var(--ink-faint);font-size:1rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
@@ -4720,8 +4720,7 @@
           </div>
           <button class="btn btn-secondary btn-sm" onclick="autoFillSuggestedAmount()"
             style="font-size:.72rem;white-space:nowrap;margin-top:1rem">
-            Use suggested →
-          </button>
+            Use suggested</button>
         </div>
         <div id="mp-suggested-label" style="font-size:.7rem;color:var(--teal);margin-top:.4rem;font-style:italic"></div>
       </div>
@@ -4783,7 +4782,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('memberPayment')">Cancel</button>
-      <button class="btn btn-primary" id="mp-manual-confirm-btn" onclick="submitMemberPayment()" style="box-shadow:0 3px 10px rgba(15,110,86,.2)">Confirm Payment →</button>
+      <button class="btn btn-primary" id="mp-manual-confirm-btn" onclick="submitMemberPayment()" style="box-shadow:0 3px 10px rgba(15,110,86,.2)">Confirm Payment</button>
     </div>
   </div>
 </div>
@@ -4792,7 +4791,7 @@
 <div class="modal-overlay" id="modal-approveMember">
   <div class="modal" style="max-width:500px">
     <div class="modal-header">
-      <div class="modal-title">Approve Member Request</div>
+      <div class="modal-title">Approve member request</div>
       <button class="modal-close" onclick="closeModal('approveMember')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div class="modal-body">
@@ -4820,7 +4819,7 @@
       <button class="btn btn-danger btn-sm" onclick="declineMember()">Decline Request</button>
       <div style="display:flex;gap:.75rem">
         <button class="btn btn-secondary" onclick="closeModal('approveMember')">Cancel</button>
-        <button class="btn btn-primary" onclick="approveMember()">✓ Approve Access</button>
+        <button class="btn btn-primary" onclick="approveMember()">Approve Access</button>
       </div>
     </div>
   </div>
@@ -4828,7 +4827,7 @@
 
 <div class="modal-overlay" id="modal-recordIncome">
   <div class="modal" style="max-width:480px">
-    <div class="modal-header"><div class="modal-title">⚑ Record Income / Revenue</div><button class="modal-close" onclick="closeModal('recordIncome')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <div class="modal-header"><div class="modal-title">Record income</div><button class="modal-close" onclick="closeModal('recordIncome')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     <div class="modal-body">
       <div class="alert alert-info">Farm harvests, investment returns, grants, donations.</div>
       <div class="form-row">
@@ -4845,7 +4844,7 @@
       </div>
       <div class="form-group"><label class="form-label">Notes</label><input class="form-input" id="inc-notes" placeholder="Any additional details…"/></div>
     </div>
-    <div class="modal-footer"><button class="btn btn-secondary" onclick="clearIncForm();closeModal('recordIncome')">Cancel</button><button class="btn btn-primary" onclick="saveIncome()" style="background:var(--gold)">Record Income →</button></div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="clearIncForm();closeModal('recordIncome')">Cancel</button><button class="btn btn-primary" onclick="saveIncome()" style="background:var(--gold)">Record Income</button></div>
   </div>
 </div>
 
@@ -4875,7 +4874,7 @@
         <div class="field-hint">Bank/M-Pesa charges for this transaction - recorded as a separate expense line.</div>
       </div>
     </div>
-    <div class="modal-footer"><button class="btn btn-secondary" onclick="clearExpForm();closeModal('recordExpense')">Cancel</button><button class="btn btn-primary" onclick="saveExpense()" style="background:var(--warning)">Save Expense →</button></div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="clearExpForm();closeModal('recordExpense')">Cancel</button><button class="btn btn-primary" onclick="saveExpense()" style="background:var(--warning)">Save Expense</button></div>
   </div>
 </div>
 
@@ -4925,18 +4924,18 @@
         <div class="form-group">
           <label class="form-label">Income Type <span style="color:var(--maroon)">*</span></label>
           <select class="form-select" id="ct-income-type" onchange="updateContribTypeHint(this.value)">
-            <option value="admin_income">📋 Admin / Group Income - subscription, levy, dues, fines (goes to group account)</option>
-            <option value="member_savings">💰 Member Savings - deposited by member, withdrawable at year end</option>
-            <option value="member_shares">📈 Member Shares - equity contribution, tracked as member holdings</option>
-            <option value="welfare">♡ Welfare - contributions to welfare fund events</option>
-            <option value="mgr">🔄 Rotating Savings - merry-go-round contributions</option>
-            <option value="table_banking">🏦 Table Banking - pool contributions</option>
+            <option value="admin_income">Admin / Group Income - subscription, levy, dues, fines (goes to group account)</option>
+            <option value="member_savings">Member Savings - deposited by member, withdrawable at year end</option>
+            <option value="member_shares">Member Shares - equity contribution, tracked as member holdings</option>
+            <option value="welfare">Welfare - contributions to welfare fund events</option>
+            <option value="mgr">Rotating Savings - merry-go-round contributions</option>
+            <option value="table_banking">Table Banking - pool contributions</option>
           </select>
           <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">This determines how this contribution appears on member profiles and dashboards</div>
         </div>
       </div>
       <div id="ct-income-hint" style="font-size:.72rem;padding:.5rem .75rem;border-radius:3px;margin-bottom:.75rem;background:var(--success-pale);color:var(--success);border-left:3px solid var(--success)">
-        ✓ Payments will be added to each member's personal balance and to the group bank balance.
+        Payments will be added to each member's personal balance and to the group bank balance.
       </div>
       <div class="form-row single">
         <div class="form-group">
@@ -4954,14 +4953,14 @@
   <div class="modal" style="max-width:580px">
     <div class="modal-header">
       <div>
-        <div class="modal-title">💰 Year-End Shareout / Dividends</div>
+        <div class="modal-title">Year-end shareout</div>
         <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.15rem">Distribute savings and dividends to members</div>
       </div>
       <button class="modal-close" onclick="closeModal('shareout')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div class="modal-body">
       <div style="background:var(--warning-pale,#fff9e6);border-left:3px solid var(--warning,#c49a30);padding:.75rem 1rem;border-radius:4px;font-size:.78rem;color:var(--ink-soft);margin-bottom:1rem">
-        ⚠ This action debits member balances and is logged. It cannot be easily reversed - review the preview carefully before executing.
+        This action debits member balances and is logged. It cannot be easily reversed - review the preview carefully before executing.
       </div>
 
       <!-- What to distribute -->
@@ -5040,7 +5039,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('shareout')">Cancel</button>
-      <button class="btn btn-primary" onclick="executeShareout()">Execute Shareout →</button>
+      <button class="btn btn-primary" onclick="executeShareout()">Execute Shareout</button>
     </div>
   </div>
 </div>
@@ -5061,7 +5060,7 @@
         <div class="stat-card"><div class="stat-label">Members</div><div class="stat-value" id="od-members" style="font-size:1.4rem">—</div></div>
         <div class="stat-card gold"><div class="stat-label">Plan</div><div class="stat-value" id="od-plan" style="font-size:1.2rem">—</div></div>
         <div class="stat-card green"><div class="stat-label">Status</div><div class="stat-value" id="od-status" style="font-size:1.2rem">—</div></div>
-        <div class="stat-card" style="border-top-color:var(--maroon)"><div class="stat-label">Org Code</div><div class="stat-value" id="od-org-code" style="font-size:1.4rem;color:var(--maroon);letter-spacing:.1em">—</div></div>
+        <div class="stat-card" style="border-top-color:var(--maroon)"><div class="stat-label">Org Code</div><div class="stat-value" id="od-org-code" style="font-size:1.4rem;color:var(--maroon);">—</div></div>
       </div>
       <!-- Tabs -->
       <div class="tabs" style="margin-bottom:1rem;border-bottom:2px solid var(--border)">
@@ -5108,7 +5107,7 @@
         <div style="font-size:.78rem;color:var(--ink-faint);margin-bottom:1rem">Toggle features on or off for this organisation.</div>
         <!-- Payment Providers feature -->
         <div style="border:1px solid var(--maroon-muted);background:var(--maroon-pale);padding:1rem;margin-bottom:.75rem">
-          <div style="font-size:.82rem;font-weight:700;color:var(--maroon);margin-bottom:.5rem">💳 Payment Providers (Member Contributions)</div>
+          <div style="font-size:.82rem;font-weight:700;color:var(--maroon);margin-bottom:.5rem">Payment Providers (Member Contributions)</div>
           <div style="font-size:.72rem;color:var(--ink-faint);margin-bottom:.75rem">Created manually in Paystack's dashboard, then pasted here.</div>
           <div class="form-row">
             <div class="form-group"><label class="form-label">Paystack Subaccount Code</label><input class="form-input" id="od-paystack-subaccount" placeholder="ACCT_…"/></div>
@@ -5132,7 +5131,7 @@
         <!-- SMS feature -->
         <div style="border:1px solid var(--border-dk);padding:1rem;margin-bottom:.75rem;display:flex;justify-content:space-between;align-items:center">
           <div>
-            <div style="font-size:.82rem;font-weight:600">📨 Bulk SMS (Celcom Africa)</div>
+            <div style="font-size:.82rem;font-weight:600">Bulk SMS (Celcom Africa)</div>
             <div style="font-size:.72rem;color:var(--ink-faint)">Allows admin to send SMS notices to members.</div>
           </div>
           <select class="form-select" id="od-sms-enabled" style="width:160px">
@@ -5143,7 +5142,7 @@
         <!-- 2FA -->
         <div style="border:1px solid var(--border-dk);padding:1rem;display:flex;justify-content:space-between;align-items:center">
           <div>
-            <div style="font-size:.82rem;font-weight:600">🔐 Two-Factor Authentication</div>
+            <div style="font-size:.82rem;font-weight:600">Two-Factor Authentication</div>
             <div style="font-size:.72rem;color:var(--ink-faint)">Requires OTP on login for all org members.</div>
           </div>
           <select class="form-select" id="od-2fa-enabled" style="width:160px">
@@ -5195,7 +5194,7 @@
       <!-- TAB: Members -->
       <div class="tab-panel" id="od-tab-members">
         <div style="margin-bottom:.5rem">
-          <input class="form-input" id="od-member-search" placeholder="🔍 Search members by name or phone…" oninput="filterODMembers(this.value)" style="margin-bottom:.5rem"/>
+          <input class="form-input" id="od-member-search" placeholder="Search members by name or phone" oninput="filterODMembers(this.value)" style="margin-bottom:.5rem"/>
         </div>
         <div class="table-wrap" style="max-height:300px;overflow-y:auto">
           <table>
@@ -5207,8 +5206,8 @@
     </div>
     <div class="modal-footer" style="justify-content:space-between">
       <div style="display:flex;gap:.5rem">
-        <button class="btn btn-danger btn-sm" onclick="deleteOrg()">🗑 Delete Org</button>
-        <button class="btn btn-secondary btn-sm" onclick="unlockBankBalance()">🔓 Unlock Balance</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteOrg()">Delete Org</button>
+        <button class="btn btn-secondary btn-sm" onclick="unlockBankBalance()">Unlock Balance</button>
       </div>
       <div style="display:flex;gap:.75rem">
         <button class="btn btn-secondary" onclick="closeModal('orgDetail')">Cancel</button>
@@ -5246,16 +5245,16 @@
       <div class="taya-panel-title">Taya</div>
       <div class="taya-panel-sub" id="taya-panel-sub"><span class="taya-status-dot"></span><span id="taya-panel-sub-text">GroupYetu360</span></div>
     </div>
-    <button class="taya-panel-close" onclick="toggleTayaPanel(false)" aria-label="Close Taya">✕</button>
+    <button class="taya-panel-close" onclick="toggleTayaPanel(false)" aria-label="Close Taya"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
   </div>
   <div class="taya-panel-body" id="taya-panel-body">
-    <div class="taya-greeting">Hi, I'm Taya 👋<br>What can I help with today?</div>
+    <div class="taya-greeting">Hi, I'm Taya.<br>What can I help with today?</div>
     <div class="taya-capability-grid" id="taya-chip-row">
-      <div class="taya-capability-tile" onclick="tayaQuickAction('meeting_minutes')"><div class="taya-capability-icon">📝</div><div class="taya-capability-label">Meeting minutes</div></div>
-      <div class="taya-capability-tile" onclick="tayaQuickAction('financial_summary')"><div class="taya-capability-icon">📊</div><div class="taya-capability-label">Financial summary</div></div>
-      <div class="taya-capability-tile" onclick="tayaQuickAction('arrears_message')"><div class="taya-capability-icon">💬</div><div class="taya-capability-label">Arrears reminder</div></div>
-      <div class="taya-capability-tile" onclick="tayaQuickAction('member_lookup')"><div class="taya-capability-icon">🔍</div><div class="taya-capability-label">Member lookup</div></div>
-      <div class="taya-capability-tile" onclick="tayaQuickAction('last_contribution')"><div class="taya-capability-icon">📅</div><div class="taya-capability-label">Last contribution check</div></div>
+      <div class="taya-capability-tile" onclick="tayaQuickAction('meeting_minutes')"><div class="taya-capability-icon"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg></div><div class="taya-capability-label">Meeting minutes</div></div>
+      <div class="taya-capability-tile" onclick="tayaQuickAction('financial_summary')"><div class="taya-capability-icon"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div><div class="taya-capability-label">Financial summary</div></div>
+      <div class="taya-capability-tile" onclick="tayaQuickAction('arrears_message')"><div class="taya-capability-icon"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z"/></svg></div><div class="taya-capability-label">Arrears reminder</div></div>
+      <div class="taya-capability-tile" onclick="tayaQuickAction('member_lookup')"><div class="taya-capability-icon"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></div><div class="taya-capability-label">Member lookup</div></div>
+      <div class="taya-capability-tile" onclick="tayaQuickAction('last_contribution')"><div class="taya-capability-icon"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div><div class="taya-capability-label">Last contribution check</div></div>
     </div>
   </div>
   <div class="taya-panel-inputbar">
@@ -5264,7 +5263,7 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 12l18-9-9 18-2-7-7-2z" stroke="white" stroke-width="2" stroke-linejoin="round"/></svg>
     </button>
   </div>
-  <div class="taya-disclaimer">✨ Taya only drafts - you approve every save or send</div>
+  <div class="taya-disclaimer">Taya only drafts - you approve every save or send</div>
 </div>
 
 <!-- MODAL: Create Round / MGR Cycle -->
@@ -5361,7 +5360,7 @@
 
     </div>
     <div class="modal-footer">
-      <button class="btn btn-primary" onclick="saveRound()">Create Cycle →</button>
+      <button class="btn btn-primary" onclick="saveRound()">Create Cycle</button>
       <button class="btn btn-secondary" onclick="closeModal('createRound')">Cancel</button>
     </div>
   </div>
@@ -5391,7 +5390,6 @@
       </div>
       <div style="position:relative">
         <button onclick="toggleNotificationPanel()" style="background:var(--navy-pale,#eef3fa);border:1px solid #dde3ee;border-radius:50%;width:40px;height:40px;font-size:1.1rem;cursor:pointer;position:relative;color:var(--navy,#1a3a6b)" title="Notifications">
-          🔔
           <span id="notif-bell-badge" style="display:none;position:absolute;top:-2px;right:-2px;background:var(--gold,#c49a30);color:#1a1a1a;font-size:.62rem;font-weight:800;border-radius:99px;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 3px">0</span>
         </button>
         <div id="notif-panel" style="display:none;position:absolute;top:48px;right:0;width:320px;max-height:420px;background:#fff;border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.25);z-index:100;overflow:hidden;color:var(--ink,#1a1a1a)">
@@ -5420,12 +5418,12 @@
       <!-- Create a Group -->
       <div id="picker-create-section">
         <button class="btn-new-org primary" onclick="togglePickerCreate()" id="picker-create-btn">
-          <span style="font-size:1.05rem">＋</span> Create a New Group
+          <svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Create a new group
         </button>
         <div id="picker-create-form" style="display:none;margin-top:.6rem;background:var(--navy-pale,#eef3fa);border-radius:10px;padding:.85rem;border:1px solid #dde3ee">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
-            <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint,#767676)">Group Details</div>
-            <button onclick="togglePickerCreate()" style="background:none;border:none;color:var(--ink-faint,#767676);font-size:1.1rem;cursor:pointer;line-height:1;padding:0 .2rem" title="Cancel">✕</button>
+            <div style="font-size:.7rem;font-weight:700;color:var(--ink-faint,#767676)">Group Details</div>
+            <button onclick="togglePickerCreate()" style="background:none;border:none;color:var(--ink-faint,#767676);font-size:1.1rem;cursor:pointer;line-height:1;padding:0 .2rem" title="Cancel" aria-label="Close"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
           </div>
           <div class="form-group" style="margin-bottom:.5rem">
             <input class="form-input" id="picker-org-name" placeholder="Group / Organisation name *"/>
@@ -5441,7 +5439,7 @@
               <div class="picker-promo-tag" style="display:none;font-size:.58rem;color:var(--teal);font-weight:700;margin-top:.15rem"></div>
             </div>
             <div class="picker-plan-opt" data-plan="standard" onclick="selectPickerPlan(this)">
-              <div style="font-size:.7rem;font-weight:700">Standard ★</div>
+              <div style="font-size:.7rem;font-weight:700">Standard</div>
               <div style="font-size:.62rem;opacity:.7">Ksh 6K · 75 members</div>
               <div class="picker-promo-tag" style="display:none;font-size:.58rem;color:var(--teal);font-weight:700;margin-top:.15rem"></div>
             </div>
@@ -5455,51 +5453,49 @@
           <div id="picker-create-error" style="font-size:.72rem;color:var(--danger,#cc2020);margin-bottom:.4rem;display:none"></div>
           <div id="picker-create-success" style="font-size:.72rem;color:var(--success,#0f6e56);margin-bottom:.4rem;display:none"></div>
           <div id="picker-payment-prompt" style="display:none;background:#fff;border:1px solid #dde3ee;border-radius:8px;padding:.75rem;margin-bottom:.65rem">
-            <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint,#767676);margin-bottom:.4rem">Payment Required to Activate</div>
+            <div style="font-size:12.5px;font-weight:700;color:var(--ink-faint,#767676);margin-bottom:.4rem">Payment Required to Activate</div>
             <div id="picker-payment-details" style="font-size:.72rem;color:var(--ink-soft,#3d3d3d);margin-bottom:.5rem;line-height:1.6"></div>
             <input class="form-input" id="picker-pay-ref" placeholder="M-Pesa reference (e.g. QBC4X8YZ)" style="font-size:.78rem;margin-bottom:.4rem"/>
             <div style="font-size:.65rem;color:var(--ink-faint,#767676)">Your group will be created on Starter now. Plan activates after payment is verified.</div>
           </div>
           <button class="btn btn-primary" onclick="pickerCreateOrg()" style="width:100%;font-size:.82rem" id="picker-create-btn">
-            Create Group →
-          </button>
+            Create Group</button>
         </div>
       </div>
 
       <!-- Join with Org Code -->
       <div id="picker-join-section">
         <button class="btn-new-org" onclick="togglePickerJoin()" id="picker-join-btn">
-          <span style="font-size:1.05rem">🔑</span> Join with Org Code
+          <svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg> Join with a group code
         </button>
         <div id="picker-join-form" style="display:none;margin-top:.6rem;background:var(--navy-pale,#eef3fa);border-radius:10px;padding:.85rem;border:1px solid #dde3ee">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
-            <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint,#767676)">Enter the code shared by your group admin</div>
-            <button onclick="togglePickerJoin()" style="background:none;border:none;color:var(--ink-faint,#767676);font-size:1.1rem;cursor:pointer;line-height:1;padding:0 .2rem" title="Cancel">✕</button>
+            <div style="font-size:.7rem;font-weight:700;color:var(--ink-faint,#767676)">Enter the code shared by your group admin</div>
+            <button onclick="togglePickerJoin()" style="background:none;border:none;color:var(--ink-faint,#767676);font-size:1.1rem;cursor:pointer;line-height:1;padding:0 .2rem" title="Cancel" aria-label="Close"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
           </div>
-          <input class="form-input" id="picker-org-code" placeholder="e.g. GYTPHA" style="text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:.5rem"/>
+          <input class="form-input" id="picker-org-code" placeholder="e.g. GYTPHA" style="font-weight:700;margin-bottom:.5rem"/>
           <div id="picker-join-error" style="font-size:.72rem;color:var(--danger,#cc2020);margin-bottom:.4rem;display:none"></div>
           <div id="picker-join-success" style="font-size:.72rem;color:var(--success,#0f6e56);margin-bottom:.4rem;display:none"></div>
           <button class="btn btn-primary" onclick="pickerJoinOrg()" style="width:100%;font-size:.82rem">
-            Request to Join →
-          </button>
+            Request to Join</button>
         </div>
       </div>
 
     </div>
 
     <div class="org-picker-footer">
-      <a href="#" onclick="event.preventDefault();showPickerMyAccount()" style="margin-right:1.5rem">⚙ My Account</a>
+      <a href="#" onclick="event.preventDefault();showPickerMyAccount()" style="margin-right:1.5rem">My Account</a>
       <a href="#" onclick="event.preventDefault();signOut()">Sign out of GroupYetu360</a>
     </div>
 
     <!-- My Account panel (shown inline within picker) -->
     <div id="picker-my-account" style="display:none;padding:1.2rem 1.5rem;border-top:1px solid var(--border,#d0e8e0)">
       <div id="picker-phone-required-banner" style="display:none;background:rgba(230,201,74,.15);border:1px solid rgba(230,201,74,.4);border-radius:6px;padding:.6rem .75rem;margin-bottom:1rem;font-size:.72rem;line-height:1.5">
-        📱 Add your phone number - it's how we send M-Pesa payment confirmations, and how rotating savings/table banking payouts reach you correctly.
+        Add your phone number - it's how we send M-Pesa payment confirmations, and how rotating savings/table banking payouts reach you correctly.
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
         <strong style="font-size:.9rem">My Account</strong>
-        <button onclick="hidePickerMyAccount()" style="background:none;border:none;color:inherit;cursor:pointer;font-size:1.1rem;opacity:.7">✕</button>
+        <button onclick="hidePickerMyAccount()" style="background:none;border:none;color:inherit;cursor:pointer;font-size:1.1rem;opacity:.7" aria-label="Close"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <div style="display:grid;gap:.75rem">
         <div class="form-group" style="margin:0">
@@ -5538,11 +5534,11 @@
       <button class="modal-close" onclick="closeModal('upgradePrompt')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div class="modal-body" style="padding-top:0">
-      <div style="font-size:2.5rem;margin-bottom:.5rem">🔒</div>
+      <div style="display:flex;justify-content:center;color:var(--ink-faint);margin-bottom:.5rem"><svg class="gy-icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></svg></div>
       <div style="font-size:1.1rem;font-weight:700;color:var(--maroon);margin-bottom:.5rem">Upgrade Required</div>
       <div id="upgrade-prompt-msg" style="font-size:.85rem;color:var(--ink-soft);margin-bottom:1.25rem;line-height:1.6"></div>
       <div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="closeModal('upgradePrompt');showPage('billing')">View Plans & Upgrade →</button>
+        <button class="btn btn-primary" onclick="closeModal('upgradePrompt');showPage('billing')">View Plans & Upgrade</button>
         <button class="btn btn-secondary" onclick="closeModal('upgradePrompt')">Maybe Later</button>
       </div>
     </div>
@@ -5576,11 +5572,11 @@
       <!-- User info strip -->
       <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1rem;padding:.75rem 1rem;background:var(--surface-2);border-radius:8px;border:0.5px solid var(--border)">
         <div style="flex:1;min-width:120px">
-          <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Phone</div>
+          <div style="font-size:12.5px;font-weight:700;color:var(--ink-faint);margin-bottom:.2rem">Phone</div>
           <div style="font-size:.85rem;font-weight:600" id="sau-phone">—</div>
         </div>
         <div style="flex:1;min-width:120px">
-          <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.2rem">Platform Role</div>
+          <div style="font-size:12.5px;font-weight:700;color:var(--ink-faint);margin-bottom:.2rem">Platform Role</div>
           <div style="font-size:.85rem;font-weight:600;color:var(--maroon)" id="sau-role">—</div>
         </div>
       </div>
@@ -5595,14 +5591,14 @@
       </div>
 
       <!-- Group memberships -->
-      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:.5rem">Group Memberships</div>
+      <div style="font-size:.72rem;font-weight:700;color:var(--ink-faint);margin-bottom:.5rem">Group Memberships</div>
       <div id="sau-orgs-list" style="border:0.5px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:1rem">
         <div class="loading"><div class="spinner"></div></div>
       </div>
 
       <!-- Superadmin account management -->
       <div id="sau-sa-section" style="padding:.85rem 1rem;background:var(--maroon-pale);border:1.5px solid var(--maroon);border-radius:8px">
-        <div style="font-size:.72rem;font-weight:700;color:var(--maroon);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.4rem">⚙ Account Management</div>
+        <div style="font-size:.72rem;font-weight:700;color:var(--maroon);margin-bottom:.4rem">Account Management</div>
         <div style="font-size:.75rem;color:var(--ink-faint);margin-bottom:.65rem">Update this user's login credentials. Changes take effect immediately across all their groups.</div>
         <div class="form-row">
           <div class="form-group">
@@ -5615,18 +5611,18 @@
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:.75rem;margin-top:.25rem">
-          <button class="btn btn-primary btn-sm" onclick="saUpdateUserAccount()" style="font-size:.78rem">Apply Changes →</button>
-          <button class="btn btn-secondary btn-sm" onclick="saResendPortalInvite(document.getElementById('sau-email').textContent, document.getElementById('sau-name').textContent)" style="font-size:.75rem">✉ Resend Invite</button>
+          <button class="btn btn-primary btn-sm" onclick="saUpdateUserAccount()" style="font-size:.78rem">Apply Changes</button>
+          <button class="btn btn-secondary btn-sm" onclick="saResendPortalInvite(document.getElementById('sau-email').textContent, document.getElementById('sau-name').textContent)" style="font-size:.75rem">Resend Invite</button>
           <span id="sau-sa-status" style="font-size:.75rem"></span>
         </div>
       </div>
 
       <!-- Danger zone -->
       <div style="margin-top:1rem;padding:.75rem 1rem;border:1.5px solid #dc2626;border-radius:8px;background:#fff5f5">
-        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#dc2626;margin-bottom:.3rem">⚠ Danger Zone</div>
+        <div style="font-size:12.5px;font-weight:700;color:#dc2626;margin-bottom:.3rem">Danger Zone</div>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
           <div style="font-size:.75rem;color:var(--ink-faint)">Permanently delete this user and all their data from the platform.</div>
-          <button class="btn btn-sm" style="background:#dc2626;color:#fff;font-size:.75rem;white-space:nowrap;flex-shrink:0" onclick="saDeleteUser()">🗑 Delete User</button>
+          <button class="btn btn-sm" style="background:#dc2626;color:#fff;font-size:.75rem;white-space:nowrap;flex-shrink:0" onclick="saDeleteUser()">Delete User</button>
         </div>
         <div id="sau-delete-status" style="font-size:.75rem;margin-top:.4rem"></div>
       </div>
@@ -5638,7 +5634,7 @@
 <div class="modal-overlay" id="modal-registerNewOrg">
   <div class="modal" style="max-width:520px">
     <div class="modal-header">
-      <div class="modal-title">＋ Register New Organisation</div>
+      <div class="modal-title">Register a new group</div>
       <button class="modal-close" onclick="closeModal('registerNewOrg')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div class="modal-body">
@@ -5669,7 +5665,7 @@
       <div class="auth-success" id="new-org-success"></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-primary" onclick="registerNewOrg()">Create Organisation →</button>
+      <button class="btn btn-primary" onclick="registerNewOrg()">Create Organisation</button>
       <button class="btn btn-secondary" onclick="closeModal('registerNewOrg')">Cancel</button>
     </div>
   </div>
@@ -5719,7 +5715,7 @@
         <input class="form-input" id="tb-pool-notes" placeholder="Optional notes"/></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-primary" onclick="saveTBPool()">Create Pool →</button>
+      <button class="btn btn-primary" onclick="saveTBPool()">Create Pool</button>
       <button class="btn btn-secondary" onclick="closeModal('tbNewPool')">Cancel</button>
     </div>
   </div>
@@ -5728,7 +5724,7 @@
 <!-- MODAL: Issue Loan -->
 <div class="modal-overlay" id="modal-tbNewLoan">
   <div class="modal" style="max-width:480px">
-    <div class="modal-header"><div class="modal-title">💰 Issue Loan</div>
+    <div class="modal-header"><div class="modal-title">Issue a loan</div>
       <button class="modal-close" onclick="closeModal('tbNewLoan')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     <div class="modal-body">
       <div class="form-row">
@@ -5758,7 +5754,7 @@
         <input class="form-input" id="tb-loan-notes" placeholder="Loan purpose etc."/></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-primary" onclick="saveTBLoan()">Issue Loan →</button>
+      <button class="btn btn-primary" onclick="saveTBLoan()">Issue Loan</button>
       <button class="btn btn-secondary" onclick="closeModal('tbNewLoan')">Cancel</button>
     </div>
   </div>
@@ -5766,16 +5762,16 @@
 
 
   <!-- GroupYetu360 Scripts - load order matters -->
-  <script src="js/icons.js?v=2026100110"></script>
-  <script src="js/auth.js?v=2026100110"></script>
-  <script src="js/utils.js?v=2026100110"></script>
-  <script src="js/dashboard.js?v=2026100110"></script>
-  <script src="js/members.js?v=2026100110"></script>
-  <script src="js/finance.js?v=2026100110"></script>
-  <script src="js/settings.js?v=2026100110"></script>
-  <script src="js/portal.js?v=2026100110"></script>
-  <script src="js/modules.js?v=2026100110"></script>
-  <script src="js/taya.js?v=2026100110"></script>
+  <script src="js/icons.js?v=2026100111"></script>
+  <script src="js/auth.js?v=2026100111"></script>
+  <script src="js/utils.js?v=2026100111"></script>
+  <script src="js/dashboard.js?v=2026100111"></script>
+  <script src="js/members.js?v=2026100111"></script>
+  <script src="js/finance.js?v=2026100111"></script>
+  <script src="js/settings.js?v=2026100111"></script>
+  <script src="js/portal.js?v=2026100111"></script>
+  <script src="js/modules.js?v=2026100111"></script>
+  <script src="js/taya.js?v=2026100111"></script>
   <script>
     // Bootstrap - runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —

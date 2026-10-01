@@ -119,6 +119,8 @@ Felix chose Direction A ("Ledger") from the Design canvas "GroupYetu360 UI Redes
 
 **Phase 2g shipped:** Settings, Plan & billing (plan card is now a white card; status badge colours set in `updateBillingHero`), Payouts to your account, Approvals, My account, and the superadmin Billing, Payouts, Activity log, Platform settings, Users, Revenue pages. `.section-header` is restyled globally to match `.ds-page-head`, so any page using it gets the new header. Founder marks are now a small "Founder" pill (`.ds-founder`), not the 🏛 emoji. Payout status pills use tokens.
 
+**Phase 3a shipped (pop-up windows and sweep):** all 25 modals tidied (sentence-case titles, no emoji labels, no arrows on buttons, readable label sizes); every `✕` button is an icon with an aria-label; Taya panel tiles use line icons; 37 legacy UPPERCASE rules in older style.css sections and 50 inline UPPERCASE labels converted to sentence case (kept: menu section labels, calendar month). Leading emoji stripped from labels across all JS (73). Fixed white-on-light headers left behind on My meetings, Notices and Approvals.
+
 **Dark mode (phones only, `body.mob-dark`):** today it only themes the home/admin-home/money shells and the bottom nav; every other page and modal stays light. All design-system light styles on phones are scoped with `body:not(.mob-dark)`, so dark mode looks as it did. A proper dark mode should come AFTER inline colours are removed page by page: then it is one block that re-values the `:root` tokens under `body.mob-dark`.
 
 **Next phases, one screen per delivery:** contributions, welfare, merry-go-round, table banking, settings, SA payouts. Each one replaces its page hero and inline styles with the components above, matching the canvas.

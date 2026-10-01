@@ -1953,8 +1953,8 @@ function updateApprovalsHero(pendingCount) {
   const heroCount = document.getElementById('approvals-hero-count');
   if (heroCount) {
     heroCount.innerHTML = pendingCount > 0
-      ? `<span style="background:rgba(255,255,255,.15);padding:.25rem .65rem;border-radius:99px;font-weight:600">${pendingCount} pending</span>`
-      : '<span style="color:rgba(255,255,255,.5)">All clear</span>';
+      ? `<span class="badge badge-warn">${pendingCount} pending</span>`
+      : '<span class="badge badge-green">All clear</span>';
   }
   const badge = document.getElementById('approvals-badge');
   if (badge) { badge.textContent = pendingCount; badge.style.display = pendingCount > 0 ? '' : 'none'; }
@@ -2912,7 +2912,7 @@ async function loadPaymentHistory() {
     }
     const sc = { pending:'#c49a30', approved:'#16a34a', rejected:'#dc2626' };
     el.innerHTML = `<table style="width:100%;border-collapse:collapse">
-      <thead><tr style="font-size:.65rem;text-transform:uppercase;color:var(--ink-faint);border-bottom:1px solid var(--border)">
+      <thead><tr style="font-size:12px;color:var(--ink-faint);border-bottom:1px solid var(--border)">
         <th style="padding:.5rem 1.25rem;text-align:left">Date</th>
         <th style="padding:.5rem;text-align:left">Type</th>
         <th style="padding:.5rem;text-align:right">Amount</th>
@@ -2924,7 +2924,7 @@ async function loadPaymentHistory() {
         <td style="padding:.6rem .5rem">${(r.type||r.payment_type||'—').replace(/_/g,' ')}</td>
         <td style="padding:.6rem .5rem;text-align:right;font-weight:600">Ksh ${Number(r.amount||0).toLocaleString()}</td>
         <td style="padding:.6rem .5rem;color:var(--ink-faint);font-size:.72rem">${r.mpesa_ref||'—'}</td>
-        <td style="padding:.6rem .5rem;text-align:center"><span style="font-size:.68rem;font-weight:700;color:${sc[r.status]||'#888'};text-transform:uppercase">${r.status||'—'}</span></td>
+        <td style="padding:.6rem .5rem;text-align:center"><span style="font-size:12px;font-weight:700;color:${sc[r.status]||'#888'};">${r.status||'—'}</span></td>
       </tr>`).join('')}</tbody>
     </table>`;
   } catch(e) {
@@ -3737,7 +3737,7 @@ async function viewSettlementDetails(orgId, provider, date, lineType, orgName, r
 
   const modalHtml = `
     <div style="text-align:center;padding:1.5rem 1rem 1.25rem;background:linear-gradient(135deg,var(--maroon-pale,#fdf0f3),#fff);border-radius:10px;margin-bottom:1.25rem">
-      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.3rem">${(orgName || 'Organisation').replace(/</g,'')} · ${new Date(date).toLocaleDateString('en-KE',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</div>
+      <div style="font-size:.72rem;font-weight:700;color:var(--ink-faint);margin-bottom:.3rem">${(orgName || 'Organisation').replace(/</g,'')} · ${new Date(date).toLocaleDateString('en-KE',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</div>
       <div style="font-family:var(--font);font-size:2.1rem;font-weight:700;color:var(--maroon)">Ksh ${total.toLocaleString()}</div>
       <div style="margin-top:.5rem;display:flex;justify-content:center;gap:.5rem">
         ${provider ? providerBadge(provider) : ''}
@@ -3755,8 +3755,8 @@ async function viewSettlementDetails(orgId, provider, date, lineType, orgName, r
 // Org-admin read-only view - same data, no mark-paid action available.
 function settlementStatusPill(status) {
   return status === 'paid'
-    ? `<span style="display:inline-flex;align-items:center;gap:.3rem;background:#e8f5e9;color:#2e7d32;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:.28rem .65rem;border-radius:99px">● Paid</span>`
-    : `<span style="display:inline-flex;align-items:center;gap:.3rem;background:#fdecea;color:#c0392b;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:.28rem .65rem;border-radius:99px">● Pending</span>`;
+    ? `<span style="display:inline-flex;align-items:center;gap:.3rem;background:#e8f5e9;color:#2e7d32;font-size:12px;font-weight:700;padding:.28rem .65rem;border-radius:99px">● Paid</span>`
+    : `<span style="display:inline-flex;align-items:center;gap:.3rem;background:#fdecea;color:#c0392b;font-size:12px;font-weight:700;padding:.28rem .65rem;border-radius:99px">● Pending</span>`;
 }
 function providerBadge(provider) {
   const colors = { sasapay: ['#e8f0fd','#1a56c4'], fingo: ['#efe8fd','#6a2fd0'], paystack: ['#e6f6ee','#0f9d58'] };
