@@ -50,6 +50,7 @@ var GY_ICON_PATHS = {
   briefcase: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2M3 12h18"/>',
   store:     '<path d="M4 10v10h16V10"/><path d="M3 10 5 4h14l2 6z"/><path d="M10 20v-5h4v5"/>',
   send:      '<path d="m21 3-9 18-2-8-8-2z"/>',
+  moon:      '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
   phone:     '<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/>'
 };
 
@@ -57,4 +58,11 @@ function gyIcon(name, size) {
   var s = size || 18;
   var p = GY_ICON_PATHS[name] || GY_ICON_PATHS.overview;
   return '<svg class="gy-icon" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + p + '</svg>';
+}
+
+// Swahili greeting by time of day (Felix, Oct 2026: GroupYetu360 greets in
+// Swahili). Morning until noon, afternoon until 5 pm, then evening.
+function gyGreeting(d) {
+  const hr = (d || new Date()).getHours();
+  return hr < 12 ? 'Habari ya asubuhi' : hr < 17 ? 'Habari ya mchana' : 'Habari ya jioni';
 }

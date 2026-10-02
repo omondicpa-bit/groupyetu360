@@ -1919,6 +1919,8 @@ function populateSelects() {
 
 // ── NAVIGATION ──
 const pageTitles = {
+  mob_more: ['More', ''],
+  
   dashboard: ['Dashboard', ''],
   table_banking: ['Table Banking', 'Pool contributions and member loans'],
   sa_members: ['All Members', 'Platform-wide member directory'],
@@ -2000,39 +2002,97 @@ function buildMobileNav() {
       { icon:'overview', label:'Overview', page:'superadmin' },
       { icon:'building', label:'Groups', page:'sa_organisations' },
       { icon:'payouts', label:'Payouts', page:'sa_payouts' },
-      { icon:'menu', label:'More', page:'_menu' },
+      { icon:'menu', label:'More', page:'mob_more' },
     ]);
   } else if (isMember) {
     nav.innerHTML = buildMobNavItems([
-      { icon:'overview', label:'Home', page:'my_profile' },
+      { icon:'home', label:'Home', page:'my_profile' },
       { icon:'receipt', label:'Payments', page:'my_contributions' },
+      { fab:true, icon:'phone', label:'Pay', action:"openMemberPaymentModal();showModal('memberPayment')" },
       { icon:'meetings', label:'Meetings', page:'my_meetings' },
-      { icon:'help', label:'Help', page:'faq' },
+      { icon:'menu', label:'More', page:'mob_more' },
     ]);
   } else if (isAdmin) {
+    const canRecord = canDo('recordPayment');
     nav.innerHTML = buildMobNavItems([
-      { icon:'overview', label:'Home', page:'dashboard' },
+      { icon:'home', label:'Home', page:'dashboard' },
       { icon:'money', label:'Money', page:'finance' },
+      canRecord
+        ? { fab:true, icon:'plus', label:'Record', action:'openRecordPaymentModal()' }
+        : { icon:'messages', label:'Messages', page:'messages' },
       { icon:'members', label:'Members', page:'members' },
-      { icon:'profile', label:'Me', page:'my_profile' },
-      { icon:'menu', label:'More', page:'_menu' },
+      { icon:'menu', label:'More', page:'mob_more' },
     ]);
   }
+  nav.classList.toggle('has-fab', !isSuperAdmin);
+  buildMobMore();
 }
 
 function buildMobNavItems(items) {
   return items.map(item => {
-    if (item.page === '_menu') {
-      return `<button class="mob-nav-item" onclick="openMobileMenu()">
-        <span class="mob-nav-icon">${gyIcon(item.icon, 22)}</span>
-        <span class="mob-nav-label">${item.label}</span>
-      </button>`;
+    if (item.fab) {
+      // Raised centre action (design system v1 phone layer)
+      return `<div class="mob-nav-fab-wrap"><button type="button" class="mob-nav-fab" onclick="${item.action}" aria-label="${item.label}">${gyIcon(item.icon, 26)}</button><span class="mob-nav-fab-label">${item.label}</span></div>`;
     }
     return `<button class="mob-nav-item" onclick="showPage('${item.page}');closeMobileMenu()" id="mob-nav-${item.page}">
       <span class="mob-nav-icon">${gyIcon(item.icon, 22)}</span>
       <span class="mob-nav-label">${item.label}</span>
     </button>`;
   }).join('');
+}
+
+// The phone "More" screen: everything not in the bottom bar, as colourful
+// tiles grouped the way the sidebar is, plus Taya and account actions.
+function buildMobMore() {
+  const el = document.getElementById('mob-more-body');
+  if (!el) return;
+  const role = currentProfile?.role;
+  const isSA = role === 'superadmin';
+  const isMember = role === 'member';
+  const tile = (page, icon, label, tone, badgeId) => `<button type="button" class="ph-more-tile t-${tone}" onclick="showPage('${page}')"><span class="ph-more-ic">${gyIcon(icon, 19)}</span><span class="ph-more-l">${label}</span>${badgeId ? `<span class="ph-more-badge" id="${badgeId}" hidden></span>` : ''}</button>`;
+  const group = (title, tiles) => tiles.filter(Boolean).length ? `<div class="ph-more-group"><div class="ph-more-gt">${title}</div><div class="ph-more-grid">${tiles.filter(Boolean).join('')}</div></div>` : '';
+  let html = '';
+  if (!isSA && canDo('useTaya')) {
+    html += `<button type="button" class="ph-taya" onclick="toggleTayaPanel()"><span class="ph-taya-ic">${gyIcon('sparkle', 22)}</span><span class="ph-taya-t"><span>Ask Taya</span><span>Draft minutes, reminders and reports</span></span>${gyIcon('chevron', 20)}</button>`;
+  }
+  if (isSA) {
+    html += group('Platform', [tile('sa_members', 'members', 'All members', 'teal'), tile('sa_finance', 'revenue', 'Revenue', 'maroon'), tile('sa_billing', 'billing', 'Billing', 'gold'), tile('sa_activity', 'activity', 'Activity log', 'navy'), tile('sa_support', 'settings', 'Platform settings', 'teal')]);
+  } else if (isMember) {
+    html += group('My group', [tile('my_notices', 'messages', 'Notices', 'gold'), tile('my_contributions', 'receipt', 'My payments', 'teal'), tile('my_meetings', 'meetings', 'Meetings', 'navy'), tile('faq', 'help', 'Help & FAQs', 'maroon')]);
+  } else {
+    const fp = (typeof orgFinProfile !== 'undefined' && orgFinProfile) || {};
+    html += group('Money', [
+      canDo('manageMGR') ? tile('welfare', 'welfare', 'Welfare', 'maroon') : '',
+      canDo('manageMGR') ? tile('mgr', 'rotate', 'Merry-go-round', 'teal') : '',
+      canDo('manageMGR') ? tile('table_banking', 'bank', 'Table banking', 'navy') : '',
+      tile('settlements', 'payouts', 'Payouts', 'gold'),
+    ]);
+    html += group('People', [
+      canDo('viewApprovals') ? tile('approvals', 'approvals', 'Approvals', 'teal', 'mob-more-approvals') : '',
+      tile('meetings', 'meetings', 'Meetings', 'navy'),
+      canDo('sendSms') ? tile('messages', 'messages', 'Messages', 'gold') : '',
+    ]);
+    html += group('Group', [
+      canDo('manageProjects') ? tile('projects', 'projects', 'Projects', 'maroon') : '',
+      canDo('editSettings') ? tile('settings', 'settings', 'Settings', 'teal') : '',
+      canDo('viewBilling') ? tile('billing', 'billing', 'Plan & billing', 'navy') : '',
+    ]);
+  }
+  const row = (icon, label, action, extra, danger) => `<button type="button" class="ph-acct-row${danger ? ' danger' : ''}" onclick="${action}"><span class="ph-acct-ic">${gyIcon(icon, 20)}</span><span class="ph-acct-l">${label}</span>${extra || gyIcon('chevron', 18)}</button>`;
+  html += `<div class="ph-acct">
+    ${!isSA ? row('profile', 'My profile', "showPage('my_profile')") : row('shield', 'Account', "showPage('my_account')")}
+    ${row('moon', 'Dark mode', 'toggleMobTheme();buildMobMore()', `<span class="ph-switch${document.body.classList.contains('mob-dark') ? ' on' : ''}" aria-hidden="true"><span></span></span>`)}
+    ${!isSA ? row('help', 'Help & FAQs', "showPage('faq')") : ''}
+    ${row('plus', 'Register another group', 'registerAnotherOrg()')}
+    ${row('logout', 'Sign out', 'signOut()', '', true)}
+  </div>`;
+  el.innerHTML = html;
+  const sub = document.getElementById('mob-more-sub');
+  if (sub) sub.textContent = currentOrg?.name || '';
+  // mirror the approvals count onto the tile
+  const src = document.getElementById('approvals-badge');
+  const dst = document.getElementById('mob-more-approvals');
+  if (src && dst && src.style.display !== 'none' && src.textContent !== '0') { dst.textContent = src.textContent; dst.hidden = false; }
 }
 
 function updateMobileNavActive(page) {
@@ -2091,6 +2151,7 @@ function showPage(id) {
   document.title = 'GroupYetu360 - ' + info[0];
   const loaders = { members: loadMembers, finance: loadFinance, meetings: loadMeetings, welfare: loadWelfare, projects: loadProjects, mgr: loadMGR, table_banking: loadTableBanking, messages: loadMessages, settings: ()=>typeof loadSettings==='function'&&loadSettings(), superadmin: ()=>typeof loadSuperAdmin==='function'&&loadSuperAdmin(), sa_org_detail: ()=>{}, sa_members: ()=>typeof loadSAMembers==='function'&&loadSAMembers(), sa_finance: ()=>typeof loadSAFinance==='function'&&loadSAFinance(), sa_organisations: ()=>typeof loadSAOrganisations==='function'&&loadSAOrganisations(), my_profile: ()=>typeof loadMyProfile==='function'&&loadMyProfile(), my_contributions: ()=>typeof loadMyContributions==='function'&&loadMyContributions(), approvals: ()=>typeof loadApprovals==='function'&&loadApprovals(), my_account: ()=>typeof loadMyAccount==='function'&&loadMyAccount(), billing: ()=>typeof loadBilling==='function'&&loadBilling(), support: ()=>typeof loadSupport==='function'&&loadSupport(), sa_billing: ()=>typeof loadSABilling==='function'&&loadSABilling(), sa_support: ()=>typeof loadSASupport==='function'&&loadSASupport(), sa_activity: ()=>typeof loadSAActivity==='function'&&loadSAActivity(), sa_payouts: ()=>typeof loadSAPayouts==='function'&&loadSAPayouts(), my_meetings: ()=>typeof loadMyMeetings==='function'&&loadMyMeetings(), my_notices: ()=>typeof loadMyNotices==='function'&&loadMyNotices(), settlements: ()=>typeof loadOrgSettlements==='function'&&loadOrgSettlements() };
   if (loaders[id]) loaders[id]();
+  if (id === 'mob_more') buildMobMore();
   updateTopbarActions(id);
 }
 
@@ -2118,7 +2179,7 @@ function updateMobOrgPills() {
 
   // Set greeting
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning,' : hour < 17 ? 'Good afternoon,' : 'Good evening,';
+  const greeting = gyGreeting() + ',';
   const greetEl = document.getElementById('mob-greeting');
   if (greetEl) greetEl.textContent = greeting;
 
