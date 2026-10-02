@@ -3811,3 +3811,71 @@ body.mob-dark .t-grey{--tt-bg:#222a31;--tt-fg:#94a1ac}
   #modal-memberPayment .mp-hero-v{font-size:44px}
   #modal-memberPayment .mp-bene-row{background:var(--surface);box-shadow:0 2px 10px rgba(16,40,32,.05);border-color:transparent}
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   PHONE LAYER, step 6 (phase 6f): every remaining page gets the same
+   frame. Member pages (mh-*) and admin pages (their first header)
+   become a white app bar; cards, labels and forms match the phone style.
+   ════════════════════════════════════════════════════════════════════ */
+@media(max-width:768px){
+  /* Member phone pages: My payments, Meetings, Notices, My account */
+  .mh-header{background:var(--surface) !important;border-bottom:1px solid var(--border);box-shadow:none !important;padding:0 !important;position:sticky;top:0;z-index:5}
+  .mh-header .mh-inner{padding:14px 16px 12px 20px !important}
+  .mh-title{font-size:22px !important;font-weight:800 !important;letter-spacing:-.02em;color:var(--ink) !important}
+  .mh-sub{font-size:12.5px !important;font-weight:600;color:var(--ink-faint) !important}
+  .mh-header .mh-org-pill{max-width:46%;height:34px;font-size:12px}
+  .mh-header .mh-org-pill span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mh-body{background:var(--canvas) !important;padding:16px 20px 28px !important;gap:12px !important}
+  .mh-section-label{font-size:13px !important;font-weight:800 !important;letter-spacing:0 !important;text-transform:none !important;color:var(--ink-faint) !important;margin:6px 2px 0 !important}
+  .mh-card{background:var(--surface) !important;border:0 !important;border-radius:20px !important;box-shadow:0 2px 10px rgba(16,40,32,.05) !important;overflow:hidden}
+  .mh-card-body{padding:16px !important}
+  .mh-form-label{font-size:12.5px !important;font-weight:700 !important;color:var(--ink-soft) !important;text-transform:none !important;letter-spacing:0 !important}
+  .mh-form-input{min-height:48px;border-radius:12px !important;border:1px solid var(--border-dk) !important;background:var(--surface) !important;font-size:16px !important;padding:0 14px !important;color:var(--ink) !important}
+  .mh-form-input:focus{border-color:var(--action) !important;box-shadow:0 0 0 3px var(--action-ring)}
+  .mh-form-hint{font-size:12px !important;color:var(--ink-faint) !important}
+  .mh-notice{border-radius:16px !important;border:0 !important;background:var(--warning-pale) !important;color:var(--ink) !important;font-size:13.5px !important;padding:12px 14px !important}
+
+  /* My payments: gradient balance hero like the home screens */
+  .mh-bal-hero{background:linear-gradient(150deg,#5a0019 0%,#800020 45%,#6b1030 62%,#0f6e56 120%) !important;border-radius:0 0 28px 28px;padding-bottom:34px !important;position:relative;overflow:hidden}
+  .mh-bal-hero::before,.mh-bal-hero::after{display:none !important}
+  .mh-bal-label{font-size:12.5px !important;font-weight:600 !important;color:#f3dde3 !important;text-transform:none !important;letter-spacing:0 !important}
+  .mh-bal-amount{font-size:34px !important;font-weight:800 !important;letter-spacing:-.03em;color:#fff !important;font-variant-numeric:tabular-nums}
+  .mh-bal-meta{color:#f3dde3 !important;font-size:12.5px !important}
+  .mh-bal-hero .mh-org-pill{background:rgba(255,255,255,.14) !important;border:1px solid rgba(255,255,255,.22) !important;color:#fff !important;max-width:46%}
+  .mh-bal-hero .mh-org-pill span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mh-bal-hero .mh-org-dot{background:#fff !important;color:var(--maroon) !important}
+  .mh-stat-row{display:grid !important;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px !important;position:relative;z-index:2}
+  .mh-stat-chip{background:var(--surface) !important;border:0 !important;border-radius:18px !important;padding:12px !important;box-shadow:0 4px 14px rgba(16,40,32,.08) !important;text-align:left !important;min-width:0}
+  .mh-stat-chip:nth-child(1){--tt-bg:#e3f1ec;--tt-fg:#0b5a46}
+  .mh-stat-chip:nth-child(2){--tt-bg:#f7e6eb;--tt-fg:#800020}
+  .mh-stat-chip:nth-child(3){--tt-bg:#fbf1d9;--tt-fg:#8a6410}
+  .mh-stat-chip-val{font-size:15px !important;font-weight:800 !important;color:var(--ink) !important;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mh-stat-chip-label{font-size:11.5px !important;font-weight:700 !important;color:var(--tt-fg,var(--ink-faint)) !important}
+
+  /* Admin and superadmin pages: the first header becomes the app bar */
+  .page > .section-header:first-child,.page > .ds-page-head:first-child,
+  .page > .fin-hero:first-child,.page > .wel-hero:first-child,.page > .mgr-hero:first-child,
+  .page > .proj-hero:first-child,.page > .mtg-hero:first-child,.page > .msg-hero:first-child,
+  .page > .mob-hide > .section-header:first-child,.page > .mob-hide > .ds-page-head:first-child,.page > .mob-hide > .fin-hero:first-child{
+    margin:-16px -16px 16px !important;padding:14px 20px 12px !important;background:var(--surface) !important;
+    border-bottom:1px solid var(--border);border-radius:0 !important;position:sticky;top:0;z-index:5;gap:10px !important}
+  .page .section-title,.page .ds-page-title,.fin-hero-title,.wel-hero-title,.mgr-hero-title,.proj-hero-title,.mtg-hero-title,.msg-hero-title{font-size:22px !important}
+  .page .section-sub,.page .ds-page-sub,.fin-hero-sub,.wel-hero-sub,.mgr-hero-sub,.proj-hero-sub,.mtg-hero-sub,.msg-hero-sub{font-size:12.5px !important}
+  /* Header actions: one tidy row of compact buttons that scrolls if needed */
+  .section-header > div:last-child:not(:first-child),.ds-page-actions,.fin-hero-controls,.wel-hero > div:last-child,.mgr-hero > div:last-child,.mtg-hero > div:last-child,.proj-hero > div:last-child{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap !important;width:100%}
+  .section-header .btn,.ds-page-actions .btn,.fin-hero-controls .btn,.wel-hero .btn,.mgr-hero .btn,.mtg-hero .btn,.proj-hero .btn{flex:0 0 auto !important;min-height:40px;width:auto !important}
+
+  /* Cards and lists breathe on a phone */
+  .page .card{border-radius:20px;border:0;box-shadow:0 2px 10px rgba(16,40,32,.05)}
+  .page .card-header{padding:14px 16px}
+  .page .card-body{padding:16px}
+  .page .stat-card,.page .wel-stat,.page .mgr-stat,.page .mtg-stat,.page .proj-stat{border:0;border-radius:18px}
+  .wel-event-card,.slot-card,.mtg-card,.farm-card,.aq-card,.mgr-cycle-card{border:0 !important;border-radius:20px !important;box-shadow:0 2px 10px rgba(16,40,32,.05)}
+  .aq-card{padding:14px 16px}
+  .msg-compose,.msg-status-card{border:0;border-radius:20px;box-shadow:0 2px 10px rgba(16,40,32,.05)}
+  .msg-recipient-pill,.btn-sm{min-height:38px}
+  .form-input,.form-select,.form-textarea{font-size:16px}
+  /* Tables that remain scroll sideways inside their card, never the page */
+  .page table{min-width:560px}
+  .page .table-wrap{margin:0 -16px;padding:0 16px}
+}
