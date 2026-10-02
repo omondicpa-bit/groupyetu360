@@ -1040,9 +1040,13 @@ async function recalcInstantFee() {
   const breakdownEl = document.getElementById('mp-fee-breakdown');
   const capWarningEl = document.getElementById('mp-cap-warning');
   const net = _mpBeneficiaryRows.reduce((s, r) => s + r.items.reduce((si, i) => si + (parseFloat(i.amount) || 0), 0), 0);
+  const heroAmt = document.getElementById('mp-hero-amt');
+  const heroSub = document.getElementById('mp-hero-sub');
   if (!net || net <= 0) {
     if (breakdownEl) breakdownEl.style.display = 'none';
     if (capWarningEl) capWarningEl.style.display = 'none';
+    if (heroAmt) heroAmt.textContent = 'Ksh 0';
+    if (heroSub) heroSub.textContent = 'Choose what you are paying for below';
     return;
   }
   const { platformFeePercent, paystackFeePercent, sasapayFeePercent, sasapayPlatformFeePercent } = await getPlatformFeeRates();
@@ -1056,6 +1060,8 @@ async function recalcInstantFee() {
   document.getElementById('mp-fee-net').textContent = 'Ksh ' + net.toLocaleString();
   document.getElementById('mp-fee-amount').textContent = 'Ksh ' + calc.fee.toLocaleString();
   document.getElementById('mp-fee-gross').textContent = 'Ksh ' + calc.gross.toLocaleString();
+  if (heroAmt) heroAmt.textContent = 'Ksh ' + calc.gross.toLocaleString();
+  if (heroSub) heroSub.textContent = calc.fee > 0 ? `Ksh ${net.toLocaleString()} plus Ksh ${calc.fee.toLocaleString()} service fee` : 'No service fee';
   if (breakdownEl) breakdownEl.style.display = 'block';
 
   const cap = currentOrg?.max_contribution_amount;

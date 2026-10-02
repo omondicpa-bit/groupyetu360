@@ -24,7 +24,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026100124">
+  <link rel="stylesheet" href="style.css?v=2026100125">
 </head>
 <body>
 
@@ -4458,14 +4458,21 @@
           .mp-add-person:hover{text-decoration:underline}
         </style>
 
-        <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:.6rem">Who is this for, and what is it for?</div>
+        <div class="mp-hero" id="mp-hero">
+          <div class="mp-hero-l">You are paying</div>
+          <div class="mp-hero-v" id="mp-hero-amt">Ksh 0</div>
+          <div class="mp-hero-s" id="mp-hero-sub">Choose what you are paying for below</div>
+        </div>
+        <div class="mp-section-t">What are you paying for?</div>
         <div id="mp-beneficiary-rows"></div>
         <div class="mp-add-person" onclick="addBeneficiaryRow()"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Add another person</div>
 
-        <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem">
-          <input class="form-input" type="tel" id="mp-instant-phone"
-            placeholder="Your M-Pesa number e.g. 0712345678"
-            style="margin-bottom:.85rem"/>
+        <div class="mp-from">
+          <label class="mp-from-l" for="mp-instant-phone">Pay from this M-Pesa number</label>
+          <div class="mp-from-row">
+            <span class="mp-from-ic" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg></span>
+            <input class="form-input mp-from-input" type="tel" inputmode="tel" autocomplete="tel" id="mp-instant-phone" placeholder="0712 345 678"/>
+          </div>
           <div id="mp-fee-breakdown" style="display:none">
             <div class="mp-fee-row"><span>Contribution</span><span id="mp-fee-net">Ksh 0</span></div>
             <div class="mp-fee-row"><span>Service fee</span><span id="mp-fee-amount">Ksh 0</span></div>
@@ -4473,9 +4480,12 @@
           </div>
           <div id="mp-cap-warning" style="display:none;font-size:.75rem;color:var(--danger);margin-top:.5rem"></div>
         </div>
+        <div class="mp-pay-bar">
         <button class="mp-pay-btn" id="mp-instant-pay-btn" onclick="payInstantContribution()">
           <svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg> <span id="mp-instant-btn-label">Send M-Pesa prompt</span>
         </button>
+          <div class="mp-pay-hint">You will get a prompt on your phone. Enter your M-Pesa PIN to finish.</div>
+        </div>
 
         <!-- Pending state -->
         <div class="mp-state-box mp-state-pending" id="mp-state-pending">
@@ -5565,16 +5575,16 @@
 
 
   <!-- GroupYetu360 Scripts - load order matters -->
-  <script src="js/icons.js?v=2026100124"></script>
-  <script src="js/auth.js?v=2026100124"></script>
-  <script src="js/utils.js?v=2026100124"></script>
-  <script src="js/dashboard.js?v=2026100124"></script>
-  <script src="js/members.js?v=2026100124"></script>
-  <script src="js/finance.js?v=2026100124"></script>
-  <script src="js/settings.js?v=2026100124"></script>
-  <script src="js/portal.js?v=2026100124"></script>
-  <script src="js/modules.js?v=2026100124"></script>
-  <script src="js/taya.js?v=2026100124"></script>
+  <script src="js/icons.js?v=2026100125"></script>
+  <script src="js/auth.js?v=2026100125"></script>
+  <script src="js/utils.js?v=2026100125"></script>
+  <script src="js/dashboard.js?v=2026100125"></script>
+  <script src="js/members.js?v=2026100125"></script>
+  <script src="js/finance.js?v=2026100125"></script>
+  <script src="js/settings.js?v=2026100125"></script>
+  <script src="js/portal.js?v=2026100125"></script>
+  <script src="js/modules.js?v=2026100125"></script>
+  <script src="js/taya.js?v=2026100125"></script>
   <script>
     // Bootstrap - runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —
