@@ -107,7 +107,11 @@ jobs:
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: npx @bubblewrap/cli build
+        # Pinned (Oct 2026): unpinned `npx @bubblewrap/cli` pulled 1.25.0,
+        # whose stricter SDK check rejects the runner's SDK with "The
+        # provided androidSdk isn't correct". 1.24.1 is the version every
+        # earlier successful build used. Upgrade deliberately, not by accident.
+        run: npx --yes @bubblewrap/cli@1.24.1 build
 
       # Wildcard, not a hardcoded filename — safer than assuming exactly
       # where/what Bubblewrap names its output.
