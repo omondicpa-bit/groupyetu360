@@ -1068,6 +1068,8 @@ async function showOrgPicker() {
   // Set user name
   const nameEl = document.getElementById('org-picker-user-name');
   if (nameEl) nameEl.textContent = currentProfile?.full_name || currentUser?.email || 'there';
+  const greetEl = document.getElementById('picker-greet');
+  if (greetEl) greetEl.textContent = gyGreeting() + ', ' + ((currentProfile?.full_name || '').split(' ')[0] || 'karibu');
 
   // Phone number is now load-bearing for real features - SMS confirmations,
   // and specifically MGR settlement payouts route directly to a receiver's
@@ -1097,33 +1099,35 @@ async function showOrgPicker() {
   const listEl = document.getElementById('org-picker-list');
   if (!listEl) return;
 
+  const countEl = document.getElementById('picker-count');
+  if (countEl) countEl.textContent = orgs.length ? String(orgs.length) : '';
   if (!orgs.length) {
-    listEl.innerHTML = `<div style="text-align:center;padding:2rem;color:rgba(255,255,255,.5)">
-      <div style="font-size:1.5rem;margin-bottom:.5rem">🏛</div>
-      <div style="font-size:.82rem">You're not part of any organisation yet.</div>
-      <div style="font-size:.75rem;margin-top:.35rem">Register a new one below.</div>
+    listEl.innerHTML = `<div class="opi-empty">
+      <span class="opi-empty-ic">${gyIcon('building', 26)}</span>
+      <strong>You're not in a group yet</strong>
+      <span>Start your own below, or join one with the code your group admin shared.</span>
     </div>`;
     return;
   }
-
+  const tones = ['maroon', 'teal', 'gold', 'navy'];
   listEl.innerHTML = orgs.map((org, i) => {
-    const initials = org.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    const roleClass = ['admin','officer','treasurer'].includes(org._role) ? 'admin' : 'member';
-    const roleLabel = org._role?.charAt(0).toUpperCase() + org._role?.slice(1) || 'Member';
-    const plan = (org.plan||'starter').toUpperCase();
-    return `<div class="org-picker-item" onclick="selectOrg('${org.id}')" style="animation-delay:${i*0.06}s">
-      <div class="opi-icon ${roleClass === 'admin' ? '' : 'teal'}">${initials}</div>
-      <div style="flex:1;min-width:0">
-        <div class="opi-name">${org.name}</div>
-        <div class="opi-meta">
-          <span>${org.org_code || org.reg_number || '—'}</span>
-          <span>·</span>
-          <span>${plan}</span>
-          <span class="opi-role ${roleClass}">${roleLabel}</span>
-        </div>
-      </div>
-      <div class="opi-arrow">›</div>
-    </div>`;
+    const initials = org.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const isAdmin = ['admin', 'officer', 'treasurer'].includes(org._role);
+    const roleLabel = org._role ? org._role.charAt(0).toUpperCase() + org._role.slice(1) : 'Member';
+    const plan = (org.plan || 'starter');
+    const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1);
+    return `<button type="button" class="org-picker-item t-${tones[i % 4]}" onclick="selectOrg('${org.id}')" style="animation-delay:${i * 0.06}s">
+      <span class="opi-icon">${h(initials)}</span>
+      <span class="opi-text">
+        <span class="opi-name">${h(org.name)}</span>
+        <span class="opi-meta">
+          <span class="opi-pill ${isAdmin ? 'admin' : 'member'}">${h(roleLabel)}</span>
+          <span class="opi-pill plan">${h(planLabel)}</span>
+          <span class="opi-code">${h(org.org_code || org.reg_number || '')}</span>
+        </span>
+      </span>
+      <span class="opi-arrow">${gyIcon('chevron', 20)}</span>
+    </button>`;
   }).join('');
 }
 
