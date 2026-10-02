@@ -122,8 +122,16 @@ serve(async (req: Request) => {
     let outgoingMessage = message;
     const { data: orgRow } = org_id ? await supabase
       .from('organisations').select('sms_label').eq('id', org_id).maybeSingle() : { data: null };
-    const label = orgRow?.sms_label?.trim();
-    if (label && !message.toLowerCase().includes(label.toLowerCase())) {
+    // Platform messages from EPH carry the GroupYetu360 label, the same way
+    // group messages carry the group's own label.
+    const label = platform === true ? 'GroupYetu360' : orgRow?.sms_label?.trim();
+    // Group messages: skip the label if the text already mentions the group.
+    // Platform messages always mention GroupYetu360 in the body, so there
+    // the label is only skipped if the text already starts with it.
+    const alreadyLabelled = platform === true
+      ? message.trim().toLowerCase().startsWith(String(label).toLowerCase() + ':')
+      : !!label && message.toLowerCase().includes(String(label).toLowerCase());
+    if (label && !alreadyLabelled) {
       outgoingMessage = `${label}:\n\n${message}`;
     }
 

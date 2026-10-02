@@ -1152,7 +1152,10 @@ function sauUpdateSelection() {
   if (all) all.checked = _sauVisible.length > 0 && _sauVisible.filter(u => sauPhone(u)).every(u => _sauSelected.has(u.id));
 }
 
-const SAU_DEFAULT_SMS = "Hi {name}, thank you for creating your GroupYetu360 account. You can start your group for free today at app.groupyetu.org. Need help setting up? Call or WhatsApp us on 0702 903 544. EPH Technologies";
+const SAU_DEFAULT_SMS = "Hi {name}, we noticed you recently created your GroupYetu360 account. You can start your group for free today at app.groupyetu.org. Need help setting up? Call or WhatsApp us on 0702 903 544. EPH Technologies";
+// The server puts this label on top of every platform SMS (as group SMS get
+// their group label); the preview and length count include it.
+const SAU_SMS_LABEL = 'GroupYetu360:\n\n';
 
 function openSAUserSms() {
   if (!_sauSelected.size) return;
@@ -1174,7 +1177,8 @@ function sauPersonalise(text, u) {
 function sauSmsCount() {
   const text = document.getElementById('sau-sms-text')?.value || '';
   const sample = [...allSAUsers].find(u => _sauSelected.has(u.id));
-  const out = sauPersonalise(text, sample);
+  const body = sauPersonalise(text, sample);
+  const out = body.trim().toLowerCase().startsWith('groupyetu360:') ? body : SAU_SMS_LABEL + body;
   const len = out.length;
   const parts = len <= 160 ? 1 : Math.ceil(len / 153);
   const c = document.getElementById('sau-sms-count');
