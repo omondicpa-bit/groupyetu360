@@ -864,74 +864,49 @@ async function loadPendingPayments() {
   const renderPayRequest = (r, showActions) => {
     let allocations = [];
     try { allocations = JSON.parse(r.allocations || '[]'); } catch(e) {}
-    const dateStr = (r.requested_at || r.created_at)
-      ? new Date(r.requested_at || r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
-      : '—';
-    const reviewDate = r.approved_at
-      ? new Date(r.approved_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
-      : '—';
-
-    return `<div style="background:var(--surface);border:1px solid var(--border);border-left:4px solid ${showActions?'var(--warning)':r.status==='approved'?'var(--teal)':'var(--danger)'};padding:1rem 1.25rem;margin-bottom:.75rem;animation:welIn .3s ease both">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;flex-wrap:wrap">
-            <div style="font-size:.9rem;font-weight:700;color:var(--ink)">${h(r.members?.full_name) || 'Unknown Member'}</div>
-            <span style="font-size:.62rem;font-weight:600;padding:.15rem .45rem;background:var(--surface-2);color:var(--ink-faint);border-radius:3px">#${r.members?.member_number||'—'}</span>
-            <span class="badge ${showActions?'badge-warn':r.status==='approved'?'badge-green':'badge-red'}">${r.status}</span>
-          </div>
-          <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:.5rem">
-            <span style="font-size:.72rem;color:var(--ink-faint)">${dateStr}</span>
-            ${r.mpesa_ref ? `<span style="font-size:.72rem;color:var(--ink-faint)">M-Pesa ref <strong style="color:var(--ink)">${h(r.mpesa_ref)}</strong></span>` : ''}
-            ${r.members?.phone ? `<span style="font-size:.72rem;color:var(--ink-faint)">${h(r.members.phone)}</span>` : ''}
-          </div>
-          ${allocations.length ? `
-          <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:.5rem .75rem;margin-bottom:.35rem">
-            <div style="font-size:12px;font-weight:700;color:var(--ink-faint);margin-bottom:.35rem">Payment Breakdown</div>
-            ${allocations.map(a => `
-              <div style="display:flex;justify-content:space-between;font-size:.75rem;padding:.2rem 0;border-bottom:1px solid var(--border)">
-                <span style="color:var(--ink-soft)">${h(a.typeName) || 'Payment'}</span>
-                <strong>Ksh ${Number(a.amount||0).toLocaleString()}</strong>
-              </div>`).join('')}
-            <div style="display:flex;justify-content:space-between;font-size:.8rem;font-weight:700;padding:.35rem 0 0">
-              <span>Total</span>
-              <span style="color:var(--teal)">Ksh ${Number(r.amount||0).toLocaleString()}</span>
-            </div>
-          </div>` : `
-          <div style="font-size:.82rem;font-weight:700;color:var(--teal)">Ksh ${Number(r.amount||0).toLocaleString()}</div>`}
-          ${r.notes ? `<div style="font-size:.7rem;color:var(--ink-faint);margin-top:.2rem">${h(r.notes)}</div>` : ''}
-          ${!showActions && r.status !== 'pending' ? `<div style="font-size:.7rem;color:var(--ink-faint);margin-top:.2rem">Reviewed: ${reviewDate}</div>` : ''}
+    const when = r.requested_at || r.created_at;
+    const name = r.members?.full_name || 'Unknown member';
+    const amount = Number(r.amount || 0).toLocaleString();
+    const statusPill = r.status === 'approved' ? '<span class="badge badge-green">Approved</span>'
+      : r.status === 'declined' ? '<span class="badge badge-red">Declined</span>'
+      : '<span class="badge badge-warn">Waiting</span>';
+    return `<div class="aq-card aq-pay${showActions ? '' : ' is-done'}">
+      <div class="aq-pay-top">
+        <div class="aq-person">
+          <span class="ds-avatar" style="background:var(--teal-pale);color:var(--teal-dk)">${h(aqInitials(name))}</span>
+          <span class="aq-person-text">
+            <span class="aq-name">${h(name)} <span class="aq-num">#${h(String(r.members?.member_number || '—'))}</span></span>
+            <span class="aq-sub">Reported ${aqAgo(when)}${r.members?.phone ? ' · ' + h(r.members.phone) : ''}</span>
+          </span>
         </div>
-        ${showActions ? `
-        <div style="display:flex;flex-direction:column;gap:.4rem;flex-shrink:0">
-          <button class="btn btn-primary btn-sm" style="font-size:.75rem;padding:.4rem .9rem"
-            onclick="approvePaymentRequest('${r.id}')">Approve</button>
-          <button class="btn btn-danger btn-sm" style="font-size:.75rem;padding:.4rem .9rem"
-            onclick="declinePaymentRequest('${r.id}')">Decline</button>
-        </div>` : ''}
+        <div class="aq-amount"><span class="aq-amount-val">Ksh ${amount}</span>${statusPill}</div>
       </div>
+      ${allocations.length ? `<ul class="aq-breakdown">${allocations.map(a => `<li><span>${h(a.typeName) || 'Payment'}</span><span>Ksh ${Number(a.amount || 0).toLocaleString()}</span></li>`).join('')}</ul>` : ''}
+      <div class="aq-facts">
+        ${r.mpesa_ref ? `<span class="aq-fact"><span class="aq-fact-l">M-Pesa ref</span><span class="aq-ref">${h(r.mpesa_ref)}</span></span>` : '<span class="aq-fact aq-fact-warn">No reference given</span>'}
+        ${r.notes ? `<span class="aq-fact"><span class="aq-fact-l">Note</span><span>${h(r.notes)}</span></span>` : ''}
+        ${!showActions && r.approved_at ? `<span class="aq-fact"><span class="aq-fact-l">Reviewed</span><span>${aqAgo(r.approved_at)}</span></span>` : ''}
+      </div>
+      ${showActions ? `<div class="aq-actions">
+        <button class="btn btn-secondary btn-sm aq-decline" onclick="declinePaymentRequest('${r.id}')">Decline</button>
+        <button class="btn btn-primary btn-sm ds-btn-auto" onclick="approvePaymentRequest('${r.id}')">Approve Ksh ${amount}</button>
+      </div>` : ''}
     </div>`;
   };
 
   let html = '';
-
-  // Pending section
   if (pending.length) {
-    html += `<div style="font-size:.7rem;font-weight:700;color:var(--warning);margin-bottom:.6rem">
-      Awaiting approval (${pending.length})</div>`;
+    html += `<div class="aq-section-title">Waiting for you <span class="tab-count">${pending.length}</span></div>`;
     html += pending.map(r => renderPayRequest(r, true)).join('');
+  } else {
+    html += aqEmpty('check', 'All caught up', 'There are no reported payments waiting for approval.');
   }
-
-  // Approved section
   if (approved.length) {
-    html += `<div style="font-size:.7rem;font-weight:700;color:var(--teal);margin:1rem 0 .6rem">
-      Recently approved (${approved.length})</div>`;
+    html += `<div class="aq-section-title">Recently approved</div>`;
     html += approved.slice(0, 10).map(r => renderPayRequest(r, false)).join('');
   }
-
-  // Declined section
   if (declined.length) {
-    html += `<div style="font-size:.7rem;font-weight:700;color:var(--danger);margin:1rem 0 .6rem">
-      Declined (${declined.length})</div>`;
+    html += `<div class="aq-section-title">Declined</div>`;
     html += declined.slice(0, 5).map(r => renderPayRequest(r, false)).join('');
   }
 

@@ -1960,6 +1960,23 @@ function updateApprovalsHero(pendingCount) {
   if (badge) { badge.textContent = pendingCount; badge.style.display = pendingCount > 0 ? '' : 'none'; }
 }
 
+// ── Approvals queue helpers ──
+function aqInitials(name) { return (name || '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(); }
+function aqAgo(d) {
+  if (!d) return '';
+  const ms = Date.now() - new Date(d).getTime();
+  const day = 86400000;
+  if (isNaN(ms)) return '';
+  if (ms < 3600000) return 'just now';
+  if (ms < day) return Math.round(ms / 3600000) + 'h ago';
+  if (ms < 2 * day) return 'yesterday';
+  if (ms < 30 * day) return Math.round(ms / day) + ' days ago';
+  return 'on ' + new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+function aqEmpty(icon, title, sub) {
+  return `<div class="ds-empty"><div class="ds-empty-icon">${gyIcon(icon, 28)}</div><div class="ds-empty-title">${title}</div><div class="ds-empty-sub">${sub}</div></div>`;
+}
+
 async function loadApprovals() {
   if (!currentOrg?.id) return;
   const { data: all } = await sb.from('pending_members')
@@ -2003,43 +2020,32 @@ async function loadApprovals() {
   // Update hero count
   updateApprovalsHero(totalPending);
 
-  // Render pending
-  document.getElementById('pending-list').innerHTML = pending.length ? pending.map(r => `
-    <div class="welfare-card" style="margin-bottom:1rem;border-left-color:var(--warning)">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div>
-          <div style="font-size:.9rem;font-weight:700;color:var(--ink)">${r.full_name}</div>
-          <div style="font-size:.72rem;color:var(--ink-faint);margin:.2rem 0">${r.phone||'No phone'} · ${r.email||'No email'}</div>
-          <div style="font-size:.7rem;color:var(--ink-faint)">Requested: ${new Date(r.requested_at).toDateString()}</div>
-        </div>
-        <button class="btn btn-primary btn-sm" onclick="openApproveModal('${r.id}','${r.user_id}','${r.full_name.replace(/'/g,"&apos;")}','${r.phone||''}','${r.email||''}')">
-          Review
-        </button>
+  // Render pending join requests as a queue of cards
+  document.getElementById('pending-list').innerHTML = pending.length
+    ? `<div class="aq-section-title">Waiting for you</div>` + pending.map(r => `
+    <div class="aq-card">
+      <div class="aq-person">
+        <span class="ds-avatar" style="background:var(--warning-pale);color:var(--warning)">${h(aqInitials(r.full_name))}</span>
+        <span class="aq-person-text">
+          <span class="aq-name">${h(r.full_name)}</span>
+          <span class="aq-sub">${h(r.phone || 'No phone')} · ${h(r.email || 'No email')}</span>
+        </span>
       </div>
-    </div>`).join('') :
-    '<div style="padding:2rem;text-align:center;color:var(--ink-faint);font-size:.85rem">No pending requests</div>';
+      <div class="aq-when">Asked to join ${aqAgo(r.requested_at)}</div>
+      <div class="aq-actions">
+        <button class="btn btn-primary btn-sm ds-btn-auto" onclick="openApproveModal('${r.id}','${r.user_id}','${(r.full_name||'').replace(/'/g,"&apos;")}','${r.phone||''}','${r.email||''}')">Review request</button>
+      </div>
+    </div>`).join('')
+    : aqEmpty('approvals', 'No one is waiting', 'New join requests from your members will appear here.');
 
-  // Render approved
-  document.getElementById('approved-list').innerHTML = approved.length ? `
-    <table><thead><tr><th>Name</th><th>Phone</th><th>Approved</th><th>Notes</th></tr></thead>
-    <tbody>${approved.map(r=>`<tr>
-      <td><strong>${r.full_name}</strong></td>
-      <td>${r.phone||'—'}</td>
-      <td>${r.reviewed_at?new Date(r.reviewed_at).toDateString():'—'}</td>
-      <td>${r.notes||'—'}</td>
-    </tr>`).join('')}</tbody></table>` :
-    '<div style="padding:2rem;text-align:center;color:var(--ink-faint);font-size:.85rem">No approved requests yet</div>';
-
-  // Render declined
-  document.getElementById('rejected-list').innerHTML = declined.length ? `
-    <table><thead><tr><th>Name</th><th>Phone</th><th>Declined</th><th>Notes</th></tr></thead>
-    <tbody>${declined.map(r=>`<tr>
-      <td><strong>${r.full_name}</strong></td>
-      <td>${r.phone||'—'}</td>
-      <td>${r.reviewed_at?new Date(r.reviewed_at).toDateString():'—'}</td>
-      <td>${r.notes||'—'}</td>
-    </tr>`).join('')}</tbody></table>` :
-    '<div style="padding:2rem;text-align:center;color:var(--ink-faint);font-size:.85rem">No declined requests</div>';
+  const reviewedRows = (list, verb) => `<ul class="aq-list">${list.map(r => `
+    <li class="aq-list-row">
+      <span class="ds-avatar" style="background:var(--surface-3);color:var(--ink-soft)">${h(aqInitials(r.full_name))}</span>
+      <span class="aq-person-text"><span class="aq-name">${h(r.full_name)}</span><span class="aq-sub">${h(r.phone || '—')}${r.notes ? ' · ' + h(r.notes) : ''}</span></span>
+      <span class="aq-list-when">${verb} ${r.reviewed_at ? aqAgo(r.reviewed_at) : ''}</span>
+    </li>`).join('')}</ul>`;
+  document.getElementById('approved-list').innerHTML = approved.length ? reviewedRows(approved, 'Approved') : aqEmpty('check', 'Nothing approved yet', 'Approved join requests will be listed here.');
+  document.getElementById('rejected-list').innerHTML = declined.length ? reviewedRows(declined, 'Declined') : aqEmpty('inbox', 'Nothing declined', 'Declined join requests will be listed here.');
 }
 
 async function openApproveModal(pendingId, userId, name, phone, email) {
