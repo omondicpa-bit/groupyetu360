@@ -21,8 +21,8 @@
     "path": "./signing.keystore",
     "alias": "my-key-alias"
   },
-  "appVersionName": "9",
-  "appVersionCode": 10,
+  "appVersionName": "10",
+  "appVersionCode": 11,
   "shortcuts": [
     {
       "name": "Dashboard",
@@ -54,7 +54,7 @@
   "isChromeOSOnly": false,
   "isMetaQuest": false,
   "fullScopeUrl": "https://app.groupyetu.org/",
-  "minSdkVersion": 23,
+  "minSdkVersion": 24,
   "orientation": "portrait-primary",
   "fingerprints": [],
   "additionalTrustedOrigins": [],
@@ -63,5 +63,5 @@
   "fileHandlers": [],
   "launchHandlerClientMode": "",
   "displayOverride": [],
-  "appVersion": "9"
+  "appVersion": "10"
 }

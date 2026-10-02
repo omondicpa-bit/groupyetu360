@@ -55,10 +55,10 @@ android {
     namespace "com.ephtechnologies.groupyetu360"
     defaultConfig {
         applicationId "com.ephtechnologies.groupyetu360"
-        minSdkVersion 23
+        minSdkVersion 24
         targetSdkVersion 36
-        versionCode 10
-        versionName "9"
+        versionCode 11
+        versionName "10"
 
         // The name for the application
         resValue "string", "appName", twaManifest.name
