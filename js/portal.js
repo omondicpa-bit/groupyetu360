@@ -2025,9 +2025,9 @@ async function populateMobileProfile(myRecord, fp) {
     set('mob-sc-balance', 'Ksh ' + Number(totalBal).toLocaleString());
     const sharesRowEl = document.getElementById('mob-sc-shares-row');
     if (sharesRowEl) sharesRowEl.style.display = 'flex';
-    if (fp?.hasShares) set('mob-sc-shares-tag', (fp.sharesLabel||'Shares') + ' Ksh ' + Number(myRecord.shares_balance||0).toLocaleString());
-    if (fp?.hasSavings) set('mob-sc-savings-tag', (fp.savingsLabel||'Savings') + ' Ksh ' + Number(myRecord.savings_balance||0).toLocaleString());
-    set('mob-sc-balance-meta', 'Combined balance');
+    if (fp?.hasShares) set('mob-sc-shares-tag', (fp.sharesLabel||'Shares') + ' ' + Number(myRecord.shares_balance||0).toLocaleString());
+    if (fp?.hasSavings) set('mob-sc-savings-tag', (fp.savingsLabel||'Savings') + ' ' + Number(myRecord.savings_balance||0).toLocaleString());
+    set('mob-sc-balance-meta', 'My balance');
   } else {
     // Org has no member balances — fetch total contributions from transactions
     try {
@@ -2044,7 +2044,7 @@ async function populateMobileProfile(myRecord, fp) {
         .gte('transaction_date', thisYear + '-01-01');
       const yearTotal = (yearTxns || []).reduce((s, t) => s + Number(t.amount || 0), 0);
       set('mob-sc-balance', 'Ksh ' + Number(totalContrib).toLocaleString());
-      set('mob-sc-balance-meta', 'Total contributions — all time');
+      set('mob-sc-balance-meta', 'My contributions, all time');
       // Show this year as a tag
       if (yearTotal > 0) {
         const sharesRowEl = document.getElementById('mob-sc-shares-row');
@@ -2086,12 +2086,12 @@ async function populateMobileProfile(myRecord, fp) {
       const mDate = new Date(mtg.meeting_date + 'T00:00:00');
       const days = Math.ceil((mDate - new Date()) / 86400000);
       const dateStr = mDate.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
-      set('mob-sc-mtg-date', dateStr);
+      set('mob-sc-mtg-date', mDate.toLocaleDateString('en-GB',{day:'numeric',month:'short'}));
       set('mob-sc-mtg-countdown', days === 0 ? 'Today!' : days === 1 ? 'Tomorrow' : 'In ' + days + ' days');
       set('mob-sc-mtg-venue', mtg.venue || mtg.location || 'Venue TBA');
     } else {
-      set('mob-sc-mtg-date', 'No meetings');
-      set('mob-sc-mtg-countdown', 'Nothing scheduled yet');
+      set('mob-sc-mtg-date', 'None yet');
+      set('mob-sc-mtg-countdown', 'Nothing scheduled');
       set('mob-sc-mtg-venue', 'Schedule one in Meetings');
     }
   } catch(e) { set('mob-sc-mtg-countdown', '—'); }
@@ -2105,12 +2105,12 @@ async function populateMobileProfile(myRecord, fp) {
       .select('id', { count: 'exact', head: true }).eq('org_id', currentOrg.id).eq('status','active');
 
     if (orgData?.show_balance_to_members && orgData?.bank_balance) {
-      set('mob-sc-group-main', 'Ksh ' + Number(orgData.bank_balance).toLocaleString());
-      set('mob-sc-group-meta', 'Group bank balance');
+      { const gb = Number(orgData.bank_balance); set('mob-sc-group-main', gb >= 1000000 ? 'Ksh ' + (gb / 1e6).toFixed(1) + 'M' : gb >= 10000 ? 'Ksh ' + Math.round(gb / 1000) + 'K' : 'Ksh ' + gb.toLocaleString()); }
+      set('mob-sc-group-meta', 'Group balance');
       set('mob-sc-group-footer', orgData.bank_balance_updated ? 'As of ' + orgData.bank_balance_updated : 'Active group');
     } else {
       const count = memberCount?.count || '—';
-      set('mob-sc-group-main', count + ' Members');
+      set('mob-sc-group-main', String(count));
       set('mob-sc-group-meta', 'Active members');
       set('mob-sc-group-footer', currentOrg?.name || '—');
     }
@@ -2123,35 +2123,44 @@ async function populateMobileProfile(myRecord, fp) {
     mobFines.style.display = 'block';
   }
 
-  // ── Recent transactions ──
+  // ── This month, welfare given, recent activity (phone layer) ──
   try {
-    const { data: txns } = await sb.from('transactions')
-      .select('amount,transaction_date,contribution_types(name)')
-      .eq('org_id', currentOrg.id)
-      .eq('member_id', myRecord.id)
-      .order('transaction_date', { ascending: false })
-      .limit(3);
+    const { data: mine } = await sb.from('transactions')
+      .select('amount,transaction_date,created_at,welfare_event_id,contribution_types(name)')
+      .eq('org_id', currentOrg.id).eq('member_id', myRecord.id)
+      .order('transaction_date', { ascending: false });
+    const all = mine || [];
+    const now = new Date();
+    const monthKey = now.toISOString().slice(0, 7);
+    const monthName = now.toLocaleString('en-KE', { month: 'long' });
+    const paidThisMonth = all.filter(t => !t.welfare_event_id && (t.transaction_date || '').startsWith(monthKey)).reduce((sum, t) => sum + Number(t.amount || 0), 0);
+    const expected = fp?.hasSavings && Number(myRecord.savings_tier) > 0 ? Number(myRecord.savings_tier) : 0;
+    const ic = document.getElementById('mob-due-ic');
+    const btnLabel = document.getElementById('mob-due-btn-label');
+    if (paidThisMonth > 0 && (!expected || paidThisMonth >= expected)) {
+      set('mob-due-title', `Paid for ${monthName}`);
+      set('mob-due-sub', `Ksh ${paidThisMonth.toLocaleString()} received. Asante!`);
+      if (ic) { ic.className = 'ph-due-ic t-teal'; ic.innerHTML = gyIcon('check', 22); }
+      if (btnLabel) btnLabel.textContent = 'Make another payment';
+      document.getElementById('mob-due-btn')?.classList.add('ph-pay-btn-quiet');
+    } else {
+      const left = expected ? Math.max(0, expected - paidThisMonth) : 0;
+      set('mob-due-title', `${monthName} contribution`);
+      set('mob-due-sub', paidThisMonth > 0
+        ? `Ksh ${paidThisMonth.toLocaleString()} paid, Ksh ${left.toLocaleString()} to go`
+        : expected ? `Ksh ${expected.toLocaleString()} expected this month` : 'Not paid yet this month');
+      if (btnLabel) btnLabel.textContent = left ? `Pay Ksh ${left.toLocaleString()} with M-Pesa` : 'Pay with M-Pesa';
+    }
+    const yr = String(now.getFullYear());
+    const welfare = all.filter(t => t.welfare_event_id && (t.transaction_date || '').startsWith(yr)).reduce((sum, t) => sum + Number(t.amount || 0), 0);
+    set('mob-sc-welfare', 'Ksh ' + welfare.toLocaleString());
     const txnEl = document.getElementById('mob-recent-txns');
     if (txnEl) {
-      if (txns?.length) {
-        txnEl.innerHTML = txns.map(t => {
-          const cat = t.contribution_types?.name || 'Payment';
-          const initials = cat.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-          const d = t.transaction_date ? new Date(t.transaction_date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
-          return `<div class="mob-txn-row">
-            <div class="mob-txn-avatar">${initials}</div>
-            <div class="mob-txn-info">
-              <div class="mob-txn-name">${cat}</div>
-              <div class="mob-txn-date">${d}</div>
-            </div>
-            <div class="mob-txn-amt">+Ksh ${Number(t.amount||0).toLocaleString()}</div>
-          </div>`;
-        }).join('');
-      } else {
-        txnEl.innerHTML = '<div style="color:var(--ink-faint);font-size:.82rem;padding:.5rem 0;text-align:center">No transactions yet</div>';
-      }
+      txnEl.innerHTML = all.length
+        ? all.slice(0, 4).map((t, i) => phRow(t.welfare_event_id ? 'Welfare' : (t.contribution_types?.name || 'Payment'), phDate(t.transaction_date || t.created_at), '+' + Number(t.amount || 0).toLocaleString(), i)).join('')
+        : '<div class="ph-empty">No payments yet. Your payments will show here.</div>';
     }
-  } catch(e) { console.warn('[GY360] Recent txns:', e); }
+  } catch(e) { console.warn('[GY360] phone member home:', e); }
 }
 
 // ── Populate mobile contributions page ──
