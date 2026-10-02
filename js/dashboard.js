@@ -246,15 +246,17 @@ async function loadDashboard() {
       if (summaryEl) {
         const entries = Object.entries(cats).sort((a,b) => b[1]-a[1]);
         const grand = entries.reduce((s,[,v]) => s+v, 0);
-        summaryEl.innerHTML = entries.length ? entries.map(([cat,total]) => {
+        const catColors = ['var(--teal)', 'var(--maroon)', 'var(--gold-brand)', 'var(--navy-lt)', 'var(--teal-lt)', 'var(--maroon-lt)'];
+        summaryEl.innerHTML = entries.length ? entries.map(([cat,total], ci) => {
           const pct = grand ? Math.round((total/grand)*100) : 0;
+          const cc = catColors[ci % catColors.length];
           return `<div style="margin-bottom:.7rem">
             <div style="display:flex;justify-content:space-between;margin-bottom:.25rem">
-              <span style="font-size:.78rem;color:var(--ink-soft)">${h(cat)}</span>
-              <strong style="font-size:.78rem;color:var(--maroon)">Ksh ${total.toLocaleString()}</strong>
+              <span style="font-size:13px;color:var(--ink-soft);display:inline-flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:3px;background:${cc}"></span>${h(cat)}</span>
+              <strong style="font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums">Ksh ${total.toLocaleString()} <span style="color:var(--ink-faint);font-weight:600">${pct}%</span></strong>
             </div>
-            <div style="height:5px;background:var(--border);border-radius:3px">
-              <div style="height:100%;width:${pct}%;background:var(--maroon);border-radius:3px;transition:width 1s ease"></div>
+            <div style="height:8px;background:var(--surface-3);border-radius:999px">
+              <div style="height:100%;width:${pct}%;background:${cc};border-radius:999px;transition:width 1s ease"></div>
             </div>
           </div>`;
         }).join('') : '<div style="color:var(--ink-faint);font-size:.82rem;padding:.5rem 0">No contributions recorded yet</div>';
@@ -270,8 +272,8 @@ async function loadDashboard() {
           const h = Math.round((m.total/maxVal)*80);
           const isLatest = m.label === monthData[5].label;
           return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:.2rem">
-            <div style="font-size:.58rem;color:var(--ink-faint)">${m.total>0?'Ksh '+(m.total>=1000?(m.total/1000).toFixed(0)+'K':m.total):''}</div>
-            <div style="width:100%;background:${isLatest?'var(--maroon)':'var(--maroon-pale)'};height:${h||3}px;border-radius:2px 2px 0 0;min-height:3px;margin-top:auto"></div>
+            <div style="font-size:11px;font-weight:700;color:var(--ink-faint)">${m.total>0?(m.total>=1000?(m.total/1000).toFixed(0)+'K':m.total):''}</div>
+            <div style="width:100%;max-width:44px;background:${isLatest?'linear-gradient(180deg,var(--teal-lt),var(--teal))':'var(--teal-mid)'};height:${h||3}px;border-radius:6px 6px 2px 2px;min-height:3px;margin-top:auto"></div>
           </div>`;
         }).join('');
         const labelsEl = document.getElementById('dash-monthly-labels');

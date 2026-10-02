@@ -29,6 +29,10 @@
   /* Primary action colour (Felix's choice, Oct 2026): teal buttons.
      Maroon stays the brand colour: logo, active menu item, emphasis. */
   --action:#0f6e56;--action-dk:#0b5a46;--action-ring:rgba(15,110,86,.16);
+  /* Logo gold, for accents and charts only (never text on white) */
+  --gold-brand:#c49a30;--gold-pale:#fbf3df;
+  /* App canvas: a faint mint-grey so white cards lift off the page */
+  --canvas:#eef3f1;
   --sidebar-w:252px;
 }
 html{scroll-behavior:smooth}
@@ -3457,3 +3461,64 @@ body.mob-dark .theme-toggle .gy-moon{display:none}body.mob-dark .theme-toggle .g
 .sa-org-table-controls{display:flex;gap:8px;flex-wrap:wrap}
 .sa-org-table-controls .form-input,.sa-org-table-controls .form-select{min-height:38px;font-size:13.5px}
 @media(max-width:900px){.od-figures{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* ════════════════════════════════════════════════════════════════════
+   COLOUR PASS (Felix's review, Oct 2026)
+   A tinted canvas so white cards lift off it, brand-coloured icon tiles,
+   soft corner shapes on figure cards, a brand-gradient lead card on the
+   overview, the real logo mark, and a livelier sign-in panel.
+   ════════════════════════════════════════════════════════════════════ */
+body,.main{background:var(--canvas)}
+body.mob-dark{--canvas:#0f1317}
+body.mob-dark .main{background:var(--canvas)}
+.card,.stat-card,.sa-kpi,.sa-chart-card,.sa-org-table-wrap,.fin-stat-card,.fin-score-main,.fin-score-item,.wel-stat,.mgr-stat,.proj-stat,.mtg-stat,.mp-bal-card,.md-fig{box-shadow:0 1px 2px rgba(16,40,32,.04),0 4px 14px rgba(16,40,32,.05)}
+body.mob-dark .card,body.mob-dark .stat-card,body.mob-dark .sa-kpi{box-shadow:none}
+
+/* Brand mark */
+.brand-row{display:flex;align-items:center;gap:10px}
+.gy-mark{flex-shrink:0;display:block}
+
+/* Figure cards: soft corner shape + coloured icon tile by position */
+.dash-stat,.sa-kpi,.fin-stat-card,.wel-stat,.mgr-stat,.proj-stat,.mtg-stat,.mp-bal-card{position:relative;overflow:hidden}
+.dash-stat::after,.sa-kpi::after,.fin-stat-card::after,.wel-stat::after,.mgr-stat::after,.proj-stat::after,.mtg-stat::after,.mp-bal-card::after{
+  content:'';position:absolute;right:-38px;bottom:-46px;width:130px;height:130px;border-radius:50%;
+  background:var(--tile-tint,var(--teal-pale));opacity:.65;pointer-events:none}
+:is(.dash-stats,.stats-row,.sa-kpi-grid,.fin-stats,.wel-stats,.mgr-stats,.proj-stats,.mtg-stats,.mp-balances) > :nth-child(4n+1){--tile:var(--teal);--tile-tint:var(--teal-pale)}
+:is(.dash-stats,.stats-row,.sa-kpi-grid,.fin-stats,.wel-stats,.mgr-stats,.proj-stats,.mtg-stats,.mp-balances) > :nth-child(4n+2){--tile:var(--maroon);--tile-tint:var(--maroon-pale)}
+:is(.dash-stats,.stats-row,.sa-kpi-grid,.fin-stats,.wel-stats,.mgr-stats,.proj-stats,.mtg-stats,.mp-balances) > :nth-child(4n+3){--tile:var(--gold-brand);--tile-tint:var(--gold-pale)}
+:is(.dash-stats,.stats-row,.sa-kpi-grid,.fin-stats,.wel-stats,.mgr-stats,.proj-stats,.mtg-stats,.mp-balances) > :nth-child(4n+4){--tile:var(--navy-lt);--tile-tint:var(--navy-pale)}
+.ds-stat-icon{background:var(--tile-tint,var(--surface-2));color:var(--tile,var(--ink-soft))}
+.dash-stat > *,.sa-kpi > *{position:relative;z-index:1}
+body.mob-dark{--gold-pale:#33280f}
+
+/* Overview: the first figure card (account balance) is the brand card */
+.stats-row > .dash-stat:first-child{background:linear-gradient(135deg,#7a0a2a 0%,#800020 40%,#0f6e56 120%);border-color:transparent;color:#fff}
+.stats-row > .dash-stat:first-child::after{background:rgba(255,255,255,.08);opacity:1;width:170px;height:170px;right:-50px;bottom:-70px}
+.stats-row > .dash-stat:first-child .stat-label,.stats-row > .dash-stat:first-child .stat-meta,.stats-row > .dash-stat:first-child .stat-meta *{color:rgba(255,255,255,.82) !important}
+.stats-row > .dash-stat:first-child .stat-value{color:#fff}
+.stats-row > .dash-stat:first-child .ds-stat-icon{background:rgba(255,255,255,.14);color:#fff}
+.stats-row > .dash-stat:first-child #dash-balance-bar{background:#9fe1cb !important}
+
+/* Superadmin overview: first KPI gets the brand card treatment too */
+.sa-kpi-grid > .sa-kpi:first-child{background:linear-gradient(135deg,#7a0a2a 0%,#800020 40%,#0f6e56 120%);border-color:transparent}
+.sa-kpi-grid > .sa-kpi:first-child .sa-kpi-label,.sa-kpi-grid > .sa-kpi:first-child .sa-kpi-sub{color:rgba(255,255,255,.82)}
+.sa-kpi-grid > .sa-kpi:first-child .sa-kpi-value{color:#fff}
+.sa-kpi-grid > .sa-kpi:first-child::after{background:rgba(255,255,255,.08);opacity:1}
+
+/* Sign-in: livelier brand panel (maroon into the logo's teal, gold glow) */
+.auth-left{background:linear-gradient(150deg,#4a0013 0%,#800020 42%,#5a0f2a 62%,#0d4a38 100%) !important;position:relative;overflow:hidden}
+.al-glow{position:absolute;border-radius:50%;filter:blur(60px);pointer-events:none}
+.al-glow-1{width:420px;height:420px;right:-120px;top:-120px;background:rgba(224,184,74,.28)}
+.al-glow-2{width:460px;height:460px;left:-160px;bottom:-180px;background:rgba(29,158,117,.35)}
+.auth-left::before{content:'';display:block !important;position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1px);background-size:22px 22px;pointer-events:none}
+.auth-left-inner,.auth-left-footer{position:relative;z-index:1}
+.al-name span{color:#e0b84a}
+.al-points li .gy-icon{color:#e0b84a}
+.al-lede,.al-points li{color:#f3dde3}
+.al-preview{box-shadow:0 30px 70px rgba(20,0,8,.45)}
+.auth-mobile-brand .al-name{color:var(--ink)}
+.auth-mobile-brand .al-name span{color:var(--gold-brand)}
+/* The sidebar collapse button must never show over the sign-in screen */
+body:has(#auth-screen:not([style*="display: none"]):not([style*="display:none"])) .sidebar-toggle{display:none !important}
+.stats-row > .dash-stat:first-child div:has(> #dash-balance-bar){background:rgba(255,255,255,.22) !important;height:4px !important}
