@@ -3522,3 +3522,46 @@ body.mob-dark{--gold-pale:#33280f}
 /* The sidebar collapse button must never show over the sign-in screen */
 body:has(#auth-screen:not([style*="display: none"]):not([style*="display:none"])) .sidebar-toggle{display:none !important}
 .stats-row > .dash-stat:first-child div:has(> #dash-balance-bar){background:rgba(255,255,255,.22) !important;height:4px !important}
+
+/* ════════════════════════════════════════════════════════════════════
+   PHONE FIXES (phase 5b) - stop pages being wider than the screen, and
+   stop floating controls covering content. The full phone redesign
+   follows the approved canvas mockups.
+   ════════════════════════════════════════════════════════════════════ */
+@media(max-width:768px){
+  html,body{max-width:100%;overflow-x:hidden;overflow-x:clip}
+  .main{min-width:0;max-width:100vw;overflow-x:hidden;overflow-x:clip}
+  .content,.page{min-width:0;max-width:100%;box-sizing:border-box}
+  .content{padding:16px 16px 110px}
+  body.admin-mob-active .content,body.finance-mob-active .content{padding:0 0 96px !important}
+  /* Every grid and row collapses instead of pushing the page sideways */
+  .grid-2,.grid-3,.sa-chart-grid,.sa-kpi-grid,.od-figures{grid-template-columns:minmax(0,1fr) !important}
+  .stats-row,.fin-stats,.wel-stats,.mgr-stats,.proj-stats,.mtg-stats,.mp-balances,.md-figures{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
+  .form-row{grid-template-columns:minmax(0,1fr) !important;display:grid}
+  .card,.stat-card,.fin-score-main,.fin-score-item{min-width:0}
+  .table-wrap,.sa-table-scroll,.card > table{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+  table{max-width:none}
+  /* Tab rows scroll sideways inside themselves */
+  .fin-tabs,.mgr-tabs,.tabs,.fin-sub-tabs,.fin-mob-tabs,.ds-segmented,#msg-recipient-pills{flex-wrap:nowrap !important;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;max-width:100%}
+  .fin-tabs::-webkit-scrollbar,.mgr-tabs::-webkit-scrollbar,.tabs::-webkit-scrollbar{display:none}
+  .fin-tab,.mgr-tab,.tab{flex-shrink:0}
+  .fin-tabs .fin-tab:not(.record) + .fin-tab.record{margin-left:0}
+  /* Page headers: actions wrap under the title, full width */
+  .ds-page-head,.section-header,.fin-hero,.wel-hero,.mgr-hero,.proj-hero,.mtg-hero,.msg-hero{flex-direction:column;align-items:stretch;gap:12px}
+  .ds-page-actions,.fin-hero-controls{width:100%}
+  .ds-page-actions .btn,.fin-hero-controls .btn{flex:1}
+  .section-header > .btn{width:100%}
+  /* Mobile home shells never wider than the screen */
+  #mob-home-shell,#adm-mob-shell,.mh-body,#fin-mob-body{max-width:100vw;overflow-x:hidden}
+  .mob-txn-item,.mh-body > *{min-width:0}
+  /* The bottom bar holds "More", so the side pull-tab is not needed */
+  #sidebar-pull-tab{display:none !important}
+  /* Floating buttons sit above the bottom bar, never on it */
+  #taya-fab{bottom:calc(84px + env(safe-area-inset-bottom,0px)) !important;right:14px !important}
+  #taya-fab .taya-fab-btn{width:48px;height:48px}
+  #support-fab{bottom:calc(84px + env(safe-area-inset-bottom,0px)) !important;right:14px !important}
+  #dash-monthly-chart,#adm-monthly-chart{padding-top:18px}
+}
+.adm-mob-graph-title{font-size:15px;font-weight:800}
+.adm-mob-graph-sub{font-size:12.5px;margin-bottom:22px}
+.adm-mob-bars{padding-top:6px;overflow:visible}
