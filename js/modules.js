@@ -1786,9 +1786,9 @@ async function loadMGRCycleDetail(roundId) {
         <span class="mgr-method-pill ${methodClass}">${methodLabel}</span>
         <span class="badge ${r.status === 'active' ? 'badge-green' : 'badge-grey'}">${r.status}</span>
         ${r.status === 'active'
-          ? `<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="closeMGRCycle('${r.id}','${r.name.replace(/'/g,"&apos;")}')">Close Cycle</button>`
-          : `<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="reopenMGRCycle('${r.id}','${r.name.replace(/'/g,"&apos;")}')">Reopen Cycle</button>
-             <button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteRound('${r.id}','${r.name.replace(/'/g,"&apos;")}')">Delete Cycle</button>`}
+          ? `<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="closeMGRCycle('${r.id}','${r.name.replace(/'/g,"&apos;")}')">Close cycle</button>`
+          : `<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="reopenMGRCycle('${r.id}','${r.name.replace(/'/g,"&apos;")}')">Reopen cycle</button>
+             <button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteRound('${r.id}','${r.name.replace(/'/g,"&apos;")}')">Delete cycle</button>`}
       </div>
     </div>
     <div class="slot-grid">${slotCards || '<div style="padding:1rem;color:var(--ink-faint);font-size:.8rem">No members in this cycle yet</div>'}</div>
@@ -2531,9 +2531,9 @@ async function loadTBOverview(poolId) {
         <div style="display:flex;gap:.5rem;flex-wrap:wrap">
           <span class="badge ${pool.status==='active'?'badge-green':'badge-grey'}" style="font-size:.62rem">${(pool.status||'active').toUpperCase()}</span>
           ${pool.status === 'active'
-            ? `<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="closeTBPool('${pool.id}','${h(pool.name)}')">Close Pool</button>`
-            : `<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="reopenTBPool('${pool.id}','${h(pool.name)}')">Reopen Pool</button>
-               <button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteTBPool('${pool.id}','${h(pool.name)}')">Delete Pool</button>`}
+            ? `<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="closeTBPool('${pool.id}','${h(pool.name)}')">Close pool</button>`
+            : `<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="reopenTBPool('${pool.id}','${h(pool.name)}')">Reopen pool</button>
+               <button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteTBPool('${pool.id}','${h(pool.name)}')">Delete pool</button>`}
         </div>
       </div>
     </div>
@@ -2561,7 +2561,7 @@ async function loadTBOverview(poolId) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
       <!-- Member contribution status -->
       <div class="card">
-        <div class="card-header"><div class="card-title">Member Contributions</div><div class="card-sub">${poolMemberDetails.length} in this pool</div></div>
+        <div class="card-header"><div class="card-title">Member contributions</div><div class="card-sub">${poolMemberDetails.length} in this pool</div></div>
         <div style="padding:.5rem 1rem 1rem">
           ${poolMemberDetails.length ? poolMemberDetails.map(m => {
             const total = contribByMember[m.id] || 0;
@@ -2598,7 +2598,7 @@ async function loadTBOverview(poolId) {
             <div class="loan-progress"><div class="loan-progress-fill" style="width:${pct}%"></div></div>
             <div style="display:flex;justify-content:space-between;font-size:.62rem;color:var(--ink-faint);margin-top:.2rem">
               <span>${pct}% repaid</span>
-              <button class="btn btn-ghost btn-sm" style="font-size:.62rem;padding:.1rem .4rem" onclick="markLoanRepaid('${l.id}')">Mark Repaid</button>
+              <button class="btn btn-ghost btn-sm" style="font-size:.62rem;padding:.1rem .4rem" onclick="markLoanRepaid('${l.id}')">Mark repaid</button>
             </div>
           </div>`;
         }).join('') : '<div style="color:var(--ink-faint);font-size:.82rem;padding:.5rem">No active loans in this pool</div>'}
@@ -2607,7 +2607,7 @@ async function loadTBOverview(poolId) {
 
     <!-- Recent Contributions Table -->
     <div class="card">
-      <div class="card-header"><div class="card-title">Contribution History</div><div class="card-sub">${contribs.length} records</div></div>
+      <div class="card-header"><div class="card-title">Contribution history</div><div class="card-sub">${contribs.length} records</div></div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Date</th><th>Member</th><th>Amount</th><th>M-Pesa Ref</th></tr></thead>
@@ -2652,7 +2652,7 @@ async function loadTBDetailLoans(poolId) {
         <td><strong style="color:var(--maroon)">Ksh ${outstanding.toLocaleString()}</strong></td>
         <td><span class="badge ${badgeClass}">${overdue?'Overdue':l.status}</span></td>
         <td><button class="btn btn-secondary btn-sm" style="font-size:.68rem"
-          onclick="markLoanRepaid('${l.id}')">Mark Repaid</button></td>
+          onclick="markLoanRepaid('${l.id}')">Mark repaid</button></td>
       </tr>`;
     }).join('')}</tbody></table></div>`;
 }

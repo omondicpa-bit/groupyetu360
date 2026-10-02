@@ -1520,7 +1520,7 @@ async function showEmailConfirmedScreen() {
         </div>
       </div>
       <button class="btn btn-primary" onclick="switchAuthTab('login')" style="width:100%;margin-top:.75rem">
-        Sign In →
+        Sign in →
       </button>`;
   }
   const hEl = document.getElementById('auth-form-heading');
@@ -1544,7 +1544,7 @@ function showPasswordSetConfirmedScreen() {
         </div>
       </div>
       <button class="btn btn-primary" onclick="switchAuthTab('login')" style="width:100%;margin-top:.75rem">
-        Sign In →
+        Sign in →
       </button>`;
   }
   const hEl = document.getElementById('auth-form-heading');
@@ -1729,7 +1729,7 @@ function updateTopbarActions(page) {
   if (memberPages.includes(page) || role === 'member') {
     topbar.innerHTML = `
       <span style="font-size:.75rem;color:var(--ink-soft);font-weight:500;padding:.35rem .75rem;background:var(--surface);border:1px solid var(--border);border-radius:4px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle" title="${currentOrg?.name||''}">${(currentOrg?.name||'').replace(/\b\w/g,c=>c.toUpperCase()).toLowerCase().replace(/\b\w/g,c=>c.toUpperCase())}</span>
-      <button class="topbar-btn" onclick="openMemberPaymentModal();showModal('memberPayment')" style="margin-left:.75rem">Make Payment</button>`;
+      <button class="topbar-btn" onclick="openMemberPaymentModal();showModal('memberPayment')" style="margin-left:.75rem">Make payment</button>`;
     return;
   }
 
@@ -1748,7 +1748,7 @@ function updateTopbarActions(page) {
         break;
       case 'meetings':
         topbar.innerHTML = `
-          <button class="topbar-btn outline" onclick="sendMeetingReminders()">Send Reminders</button>
+          <button class="topbar-btn outline" onclick="sendMeetingReminders()">Send reminders</button>
           <button class="topbar-btn" onclick="showModal('scheduleMeeting')">+ Schedule Meeting</button>`;
         break;
       case 'welfare':

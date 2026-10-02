@@ -1133,7 +1133,7 @@ async function saViewUser(userId) {
       `<div style="padding:1rem;text-align:center;color:var(--ink-faint);font-size:.82rem">
         No group memberships found.
         <div style="margin-top:.5rem">
-          <button class="btn btn-secondary btn-sm" onclick="saResendPortalInvite('${u.email}','${u.full_name||''}')">Resend Portal Invite</button>
+          <button class="btn btn-secondary btn-sm" onclick="saResendPortalInvite('${u.email}','${u.full_name||''}')">Resend portal invite</button>
         </div>
       </div>`
     );
@@ -1641,9 +1641,9 @@ async function loadODFinance() {
   const cts = ctRes.data||[];
   const totalTxn = txns.reduce((s,t)=>s+Number(t.amount||0),0);
   if (statsEl) statsEl.innerHTML = `
-    <div class="stat-card"><div class="stat-label">Total Transactions</div><div class="stat-value">${txns.length}</div></div>
-    <div class="stat-card green"><div class="stat-label">Total Recorded</div><div class="stat-value" style="font-size:1.1rem">Ksh ${totalTxn.toLocaleString()}</div></div>
-    <div class="stat-card"><div class="stat-label">Contribution Types</div><div class="stat-value">${cts.length}</div></div>`;
+    <div class="stat-card"><div class="stat-label">Total transactions</div><div class="stat-value">${txns.length}</div></div>
+    <div class="stat-card green"><div class="stat-label">Total recorded</div><div class="stat-value" style="font-size:1.1rem">Ksh ${totalTxn.toLocaleString()}</div></div>
+    <div class="stat-card"><div class="stat-label">Contribution types</div><div class="stat-value">${cts.length}</div></div>`;
   if (txnEl) txnEl.innerHTML = txns.length ? `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Member</th><th>Type</th><th>Amount</th></tr></thead><tbody>
     ${txns.map(t=>`<tr><td style="font-size:.72rem;color:var(--ink-faint)">${t.transaction_date||t.created_at?.split('T')[0]||'—'}</td><td style="font-size:.8rem">${h(t.members?.full_name)||'—'}</td><td style="font-size:.75rem">${h(t.contribution_types?.name)||'Payment'}</td><td style="font-weight:600">Ksh ${Number(t.amount).toLocaleString()}</td></tr>`).join('')}
     </tbody></table></div>` : '<div style="padding:1.5rem;text-align:center;color:var(--ink-faint);font-size:.82rem">No transactions</div>';
@@ -3057,10 +3057,10 @@ async function loadCollectionRequestsQueue() {
             ℹ️ Create this org's sub-account on Paystack's dashboard manually, then paste the code below - pre-provisioning it means switching to it later is a config change, not a new setup step. SasaPay needs no reference here at all - it's a pooled wallet shared by every org.
           </div>
           <div class="form-row">
-            <div class="form-group"><label class="form-label">Paystack Subaccount Code</label><input class="form-input" id="sa-req-paystack-${r.id}" placeholder="ACCT_…"/></div>
+            <div class="form-group"><label class="form-label">Paystack subaccount code</label><input class="form-input" id="sa-req-paystack-${r.id}" placeholder="ACCT_…"/></div>
           </div>
           <div class="form-row single">
-            <div class="form-group"><label class="form-label">Active Provider (default collection route)</label>
+            <div class="form-group"><label class="form-label">Active provider (default collection route)</label>
               <select class="form-select" id="sa-req-active-${r.id}">
                 <option value="paystack">Paystack</option>
                 <option value="sasapay">SasaPay</option>
@@ -3068,7 +3068,7 @@ async function loadCollectionRequestsQueue() {
             </div>
           </div>
           <div style="display:flex;gap:.5rem;margin-top:.6rem">
-            <button class="btn btn-primary btn-sm" onclick="approveCollectionRequest('${r.id}','${r.org_id}')">Approve &amp; Activate</button>
+            <button class="btn btn-primary btn-sm" onclick="approveCollectionRequest('${r.id}','${r.org_id}')">Approve &amp; activate</button>
             <button class="btn btn-secondary btn-sm" onclick="declineCollectionRequest('${r.id}')">Decline</button>
           </div>
         </div>
@@ -3582,7 +3582,7 @@ async function loadSASettlements() {
               <div style="font-weight:700;font-size:.9rem;font-variant-numeric:tabular-nums">Ksh ${Number(b.amount).toLocaleString()}</div>
               ${settlementStatusPill(b.status)}
               <button class="btn btn-secondary btn-sm" onclick="viewSettlementDetails('${b.org_id}','${b.provider}','${b.settlement_date}','${b.line_type}','${(b.organisations?.name||'').replace(/'/g,"")}','${b.round_slot_id||''}')">Details</button>
-              ${b.status === 'pending' ? `<button class="btn btn-primary btn-sm" onclick="openMarkPaidForm('${b.id}')">Mark Paid</button>` : ''}
+              ${b.status === 'pending' ? `<button class="btn btn-primary btn-sm" onclick="openMarkPaidForm('${b.id}')">Mark paid</button>` : ''}
             </div>
           </div>`).join('')}
       </div>`;
@@ -3740,7 +3740,7 @@ async function viewSettlementDetails(orgId, provider, date, lineType, orgName, r
   }).join('');
 
   const modalHtml = `
-    <div style="text-align:center;padding:1.5rem 1rem 1.25rem;background:linear-gradient(135deg,var(--maroon-pale,#fdf0f3),#fff);border-radius:10px;margin-bottom:1.25rem">
+    <div style="text-align:center;padding:1.5rem 1rem 1.25rem;background:var(--surface-1);border-radius:10px;margin-bottom:1.25rem">
       <div style="font-size:.72rem;font-weight:700;color:var(--ink-faint);margin-bottom:.3rem">${(orgName || 'Organisation').replace(/</g,'')} · ${new Date(date).toLocaleDateString('en-KE',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</div>
       <div style="font-family:var(--font);font-size:2.1rem;font-weight:700;color:var(--maroon)">Ksh ${total.toLocaleString()}</div>
       <div style="margin-top:.5rem;display:flex;justify-content:center;gap:.5rem">
@@ -3940,7 +3940,7 @@ async function loadOrgSettlements() {
                 <div style="font-weight:600;font-size:.85rem">${(ev.event_type||'Welfare Event').replace(/</g,'')}</div>
                 <div style="font-size:.72rem;color:var(--ink-faint)">Ksh ${collectedByEvent[ev.id].toLocaleString()} collected so far</div>
               </div>
-              <button class="btn btn-primary btn-sm" onclick="requestWelfareSettlement('${ev.id}')">Request Settlement</button>
+              <button class="btn btn-primary btn-sm" onclick="requestWelfareSettlement('${ev.id}')">Request settlement</button>
             </div>`).join('')}
         </div>`;
       }

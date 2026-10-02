@@ -248,9 +248,9 @@ async function loadMyProfile() {
     if (chipsEl) {
       const statusClass = myRecord.status==='active'?'teal':myRecord.status==='arrears'?'gold':'';
       chipsEl.innerHTML = `
-        <div class="mp-hero-chip ${statusClass}">${myRecord.status==='active'?'Active':myRecord.status==='arrears'?'Arrears':'Inactive'}</div>
+        <div class="mp-hero-chip ${statusClass}">${myRecord.status==='active'?'Active':myRecord.status==='arrears'?'Behind on payments':'Inactive'}</div>
         <div class="mp-hero-chip">#${myRecord.member_number||'—'}</div>
-        ${myRecord.registration_paid?'<div class="mp-hero-chip teal">Registered</div>':'<div class="mp-hero-chip gold">Unregistered</div>'}
+        ${myRecord.registration_paid?'<div class="mp-hero-chip teal">Registered</div>':'<div class="mp-hero-chip gold">Not registered</div>'}
       `;
     }
     // Details table — hide Savings/mo if org has no savings
@@ -481,7 +481,7 @@ async function loadMyContributions() {
       <div style="font-size:2.5rem;margin-bottom:.75rem">₭</div>
       <div style="font-size:.9rem;font-weight:600;color:var(--ink);margin-bottom:.35rem">No payments recorded yet</div>
       <div style="font-size:.8rem;color:var(--ink-faint);margin-bottom:1rem">Your payment history will appear here once your admin records them.</div>
-      <button class="btn btn-primary btn-sm" onclick="openMemberPaymentModal();showModal('memberPayment')">Make a Payment →</button>
+      <button class="btn btn-primary btn-sm" onclick="openMemberPaymentModal();showModal('memberPayment')">Make a payment →</button>
     </div>`;
     return;
   }
@@ -539,7 +539,7 @@ function showUpgradePrompt(page){
   let el=document.getElementById('page-upgrade-prompt');
   if(!el){el=document.createElement('div');el.id='page-upgrade-prompt';el.className='page';document.querySelector('.content')?.appendChild(el);}
   el.className='page active';
-  el.innerHTML=`<div style="max-width:480px;margin:3rem auto;text-align:center;padding:0 1.25rem"><div style="width:72px;height:72px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;margin:0 auto 1.1rem;font-size:2rem">🔒</div><div style="font-family:var(--font);font-size:1.7rem;font-weight:700;color:var(--maroon);margin-bottom:.4rem">${info.label}</div><p style="font-size:.88rem;color:var(--ink-faint);line-height:1.75;margin-bottom:1.5rem">Not available on your <strong>${cur.charAt(0).toUpperCase()+cur.slice(1)}</strong> plan. Upgrade to <strong style="color:var(--teal)">${req}</strong> to unlock.</p><div style="display:flex;gap:.75rem;justify-content:center"><button class="btn btn-primary" onclick="showPage('billing')" style="padding:.72rem 1.5rem">Upgrade Now →</button><button class="btn btn-secondary" onclick="showPage('dashboard')" style="padding:.72rem 1.25rem">← Dashboard</button></div><div style="margin-top:1rem;font-size:.72rem;color:var(--ink-faint)">Basic plan from Ksh 3,000/year · <a href="https://wa.me/254702903544" style="color:var(--teal)" target="_blank">WhatsApp us</a></div></div>`;
+  el.innerHTML=`<div style="max-width:480px;margin:3rem auto;text-align:center;padding:0 1.25rem"><div style="width:72px;height:72px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;margin:0 auto 1.1rem;font-size:2rem">🔒</div><div style="font-family:var(--font);font-size:1.7rem;font-weight:700;color:var(--maroon);margin-bottom:.4rem">${info.label}</div><p style="font-size:.88rem;color:var(--ink-faint);line-height:1.75;margin-bottom:1.5rem">Not available on your <strong>${cur.charAt(0).toUpperCase()+cur.slice(1)}</strong> plan. Upgrade to <strong style="color:var(--teal)">${req}</strong> to unlock.</p><div style="display:flex;gap:.75rem;justify-content:center"><button class="btn btn-primary" onclick="showPage('billing')" style="padding:.72rem 1.5rem">Upgrade now →</button><button class="btn btn-secondary" onclick="showPage('dashboard')" style="padding:.72rem 1.25rem">← Dashboard</button></div><div style="margin-top:1rem;font-size:.72rem;color:var(--ink-faint)">Basic plan from Ksh 3,000/year · <a href="https://wa.me/254702903544" style="color:var(--teal)" target="_blank">WhatsApp us</a></div></div>`;
   document.getElementById('page-title').textContent='Upgrade Required';
 }
 async function checkSubscriptionAccess() {
@@ -1363,7 +1363,7 @@ async function loadMGRNoticeCard(memberId) {
     noticeEl.style.display = 'block';
     const parts = [];
     if (receiving.length) {
-      parts.push(`<div style="display:flex;align-items:center;gap:.75rem;padding:.7rem 1rem;background:linear-gradient(135deg,rgba(15,110,86,.08),var(--surface));border:1px solid var(--teal);border-radius:8px;margin-bottom:.5rem">
+      parts.push(`<div style="display:flex;align-items:center;gap:.75rem;padding:.7rem 1rem;background:var(--teal-pale);border:1px solid var(--teal);border-radius:8px;margin-bottom:.5rem">
         <span style="display:flex;justify-content:center;color:var(--ink-faint)">${gyIcon('check', 24)}</span>
         <div>
           <div style="font-size:.88rem;font-weight:700;color:var(--teal-dk)">You receive the pot this round!</div>
@@ -1388,7 +1388,7 @@ async function loadMGRNoticeCard(memberId) {
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div style="font-size:.9rem;font-weight:700;color:var(--maroon)">Ksh ${totalOwed.toLocaleString()}</div>
-          <button class="btn btn-primary btn-sm" onclick="openMemberPaymentModal();showModal('memberPayment')" style="font-size:.65rem;margin-top:.3rem;padding:.25rem .6rem">Pay Now →</button>
+          <button class="btn btn-primary btn-sm" onclick="openMemberPaymentModal();showModal('memberPayment')" style="font-size:.65rem;margin-top:.3rem;padding:.25rem .6rem">Pay now →</button>
         </div>
       </div>`);
     }
@@ -1460,7 +1460,7 @@ async function loadMemberMGRObligations(memberId, sectionId, listId) {
       if (o.isReceiver) {
         // This member is the current receiver — show that they're due to receive
         const { data: paidCount } = { data: null }; // simplified — show receiver info
-        return `<div style="display:flex;align-items:center;gap:.75rem;padding:.65rem .85rem;background:linear-gradient(135deg,rgba(15,110,86,.08),var(--surface));border:1px solid var(--teal-mid,#0f6e56);border-left:3px solid var(--teal);border-radius:6px">
+        return `<div style="display:flex;align-items:center;gap:.75rem;padding:.65rem .85rem;background:var(--teal-pale);border:1px solid var(--teal-mid,#0f6e56);border-left:3px solid var(--teal);border-radius:6px">
           <div style="display:flex;justify-content:center;color:var(--ink-faint)">${gyIcon('check', 24)}</div>
           <div style="flex:1">
             <div style="font-size:.85rem;font-weight:700;color:var(--teal-dk)">You are the current receiver!</div>

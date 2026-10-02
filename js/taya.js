@@ -812,7 +812,7 @@ function tayaFinalizeDraftCard(mode, cardId, text) {
   };
   const isMessagingMode = mode === 'arrears_message' || mode === 'send_message';
   const sendNowBtn = isMessagingMode && typeof canDo === 'function' && canDo('sendSms')
-    ? `<button class="taya-btn-primary" style="background:var(--teal,#0f6e56)" onclick="tayaSendNow('${cardId}')">Send Now →</button>`
+    ? `<button class="taya-btn-primary" style="background:var(--teal,#0f6e56)" onclick="tayaSendNow('${cardId}')">Send now →</button>`
     : '';
   const actionsEl = document.getElementById(cardId + '-actions');
   if (!actionsEl) return;

@@ -169,7 +169,7 @@ async function loadDashboard() {
       : `<div style="padding:2rem 1.25rem;text-align:center">
           <div style="font-size:2rem;margin-bottom:.5rem">₭</div>
           <div style="font-size:.82rem;color:var(--ink-faint);margin-bottom:.75rem">No payments recorded yet</div>
-          <button class="btn btn-primary btn-sm" onclick="showPage('finance')">Record First Payment</button>
+          <button class="btn btn-primary btn-sm" onclick="showPage('finance')">Record first payment</button>
         </div>`;
     }).catch(e => console.error('[GY360] recent txns fetch:', e));
 
@@ -313,7 +313,7 @@ async function loadDashboard() {
         nmEl.innerHTML = `<div style="text-align:center;padding:.5rem 0">
           <div style="display:flex;justify-content:center;color:var(--ink-faint);margin-bottom:.4rem">${gyIcon('meetings', 26)}</div>
           <div style="font-size:.78rem;color:var(--ink-faint);margin-bottom:.75rem">No meetings scheduled yet</div>
-          <button class="btn btn-primary btn-sm" onclick="showModal('scheduleMeeting')">Schedule a Meeting</button>
+          <button class="btn btn-primary btn-sm" onclick="showModal('scheduleMeeting')">Schedule a meeting</button>
         </div>`;
       }
     }).catch(e => console.error('[GY360] meetings fetch:', e));
@@ -363,7 +363,7 @@ async function loadCollectionActivationCard(orgId) {
 
     const org = currentOrg || {};
     cardEl.innerHTML = `
-      <div style="background:linear-gradient(135deg,var(--maroon-pale),#fff);border:1px solid var(--maroon-muted);border-radius:.6rem;padding:1.1rem">
+      <div style="background:var(--surface-1);border:1px solid var(--maroon-muted);border-radius:.6rem;padding:1.1rem">
         <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem">
           <span style="color:var(--maroon);display:flex">${gyIcon('phone', 20)}</span>
           <div style="font-weight:700;font-size:.9rem;color:var(--maroon)">Enable Instant M-Pesa Collection</div>
@@ -373,7 +373,7 @@ async function loadCollectionActivationCard(orgId) {
         </div>
         <div class="form-row single" style="margin-bottom:.6rem">
           <div class="form-group">
-            <label class="form-label">Disbursement Method</label>
+            <label class="form-label">Disbursement method</label>
             <select class="form-select" id="dc-disb-method" onchange="toggleDisbursementMethodFields()">
               <option value="">Select…</option>
               <option value="bank" ${org.disbursement_method==='bank'?'selected':''}>Bank Account</option>
@@ -383,19 +383,19 @@ async function loadCollectionActivationCard(orgId) {
         </div>
         <div id="dc-disb-bank-fields" style="display:${org.disbursement_method==='bank'?'block':'none'}">
           <div class="form-row">
-            <div class="form-group"><label class="form-label">Bank Name</label><input class="form-input" id="dc-disb-bank-name" value="${org.disbursement_bank_name||''}" oninput="updateRequestCollectionButton()"/></div>
-            <div class="form-group"><label class="form-label">Account Number</label><input class="form-input" id="dc-disb-bank-account" value="${org.disbursement_bank_account_number||''}" oninput="updateRequestCollectionButton()"/></div>
+            <div class="form-group"><label class="form-label">Bank name</label><input class="form-input" id="dc-disb-bank-name" value="${org.disbursement_bank_name||''}" oninput="updateRequestCollectionButton()"/></div>
+            <div class="form-group"><label class="form-label">Account number</label><input class="form-input" id="dc-disb-bank-account" value="${org.disbursement_bank_account_number||''}" oninput="updateRequestCollectionButton()"/></div>
           </div>
           <div class="form-row single" style="margin-bottom:.6rem">
-            <div class="form-group"><label class="form-label">Account Name</label><input class="form-input" id="dc-disb-bank-account-name" value="${org.disbursement_bank_account_name||''}" oninput="updateRequestCollectionButton()"/></div>
+            <div class="form-group"><label class="form-label">Account name</label><input class="form-input" id="dc-disb-bank-account-name" value="${org.disbursement_bank_account_name||''}" oninput="updateRequestCollectionButton()"/></div>
           </div>
         </div>
         <div id="dc-disb-mpesa-fields" style="display:${org.disbursement_method==='mpesa'?'block':'none'};margin-bottom:.6rem">
           <div class="form-row single">
-            <div class="form-group"><label class="form-label">M-Pesa Number</label><input class="form-input" id="dc-disb-mpesa" placeholder="07xxxxxxxx" value="${org.disbursement_mpesa_number||''}" oninput="updateRequestCollectionButton()"/></div>
+            <div class="form-group"><label class="form-label">M-Pesa number</label><input class="form-input" id="dc-disb-mpesa" placeholder="07xxxxxxxx" value="${org.disbursement_mpesa_number||''}" oninput="updateRequestCollectionButton()"/></div>
           </div>
         </div>
-        <button class="btn btn-primary" id="dc-request-btn" disabled onclick="requestCollectionActivation()">Request Automated Collection</button>
+        <button class="btn btn-primary" id="dc-request-btn" disabled onclick="requestCollectionActivation()">Request automated collection</button>
       </div>`;
 
     updateRequestCollectionButton();

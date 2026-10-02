@@ -3397,3 +3397,49 @@ body.mob-dark .theme-toggle .gy-moon{display:none}body.mob-dark .theme-toggle .g
   .aq-pay-top{flex-direction:column}
   .aq-amount{align-items:flex-start;flex-direction:row;gap:8px}
 }
+
+/* ── Member portal pages (design system v1, phase 4a) ── */
+.mp-hero{background:var(--surface) !important;border:1px solid var(--border);border-radius:var(--radius-xl);padding:24px;margin-bottom:16px;animation:none}
+.mp-hero::after,.mp-hero-ring1,.mp-hero-ring2{display:none !important}
+.mp-hero-avatar{width:64px;height:64px;background:var(--maroon-pale);color:var(--maroon);font-size:22px;font-weight:800;box-shadow:none;animation:none;margin-bottom:0}
+.mp-hero-name{font-size:26px;font-weight:800;letter-spacing:-.02em;color:var(--ink);line-height:1.15;animation:none;margin-bottom:4px}
+.mp-hero-org{font-size:14px;color:var(--ink-faint);margin-bottom:12px;animation:none}
+.mp-hero-chips{animation:none;gap:6px}
+.mp-hero-chip{background:var(--surface-2);border:1px solid var(--border);color:var(--ink-soft);font-size:12px;font-weight:700;padding:3px 10px}
+.mp-hero-chip.teal{background:var(--teal-pale);border-color:transparent;color:var(--teal-dk)}
+.mp-hero-chip.gold{background:var(--warning-pale);border-color:transparent;color:var(--warning)}
+.mp-hero-chip.active{background:var(--teal-pale);border-color:transparent;color:var(--teal-dk)}
+.mp-hero-chip.arrears{background:var(--warning-pale);border-color:transparent;color:var(--warning)}
+.mp-balances{gap:16px;margin-bottom:16px}
+.mp-bal-card{border-radius:var(--radius-lg);padding:18px 20px;animation:none}
+.mp-bal-card::before{display:none}
+.mp-bal-label{font-size:12.5px;font-weight:600;color:var(--ink-faint)}
+.mp-bal-value,.mp-bal-card:nth-child(2) .mp-bal-value,.mp-bal-card:nth-child(3) .mp-bal-value{font-size:26px;font-weight:800;letter-spacing:-.02em;color:var(--ink);font-variant-numeric:tabular-nums;animation:none}
+.mp-bal-meta{font-size:12.5px}
+.mp-welfare-alert{background:var(--warning-pale);border:1px solid #f3ddbf;border-left:1px solid #f3ddbf;border-radius:var(--radius-lg);padding:14px 16px;animation:none}
+.mp-alert-red{background:var(--danger-pale);border-color:#efc9cf}
+.mp-alert-title{font-size:14.5px;font-weight:800;color:var(--ink);margin-bottom:4px}
+.mp-pay-box{background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px}
+.mp-pay-paybill{font-size:30px;font-weight:800;letter-spacing:.02em;color:var(--ink);font-variant-numeric:tabular-nums}
+.mp-pay-copy{background:var(--action);border-radius:var(--radius-sm);font-weight:700;font-size:13px;padding:8px 14px}
+.mp-pay-copy:hover{background:var(--action-dk);transform:none}
+.mp-chart-bar{border-radius:4px 4px 0 0}
+.mp-chart-bar.active{background:var(--teal)}
+.mp-chart-val,.mp-chart-labels{font-size:11.5px}
+.mp-tl-item{padding:12px 20px;border-bottom:1px solid var(--border-soft);animation:none}
+.mp-tl-title{font-size:14px;font-weight:700}
+.mp-tl-meta{font-size:12.5px}
+.mp-tl-amt{font-size:14px;font-weight:800;color:var(--teal-dk);font-variant-numeric:tabular-nums}
+.mp-meeting-card,.mp-notice-card{border-radius:var(--radius-lg);border-left:1px solid var(--border);padding:16px 18px;animation:none}
+.mp-meeting-card:hover{box-shadow:var(--shadow-sm);border-color:var(--border-dk)}
+.mp-notice-date{font-size:12.5px;font-weight:600}
+.mp-notice-body{font-size:14px;line-height:1.65}
+.mp-gy-banner{background:var(--surface) !important;border:1px solid var(--border);border-radius:var(--radius-xl);animation:none}
+.mp-gy-banner::before{display:none}
+.mp-gy-venn{display:none}
+.mp-gy-title{color:var(--ink);font-size:17px;font-weight:800}
+.mp-gy-sub{color:var(--ink-faint);font-size:13.5px}
+.mp-gy-feat{background:var(--surface-2);color:var(--ink-soft);border:1px solid var(--border);font-size:12px}
+.mp-gy-link{background:var(--action);border-radius:var(--radius);box-shadow:none;font-size:13.5px;font-weight:700;padding:10px 16px}
+.mp-gy-link:hover{background:var(--action-dk);transform:none}
+@media(max-width:700px){.mp-hero-name{font-size:22px}}
