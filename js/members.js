@@ -92,6 +92,17 @@ async function loadMembers() {
   const counts = { all: allMembers.length, active: 0, arrears: 0, inactive: 0 };
   allMembers.forEach(m => { if (counts[m.status] !== undefined) counts[m.status]++; });
   Object.keys(counts).forEach(k => { const el = document.getElementById('mf-count-' + k); if (el) el.textContent = counts[k]; });
+  Object.keys(counts).forEach(k => { const el = document.getElementById('mem-mob-n-' + k); if (el) el.textContent = counts[k]; });
+  const mobSub = document.getElementById('mem-mob-sub');
+  if (mobSub) mobSub.textContent = `${counts.all} member${counts.all !== 1 ? 's' : ''} · ${counts.active} active`;
+  const mobBehind = document.getElementById('mem-mob-behind');
+  if (mobBehind) {
+    mobBehind.hidden = !(counts.arrears > 0 && canDo('sendSms'));
+    const t = document.getElementById('mem-mob-behind-t');
+    if (t) t.textContent = `${counts.arrears} member${counts.arrears !== 1 ? 's are' : ' is'} behind`;
+  }
+  const mobAdd = document.getElementById('mem-mob-add');
+  if (mobAdd) mobAdd.style.display = canDo('addMember') ? '' : 'none';
   document.getElementById('members-sub').textContent =
     allMembers.length + ' member' + (allMembers.length !== 1 ? 's' : '') + ' · ' + counts.active + ' active';
 
@@ -151,6 +162,30 @@ function applyMemberFilters(q, status) {
   if (countEl) countEl.textContent = list.length + ' of ' + allMembers.length + ' members';
   if (_membersViewMode === 'grid') renderMemberGrid(list);
   else renderMemberList(list);
+  if (window.innerWidth <= 768) renderMemberPhone(list);
+}
+
+// Phone member list (design system v1 phone layer, canvas "Phone app")
+function renderMemberPhone(list) {
+  const el = document.getElementById('mem-mob-list');
+  if (!el) return;
+  document.querySelectorAll('#mem-mob-chips .ph-chip').forEach(c => c.classList.toggle('active', c.dataset.status === _memberStatusFilter));
+  if (!list.length) {
+    el.innerHTML = `<div class="ph-empty">${allMembers.length ? 'No members match' : 'No members yet. Tap + to add your first member.'}</div>`;
+    return;
+  }
+  const fp = orgFinProfile || {};
+  const tag = { active: ['Active', 't-teal'], arrears: ['Behind', 't-gold'], inactive: ['Inactive', 't-grey'], deregistered: ['Removed', 't-grey'] };
+  el.innerHTML = list.map((m, i) => {
+    const bal = (fp.hasShares || fp.hasSavings) ? Number(m.shares_balance || 0) + Number(m.savings_balance || 0) : Number(m.total_contributed || 0);
+    const [label, tone] = tag[m.status] || ['Inactive', 't-grey'];
+    return `<button type="button" class="ph-mrow" onclick="openMemberDetail('${m.id}')">
+      <span class="ph-av ph-av-lg t-${PH_TONES[i % 4]}">${h(phInitials(m.full_name))}</span>
+      <span class="ph-row-text"><span class="ph-row-name">${h(m.full_name)}</span>
+        <span class="ph-mrow-meta"><span class="ph-pill ${tone}">${label}</span><span>${h(m.phone || '')}</span></span></span>
+      <span class="ph-mrow-bal"><span>${bal.toLocaleString()}</span><span>${(fp.hasShares || fp.hasSavings) ? 'balance' : 'paid'}</span></span>
+    </button>`;
+  }).join('');
 }
 
 // List view is the default (design system v1): a calm table that scans
