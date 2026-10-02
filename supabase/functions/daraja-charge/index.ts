@@ -58,14 +58,14 @@ serve(async (req) => {
     if (isContribution) {
       const { data: org, error: orgErr } = await supabase
         .from('organisations')
-        .select('disbursement_method, welfare_disbursement_method, disbursement_verified')
+        .select('disbursement_method, welfare_disbursement_method, disbursement_verified, instant_pay_enabled')
         .eq('id', org_id).maybeSingle();
       if (orgErr || !org) return json({ error: 'Could not load organisation settlement settings.' }, 500);
       // Instant pay only once superadmin has verified where the money goes.
       // Collecting before that would hold members' money with nowhere
       // approved to send it.
-      if (org.disbursement_verified !== true || !org.disbursement_method) {
-        return json({ error: "Instant M-Pesa payments are not yet available for this group. Its M-Pesa account is waiting for approval. Please use 'Report a payment' for now." }, 403);
+      if (org.instant_pay_enabled !== true || org.disbursement_verified !== true || !org.disbursement_method) {
+        return json({ error: "Instant M-Pesa payments are not yet available for this group. It will open once your group's M-Pesa account is approved and switched on. Please use 'Report a payment' for now." }, 403);
       }
 
       const result = validateDarajaContribution(allocations, amount, org);

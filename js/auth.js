@@ -2152,6 +2152,7 @@ function showPage(id) {
   const loaders = { members: loadMembers, finance: loadFinance, meetings: loadMeetings, welfare: loadWelfare, projects: loadProjects, mgr: loadMGR, table_banking: loadTableBanking, messages: loadMessages, settings: ()=>typeof loadSettings==='function'&&loadSettings(), superadmin: ()=>typeof loadSuperAdmin==='function'&&loadSuperAdmin(), sa_org_detail: ()=>{}, sa_members: ()=>typeof loadSAMembers==='function'&&loadSAMembers(), sa_finance: ()=>typeof loadSAFinance==='function'&&loadSAFinance(), sa_organisations: ()=>typeof loadSAOrganisations==='function'&&loadSAOrganisations(), my_profile: ()=>typeof loadMyProfile==='function'&&loadMyProfile(), my_contributions: ()=>typeof loadMyContributions==='function'&&loadMyContributions(), approvals: ()=>typeof loadApprovals==='function'&&loadApprovals(), my_account: ()=>typeof loadMyAccount==='function'&&loadMyAccount(), billing: ()=>typeof loadBilling==='function'&&loadBilling(), support: ()=>typeof loadSupport==='function'&&loadSupport(), sa_billing: ()=>typeof loadSABilling==='function'&&loadSABilling(), sa_support: ()=>typeof loadSASupport==='function'&&loadSASupport(), sa_activity: ()=>typeof loadSAActivity==='function'&&loadSAActivity(), sa_payouts: ()=>typeof loadSAPayouts==='function'&&loadSAPayouts(), my_meetings: ()=>typeof loadMyMeetings==='function'&&loadMyMeetings(), my_notices: ()=>typeof loadMyNotices==='function'&&loadMyNotices(), settlements: ()=>typeof loadOrgSettlements==='function'&&loadOrgSettlements() };
   if (loaders[id]) loaders[id]();
   if (id === 'mob_more') buildMobMore();
+  gyNavTrack(id);
   updateTopbarActions(id);
 }
 
@@ -2198,3 +2199,57 @@ function togglePasswordVisibility(inputId, btn) {
   input.type = show ? 'text' : 'password';
   if (btn) { btn.textContent = show ? 'Hide' : 'Show'; btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password'); }
 }
+
+
+// ════════════════════════════════════════════════════════════════════
+// PHONE BACK BUTTONS
+// The five bottom-bar screens are starting points and have no back button.
+// Every other page gets a back arrow at the left of its title, returning to
+// the page you came from (or More, if you arrived another way).
+// ════════════════════════════════════════════════════════════════════
+const GY_ROOT_PAGES = ['dashboard', 'finance', 'members', 'mob_more', 'my_profile', 'my_contributions', 'my_meetings', 'superadmin', 'sa_organisations', 'sa_payouts'];
+let _gyNavStack = [];
+let _gyNavGoingBack = false;
+
+function gyNavTrack(id) {
+  if (_gyNavGoingBack) { _gyNavGoingBack = false; }
+  else if (_gyNavStack[_gyNavStack.length - 1] !== id) {
+    if (GY_ROOT_PAGES.includes(id)) _gyNavStack = [id];
+    else _gyNavStack.push(id);
+    if (_gyNavStack.length > 20) _gyNavStack = _gyNavStack.slice(-20);
+  }
+  gyEnsureBackButton(id);
+  setTimeout(() => gyEnsureBackButton(id), 60);
+}
+
+function gyGoBack() {
+  _gyNavStack.pop();
+  const prev = _gyNavStack[_gyNavStack.length - 1] || 'mob_more';
+  _gyNavGoingBack = true;
+  showPage(prev);
+}
+
+function gyEnsureBackButton(id) {
+  const page = document.getElementById('page-' + id);
+  if (!page) return;
+  page.querySelectorAll('.gy-back-btn').forEach(b => b.remove());
+  if (window.innerWidth > 768 || GY_ROOT_PAGES.includes(id)) return;
+  const title = [...page.querySelectorAll('.mob-only .mh-title, .mob-only .ph-appbar h1, :scope > .section-header .section-title, :scope > .ds-page-head .ds-page-title, :scope > .fin-hero .fin-hero-title, :scope > .wel-hero .wel-hero-title, :scope > .mgr-hero .mgr-hero-title, :scope > .proj-hero .proj-hero-title, :scope > .mtg-hero .mtg-hero-title, :scope > .msg-hero .msg-hero-title, :scope > .mob-hide > .section-header .section-title, .section-title, .ds-page-title')].find(el => el.offsetParent !== null || el.getClientRects().length);
+  if (!title) return;
+  let row = title.parentElement;
+  if (!row.classList.contains('gy-title-row')) {
+    const wrap = document.createElement('div');
+    wrap.className = 'gy-title-row';
+    title.parentElement.insertBefore(wrap, title);
+    wrap.appendChild(title);
+    row = wrap;
+  }
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'gy-back-btn';
+  btn.setAttribute('aria-label', 'Back');
+  btn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>';
+  btn.onclick = gyGoBack;
+  row.insertBefore(btn, row.firstChild);
+}
+window.addEventListener('resize', () => { const a = document.querySelector('.page.active'); if (a) gyEnsureBackButton(a.id.replace(/^page-/, '')); });

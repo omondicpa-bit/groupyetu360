@@ -339,6 +339,16 @@ async function loadCollectionActivationCard(orgId) {
   // Retired (Oct 2026): instant pay is now set up in Settings > Payments,
   // and reminders come as a sign-in notice rather than a fixed dashboard card.
   cardEl.style.display = 'none';
+  if (!canDo('editSettings') || currentOrg?.instant_pay_enabled === true) return;
+  try {
+    const { data: pend } = await sb.from('collection_activation_requests').select('id').eq('org_id', orgId).eq('status', 'pending').limit(1);
+    if ((pend || []).length) return; // already waiting for superadmin
+  } catch (e) {}
+  gyNotice({ key: 'instant-pay-' + orgId, tone: 'info', icon: 'phone',
+    title: 'Let members pay by M-Pesa prompt',
+    text: currentOrg?.disbursement_verified ? 'Your account is approved. Instant pay will be switched on for you shortly.' : 'Add your paybill, till or M-Pesa number in Settings for approval.',
+    action: currentOrg?.disbursement_verified ? '' : 'Set up',
+    onAction: "showPage('settings');setTimeout(()=>{const t=[...document.querySelectorAll('#page-settings .tab')].find(x=>x.textContent.trim().startsWith('Payments'));if(t)t.click()},250)" });
   return;
   if (!canDo('editSettings')) { cardEl.style.display = 'none'; return; }
 
@@ -414,24 +424,13 @@ async function loadCollectionActivationCard(orgId) {
 // Show a dashboard warning if SMS bundle is zero (fires after login)
 function checkSmsBalanceWarning() {
   if (!currentOrg || currentOrgRole === 'member') return;
-  const bundle = currentOrg?.sms_bundle || 0;
-  if (bundle > 0) return; // all good
+  if ((currentOrg?.sms_bundle || 0) > 0) return;
   const warnEl = document.getElementById('dash-sms-warn');
-  if (!warnEl) return;
-  const has2fa = currentOrg?.two_fa_enabled;
-  warnEl.style.display = 'block';
-  warnEl.innerHTML = `
-    <div style="display:flex;align-items:flex-start;gap:.75rem">
-      <span style="color:var(--danger);display:flex">${gyIcon('bell', 20)}</span>
-      <div>
-        <div style="font-weight:700;font-size:.85rem;color:var(--danger);margin-bottom:.2rem">SMS Bundle Empty</div>
-        <div style="font-size:.78rem;color:var(--ink-soft);line-height:1.5">
-          Your group has run out of SMS credits. Bulk messaging is disabled.
-          ${has2fa ? ' <strong>2FA has been automatically turned off</strong> to prevent login failures.' : ''}
-          <a href="#" onclick="showPage('billing');return false;" style="color:var(--teal);font-weight:600;margin-left:.25rem">Top up SMS →</a>
-        </div>
-      </div>
-    </div>`;
+  if (warnEl) warnEl.style.display = 'none';
+  gyNotice({ key: 'sms-empty-' + currentOrg.id, tone: 'warn', icon: 'messages',
+    title: 'SMS credit is used up',
+    text: 'Bulk messages are paused' + (currentOrg?.two_fa_enabled ? ', and 2FA was turned off so nobody is locked out.' : '.'),
+    action: 'Top up', onAction: "showPage('billing')" });
 }
 
 async function loadDashboardModuleCards(orgId) {

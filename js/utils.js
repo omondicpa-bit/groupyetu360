@@ -1106,34 +1106,17 @@ function calculateFingoGrossCharge(netAmount, feeMultiplier) {
  * function doesn't need to duplicate that check.
  */
 async function getActiveProviderConfig(org) {
+  // Safaricom Direct (Daraja) is the only live provider (Oct 2026). SasaPay
+  // and Paystack code stays in the repo as a backup but is never offered to
+  // members. Instant pay is "locked" (visible, unavailable) until superadmin
+  // has verified the group's account AND switched instant pay on for it.
   if (!org?.id) return null;
-  const activeProvider = org.active_payment_provider || 'paystack';
-
-  if (activeProvider === 'sasapay') {
-    return { provider: 'sasapay', accountRef: null };
-  }
-
-  if (activeProvider === 'daraja') {
-    // No org_payment_providers row needed - unlike Paystack's subaccount,
-    // Daraja settles via B2C/B2B to whatever this org's own
-    // disbursement_method/number already is, not a per-org provider account.
-    // locked: superadmin has not yet verified this group's M-Pesa account,
-    // so instant pay is shown but unavailable (the server refuses it too).
-    return { provider: 'daraja', accountRef: null,
-      destinationType: (org.disbursement_method === 'bank' || org.disbursement_method === 'till') ? 'b2b' : 'b2c_registered',
-      locked: org.disbursement_verified !== true || !org.disbursement_method };
-  }
-
-  try {
-    const { data } = await sb.from('org_payment_providers')
-      .select('provider, provider_account_ref')
-      .eq('org_id', org.id).eq('provider', activeProvider).maybeSingle();
-    if (!data) return null;
-    return { provider: data.provider, accountRef: data.provider_account_ref };
-  } catch (e) {
-    console.warn('getActiveProviderConfig: lookup failed —', e.message);
-    return null;
-  }
+  const ready = org.instant_pay_enabled === true && org.disbursement_verified === true && !!org.disbursement_method;
+  return {
+    provider: 'daraja', accountRef: null,
+    destinationType: (org.disbursement_method === 'bank' || org.disbursement_method === 'till') ? 'b2b' : 'b2c_registered',
+    locked: !ready,
+  };
 }
 
 /* ════════════════════════════════════════════════════

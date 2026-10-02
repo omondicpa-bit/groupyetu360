@@ -552,6 +552,7 @@ async function checkSubscriptionAccess() {
 
     // Remove any existing banner first
     document.getElementById('sub-warning-banner')?.remove();
+    const mainEl = document.querySelector('.main'); if (mainEl) mainEl.style.paddingTop = '';
 
     const expires = org.subscription_expires;
     const now = new Date();
@@ -581,28 +582,17 @@ async function checkSubscriptionAccess() {
           document.body.appendChild(lock);
         }
       } else {
-        // Admin gets a red banner
-        const banner = document.createElement('div');
-        banner.id = 'sub-warning-banner';
-        banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:var(--danger);color:#fff;padding:.65rem 1.5rem;z-index:999;display:flex;align-items:center;justify-content:space-between;font-family:var(--font)';
-        banner.innerHTML = `
-          <div style="display:flex;align-items:center;gap:.75rem">
-            <span style="display:flex;justify-content:center;color:var(--ink-faint)">${gyIcon('lock', 26)}</span>
-            <span style="font-size:.82rem;font-weight:600">Subscription expired on ${expDate.toDateString()}. Members have restricted access. Please renew.</span>
-          </div>
-          <button onclick="showPage('billing')" style="background:var(--surface);color:var(--danger);border:none;padding:.3rem .9rem;font-size:.75rem;font-weight:700;cursor:pointer;border-radius:2px">Renew Now →</button>`;
-        document.body.prepend(banner);
-        document.querySelector('.main').style.paddingTop = '42px';
+        // Admins: a pop-up notice after sign-in, not a fixed banner
+        gyNotice({ key: 'sub-expired-' + currentOrg.id, tone: 'danger', icon: 'lock',
+          title: 'Subscription expired',
+          text: `It ended on ${expDate.toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}. Members have limited access until you renew.`,
+          action: 'Renew', onAction: "showPage('billing')" });
       }
     } else if (isExpiringSoon) {
-      const banner = document.createElement('div');
-      banner.id = 'sub-warning-banner';
-      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:var(--warning);color:#fff;padding:.5rem 1.5rem;z-index:999;display:flex;align-items:center;justify-content:space-between;font-family:var(--font)';
-      banner.innerHTML = `
-        <span style="font-size:.78rem;font-weight:600">Subscription expires in ${daysLeft} days (${expDate.toDateString()}). Renew early to avoid interruption.</span>
-        <button onclick="showPage('billing')" style="background:var(--surface);color:var(--warning);border:none;padding:.25rem .75rem;font-size:.72rem;font-weight:700;cursor:pointer">Renew →</button>`;
-      document.body.prepend(banner);
-      document.querySelector('.main').style.paddingTop = '36px';
+      gyNotice({ key: 'sub-expiring-' + currentOrg.id, tone: 'warn', icon: 'clock',
+        title: `Subscription ends in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`,
+        text: `On ${expDate.toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}. Renew early to avoid interruption.`,
+        action: 'Renew', onAction: "showPage('billing')" });
     }
   } catch(e) { console.log('Subscription check skipped'); }
   return true;

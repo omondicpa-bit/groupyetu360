@@ -1020,9 +1020,9 @@ async function loadSAMembers() {
   document.getElementById('sa-all-members').innerHTML = '<tr><td colspan="6"><div class="loading"><div class="spinner"></div>Loading all users…</div></td></tr>';
   // Fetch profiles, user_orgs, members and orgs in parallel
   const [profilesRes, userOrgsRes, membersRes, orgsRes] = await Promise.all([
-    sb.from('profiles').select('*').order('full_name'),
+    sb.from('profiles').select('*').order('created_at', { ascending: false }),
     sb.from('user_orgs').select('*'),
-    sb.from('members').select('id,org_id,user_id,portal_email,member_number,internal_number,display_number,is_founder,status,shares_balance,savings_balance'),
+    sb.from('members').select('id,org_id,user_id,phone,portal_email,member_number,internal_number,display_number,is_founder,status,shares_balance,savings_balance'),
     sb.from('organisations').select('id,name,plan,status')
   ]);
   // Deduplicate profiles by id (old schema had one row per org)
@@ -1033,6 +1033,8 @@ async function loadSAMembers() {
     seenIds.add(p.id);
     return true;
   });
+  // Newest registrations first (by exact sign-up time)
+  allSAUsers.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   allSAUserOrgs = userOrgsRes.data || [];
   allSAMemberRows = membersRes.data || [];
   allSAOrgsMap = {};
@@ -1044,41 +1046,47 @@ async function loadSAMembers() {
 function renderSAUsers(list) {
   const tbody = document.getElementById('sa-all-members');
   if (!tbody) return;
+  const head = document.getElementById('sa-users-head');
+  if (head) head.innerHTML = '<tr><th>Person</th><th>Phone</th><th>Registered</th><th>Groups and roles</th><th>Account</th><th><span class="ds-sr">Actions</span></th></tr>';
+  const count = document.getElementById('sa-users-count');
+  if (count) count.textContent = `${list.length} account${list.length !== 1 ? 's' : ''}, newest first`;
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--ink-faint)">No users found</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="6">${aqEmpty('members', 'No users found', 'Try another name, email or phone.')}</td></tr>`;
     return;
   }
-  tbody.innerHTML = list.map(u => {
-    // Find all orgs this user belongs to via user_orgs (primary) + members table (fallback)
+  const fmtDT = d => {
+    if (!d) return { main: 'Unknown', sub: '' };
+    const x = new Date(d);
+    return { main: x.toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }), sub: x.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' }) + ' · ' + aqAgo(d) };
+  };
+  tbody.innerHTML = list.map((u, i) => {
     const userOrgRows = allSAUserOrgs.filter(uo => uo.user_id === u.id);
-    const memberOrgIds = allSAMemberRows.filter(m => m.user_id === u.id).map(m => m.org_id);
-    const allOrgIds = [...new Set([...userOrgRows.map(uo => uo.org_id), ...memberOrgIds])];
-    const orgCount = allOrgIds.length;
-    // members table used only for founder badge, not org count
     const memberRows = allSAMemberRows.filter(m => m.user_id === u.id);
-    const orgNames = allOrgIds.map(orgId => {
-      const org = allSAOrgsMap[orgId];
-      return org ? org.name : null;
-    }).filter(Boolean);
+    const orgIds = [...new Set([...userOrgRows.map(uo => uo.org_id), ...memberRows.map(m => m.org_id)])];
     const isFounder = memberRows.some(m => m.is_founder);
-    // Display
-    const orgBadges = orgCount
-      ? orgNames.slice(0,2).map(n => `<span class="badge badge-maroon" style="font-size:.58rem;text-transform:capitalize;margin-right:2px">${n}</span>`).join('') + (orgCount > 2 ? `<span style="font-size:.65rem;color:var(--ink-faint)"> +${orgCount-2} more</span>` : '')
-      : '<span style="font-size:.68rem;color:var(--ink-faint)">No groups</span>';
-    const roleBadge = u.role === 'superadmin'
-      ? '<span class="badge" style="background:var(--maroon);color:#fff;font-size:.58rem">SUPERADMIN</span>'
-      : u.role === 'admin'
-      ? '<span class="badge badge-green" style="font-size:.58rem">ADMIN</span>'
-      : '<span class="badge badge-grey" style="font-size:.58rem">MEMBER</span>';
+    const phone = u.phone || memberRows.find(m => m.phone)?.phone || '';
+    const groups = orgIds.length ? orgIds.map(id => {
+      const org = allSAOrgsMap[id];
+      if (!org) return '';
+      const role = userOrgRows.find(uo => uo.org_id === id)?.role || 'member';
+      const mr = memberRows.find(m => m.org_id === id);
+      return `<div class="sau-group"><span class="sau-group-name">${h(org.name)}</span><span class="sau-group-role">${h(role.charAt(0).toUpperCase() + role.slice(1))}${mr?.display_number || mr?.member_number ? ' · #' + h(String(mr.display_number || mr.member_number)) : ''}</span></div>`;
+    }).join('') : '<span class="ds-muted">Not in any group yet</span>';
+    const roleBadge = u.role === 'superadmin' ? '<span class="badge badge-maroon">Superadmin</span>'
+      : u.role === 'admin' ? '<span class="badge badge-green">Admin</span>' : '<span class="badge badge-grey">Member</span>';
+    const dt = fmtDT(u.created_at);
+    const isNew = u.created_at && (Date.now() - new Date(u.created_at).getTime()) < 7 * 86400000;
     return `<tr>
-      <td><strong>${u.full_name||'—'}</strong>${isFounder ? ' <span class="ds-founder" title="Founding member in at least one group">Founder</span>' : ''}<div style="font-size:.65rem;color:var(--ink-faint)">${u.email||'—'}</div></td>
-      <td style="font-size:.78rem">${u.phone||'—'}</td>
-      <td>${orgBadges}</td>
+      <td><div class="ds-person"><span class="ds-avatar" style="background:var(--tt-bg);color:var(--tt-fg)" data-tone="${['teal','maroon','gold','navy'][i % 4]}">${h(aqInitials(u.full_name))}</span>
+        <span class="ds-person-text"><span class="ds-person-name">${h(u.full_name || 'No name')}${isFounder ? ' <span class="ds-founder">Founder</span>' : ''}${isNew ? ' <span class="badge badge-green">New</span>' : ''}</span><span class="ds-person-sub">${h(u.email || 'No email')}</span></span></div></td>
+      <td class="ds-strong" style="white-space:nowrap">${phone ? h(phone) : '<span class="ds-muted">None</span>'}</td>
+      <td style="white-space:nowrap"><div class="ds-strong">${dt.main}</div><div class="ds-muted" style="font-size:12px">${dt.sub}</div></td>
+      <td>${groups}</td>
       <td>${roleBadge}</td>
-      <td><span class="badge ${orgCount?'badge-green':'badge-grey'}" style="font-size:.6rem">${orgCount} org${orgCount!==1?'s':''}</span></td>
-      <td><button class="btn btn-ghost btn-sm" style="font-size:.65rem" onclick="saViewUser('${u.id}')">View →</button></td>
+      <td class="ds-actions"><button class="btn btn-secondary btn-sm" onclick="saViewUser('${u.id}')">View</button></td>
     </tr>`;
   }).join('');
+  tbody.querySelectorAll('[data-tone]').forEach(el => el.classList.add('t-' + el.dataset.tone));
 }
 
 function filterSAMembers(q) {
@@ -1438,6 +1446,7 @@ var currentDetailOrgId = null;
 var _odAllMembers = [];
 
 async function openOrgDetail(orgId) {
+  setTimeout(() => renderSAInstantPay(orgId), 0);
   currentDetailOrgId = orgId;
   // Navigate to full-page org detail
   showPage('sa_org_detail');
@@ -3200,7 +3209,7 @@ async function approveCollectionRequest(requestId) {
   if (orgErr) { toast('Could not approve: ' + orgErr.message); return; }
   await sb.from('collection_activation_requests').update({ status: 'approved', reviewed_by: currentUser.id, reviewed_at: new Date().toISOString() }).eq('id', requestId);
   try { logActivity('INSTANT PAY ACCOUNT APPROVED', `${IP_METHOD_LABEL[r.method]} approved: ${ipDescribe(r).replace(/<[^>]+>/g, '')}`, 'org', r.org_id); } catch (e) {}
-  toast('Approved. Members of this group can now pay with M-Pesa.');
+  toast('Approved. Switch instant pay on in this group\'s Settings tab when you are ready.');
   loadCollectionRequestsQueue();
 }
 
@@ -3342,7 +3351,7 @@ async function saveSADestination() {
   // this flag whenever anyone other than SA changes the destination.
   updates.disbursement_verified = true;
   if (method) updates.active_payment_provider = 'daraja';
-  if (!confirm('Verify this destination? Instant M-Pesa payments open for this group, and every automated payout will be sent here.')) return;
+  if (!confirm('Verify this destination? Every automated payout for this group will be sent here. Instant pay itself is switched on separately in the Settings tab.')) return;
 
   const { error } = await sb.from('organisations').update(updates).eq('id', orgId);
   if (error) { toast('Could not save: ' + error.message); return; }
@@ -4072,4 +4081,48 @@ async function loadOrgSettlements() {
   } catch(e) {
     el.innerHTML = '<div style="padding:1rem;color:var(--danger);font-size:.8rem">Error: ' + e.message + '</div>';
   }
+}
+
+
+// ════════════════════════════════════════════════════════════════════
+// SUPERADMIN: per-group instant pay switch (org detail > Settings tab)
+// ════════════════════════════════════════════════════════════════════
+async function renderSAInstantPay(orgId) {
+  const el = document.getElementById('od-instant-pay');
+  if (!el) return;
+  const [{ data: org }, { data: reqs }] = await Promise.all([
+    sb.from('organisations').select('*').eq('id', orgId).maybeSingle(),
+    sb.from('collection_activation_requests').select('*').eq('org_id', orgId).order('requested_at', { ascending: false }).limit(1),
+  ]);
+  if (!org) { el.innerHTML = ''; return; }
+  const last = (reqs || [])[0];
+  const verified = org.disbursement_verified === true && !!org.disbursement_method;
+  const on = org.instant_pay_enabled === true;
+  const step = (done, title, sub, action) => `<li class="sip-step${done ? ' done' : ''}"><span class="sip-dot">${done ? gyIcon('check', 16) : ''}</span><span class="sip-text"><span class="sip-t">${title}</span><span class="sip-s">${sub}</span></span>${action || ''}</li>`;
+  const pending = last && last.status === 'pending';
+  el.innerHTML = `
+    <div class="sip-head">
+      <div>
+        <div class="sip-title">Instant M-Pesa payments</div>
+        <div class="sip-sub">${on ? 'On. Members of this group can pay with an M-Pesa prompt.' : verified ? 'Off. The account is verified, so you can switch it on.' : 'Off. Verify the group\'s M-Pesa account first.'}</div>
+      </div>
+      <button type="button" class="sip-switch${on ? ' on' : ''}" role="switch" aria-checked="${on}" aria-label="Instant M-Pesa payments" ${!verified && !on ? 'disabled' : ''} onclick="saToggleInstantPay('${orgId}', ${!on})"><span></span></button>
+    </div>
+    <ol class="sip-steps">
+      ${step(!!last, 'Group submits its account', last ? `${ipDescribe(last)} · ${pending ? 'waiting' : h(last.status)} (${aqAgo(last.requested_at)})` : 'Nothing submitted yet. You can also set it yourself.', pending ? `<button class="btn btn-secondary btn-sm" onclick="showPage('sa_billing')">Review</button>` : '')}
+      ${step(verified, 'Superadmin verifies the account', verified ? ipDescribe(ipFromOrg(org)) + (org.welfare_disbursement_method === 'mpesa' && org.welfare_disbursement_mpesa_number ? ' · welfare to treasurer ' + h(org.welfare_disbursement_mpesa_number) : '') : 'Use the Settlement destination card on the Overview tab, or approve the group\'s request.')}
+      ${step(on, 'Superadmin switches instant pay on', on ? 'Live on Safaricom Direct' : 'Use the switch above')}
+    </ol>`;
+}
+
+async function saToggleInstantPay(orgId, turnOn) {
+  if (turnOn && !confirm('Switch on instant M-Pesa payments for this group? Members will be able to pay with an M-Pesa prompt straight away.')) return;
+  if (!turnOn && !confirm('Switch off instant M-Pesa payments for this group? Members will see that it is unavailable and can only report payments.')) return;
+  const updates = { instant_pay_enabled: !!turnOn };
+  if (turnOn) updates.active_payment_provider = 'daraja';
+  const { error } = await sb.from('organisations').update(updates).eq('id', orgId);
+  if (error) { toast('Could not change it: ' + error.message); return; }
+  try { logActivity(turnOn ? 'INSTANT PAY ON' : 'INSTANT PAY OFF', `Instant M-Pesa payments switched ${turnOn ? 'on' : 'off'} by superadmin`, 'org', orgId); } catch (e) {}
+  toast(turnOn ? 'Instant pay is on for this group' : 'Instant pay is off for this group');
+  renderSAInstantPay(orgId);
 }

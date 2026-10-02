@@ -66,3 +66,48 @@ function gyGreeting(d) {
   const hr = (d || new Date()).getHours();
   return hr < 12 ? 'Habari ya asubuhi' : hr < 17 ? 'Habari ya mchana' : 'Habari ya jioni';
 }
+
+// ════════════════════════════════════════════════════════════════════
+// SIGN-IN NOTICES (Oct 2026): reminders slide in after sign-in, stay a few
+// seconds, then go. One at a time, once per sign-in session per notice.
+// Replaces the fixed banners that used to sit on top of the app.
+// ════════════════════════════════════════════════════════════════════
+var _gyNoticeQueue = [];
+var _gyNoticeShowing = false;
+function gyNotice(n) {
+  try { if (n.key && sessionStorage.getItem('gy-notice-' + n.key)) return; } catch (e) {}
+  if (n.key && _gyNoticeQueue.some(q => q.key === n.key)) return;
+  _gyNoticeQueue.push(n);
+  if (!_gyNoticeShowing) setTimeout(gyNoticeNext, 900);
+}
+function gyNoticeNext() {
+  const n = _gyNoticeQueue.shift();
+  if (!n) { _gyNoticeShowing = false; return; }
+  _gyNoticeShowing = true;
+  try { if (n.key) sessionStorage.setItem('gy-notice-' + n.key, '1'); } catch (e) {}
+  const el = document.createElement('div');
+  el.className = 'gy-notice gy-notice-' + (n.tone || 'info');
+  el.setAttribute('role', 'status');
+  el.innerHTML = `<span class="gy-notice-ic">${typeof gyIcon === 'function' ? gyIcon(n.icon || 'bell', 20) : ''}</span>
+    <span class="gy-notice-body"><span class="gy-notice-t"></span><span class="gy-notice-s"></span></span>
+    ${n.action ? '<button type="button" class="gy-notice-act"></button>' : ''}
+    <button type="button" class="gy-notice-x" aria-label="Dismiss"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`;
+  el.querySelector('.gy-notice-t').textContent = n.title || '';
+  el.querySelector('.gy-notice-s').textContent = n.text || '';
+  let timer;
+  const close = () => { clearTimeout(timer); el.classList.remove('in'); setTimeout(() => { el.remove(); gyNoticeNext(); }, 260); };
+  if (n.action) {
+    const b = el.querySelector('.gy-notice-act');
+    b.textContent = n.action;
+    b.onclick = () => { close(); try { (new Function(n.onAction))(); } catch (e) {} };
+  }
+  el.querySelector('.gy-notice-x').onclick = close;
+  let startY = null;
+  el.addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, { passive: true });
+  el.addEventListener('touchend', e => { if (startY !== null && Math.abs(e.changedTouches[0].clientY - startY) > 30) close(); startY = null; });
+  el.addEventListener('mouseenter', () => clearTimeout(timer));
+  el.addEventListener('mouseleave', () => { timer = setTimeout(close, 3000); });
+  document.body.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('in'));
+  timer = setTimeout(close, n.duration || 7000);
+}
