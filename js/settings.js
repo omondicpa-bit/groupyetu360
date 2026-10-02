@@ -1448,13 +1448,21 @@ async function openOrgDetail(orgId) {
   const titleEl = document.getElementById('od-page-title');
   const subEl = document.getElementById('od-page-sub');
   if (titleEl) titleEl.textContent = org.name;
-  if (subEl) subEl.textContent = (org.reg_number||'') + ' · ' + (org.org_code||'');
+  if (subEl) subEl.textContent = [org.reg_number ? 'Reg. ' + org.reg_number : '', org.email || ''].filter(Boolean).join(' · ') || 'No registration details';
 
   // Stats
   const setEl = (id, v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
   setEl('od-members', (members||[]).length);
-  setEl('od-plan', org.plan?.toUpperCase()||'—');
-  setEl('od-status', (org.subscription_status||org.status)?.toUpperCase()||'—');
+  const cap = v => v ? String(v).charAt(0).toUpperCase() + String(v).slice(1) : '—';
+  const st = org.subscription_status || org.status;
+  setEl('od-plan', cap(org.plan));
+  setEl('od-status', cap(st));
+  const av = document.getElementById('od-avatar');
+  if (av) av.textContent = (org.name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const planPill = document.getElementById('od-plan-pill');
+  if (planPill) planPill.innerHTML = `<span class="sa-plan ${h(org.plan || 'starter')}">${h(cap(org.plan || 'starter'))}</span>`;
+  const statusPill = document.getElementById('od-status-pill');
+  if (statusPill) statusPill.innerHTML = `<span class="sa-status ${h(st || '')}">${h(cap(st))}</span>`;
   setEl('od-org-code', org.org_code||'—');
   setEl('od-bank-balance', 'Ksh '+(org.bank_balance||0).toLocaleString());
 
@@ -1613,7 +1621,7 @@ async function saToggleOrgStatus() {
   toast(`${org.name} ${newStatus}`);
   org.status = newStatus;
   document.getElementById('od-suspend-btn').textContent = newStatus==='active'?'Suspend':'Activate';
-  document.getElementById('od-status').textContent = newStatus.toUpperCase();
+  document.getElementById('od-status').textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
   document.getElementById('od-status-select').value = newStatus;
 }
 
@@ -2455,15 +2463,17 @@ async function loadSAActivity() {
     if (error) throw error;
     _lastSAActivity = data || [];
     if (!data?.length) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--ink-faint)">No activity found</td></tr>';
+      tbody.innerHTML = `<tr><td colspan="5">${aqEmpty('activity', 'No activity found', 'Try another organisation or action filter.')}</td></tr>`;
       return;
     }
-    tbody.innerHTML = data.map(r => `<tr style="border-bottom:0.5px solid var(--border)">
-      <td style="font-size:.72rem;color:var(--ink-faint);padding:.5rem 1.25rem">${new Date(r.created_at).toLocaleString()}</td>
-      <td style="font-size:.75rem;font-weight:600;padding:.5rem">${h(r.action)||'—'}</td>
-      <td style="font-size:.73rem;padding:.5rem">${h(r.profiles?.full_name)||r.user_id?.slice(0,8)||'—'}</td>
-      <td style="font-size:.73rem;color:var(--ink-faint);padding:.5rem">${h(r.details||r.description)||'—'}</td>
-      <td style="font-size:.7rem;color:var(--ink-faint);padding:.5rem">${h(r.organisations?.name)||r.org_id?.slice(0,8)||'—'}</td>
+    const actTone = a => { const x = String(a || '').toUpperCase(); return x.includes('DELETE') || x.includes('DEBIT') || x.includes('DECLIN') ? 'badge-red' : x.includes('CREDIT') || x.includes('APPROV') || x.includes('PAID') ? 'badge-green' : x.includes('UNCERTAIN') || x.includes('EXPENSE') ? 'badge-warn' : 'badge-grey'; };
+    const actLabel = a => { const x = String(a || '—').toLowerCase(); return x.charAt(0).toUpperCase() + x.slice(1); };
+    tbody.innerHTML = data.map(r => `<tr>
+      <td class="ds-muted" style="white-space:nowrap">${new Date(r.created_at).toLocaleString('en-KE', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+      <td><span class="badge ${actTone(r.action)}">${h(actLabel(r.action))}</span></td>
+      <td class="ds-strong">${h(r.profiles?.full_name)||r.user_id?.slice(0,8)||'—'}</td>
+      <td>${h(r.details||r.description)||'—'}</td>
+      <td class="ds-muted">${h(r.organisations?.name)||r.org_id?.slice(0,8)||'—'}</td>
     </tr>`).join('');
   } catch(e) {
     tbody.innerHTML = `<tr><td colspan="5" style="color:var(--danger);padding:1rem">${e.message}</td></tr>`;

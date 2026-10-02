@@ -3443,3 +3443,17 @@ body.mob-dark .theme-toggle .gy-moon{display:none}body.mob-dark .theme-toggle .g
 .mp-gy-link{background:var(--action);border-radius:var(--radius);box-shadow:none;font-size:13.5px;font-weight:700;padding:10px 16px}
 .mp-gy-link:hover{background:var(--action-dk);transform:none}
 @media(max-width:700px){.mp-hero-name{font-size:22px}}
+
+/* ── Superadmin: organisation detail header (phase 4b) ── */
+.od-head{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:8px}
+.od-avatar{width:56px;height:56px;border-radius:var(--radius-lg);background:var(--maroon-pale);color:var(--maroon);font-size:19px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.od-id{flex:1;min-width:220px}
+.od-title{margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em;color:var(--ink);line-height:1.15}
+.od-sub{font-size:13.5px;color:var(--ink-faint);margin-top:2px}
+.od-pills{display:flex;gap:6px;margin-top:8px}
+.od-actions{display:flex;gap:8px}
+.od-figures{grid-template-columns:repeat(5,minmax(0,1fr));margin:16px 0 20px}
+.od-code{letter-spacing:.06em;color:var(--maroon)}
+.sa-org-table-controls{display:flex;gap:8px;flex-wrap:wrap}
+.sa-org-table-controls .form-input,.sa-org-table-controls .form-select{min-height:38px;font-size:13.5px}
+@media(max-width:900px){.od-figures{grid-template-columns:repeat(2,minmax(0,1fr))}}
