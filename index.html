@@ -24,84 +24,53 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026100112">
+  <link rel="stylesheet" href="style.css?v=2026100113">
 </head>
 <body>
 
 <!-- ═══════ AUTH SCREEN ═══════ -->
 <div class="auth-screen" id="auth-screen">
 
-  <!-- ── LEFT BRAND PANEL ── -->
+  <!-- ── LEFT BRAND PANEL (design system v1) ── -->
   <div class="auth-left">
-    <!-- Animated floating rings -->
-    <div class="ring1"></div>
-    <div class="ring2"></div>
-    <div class="ring3"></div>
-
     <div class="auth-left-inner">
-      <!-- Animated Venn SVG with teal + gold -->
-      <div class="auth-venn">
-        <svg width="72" height="64" viewBox="0 0 72 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <!-- Teal ping halo -->
-          <circle class="v-ping" cx="36" cy="31" r="6" fill="none" stroke="rgba(31,158,117,.5)" stroke-width="1"/>
-          <!-- Three Venn circles - drawn in sequence -->
-          <circle class="v-ring" cx="26" cy="26" r="22"
-            stroke="rgba(196,154,48,.75)" stroke-width="1.5" fill="none"
-            stroke-dasharray="600" stroke-dashoffset="600"/>
-          <circle class="v-ring" cx="46" cy="26" r="22"
-            stroke="rgba(196,154,48,.75)" stroke-width="1.5" fill="none"
-            stroke-dasharray="600" stroke-dashoffset="600"/>
-          <circle class="v-ring" cx="36" cy="42" r="22"
-            stroke="rgba(31,158,117,.65)" stroke-width="1.5" fill="none"
-            stroke-dasharray="600" stroke-dashoffset="600"/>
-          <!-- Pulsing centre dot - teal -->
-          <circle class="v-dot" cx="36" cy="31" r="3.5" fill="rgba(31,158,117,.95)"/>
-        </svg>
+      <div class="al-brand">
+        <span class="al-mark" aria-hidden="true">GY</span>
+        <span class="al-name">GroupYetu<span>360</span></span>
       </div>
 
-      <div class="auth-brand-name">GroupYetu<span>360</span></div>
-      <div class="auth-brand-tag">Community Management Platform</div>
+      <h1 class="al-headline">Your group's money, organised and accounted for.</h1>
+      <p class="al-lede">Contributions, welfare, merry-go-round and table banking in one place. Members pay by M-Pesa prompt, and every shilling is recorded.</p>
 
-      <div class="auth-features">
-        <div class="auth-feat">
-          <div class="auth-feat-icon">₭</div>
-          <div class="auth-feat-text">
-            <strong>Finance & Contributions</strong>
-            <span>Track savings, shares, expenses and member balances in real time</span>
-          </div>
+      <!-- A glimpse of the product, not a stock illustration -->
+      <div class="al-preview" aria-hidden="true">
+        <div class="al-preview-head">
+          <span class="al-preview-label">Total group funds</span>
+          <span class="al-preview-chip">October</span>
         </div>
-        <div class="auth-feat">
-          <div class="auth-feat-icon">◉</div>
-          <div class="auth-feat-text">
-            <strong>Member Management</strong>
-            <span>Full member register, portals, approvals and welfare tracking</span>
-          </div>
-        </div>
-        <div class="auth-feat">
-          <div class="auth-feat-icon">📱</div>
-          <div class="auth-feat-text">
-            <strong>M-Pesa & Bulk SMS</strong>
-            <span>STK Push payments and instant SMS notices to all members</span>
-          </div>
-        </div>
-        <div class="auth-feat">
-          <div class="auth-feat-icon">⚑</div>
-          <div class="auth-feat-text">
-            <strong>Projects & Investments</strong>
-            <span>Manage farms, properties and group investments end-to-end</span>
-          </div>
+        <div class="al-preview-amt">Ksh 1,284,500</div>
+        <div class="al-preview-bar"><span style="width:78%"></span></div>
+        <div class="al-preview-sub">78% of this month's contributions received</div>
+        <div class="al-preview-rows">
+          <div class="al-row"><span class="al-av">AO</span><span class="al-who">Achieng paid by M-Pesa</span><span class="al-amt">+5,000</span></div>
+          <div class="al-row"><span class="al-av">JK</span><span class="al-who">James, welfare</span><span class="al-amt">+1,000</span></div>
+          <div class="al-row"><span class="al-av">WN</span><span class="al-who">Wanjiru, loan repayment</span><span class="al-amt">+12,500</span></div>
         </div>
       </div>
+
+      <ul class="al-points">
+        <li><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg><span><strong>M-Pesa built in.</strong> Members get a prompt, enter their PIN, and the payment records itself.</span></li>
+        <li><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.4 7.5 9.5 4.3-1.1 7.5-4.9 7.5-9.5V6z"/></svg><span><strong>Clear, honest books.</strong> Every contribution, payout and fine has a receipt and a trail.</span></li>
+        <li><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span><strong>Free for 60 days</strong> on your first upgrade. Set up in minutes.</span></li>
+      </ul>
     </div>
 
-    <div class="auth-left-footer">
-      © 2025 EPH Technologies Limited &nbsp;·&nbsp; groupyetu.org
-    </div>
+    <div class="auth-left-footer">© EPH Technologies Limited · groupyetu.org</div>
   </div>
 
   <!-- ── RIGHT FORM PANEL ── -->
   <div class="auth-right">
-    <div class="auth-right-dots"></div>
+    <div class="auth-mobile-brand"><span class="al-mark" aria-hidden="true">GY</span><span class="al-name">GroupYetu<span>360</span></span></div>
     <div class="auth-box">
 
       <!-- STEP 1: MAIN FORMS -->
@@ -112,9 +81,9 @@
           <div class="auth-form-sub" id="auth-form-sub">Sign in to manage your group</div>
         </div>
 
-        <div class="auth-tabs">
-          <div class="auth-tab active" onclick="switchAuthTab('login')">Sign In</div>
-          <div class="auth-tab" onclick="switchAuthTab('register')">Create Account</div>
+        <div class="auth-tabs" role="tablist">
+          <button type="button" class="auth-tab active" data-tab="login" role="tab" onclick="switchAuthTab('login')">Sign in</button>
+          <button type="button" class="auth-tab" data-tab="register" role="tab" onclick="switchAuthTab('register')">Create account</button>
         </div>
 
         <!-- LOGIN -->
@@ -136,47 +105,31 @@
           <div class="auth-or">or sign in with email</div>
 
           <div class="form-group">
-            <label class="form-label">Email Address</label>
+            <label class="form-label">Email</label>
             <div class="input-wrap">
-              <span class="input-icon">✉</span>
-              <input class="form-input" type="email" id="login-email" placeholder="your@email.com"/>
+              <span class="input-icon"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/></svg></span>
+              <input class="form-input" type="email" id="login-email" placeholder="you@example.com" autocomplete="email"/>
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">Password</label>
             <div class="input-wrap" style="position:relative">
-              <span class="input-icon">🔑</span>
-              <input class="form-input" type="password" id="login-password" placeholder="••••••••"
+              <span class="input-icon"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></svg></span>
+              <input class="form-input" type="password" id="login-password" placeholder="Your password" autocomplete="current-password"
                 onkeydown="if(event.key==='Enter')signIn()"/>
+              <button type="button" class="pw-toggle" onclick="togglePasswordVisibility('login-password', this)" aria-label="Show password">Show</button>
             </div>
           </div>
 
           <!-- hidden org code kept for JS compatibility -->
           <input type="hidden" id="login-org-code" value=""/>
 
-          <button class="btn btn-primary" onclick="signIn()" style="margin-top:.25rem">
-            Sign In →
-          </button>
+          <div class="auth-row-end"><button type="button" class="auth-link" onclick="switchAuthTab('forgot')">Forgot password?</button></div>
 
-          <div style="display:flex;justify-content:space-between;margin-top:1rem">
-            <a onclick="switchAuthTab('forgot')" style="font-size:.72rem;color:var(--maroon);cursor:pointer;font-weight:600">Forgot password?</a>
-            <a onclick="switchAuthTab('register')" style="font-size:.72rem;color:var(--ink-faint);cursor:pointer">Create account</a>
-          </div>
+          <button class="btn btn-primary auth-submit" onclick="signIn()">Sign in</button>
 
-          <div class="auth-proof">
-            <div class="auth-proof-item">
-              <span class="auth-proof-val">2 Months</span>
-              <div class="auth-proof-label">Free trial</div>
-            </div>
-            <div class="auth-proof-item">
-              <span class="auth-proof-val">5 min</span>
-              <div class="auth-proof-label">Setup time</div>
-            </div>
-            <div class="auth-proof-item">
-              <span class="auth-proof-val">M-Pesa</span>
-              <div class="auth-proof-label">Integrated</div>
-            </div>
-          </div>
+          <div class="auth-foot-note">New to GroupYetu360? <button type="button" class="auth-link" onclick="switchAuthTab('register')">Create an account</button> · <button type="button" class="auth-link" onclick="switchAuthTab('join')">Join your group</button></div>
+
         </div>
 
         <!-- FORGOT PASSWORD -->
@@ -187,15 +140,15 @@
             Enter your email address and we'll send you a link to reset your password.
           </div>
           <div class="form-group">
-            <label class="form-label">Email Address</label>
+            <label class="form-label">Email</label>
             <div class="input-wrap">
-              <span class="input-icon">✉</span>
+              <span class="input-icon"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/></svg></span>
               <input class="form-input" type="email" id="forgot-email" placeholder="your@email.com"/>
             </div>
           </div>
-          <button class="btn btn-primary" onclick="sendPasswordReset()">Send Reset Link</button>
+          <button class="btn btn-primary" onclick="sendPasswordReset()">Send reset link</button>
           <div style="text-align:center;margin-top:1rem">
-            <a onclick="switchAuthTab('login')" style="font-size:.75rem;color:var(--maroon);cursor:pointer;font-weight:600">← Back to Sign In</a>
+            <a onclick="switchAuthTab('login')" style="font-size:.75rem;color:var(--maroon);cursor:pointer;font-weight:600">Back to sign in</a>
           </div>
         </div>
 
@@ -207,18 +160,18 @@
             Your group is already on GroupYetu360. Fill in your details to request access - your admin will approve and link you to your member record.
           </div>
           <div class="form-group">
-            <label class="form-label">Find Your Organisation</label>
+            <label class="form-label">Find your group</label>
             <div class="input-wrap">
-              <span class="input-icon">🔍</span>
+              <span class="input-icon"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
               <input class="form-input" type="text" id="join-search" placeholder="Type group name…" oninput="searchOrgsForJoin(this.value)"/>
             </div>
           </div>
           <div id="join-org-results" style="margin-bottom:1rem"></div>
           <div id="join-org-selected" style="display:none;margin-bottom:1rem">
-            <div class="alert alert-success" style="font-size:.78rem">✓ Selected: <strong id="join-org-selected-name"></strong></div>
+            <div class="alert alert-success" style="font-size:.78rem">Selected: <strong id="join-org-selected-name"></strong></div>
           </div>
           <div class="form-group">
-            <label class="form-label">Your Full Name</label>
+            <label class="form-label">Your full name</label>
             <input class="form-input" type="text" id="join-name" placeholder="As registered with your group"/>
           </div>
           <div class="form-row">
@@ -232,13 +185,13 @@
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Create Password</label>
+            <label class="form-label">Create a password</label>
             <input class="form-input" type="password" id="join-password" placeholder="Minimum 6 characters"/>
           </div>
           <div style="text-align:center;font-size:.7rem;color:var(--ink-faint);margin:.75rem 0 .5rem;line-height:1.5">
             By requesting access, you agree to our <a href="terms.html" target="_blank" rel="noopener" style="color:var(--teal);font-weight:600">Terms of Service</a> and <a href="privacy.html" target="_blank" rel="noopener" style="color:var(--teal);font-weight:600">Privacy Policy</a>.
           </div>
-          <button class="btn btn-primary" onclick="joinOrg()">Request Access →</button>
+          <button class="btn btn-primary" onclick="joinOrg()">Request access</button>
           <div style="text-align:center;margin-top:.75rem;font-size:.72rem;color:var(--ink-faint)">Already have access? <a onclick="switchAuthTab('login')" style="color:var(--maroon);cursor:pointer;font-weight:600">Sign in</a></div>
         </div>
 
@@ -253,16 +206,16 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Full Name <span style="color:var(--maroon)">*</span></label>
+              <label class="form-label">Full name <span style="color:var(--maroon)">*</span></label>
               <div class="input-wrap">
-                <span class="input-icon">👤</span>
+                <span class="input-icon"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.2-6 8-6s7 2 8 6"/></svg></span>
                 <input class="form-input" type="text" id="reg-name" placeholder="Your full name"/>
               </div>
             </div>
             <div class="form-group">
               <label class="form-label">Phone <span style="color:var(--maroon)">*</span></label>
               <div class="input-wrap">
-                <span class="input-icon">📱</span>
+                <span class="input-icon"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg></span>
                 <input class="form-input" type="text" id="reg-phone" placeholder="07XXXXXXXX"/>
               </div>
             </div>
@@ -271,7 +224,7 @@
           <div class="form-group">
             <label class="form-label">Email Address <span style="color:var(--maroon)">*</span></label>
             <div class="input-wrap">
-              <span class="input-icon">✉</span>
+              <span class="input-icon"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/></svg></span>
               <input class="form-input" type="email" id="reg-email" placeholder="your@email.com"/>
             </div>
           </div>
@@ -280,21 +233,21 @@
             <div class="form-group">
               <label class="form-label">Password <span style="color:var(--maroon)">*</span></label>
               <div class="input-wrap">
-                <span class="input-icon">🔑</span>
+                <span class="input-icon"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></svg></span>
                 <input class="form-input" type="password" id="reg-password" placeholder="Min 6 characters" oninput="updatePasswordChecklist(this.value)"/>
               </div>
               <div id="pw-checklist" style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.4rem">
-                <span class="pw-check" id="pw-check-len" style="font-size:.68rem;color:var(--ink-faint)">○ 6+ characters</span>
-                <span class="pw-check" id="pw-check-upper" style="font-size:.68rem;color:var(--ink-faint)">○ Uppercase</span>
-                <span class="pw-check" id="pw-check-lower" style="font-size:.68rem;color:var(--ink-faint)">○ Lowercase</span>
-                <span class="pw-check" id="pw-check-num" style="font-size:.68rem;color:var(--ink-faint)">○ Number</span>
+                <span class="pw-check" id="pw-check-len" style="font-size:.68rem;color:var(--ink-faint)">6+ characters</span>
+                <span class="pw-check" id="pw-check-upper" style="font-size:.68rem;color:var(--ink-faint)">Uppercase</span>
+                <span class="pw-check" id="pw-check-lower" style="font-size:.68rem;color:var(--ink-faint)">Lowercase</span>
+                <span class="pw-check" id="pw-check-num" style="font-size:.68rem;color:var(--ink-faint)">Number</span>
               </div>
               <style>.pw-check.met{color:var(--teal)!important;font-weight:600}</style>
             </div>
             <div class="form-group">
-              <label class="form-label">Confirm Password <span style="color:var(--maroon)">*</span></label>
+              <label class="form-label">Confirm password <span style="color:var(--maroon)">*</span></label>
               <div class="input-wrap">
-                <span class="input-icon">🔑</span>
+                <span class="input-icon"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></svg></span>
                 <input class="form-input" type="password" id="reg-confirm-password" placeholder="Repeat password"/>
               </div>
             </div>
@@ -309,7 +262,7 @@
           </div>
 
           <button class="btn btn-primary" onclick="registerAccount()" style="margin-top:.25rem">
-            Create Account →
+            Create account
           </button>
 
           <div class="auth-or" style="margin-top:.85rem">or</div>
@@ -3300,7 +3253,7 @@
             <div class="card-body">
               <div class="form-row single"><div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="acct-name" placeholder="Your full name"/></div></div>
               <div class="form-row single"><div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" id="acct-phone" placeholder="07XXXXXXXX"/></div></div>
-              <div class="form-row single"><div class="form-group"><label class="form-label">Email Address</label><input class="form-input" id="acct-email" disabled style="background:var(--surface-3);color:var(--ink-faint)"/><div id="acct-email-hint" style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">Email cannot be changed here. Contact your group admin.</div></div></div>
+              <div class="form-row single"><div class="form-group"><label class="form-label">Email</label><input class="form-input" id="acct-email" disabled style="background:var(--surface-3);color:var(--ink-faint)"/><div id="acct-email-hint" style="font-size:.68rem;color:var(--ink-faint);margin-top:.2rem">Email cannot be changed here. Contact your group admin.</div></div></div>
               <div class="form-actions"><button class="btn btn-primary" onclick="saveAccountInfo()">Save changes</button></div>
             </div>
           </div>
@@ -3356,7 +3309,7 @@
                 <input class="mh-form-input" id="acct-phone" placeholder="07XXXXXXXX"/>
               </div>
               <div class="mh-form-group">
-                <div class="mh-form-label">Email Address</div>
+                <div class="mh-form-label">Email</div>
                 <input class="mh-form-input" id="acct-email" disabled/>
                 <div class="mh-form-hint" id="acct-email-hint-mob">Email cannot be changed here. Contact your group admin.</div>
               </div>
@@ -4065,7 +4018,7 @@
       <!-- Name + Phone -->
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Full Name <span style="color:var(--maroon)">*</span></label>
+          <label class="form-label">Full name <span style="color:var(--maroon)">*</span></label>
           <input class="form-input" id="nm-name" placeholder="e.g. Jane Achieng Omondi"/>
         </div>
         <div class="form-group">
@@ -4103,7 +4056,7 @@
       <div style="border-top:0.5px solid var(--border);margin:.85rem 0 .75rem"></div>
       <div style="font-size:.72rem;font-weight:700;color:var(--ink-faint);margin-bottom:.55rem">Portal Access <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></div>
       <div class="form-group">
-        <label class="form-label">Email Address</label>
+        <label class="form-label">Email</label>
         <input class="form-input" type="email" id="nm-email" placeholder="member@email.com"
           oninput="document.getElementById('nm-invite-row').style.display=this.value.trim()?'flex':'none'"/>
       </div>
@@ -4507,7 +4460,7 @@
           <div id="md-portal-normal">
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Email Address</label>
+                <label class="form-label">Email</label>
                 <div style="display:flex;gap:.5rem;align-items:flex-start">
                   <input class="form-input" type="email" id="md-edit-email" placeholder="member@email.com" style="flex:1"/>
                   <button class="btn btn-secondary btn-sm" onclick="sendMemberPortalInvite()" style="white-space:nowrap;padding:.52rem .85rem;font-size:.75rem;flex-shrink:0">Send Invite</button>
@@ -5777,16 +5730,16 @@
 
 
   <!-- GroupYetu360 Scripts - load order matters -->
-  <script src="js/icons.js?v=2026100112"></script>
-  <script src="js/auth.js?v=2026100112"></script>
-  <script src="js/utils.js?v=2026100112"></script>
-  <script src="js/dashboard.js?v=2026100112"></script>
-  <script src="js/members.js?v=2026100112"></script>
-  <script src="js/finance.js?v=2026100112"></script>
-  <script src="js/settings.js?v=2026100112"></script>
-  <script src="js/portal.js?v=2026100112"></script>
-  <script src="js/modules.js?v=2026100112"></script>
-  <script src="js/taya.js?v=2026100112"></script>
+  <script src="js/icons.js?v=2026100113"></script>
+  <script src="js/auth.js?v=2026100113"></script>
+  <script src="js/utils.js?v=2026100113"></script>
+  <script src="js/dashboard.js?v=2026100113"></script>
+  <script src="js/members.js?v=2026100113"></script>
+  <script src="js/finance.js?v=2026100113"></script>
+  <script src="js/settings.js?v=2026100113"></script>
+  <script src="js/portal.js?v=2026100113"></script>
+  <script src="js/modules.js?v=2026100113"></script>
+  <script src="js/taya.js?v=2026100113"></script>
   <script>
     // Bootstrap - runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —

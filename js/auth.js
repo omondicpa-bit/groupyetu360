@@ -311,10 +311,11 @@ function showPendingScreen() {
 }
 
 function switchAuthTab(tab) {
-  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.auth-panel').forEach(p => p.classList.remove('active'));
-  const idx = {login:0, join:1, register:2, forgot:0};
-  document.querySelectorAll('.auth-tab')[idx[tab]]?.classList.add('active');
+  // Highlight the matching tab (forgot belongs to sign in, join to create);
+  // matched by data-tab, so tabs can be reordered safely.
+  const tabFor = { login:'login', forgot:'login', register:'register', join:'register' }[tab] || 'login';
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabFor));
   document.getElementById('auth-'+tab)?.classList.add('active');
   const headings = {
     login:    { h:'Welcome back',        s:'Sign in to manage your group' },
@@ -787,7 +788,7 @@ function updatePasswordChecklist(pw, suffix) {
     const el = document.getElementById(id);
     if (!el) return;
     el.classList.toggle('met', met);
-    el.textContent = (met ? '' : '○ ') + el.textContent.replace(/^[✓○]\s*/, '');
+    el.textContent = el.textContent.replace(/^[✓○]\s*/, '');
   };
   set('pw-check-len' + suffix, checks.len);
   set('pw-check-upper' + suffix, checks.upper);
@@ -2125,4 +2126,14 @@ function updateMobOrgPills() {
   const firstName = (currentProfile?.full_name || 'Member').split(' ')[0];
   const nameEl = document.getElementById('mob-member-name');
   if (nameEl) nameEl.textContent = firstName;
+}
+
+
+// Show / hide a password field (sign-in screen)
+function togglePasswordVisibility(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  if (btn) { btn.textContent = show ? 'Hide' : 'Show'; btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password'); }
 }
