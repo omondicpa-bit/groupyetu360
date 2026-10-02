@@ -181,6 +181,24 @@ export async function processSettlement(
       return { outcome: 'sent', method: 'b2b', checkoutId: res.conversationId };
     }
 
+    if (method === 'till') {
+      // Buy Goods till (group's own till number). Untested against a live
+      // till as of Oct 2026 - test with a small amount first.
+      const till = isWelfare ? (org.welfare_disbursement_till_number || org.disbursement_till_number) : org.disbursement_till_number;
+      if (!till || !/^\d{5,7}$/.test(String(till))) {
+        await releaseSettlement(supabase, claimed.id, 'No valid Buy Goods till number configured for this organisation.');
+        return { outcome: 'invalid-destination' };
+      }
+      sendAttempted = true;
+      const res = await b2bPayment(cfg, {
+        amount: claimed.amount, receiverShortcode: String(till), accountReference: String(org.mpesa_account_label || 'GY360'),
+        initiatorName: initCfg.initiatorName, securityCredential: initCfg.securityCredential,
+        resultUrl, timeoutUrl, remarks, buyGoods: true,
+      }, fetchFn);
+      await saveConversationId(supabase, claimed.id, res.conversationId, 'b2b');
+      return { outcome: 'sent', method: 'b2b', checkoutId: res.conversationId };
+    }
+
     await releaseSettlement(supabase, claimed.id, `Unknown settlement method: ${method}`);
     return { outcome: 'invalid-method' };
   } catch (e: any) {

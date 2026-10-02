@@ -336,6 +336,10 @@ async function loadDashboard() {
 async function loadCollectionActivationCard(orgId) {
   const cardEl = document.getElementById('dash-collection-card');
   if (!cardEl) return;
+  // Retired (Oct 2026): instant pay is now set up in Settings > Payments,
+  // and reminders come as a sign-in notice rather than a fixed dashboard card.
+  cardEl.style.display = 'none';
+  return;
   if (!canDo('editSettings')) { cardEl.style.display = 'none'; return; }
 
   try {

@@ -285,6 +285,7 @@ export interface B2BParams {
   timeoutUrl: string;
   remarks: string;
   requesterPhone?: string;    // optional - the member whose contribution this is, for the bank's own records
+  buyGoods?: boolean;         // true: PartyB is a Buy Goods till (BusinessBuyGoods), not a Paybill
 }
 
 // Sends money to another business's Paybill, with an account reference -
@@ -295,9 +296,10 @@ export async function b2bPayment(cfg: DarajaConfig, p: B2BParams, fetchFn: typeo
   const body = {
     Initiator: p.initiatorName,
     SecurityCredential: p.securityCredential,
-    CommandID: 'BusinessPayBill',
+    // Paybill: identifier type 4. Buy Goods till: identifier type 2.
+    CommandID: p.buyGoods ? 'BusinessBuyGoods' : 'BusinessPayBill',
     SenderIdentifierType: '4',
-    RecieverIdentifierType: '4',
+    RecieverIdentifierType: p.buyGoods ? '2' : '4',
     Amount: Math.round(p.amount),
     PartyA: Number(cfg.shortcode),
     PartyB: Number(p.receiverShortcode),

@@ -100,6 +100,7 @@ function switchSettingsTab(btn, tabId) {
 }
 
 async function loadSettings() {
+  loadInstantPayCard();
   if (!currentOrg?.id) return;
   // Refresh org data from DB first
   const { data: freshOrg } = await sb.from('organisations').select('*').eq('id', currentOrg.id).single();
@@ -694,6 +695,7 @@ async function saveContribType() {
 var _saOrgs = [], _saMemberCount = {};
 
 async function loadSuperAdmin() {
+  if (typeof loadCollectionRequestsQueue === 'function') loadCollectionRequestsQueue();
   // ── Fetch all platform data in parallel ──
   const today = new Date().toISOString().split('T')[0];
   const thisMonth = new Date().toISOString().slice(0, 7);
@@ -1500,6 +1502,7 @@ async function openOrgDetail(orgId) {
   sv('od-dest-bank-paybill', org.disbursement_bank_paybill);
   sv('od-dest-bank-account', org.disbursement_bank_account_number);
   sv('od-dest-bank-account-name', org.disbursement_bank_account_name);
+  sv('od-dest-till', org.disbursement_till_number);
   const welfareDiffers = !!org.welfare_disbursement_method;
   const welfareCheckbox = document.getElementById('od-dest-welfare-diff');
   if (welfareCheckbox) welfareCheckbox.checked = welfareDiffers;
@@ -3025,113 +3028,191 @@ async function requestCollectionActivation() {
 /* ════════════════════════════════════════════════════
    COLLECTION ACTIVATION - SA-side review queue
 ════════════════════════════════════════════════════ */
+// ════════════════════════════════════════════════════════════════════
+// INSTANT PAY ACCOUNT (group side): the group proposes how it receives
+// money; superadmin verifies; only then does it go live. The proposal sits
+// in collection_activation_requests, so live payouts never change until
+// superadmin approves.
+// ════════════════════════════════════════════════════════════════════
+const IP_METHOD_LABEL = { mpesa: 'Send money', bank: 'Paybill', till: 'Buy goods' };
+function ipDescribe(x) {
+  if (!x) return '';
+  if (x.method === 'mpesa') return `Send money to ${h(x.mpesa_number || '—')}`;
+  if (x.method === 'bank') return `Paybill ${h(x.paybill || '—')}, account ${h(x.account_number || '—')}`;
+  if (x.method === 'till') return `Buy goods till ${h(x.till_number || '—')}`;
+  return 'Not set';
+}
+function ipFromOrg(o) {
+  return { method: o.disbursement_method, mpesa_number: o.disbursement_mpesa_number, paybill: o.disbursement_bank_paybill,
+    account_number: o.disbursement_bank_account_number, till_number: o.disbursement_till_number,
+    welfare_mpesa_number: o.welfare_disbursement_method === 'mpesa' ? o.welfare_disbursement_mpesa_number : null };
+}
+
+async function loadInstantPayCard() {
+  const card = document.getElementById('ip-card');
+  if (!card || !currentOrg) return;
+  if (!canDo('editSettings')) { card.style.display = 'none'; return; }
+  card.style.display = '';
+  const { data: org } = await sb.from('organisations').select('*').eq('id', currentOrg.id).maybeSingle();
+  const { data: reqs } = await sb.from('collection_activation_requests').select('*').eq('org_id', currentOrg.id)
+    .order('requested_at', { ascending: false }).limit(1);
+  const last = (reqs || [])[0];
+  const live = org && org.disbursement_method && org.disbursement_verified === true;
+  const pending = last && last.status === 'pending' && last.method;
+  const pill = document.getElementById('ip-status-pill');
+  if (pill) pill.innerHTML = live ? '<span class="badge badge-green">Active</span>' : pending ? '<span class="badge badge-warn">Waiting for approval</span>' : '<span class="badge badge-grey">Not set up</span>';
+  const cur = document.getElementById('ip-current');
+  if (cur) cur.innerHTML = live ? `<div class="ip-box ip-box-live">
+      <div class="ip-box-t">Members can pay with M-Pesa</div>
+      <div class="ip-box-s">${ipDescribe(ipFromOrg(org))}${org.welfare_disbursement_method === 'mpesa' && org.welfare_disbursement_mpesa_number ? ` · Welfare to treasurer ${h(org.welfare_disbursement_mpesa_number)}` : ''}</div>
+    </div>` : '';
+  const pen = document.getElementById('ip-pending');
+  if (pen) pen.innerHTML = pending ? `<div class="ip-box ip-box-pending">
+      <div class="ip-box-t">Submitted ${new Date(last.requested_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}, waiting for approval</div>
+      <div class="ip-box-s">${ipDescribe(last)}${last.welfare_mpesa_number ? ` · Welfare to treasurer ${h(last.welfare_mpesa_number)}` : ''}</div>
+      <button class="btn btn-secondary btn-sm" onclick="cancelInstantPayRequest('${last.id}')">Withdraw request</button>
+    </div>` : (last && last.status === 'declined' ? `<div class="ip-box ip-box-declined"><div class="ip-box-t">Your last request was not approved</div><div class="ip-box-s">${h(last.notes || 'Please check the details and submit again.')}</div></div>` : '');
+  const form = document.getElementById('ip-form');
+  if (form) form.style.display = pending ? 'none' : '';
+  // Prefill from what is live, so a change starts from the current details
+  const pre = live ? ipFromOrg(org) : {};
+  if (pre.method) { const r = document.querySelector(`input[name="ip-method"][value="${pre.method}"]`); if (r) r.checked = true; }
+  const setV = (id, v) => { const el = document.getElementById(id); if (el && !el.value) el.value = v || ''; };
+  setV('ip-mpesa', pre.mpesa_number); setV('ip-paybill', pre.paybill); setV('ip-account', pre.account_number);
+  setV('ip-till', pre.till_number); setV('ip-welfare', pre.welfare_mpesa_number);
+  const btn = document.getElementById('ip-submit');
+  if (btn) btn.textContent = live ? 'Submit changes for approval' : 'Submit for approval';
+  ipMethodChanged();
+}
+
+function ipMethodChanged() {
+  const m = document.querySelector('input[name="ip-method"]:checked')?.value || '';
+  ['mpesa', 'bank', 'till'].forEach(k => { const el = document.getElementById('ip-f-' + k); if (el) el.hidden = m !== k; });
+  const nm = document.getElementById('ip-f-name'); if (nm) nm.hidden = !m;
+  document.querySelectorAll('.ip-method').forEach(l => l.classList.toggle('on', l.querySelector('input')?.checked));
+}
+
+async function submitInstantPayRequest() {
+  const method = document.querySelector('input[name="ip-method"]:checked')?.value;
+  if (!method) { toast('Choose how the group should receive its money.'); return; }
+  const v = id => (document.getElementById(id)?.value || '').trim();
+  const digits = x => x.replace(/\D/g, '');
+  const row = { org_id: currentOrg.id, status: 'pending', requested_by: currentUser.id, method, account_name: v('ip-name') || null,
+    welfare_mpesa_number: v('ip-welfare') || null };
+  if (method === 'mpesa') {
+    if (digits(v('ip-mpesa')).length < 9) { toast('Enter a valid M-Pesa number.'); return; }
+    row.mpesa_number = v('ip-mpesa');
+  } else if (method === 'bank') {
+    if (!/^\d{5,7}$/.test(digits(v('ip-paybill')))) { toast('Enter the paybill number (5 to 7 digits).'); return; }
+    if (!v('ip-account')) { toast('Enter the account number at that paybill.'); return; }
+    row.paybill = digits(v('ip-paybill')); row.account_number = v('ip-account');
+  } else if (method === 'till') {
+    if (!/^\d{5,7}$/.test(digits(v('ip-till')))) { toast('Enter the till number (5 to 7 digits).'); return; }
+    row.till_number = digits(v('ip-till'));
+  }
+  if (row.welfare_mpesa_number && digits(row.welfare_mpesa_number).length < 9) { toast("Check the treasurer's M-Pesa number."); return; }
+  const btn = document.getElementById('ip-submit'); if (btn) btn.disabled = true;
+  const { error } = await sb.from('collection_activation_requests').insert(row);
+  if (btn) btn.disabled = false;
+  if (error) { toast('Could not submit: ' + error.message); return; }
+  try { logActivity('INSTANT PAY ACCOUNT SUBMITTED', `${currentOrg.name}: ${IP_METHOD_LABEL[method]} details submitted for approval`, 'org', currentOrg.id); } catch (e) {}
+  toast('Submitted. You will see the status here once superadmin has checked it.');
+  loadInstantPayCard();
+}
+
+async function cancelInstantPayRequest(id) {
+  if (!confirm('Withdraw this request?')) return;
+  const { error } = await sb.from('collection_activation_requests').update({ status: 'withdrawn' }).eq('id', id).eq('status', 'pending');
+  if (error) { toast('Could not withdraw: ' + error.message); return; }
+  loadInstantPayCard();
+}
+
+// ── Superadmin side: review queue ──
 async function loadCollectionRequestsQueue() {
   const el = document.getElementById('sa-collection-requests-list');
-  if (!el) return;
-  el.innerHTML = '<div style="padding:1rem;color:var(--ink-faint);font-size:.8rem">Loading…</div>';
   try {
     const { data: reqs } = await sb.from('collection_activation_requests')
-      .select('*, organisations(name, disbursement_method, disbursement_bank_name, disbursement_bank_account_number, disbursement_bank_account_name, disbursement_mpesa_number, active_payment_provider)')
+      .select('*, organisations(id, name, disbursement_method, disbursement_mpesa_number, disbursement_bank_paybill, disbursement_bank_account_number, disbursement_till_number, disbursement_verified)')
       .eq('status', 'pending').order('requested_at', { ascending: true });
-
+    const list = reqs || [];
     const collBadge = document.getElementById('sa-bill-badge-collection');
     if (collBadge) {
-      collBadge.textContent = reqs?.length ? `${reqs.length} pending` : 'Clear';
-      collBadge.style.background = reqs?.length ? '#fff4dc' : '#e8f5e9';
-      collBadge.style.color = reqs?.length ? '#8a6400' : '#2e7d32';
+      collBadge.textContent = list.length ? `${list.length} waiting` : 'Clear';
+      collBadge.className = 'badge ' + (list.length ? 'badge-warn' : 'badge-green');
+      collBadge.removeAttribute('style');
     }
-
-    if (!reqs?.length) {
-      el.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--ink-faint);font-size:.85rem">No pending collection requests.</div>';
-      return;
+    const alertEl = document.getElementById('sa-account-alert');
+    if (alertEl) {
+      alertEl.style.display = list.length ? '' : 'none';
+      const t = document.getElementById('sa-account-alert-text');
+      if (t) t.textContent = list.map(r => r.organisations?.name).filter(Boolean).join(', ');
+      const tt = document.getElementById('sa-account-alert-title');
+      if (tt) tt.textContent = `${list.length} M-Pesa account${list.length !== 1 ? 's' : ''} waiting for approval`;
     }
-
-    el.innerHTML = reqs.map(r => {
-      const org = r.organisations || {};
-      const disbSummary = org.disbursement_method === 'bank'
-        ? `Bank: ${org.disbursement_bank_name || '—'} · ${org.disbursement_bank_account_number || '—'} (${org.disbursement_bank_account_name || '—'})`
-        : org.disbursement_method === 'mpesa'
-          ? `M-Pesa: ${org.disbursement_mpesa_number || '—'}`
-          : 'No disbursement details on file';
-      return `
-      <div class="card" style="margin-bottom:.85rem">
-        <div class="card-body">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.6rem">
-            <div>
-              <div style="font-weight:700;font-size:.9rem">${org.name || 'Unknown org'}</div>
-              <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.15rem">${disbSummary}</div>
-              <div style="font-size:.68rem;color:var(--ink-faint);margin-top:.15rem">Requested ${new Date(r.requested_at).toLocaleDateString()}</div>
-            </div>
-          </div>
-          <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:.75rem;margin-bottom:.6rem;font-size:.72rem;color:var(--ink-soft)">
-            ℹ️ Create this org's sub-account on Paystack's dashboard manually, then paste the code below - pre-provisioning it means switching to it later is a config change, not a new setup step. SasaPay needs no reference here at all - it's a pooled wallet shared by every org.
-          </div>
-          <div class="form-row">
-            <div class="form-group"><label class="form-label">Paystack subaccount code</label><input class="form-input" id="sa-req-paystack-${r.id}" placeholder="ACCT_…"/></div>
-          </div>
-          <div class="form-row single">
-            <div class="form-group"><label class="form-label">Active provider (default collection route)</label>
-              <select class="form-select" id="sa-req-active-${r.id}">
-                <option value="paystack">Paystack</option>
-                <option value="sasapay">SasaPay</option>
-              </select>
-            </div>
-          </div>
-          <div style="display:flex;gap:.5rem;margin-top:.6rem">
-            <button class="btn btn-primary btn-sm" onclick="approveCollectionRequest('${r.id}','${r.org_id}')">Approve &amp; activate</button>
-            <button class="btn btn-secondary btn-sm" onclick="declineCollectionRequest('${r.id}')">Decline</button>
-          </div>
+    if (!el) return;
+    if (!list.length) { el.innerHTML = '<div class="ds-empty"><div class="ds-empty-title">Nothing waiting</div><div class="ds-empty-sub">New instant-pay account requests from groups will appear here.</div></div>'; return; }
+    el.innerHTML = list.map(r => {
+      const o = r.organisations || {};
+      const current = o.disbursement_method ? ipDescribe(ipFromOrg(o)) + (o.disbursement_verified ? ' (verified)' : ' (not verified)') : 'Nothing set yet';
+      return `<div class="aq-card aq-pay">
+        <div class="aq-pay-top">
+          <div class="aq-person"><span class="ds-avatar" style="background:var(--teal-pale);color:var(--teal-dk)">${h(aqInitials(o.name))}</span>
+            <span class="aq-person-text"><span class="aq-name">${h(o.name || 'Group')}</span><span class="aq-sub">Submitted ${aqAgo(r.requested_at)}</span></span></div>
+          <span class="badge badge-warn">${h(IP_METHOD_LABEL[r.method] || 'Request')}</span>
+        </div>
+        <ul class="aq-breakdown">
+          <li><span>Proposed</span><span>${ipDescribe(r)}</span></li>
+          ${r.account_name ? `<li><span>Registered name</span><span>${h(r.account_name)}</span></li>` : ''}
+          <li><span>Welfare</span><span>${r.welfare_mpesa_number ? 'Treasurer ' + h(r.welfare_mpesa_number) : 'Same as group account'}</span></li>
+          <li><span>Currently live</span><span>${current}</span></li>
+        </ul>
+        <div class="aq-facts"><span class="aq-fact-warn">Check the number or account in the M-Pesa portal before approving. Approval makes it the live payout destination.</span></div>
+        <div class="aq-actions">
+          <button class="btn btn-secondary btn-sm aq-decline" onclick="declineCollectionRequest('${r.id}')">Decline</button>
+          <button class="btn btn-primary btn-sm ds-btn-auto" onclick="approveCollectionRequest('${r.id}','${r.org_id}')">Verify &amp; approve</button>
         </div>
       </div>`;
     }).join('');
-  } catch(e) {
-    el.innerHTML = '<div style="padding:1rem;color:var(--danger);font-size:.8rem">Error loading requests: ' + e.message + '</div>';
+  } catch (e) {
+    if (el) el.innerHTML = '<div class="ds-empty"><div class="ds-empty-title">Could not load requests</div><div class="ds-empty-sub">' + h(e.message) + '</div></div>';
   }
 }
 
-async function approveCollectionRequest(requestId, orgId) {
-  const paystackCode = document.getElementById(`sa-req-paystack-${requestId}`)?.value?.trim();
-  const activeProvider = document.getElementById(`sa-req-active-${requestId}`)?.value || 'paystack';
-
-  // SasaPay needs no reference at all (pooled wallet, no per-org
-  // sub-account exists) - only Paystack genuinely requires one, and
-  // only when it's the one being activated.
-  if (activeProvider === 'paystack' && !paystackCode) { toast('Paystack is selected as active but has no subaccount code'); return; }
-
-  try {
-    const rows = [];
-    if (paystackCode) rows.push({ org_id: orgId, provider: 'paystack', provider_account_ref: paystackCode });
-
-    const { error: providersErr } = await sb.from('org_payment_providers')
-      .upsert(rows, { onConflict: 'org_id,provider' });
-    if (providersErr) throw new Error(providersErr.message);
-
-    const { error: orgErr } = await sb.from('organisations')
-      .update({ active_payment_provider: activeProvider }).eq('id', orgId);
-    if (orgErr) throw new Error(orgErr.message);
-
-    const { error: reqErr } = await sb.from('collection_activation_requests').update({
-      status: 'approved', reviewed_by: currentUser.id, reviewed_at: new Date().toISOString(),
-    }).eq('id', requestId);
-    if (reqErr) throw new Error(reqErr.message);
-
-    try { logActivity('COLLECTION ACTIVATED', `Instant collection approved - active provider: ${activeProvider}`, 'org', orgId); } catch(e) {}
-    toast('Collection activated');
-    loadCollectionRequestsQueue();
-  } catch(e) {
-    toast('Error approving request: ' + e.message);
-  }
+async function approveCollectionRequest(requestId) {
+  const { data: r, error: rErr } = await sb.from('collection_activation_requests').select('*').eq('id', requestId).maybeSingle();
+  if (rErr || !r) { toast('Request not found'); return; }
+  if (!confirm(`Approve for this group?\n\n${ipDescribe(r).replace(/<[^>]+>/g, '')}${r.welfare_mpesa_number ? '\nWelfare: treasurer ' + r.welfare_mpesa_number : ''}\n\nEvery automated payout for this group will go here.`)) return;
+  const updates = {
+    disbursement_method: r.method,
+    disbursement_mpesa_number: r.method === 'mpesa' ? r.mpesa_number : null,
+    disbursement_bank_paybill: r.method === 'bank' ? r.paybill : null,
+    disbursement_bank_account_number: r.method === 'bank' ? r.account_number : null,
+    disbursement_bank_account_name: r.account_name || null,
+    disbursement_bank_name: null,
+    disbursement_till_number: r.method === 'till' ? r.till_number : null,
+    welfare_disbursement_method: r.welfare_mpesa_number ? 'mpesa' : null,
+    welfare_disbursement_mpesa_number: r.welfare_mpesa_number || null,
+    welfare_disbursement_bank_name: null, welfare_disbursement_bank_paybill: null, welfare_disbursement_bank_account_number: null, welfare_disbursement_till_number: null,
+    disbursement_verified: true,
+    active_payment_provider: 'daraja',
+  };
+  const { error: orgErr } = await sb.from('organisations').update(updates).eq('id', r.org_id);
+  if (orgErr) { toast('Could not approve: ' + orgErr.message); return; }
+  await sb.from('collection_activation_requests').update({ status: 'approved', reviewed_by: currentUser.id, reviewed_at: new Date().toISOString() }).eq('id', requestId);
+  try { logActivity('INSTANT PAY ACCOUNT APPROVED', `${IP_METHOD_LABEL[r.method]} approved: ${ipDescribe(r).replace(/<[^>]+>/g, '')}`, 'org', r.org_id); } catch (e) {}
+  toast('Approved. Members of this group can now pay with M-Pesa.');
+  loadCollectionRequestsQueue();
 }
 
 async function declineCollectionRequest(requestId) {
-  const notes = prompt('Reason for declining (shown to the org admin):') || '';
+  const notes = prompt('Reason for declining (the group admin will see this):') || '';
   try {
     await sb.from('collection_activation_requests').update({
       status: 'declined', reviewed_by: currentUser.id, reviewed_at: new Date().toISOString(), notes,
     }).eq('id', requestId);
     toast('Request declined');
     loadCollectionRequestsQueue();
-  } catch(e) {
+  } catch (e) {
     toast('Error declining request: ' + e.message);
   }
 }
@@ -3181,6 +3262,8 @@ function toggleSADestinationFields() {
   const bankEl = document.getElementById('od-dest-bank-fields');
   if (mpesaEl) mpesaEl.style.display = method === 'mpesa' ? '' : 'none';
   if (bankEl) bankEl.style.display = method === 'bank' ? '' : 'none';
+  const tillEl = document.getElementById('od-dest-till-fields');
+  if (tillEl) tillEl.style.display = method === 'till' ? '' : 'none';
 }
 
 function toggleSAWelfareDestinationFields() {
@@ -3213,6 +3296,9 @@ async function saveSADestination() {
   if (method === 'mpesa' && !document.getElementById('od-dest-mpesa')?.value?.trim()) {
     toast('Enter the M-Pesa number, or set Method back to Not set'); return;
   }
+  if (method === 'till' && !/^\d{5,7}$/.test((document.getElementById('od-dest-till')?.value || '').trim())) {
+    toast('Enter the till number (5 to 7 digits)'); return;
+  }
   if (method === 'bank' && (!document.getElementById('od-dest-bank-paybill')?.value?.trim() || !document.getElementById('od-dest-bank-account')?.value?.trim())) {
     toast('Bank settlement needs both the bank\'s own Paybill and this org\'s account number'); return;
   }
@@ -3224,6 +3310,7 @@ async function saveSADestination() {
     disbursement_bank_paybill: method === 'bank' ? (document.getElementById('od-dest-bank-paybill')?.value?.trim() || null) : null,
     disbursement_bank_account_number: method === 'bank' ? (document.getElementById('od-dest-bank-account')?.value?.trim() || null) : null,
     disbursement_bank_account_name: method === 'bank' ? (document.getElementById('od-dest-bank-account-name')?.value?.trim() || null) : null,
+    disbursement_till_number: method === 'till' ? (document.getElementById('od-dest-till')?.value?.trim() || null) : null,
   };
 
   const welfareDiffers = document.getElementById('od-dest-welfare-diff')?.checked === true;
@@ -3254,7 +3341,8 @@ async function saveSADestination() {
   // SA saving here is the verification step. A database trigger resets
   // this flag whenever anyone other than SA changes the destination.
   updates.disbursement_verified = true;
-  if (!confirm('Verify this destination? Every automated payout for this group will be sent here.')) return;
+  if (method) updates.active_payment_provider = 'daraja';
+  if (!confirm('Verify this destination? Instant M-Pesa payments open for this group, and every automated payout will be sent here.')) return;
 
   const { error } = await sb.from('organisations').update(updates).eq('id', orgId);
   if (error) { toast('Could not save: ' + error.message); return; }

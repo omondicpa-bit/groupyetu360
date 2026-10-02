@@ -1117,7 +1117,11 @@ async function getActiveProviderConfig(org) {
     // No org_payment_providers row needed - unlike Paystack's subaccount,
     // Daraja settles via B2C/B2B to whatever this org's own
     // disbursement_method/number already is, not a per-org provider account.
-    return { provider: 'daraja', accountRef: null, destinationType: org.disbursement_method === 'bank' ? 'b2b' : 'b2c_registered' };
+    // locked: superadmin has not yet verified this group's M-Pesa account,
+    // so instant pay is shown but unavailable (the server refuses it too).
+    return { provider: 'daraja', accountRef: null,
+      destinationType: (org.disbursement_method === 'bank' || org.disbursement_method === 'till') ? 'b2b' : 'b2c_registered',
+      locked: org.disbursement_verified !== true || !org.disbursement_method };
   }
 
   try {

@@ -741,11 +741,21 @@ async function openMemberPaymentModal() {
   const tabsEl = document.getElementById('mp-mode-tabs');
   _mpActiveProvider = await getActiveProviderConfig(currentOrg);
   const hasProvider = !!_mpActiveProvider;
+  const instantLocked = !!_mpActiveProvider?.locked;
   const loadingEl2 = document.getElementById('mp-mode-loading');
   if (loadingEl2) loadingEl2.style.display = 'none';
   if (tabsEl) tabsEl.style.display = hasProvider ? 'flex' : 'none';
+  // Instant pay is visible but unavailable until superadmin approves the
+  // group's M-Pesa account; members report payments meanwhile.
+  const instantTab = document.getElementById('mp-tab-instant');
+  if (instantTab) {
+    instantTab.classList.toggle('mp-tab-locked', instantLocked);
+    instantTab.setAttribute('title', instantLocked ? 'Opens once your group\'s M-Pesa account is approved' : '');
+  }
+  const lockNote = document.getElementById('mp-instant-locked-note');
+  if (lockNote) lockNote.style.display = instantLocked ? '' : 'none';
   // Orgs without an active provider configured see exactly today's manual flow — no change.
-  switchPaymentMode(hasProvider ? 'instant' : 'manual');
+  switchPaymentMode(hasProvider && !instantLocked ? 'instant' : 'manual');
 
   const phoneEl = document.getElementById('mp-instant-phone');
   if (phoneEl) phoneEl.value = myRecord?.phone || currentProfile?.phone || '';
@@ -811,6 +821,10 @@ async function openMemberPaymentModal() {
 }
 
 function switchPaymentMode(mode) {
+  if (mode === 'instant' && _mpActiveProvider?.locked) {
+    toast("Pay with M-Pesa opens once your group's M-Pesa account is approved. Please report your payment for now.");
+    return;
+  }
   const instantSection = document.getElementById('mp-instant-section');
   const manualSection = document.getElementById('mp-manual-section');
   const manualBtn = document.getElementById('mp-manual-confirm-btn');
