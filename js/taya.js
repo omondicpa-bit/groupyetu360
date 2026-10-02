@@ -934,6 +934,11 @@ function tayaFillMessagesForm(text, mode, context) {
   if (recipientType === 'custom' && context?.recipient_member_id && typeof _customSelectedMemberIds !== 'undefined') {
     _customSelectedMemberIds = new Set([context.recipient_member_id]);
   }
+  // Keep the recipient pills in step with what Taya chose
+  if (typeof setRecipient === 'function') {
+    if (recipientType === 'active' || recipientType === 'arrears') setRecipient(recipientType, null, true);
+    else setRecipient(recipientType);
+  }
   return recipientType;
 }
 

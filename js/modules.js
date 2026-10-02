@@ -993,36 +993,65 @@ async function toggleProjectStatus(projectId, currentStatus) {
 
 // ── MESSAGES ──
 // Track selected recipient type
-let _msgRecipientType = 'all';
+// Recipients: statuses combine (Active + Behind + Inactive, any mix);
+// "Everyone" and "Choose members" stand alone. Default is current members
+// (Active + Behind), so inactive and deregistered people are not messaged
+// by accident.
+let _msgRecipientType = 'status';
+let _msgStatuses = new Set(['active', 'arrears']);
+const MSG_STATUS_LABEL = { active: 'Active', arrears: 'Behind', inactive: 'Inactive' };
 
-function setRecipient(type, btn) {
-  _msgRecipientType = type;
-  document.querySelectorAll('.msg-recipient-pill').forEach(p => p.classList.remove('active'));
-  if (btn) btn.classList.add('active');
+function msgStatusMatch(m) {
+  if (_msgStatuses.has('inactive') && m.status === 'inactive') return true;
+  return _msgStatuses.has(m.status);
+}
 
+// The members a recipient type points to (phones and push ids come from this)
+function msgRecipientMembers(type) {
+  const t = type || _msgRecipientType;
+  if (t === 'all') return allMembers;
+  if (t === 'active') return allMembers.filter(m => m.status === 'active');
+  if (t === 'arrears') return allMembers.filter(m => m.status === 'arrears');
+  if (t === 'status') return allMembers.filter(msgStatusMatch);
+  if (t === 'custom') return allMembers.filter(m => _customSelectedMemberIds.has(m.id));
+  return [];
+}
+
+// exclusive = select only this status (used by "Remind" shortcuts)
+function setRecipient(type, btn, exclusive) {
+  if (type === 'active' || type === 'arrears' || type === 'inactive') {
+    if (exclusive || _msgRecipientType !== 'status') _msgStatuses = new Set([type]);
+    else if (_msgStatuses.has(type)) { if (_msgStatuses.size > 1) _msgStatuses.delete(type); }  // keep at least one
+    else _msgStatuses.add(type);
+    _msgRecipientType = 'status';
+  } else {
+    _msgRecipientType = type;
+  }
+  msgRenderRecipients();
+}
+
+function msgRenderRecipients() {
+  const type = _msgRecipientType;
+  document.querySelectorAll('#msg-recipient-pills .msg-recipient-pill').forEach(p => {
+    const r = p.dataset.r;
+    p.classList.toggle('active', type === 'status' ? _msgStatuses.has(r) : r === type);
+  });
+  const sel = document.getElementById('sms-recipients');
+  if (sel) sel.value = type;
   const pickerEl = document.getElementById('msg-custom-picker');
   if (type === 'custom') {
     if (pickerEl) pickerEl.style.display = 'block';
     renderCustomMemberList();
     updateCustomSelectionCount();
-    const sel = document.getElementById('sms-recipients');
-    if (sel) sel.value = 'custom';
     return;
   }
   if (pickerEl) pickerEl.style.display = 'none';
-
-  // Update count label
-  let count = 0;
-  if (type === 'all') count = allMembers.filter(m => m.phone).length;
-  else if (type === 'active') count = allMembers.filter(m => m.phone && m.status === 'active').length;
-  else if (type === 'arrears') count = allMembers.filter(m => m.phone && m.status === 'arrears').length;
+  const count = msgRecipientMembers(type).filter(m => m.phone).length;
+  const label = type === 'all' ? 'Everyone' : [..._msgStatuses].map(s => MSG_STATUS_LABEL[s]).join(' + ');
   const countEl = document.getElementById('msg-recipient-count');
-  if (countEl) countEl.textContent = count + ' recipient' + (count!==1?'s':'') + ' with phone numbers';
+  if (countEl) countEl.textContent = `${label}: ${count} recipient${count !== 1 ? 's' : ''} with phone numbers`;
   const sendCount = document.getElementById('msg-send-count');
-  if (sendCount) sendCount.textContent = count + ' member' + (count!==1?'s':'');
-  // Sync hidden select (used by sendSms)
-  const sel = document.getElementById('sms-recipients');
-  if (sel) sel.value = type;
+  if (sendCount) sendCount.textContent = count + ' member' + (count !== 1 ? 's' : '');
 }
 
 // ── Custom member picker (checkbox-based ad-hoc audience, e.g. executive/women's
@@ -1162,7 +1191,7 @@ async function loadMessages() {
   }
 
   // ── Recipient count ──
-  setRecipient(_msgRecipientType, document.querySelector('.msg-recipient-pill.active'));
+  msgRenderRecipients();
 
   // ── Message history ──
   const { data } = await sb.from('messages_log').select('*').eq('org_id', currentOrg?.id||'').order('sent_at',{ascending:false}).limit(15);
@@ -1224,19 +1253,11 @@ async function sendSms(opts = {}) {
   // every member has the app installed.
   let rawPhones = [];
   let recipientUserIds = [];
-  if (recipientType === 'all') {
-    rawPhones = allMembers.filter(m => m.phone).map(m => m.phone);
-    recipientUserIds = allMembers.filter(m => m.user_id).map(m => m.user_id);
-  } else if (recipientType === 'active') {
-    rawPhones = allMembers.filter(m => m.phone && m.status === 'active').map(m => m.phone);
-    recipientUserIds = allMembers.filter(m => m.user_id && m.status === 'active').map(m => m.user_id);
-  } else if (recipientType === 'arrears') {
-    rawPhones = allMembers.filter(m => m.phone && m.status === 'arrears').map(m => m.phone);
-    recipientUserIds = allMembers.filter(m => m.user_id && m.status === 'arrears').map(m => m.user_id);
-  } else if (recipientType === 'custom') {
-    if (!_customSelectedMemberIds.size) { toast('Select at least one member first'); return; }
-    rawPhones = allMembers.filter(m => m.phone && _customSelectedMemberIds.has(m.id)).map(m => m.phone);
-    recipientUserIds = allMembers.filter(m => m.user_id && _customSelectedMemberIds.has(m.id)).map(m => m.user_id);
+  if (recipientType === 'custom' && !_customSelectedMemberIds.size) { toast('Select at least one member first'); return; }
+  {
+    const chosen = msgRecipientMembers(recipientType);
+    rawPhones = chosen.filter(m => m.phone).map(m => m.phone);
+    recipientUserIds = chosen.filter(m => m.user_id).map(m => m.user_id);
   }
 
   if (!rawPhones.length) { toast('No phone numbers found for selected recipients'); return; }
@@ -1245,9 +1266,10 @@ async function sendSms(opts = {}) {
   const customNames = recipientType === 'custom'
     ? allMembers.filter(m => _customSelectedMemberIds.has(m.id)).map(m => m.full_name)
     : [];
-  const recipientLabel = recipientType === 'all' ? 'all members'
+  const recipientLabel = recipientType === 'all' ? 'members (everyone)'
+    : recipientType === 'status' ? [..._msgStatuses].map(x => MSG_STATUS_LABEL[x].toLowerCase()).join(' + ') + ' members'
     : recipientType === 'active' ? 'active members'
-    : recipientType === 'arrears' ? 'members in arrears'
+    : recipientType === 'arrears' ? 'members behind on payments'
     : customNames.length <= 3 ? customNames.join(', ')
     : `${rawPhones.length} selected members`;
   const preview = body.length > 60 ? body.slice(0, 60) + '…' : body;

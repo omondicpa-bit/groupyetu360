@@ -124,9 +124,7 @@ async function loadMembers() {
 function remindArrearsMembers() {
   showPage('messages');
   setTimeout(() => {
-    const pill = Array.from(document.querySelectorAll('#msg-recipient-pills .msg-recipient-pill'))
-      .find(b => (b.getAttribute('onclick') || '').includes("'arrears'"));
-    if (pill && typeof setRecipient === 'function') setRecipient('arrears', pill);
+    if (typeof setRecipient === 'function') setRecipient('arrears', null, true);
   }, 300);
 }
 
