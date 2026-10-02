@@ -80,6 +80,7 @@ async function loadFinance() {
   const allExps = expRes.data || [];
   const incomes = allExps.filter(e => e.entry_type === 'income');
   const expenses = allExps.filter(e => e.entry_type !== 'income');
+  window._finData = { txns, incomes, expenses }; // phone Money screen reads this
 
   // Summary stats
   const totalContrib = txns.reduce((s,t)=>s+Number(t.amount||0),0);
@@ -1325,5 +1326,90 @@ async function declineWithdrawal(requestId) {
     loadWithdrawalRequests();
   } catch(e) {
     toast('Error: ' + e.message);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// PHONE MONEY SCREEN (design system v1 phone layer, canvas "Phone app")
+// Reads the data loadFinance() already fetched (window._finData), so it
+// costs no extra queries except Fines, which load on demand.
+// ════════════════════════════════════════════════════════════════════
+let _finMobView = 'overview';
+
+function setFinMobView(view) {
+  _finMobView = view;
+  document.querySelectorAll('#fin-mob-chips .ph-chip').forEach(c => c.classList.toggle('active', c.dataset.view === view));
+  renderFinMob();
+}
+
+function renderFinMob() {
+  const host = document.getElementById('fin-mob-view');
+  if (!host) return;
+  if (typeof setFinMobHeight === 'function') setFinMobHeight();
+  const org = document.getElementById('fin-mob-org');
+  if (org) org.textContent = currentOrg?.name || '';
+  const d = window._finData || { txns: [], incomes: [], expenses: [] };
+  const ksh = n => 'Ksh ' + Number(n || 0).toLocaleString();
+  const kshShort = n => n >= 1000000 ? 'Ksh ' + (n / 1e6).toFixed(1) + 'M' : n >= 10000 ? 'Ksh ' + Math.round(n / 1000) + 'K' : ksh(n);
+  const sum = arr => arr.reduce((t, x) => t + Number(x.amount || 0), 0);
+  const dateOf = x => x.transaction_date || x.expense_date || x.issued_date || (x.created_at || '').split('T')[0] || '';
+  const grouped = (rows, rowFn) => {
+    if (!rows.length) return '';
+    let out = '', last = null;
+    rows.forEach((r, i) => {
+      const k = dateOf(r);
+      if (k !== last) { out += `<div class="ph-day">${h(phDate(k) || 'No date')}</div>`; last = k; }
+      out += rowFn(r, i);
+    });
+    return out;
+  };
+  const card = (title, body, link) => `<section class="ph-card"><div class="ph-card-head"><h2>${title}</h2>${link || ''}</div>${body}</section>`;
+  const action = (label, onclick, tone) => `<button type="button" class="ph-action t-${tone || 'teal'}" onclick="${onclick}">${gyIcon('plus', 18)}${label}</button>`;
+
+  const year = String(new Date().getFullYear());
+  const contribs = d.txns.filter(t => !t.welfare_event_id);
+
+  if (_finMobView === 'overview') {
+    const yearTotal = sum(contribs.filter(t => (t.transaction_date || '').startsWith(year)));
+    const months = [];
+    for (let i = 5; i >= 0; i--) { const x = new Date(); x.setDate(1); x.setMonth(x.getMonth() - i); months.push({ key: x.toISOString().slice(0, 7), label: x.toLocaleString('en-KE', { month: 'short' }) }); }
+    const vals = months.map(m => sum(contribs.filter(t => (t.transaction_date || '').startsWith(m.key))));
+    const max = Math.max(...vals, 1);
+    const withdrawOpen = (document.getElementById('withdraw-status-label')?.textContent || '').toLowerCase().startsWith('open');
+    const totalIncome = sum(d.incomes), totalExp = sum(d.expenses);
+    const net = sum(d.txns) + totalIncome - totalExp;
+    host.innerHTML = `
+      <div class="ph-collected">
+        <span class="ph-collected-glow" aria-hidden="true"></span>
+        <div class="ph-collected-l">Collected in ${year}</div>
+        <div class="ph-collected-v">${ksh(yearTotal)}</div>
+        <div class="ph-collected-chart">${months.map((m, i) => `<div class="ph-cbar"><div class="ph-cbar-v">${vals[i] ? (vals[i] >= 1000 ? Math.round(vals[i] / 1000) + 'K' : vals[i]) : ''}</div><div class="ph-cbar-b${i === 5 ? ' now' : ''}" style="height:${Math.max(4, Math.round(vals[i] / max * 64))}px"></div><span>${h(m.label)}</span></div>`).join('')}</div>
+      </div>
+      <div class="ph-tiles">
+        <button type="button" class="ph-tile t-navy" onclick="showPage('settings')"><span class="ph-tile-ic">${gyIcon('bank', 18)}</span><span class="ph-tile-l">Bank balance</span><span class="ph-tile-v">${kshShort(currentOrg?.bank_balance || 0)}</span><span class="ph-tile-n">${currentOrg?.bank_balance_updated ? 'Updated ' + h(currentOrg.bank_balance_updated) : 'Set in Settings'}</span></button>
+        <button type="button" class="ph-tile t-maroon" onclick="setFinMobView('expenses')"><span class="ph-tile-ic">${gyIcon('payouts', 18)}</span><span class="ph-tile-l">Expenses</span><span class="ph-tile-v">${kshShort(totalExp)}</span><span class="ph-tile-n">${d.expenses.length} recorded</span></button>
+        <button type="button" class="ph-tile t-gold" onclick="setFinMobView('income')"><span class="ph-tile-ic">${gyIcon('revenue', 18)}</span><span class="ph-tile-l">Other income</span><span class="ph-tile-v">${kshShort(totalIncome)}</span><span class="ph-tile-n">${d.incomes.length} entries</span></button>
+        <button type="button" class="ph-tile t-teal" onclick="toggleWithdrawWindow();setTimeout(renderFinMob,600)"><span class="ph-tile-ic">${gyIcon('lock', 18)}</span><span class="ph-tile-l">Withdrawals</span><span class="ph-tile-v">${withdrawOpen ? 'Open' : 'Closed'}</span><span class="ph-tile-n">Tap to ${withdrawOpen ? 'close' : 'open'}</span></button>
+      </div>
+      <div class="ph-net ${net >= 0 ? 'pos' : 'neg'}"><span>Net position, all time</span><strong>${net < 0 ? '−' : ''}${ksh(Math.abs(net))}</strong></div>
+      ${card('Latest payments', grouped(d.txns.slice(0, 6), (t, i) => phRow(t.members?.full_name || 'Member', (t.welfare_event_id ? 'Welfare' : (t.contribution_types?.name || 'Payment')) + (t.mpesa_ref ? ' · ' + t.mpesa_ref : ''), '+' + Number(t.amount || 0).toLocaleString(), i)) || '<div class="ph-empty">No payments yet</div>', `<button type="button" class="ph-link" onclick="setFinMobView('ledger')">Full ledger</button>`)}`;
+  } else if (_finMobView === 'ledger') {
+    host.innerHTML = card(`Ledger <span class="ph-count">${d.txns.length}</span>`,
+      grouped(d.txns.slice(0, 150), (t, i) => phRow(t.members?.full_name || 'Member', (t.welfare_event_id ? 'Welfare' : (t.contribution_types?.name || 'Payment')) + (t.mpesa_ref ? ' · ' + t.mpesa_ref : ''), '+' + Number(t.amount || 0).toLocaleString(), i)) || '<div class="ph-empty">No payments recorded yet</div>',
+      `<button type="button" class="ph-link" onclick="exportContributionsCSV()">Export</button>`);
+  } else if (_finMobView === 'expenses') {
+    host.innerHTML = (canDo('recordPayment') ? action('Record an expense', "showModal('recordExpense')", 'maroon') : '') +
+      card(`Expenses <span class="ph-count">${ksh(sum(d.expenses))}</span>`, grouped(d.expenses, (e, i) => phRow(e.description || e.category || 'Expense', (e.category || 'Expense') + (e.payment_method ? ' · ' + e.payment_method : ''), '−' + Number(e.amount || 0).toLocaleString(), i, true)) || '<div class="ph-empty">No expenses recorded</div>');
+  } else if (_finMobView === 'income') {
+    host.innerHTML = (canDo('recordPayment') ? action('Record other income', "showModal('recordIncome')", 'gold') : '') +
+      card(`Other income <span class="ph-count">${ksh(sum(d.incomes))}</span>`, grouped(d.incomes, (e, i) => phRow(e.description || e.category || 'Income', e.category || 'Income', '+' + Number(e.amount || 0).toLocaleString(), i)) || '<div class="ph-empty">No other income recorded</div>');
+  } else if (_finMobView === 'fines') {
+    host.innerHTML = '<div class="ph-empty">Loading fines…</div>';
+    sb.from('fines').select('*,members(full_name)').eq('org_id', currentOrg.id).order('created_at', { ascending: false }).then(({ data }) => {
+      if (_finMobView !== 'fines') return;
+      const fines = data || [];
+      const owed = sum(fines.filter(f => f.status !== 'paid'));
+      host.innerHTML = card(`Fines <span class="ph-count">${ksh(owed)} unpaid</span>`, fines.length ? fines.map((f, i) => `<div class="ph-row"><span class="ph-av t-${PH_TONES[i % 4]}">${h(phInitials(f.members?.full_name))}</span><span class="ph-row-text"><span class="ph-row-name">${h(f.members?.full_name || 'Member')}</span><span class="ph-row-sub">${h(f.reason || 'Fine')} · ${phDate(f.issued_date || f.created_at)}</span></span><span style="text-align:right"><span class="ph-row-amt neg" style="display:block">${Number(f.amount || 0).toLocaleString()}</span><span class="badge ${f.status === 'paid' ? 'badge-green' : 'badge-warn'}">${f.status === 'paid' ? 'Paid' : 'Unpaid'}</span></span></div>`).join('') : '<div class="ph-empty">No fines issued</div>');
+    });
   }
 }

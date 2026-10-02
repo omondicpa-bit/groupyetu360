@@ -3717,3 +3717,36 @@ body.mob-dark .t-navy{--tt-bg:#18243a;--tt-fg:#9db8e6}
   .ph-promo-t span:first-child{font-size:14.5px;font-weight:800}
   .ph-promo-t span:last-child{font-size:12.5px;color:var(--ink-faint)}
 }
+
+/* ── Phone Money screen (phase 6c) ── */
+@media(max-width:768px){
+  body.finance-mob-active .content:has(#page-finance.active){padding:0 0 96px !important}
+  body.hero-page-active .content:has(#page-finance.active){padding-top:0 !important}
+  .ph-appbar-flush{margin:0;position:sticky;top:0;z-index:5}
+  .ph-icon-btn{width:44px;height:44px;flex-shrink:0;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--ink-soft);display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .ph-appbar > div:first-child{flex:1;min-width:0}
+  .ph-appbar-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ph-chips{display:flex;gap:8px;overflow-x:auto;margin:0 -20px;padding:0 20px;scrollbar-width:none;flex-shrink:0}
+  .ph-chips::-webkit-scrollbar{display:none}
+  .ph-chip{flex-shrink:0;height:38px;padding:0 15px;border-radius:999px;border:1px solid var(--border-dk);background:var(--surface);color:var(--ink-soft);font:inherit;font-size:13.5px;font-weight:700;cursor:pointer}
+  .ph-chip.active{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+  #fin-mob-view{display:flex;flex-direction:column;gap:14px}
+  .ph-collected{position:relative;overflow:hidden;border-radius:22px;padding:18px;color:#fff;background:linear-gradient(140deg,#0b5a46,#0f6e56 55%,#1d9e75)}
+  .ph-collected-glow{position:absolute;right:-50px;top:-60px;width:180px;height:180px;border-radius:999px;background:rgba(255,255,255,.08)}
+  .ph-collected > *{position:relative}
+  .ph-collected-l{font-size:12.5px;font-weight:700;color:#cdeee2}
+  .ph-collected-v{font-size:32px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+  .ph-collected-chart{display:flex;align-items:flex-end;gap:8px;height:100px;margin-top:10px}
+  .ph-cbar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%}
+  .ph-cbar-v{font-size:10.5px;font-weight:700;color:#cdeee2;min-height:13px}
+  .ph-cbar-b{width:100%;max-width:34px;border-radius:6px 6px 2px 2px;background:rgba(255,255,255,.28)}
+  .ph-cbar-b.now{background:#9fe1cb}
+  .ph-cbar span{font-size:11px;font-weight:700;color:#cdeee2}
+  .ph-net{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 16px;border-radius:16px;background:var(--surface);box-shadow:0 2px 10px rgba(16,40,32,.05);font-size:13.5px;font-weight:700;color:var(--ink-soft)}
+  .ph-net strong{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums}
+  .ph-net.pos strong{color:var(--teal-dk)}
+  .ph-net.neg strong{color:var(--danger)}
+  .ph-day{font-size:12.5px;font-weight:800;color:var(--ink-faint);padding:12px 0 2px}
+  .ph-count{font-size:12.5px;font-weight:700;color:var(--ink-faint);margin-left:6px}
+  .ph-action{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:50px;border-radius:16px;border:1px dashed var(--tt-fg);background:var(--tt-bg);color:var(--tt-fg);font:inherit;font-size:15px;font-weight:800;cursor:pointer}
+}

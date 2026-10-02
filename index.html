@@ -24,7 +24,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026100122">
+  <link rel="stylesheet" href="style.css?v=2026100123">
 </head>
 <body>
 
@@ -714,79 +714,23 @@
     <div class="page" id="page-finance">
 
       <!-- ══ FINANCE MOBILE ══ -->
-      <div class="mob-only" id="fin-mob-shell">
-
-        <!-- Header -->
-        <div class="mh-header">
-          <div class="mh-inner">
-            <div class="mh-row">
-              <div>
-                <div class="mh-greeting">Money</div>
-                <div class="mh-name" style="font-size:.85rem;font-weight:500" id="fin-mob-org">—</div>
-              </div>
-              <div style="display:flex;gap:.5rem">
-                <button class="mh-icon-btn" onclick="showShareoutModal()" title="Year-end shareout" aria-label="Year-end shareout"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12.5" r="2.5"/><path d="M6 10v5M18 10v5"/></svg></button>
-                <button class="mh-icon-btn" onclick="toggleWithdrawWindow()" id="fin-mob-withdraw-btn" title="Withdraw window" aria-label="Open or close the withdraw window"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></svg></button>
-              </div>
-            </div>
+      <div class="mob-only ph-page" id="fin-mob-shell">
+        <!-- Phone Money screen (design system v1 phone layer) -->
+        <header class="ph-appbar ph-appbar-flush">
+          <div><h1>Money</h1><div class="ph-appbar-sub" id="fin-mob-org"></div></div>
+          <button type="button" class="ph-icon-btn" id="fin-mob-withdraw-btn" onclick="toggleWithdrawWindow();setTimeout(renderFinMob,600)" aria-label="Open or close withdrawals"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></svg></button>
+          <button type="button" class="ph-icon-btn" onclick="showShareoutModal()" aria-label="Year-end shareout"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v9h-9"/></svg></button>
+        </header>
+        <div class="ph-body ph-body-flow" id="fin-mob-body">
+          <div class="ph-chips" id="fin-mob-chips">
+            <button type="button" class="ph-chip active" data-view="overview" onclick="setFinMobView('overview')">Overview</button>
+            <button type="button" class="ph-chip" data-view="ledger" onclick="setFinMobView('ledger')">Ledger</button>
+            <button type="button" class="ph-chip" data-view="expenses" onclick="setFinMobView('expenses')">Expenses</button>
+            <button type="button" class="ph-chip" data-view="fines" onclick="setFinMobView('fines')">Fines</button>
+            <button type="button" class="ph-chip" data-view="income" onclick="setFinMobView('income')">Income</button>
           </div>
+          <div id="fin-mob-view"></div>
         </div>
-
-        <!-- Scrollable body -->
-        <div id="fin-mob-body">
-
-          <!-- Balance hero card (maroon) -->
-          <div class="fin-mob-hero-card">
-            <div class="mob-sc-label">Total bank balance</div>
-            <div class="mob-sc-amount" id="fin-mob-bank-balance">—</div>
-            <div class="mob-sc-meta" id="fin-mob-bank-meta">All funds across group accounts</div>
-            <div class="mob-sc-row" style="margin-top:.35rem">
-              <span class="mob-sc-tag" id="fin-mob-withdraw-status">Withdraw: Closed</span>
-              <span class="mob-sc-tag fin-mob-year-tag" id="fin-mob-year-tag">— this year</span>
-            </div>
-          </div>
-
-          <!-- 2×2 stat cards -->
-          <div class="fin-mob-stats">
-            <div class="fin-mob-stat fin-mob-stat-teal" onclick="switchFinTab(document.querySelector('[onclick*=sub-tab-contributions]'),\'sub-tab-contributions\');switchFinTab(document.querySelector('[onclick*=tab-transactions]'),\'tab-transactions\')">
-              <div class="fin-mob-stat-icon"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg></div>
-              <div class="fin-mob-stat-label">Contributions</div>
-              <div class="fin-mob-stat-val" id="fin-mob-contrib">—</div>
-            </div>
-            <div class="fin-mob-stat fin-mob-stat-gold" onclick="switchFinTab(document.querySelector('[onclick*=sub-tab-income]'),\'sub-tab-income\');switchFinTab(document.querySelector('[onclick*=tab-transactions]'),\'tab-transactions\')">
-              <div class="fin-mob-stat-icon"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div>
-              <div class="fin-mob-stat-label">Other income</div>
-              <div class="fin-mob-stat-val" id="fin-mob-income">—</div>
-            </div>
-            <div class="fin-mob-stat fin-mob-stat-maroon" onclick="switchFinTab(document.querySelector('[onclick*=tab-expenses]'),\'tab-expenses\')">
-              <div class="fin-mob-stat-icon"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M8 7h9v9"/><path d="M4 21h16"/></svg></div>
-              <div class="fin-mob-stat-label">Expenses</div>
-              <div class="fin-mob-stat-val" id="fin-mob-exp">—</div>
-            </div>
-            <div class="fin-mob-stat fin-mob-stat-indigo">
-              <div class="fin-mob-stat-icon"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8"/><path d="M3 21h18"/></svg></div>
-              <div class="fin-mob-stat-label">Net position</div>
-              <div class="fin-mob-stat-val" id="fin-mob-net">—</div>
-            </div>
-          </div>
-
-          <!-- Tab row: view tabs + action tabs -->
-          <div class="fin-mob-tabs">
-            <button class="fin-mob-tab active" onclick="finMobSwitchTab(this,'tab-transactions')">Ledger</button>
-            <button class="fin-mob-tab" onclick="finMobSwitchTab(this,'tab-expenses')">Expenses</button>
-            <button class="fin-mob-tab" onclick="finMobSwitchTab(this,'tab-fines');loadFinesLedger()">Fines</button>
-            <button class="fin-mob-tab fin-mob-tab-action" onclick="openRecordPaymentModal()"><svg class="gy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Payment</button>
-            <button class="fin-mob-tab fin-mob-tab-action" onclick="showModal('recordIncome')"><svg class="gy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Income</button>
-            <button class="fin-mob-tab fin-mob-tab-action" onclick="showModal('recordExpense')"><svg class="gy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Expense</button>
-            <button class="fin-mob-tab fin-mob-tab-warn" onclick="finMobSwitchTab(this,'tab-fine-record')"><svg class="gy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Fine</button>
-          </div>
-
-          <!-- Tab content area - reuses existing desktop tab-panels -->
-          <div id="fin-mob-tab-content">
-            <!-- populated by finMobSwitchTab - clones active tab-panel content -->
-          </div>
-
-        </div><!-- end fin-mob-body -->
       </div><!-- end fin-mob-shell -->
 
       <!-- ══ DESKTOP FINANCE ══ -->
@@ -5597,16 +5541,16 @@
 
 
   <!-- GroupYetu360 Scripts - load order matters -->
-  <script src="js/icons.js?v=2026100122"></script>
-  <script src="js/auth.js?v=2026100122"></script>
-  <script src="js/utils.js?v=2026100122"></script>
-  <script src="js/dashboard.js?v=2026100122"></script>
-  <script src="js/members.js?v=2026100122"></script>
-  <script src="js/finance.js?v=2026100122"></script>
-  <script src="js/settings.js?v=2026100122"></script>
-  <script src="js/portal.js?v=2026100122"></script>
-  <script src="js/modules.js?v=2026100122"></script>
-  <script src="js/taya.js?v=2026100122"></script>
+  <script src="js/icons.js?v=2026100123"></script>
+  <script src="js/auth.js?v=2026100123"></script>
+  <script src="js/utils.js?v=2026100123"></script>
+  <script src="js/dashboard.js?v=2026100123"></script>
+  <script src="js/members.js?v=2026100123"></script>
+  <script src="js/finance.js?v=2026100123"></script>
+  <script src="js/settings.js?v=2026100123"></script>
+  <script src="js/portal.js?v=2026100123"></script>
+  <script src="js/modules.js?v=2026100123"></script>
+  <script src="js/taya.js?v=2026100123"></script>
   <script>
     // Bootstrap - runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —
@@ -5674,11 +5618,9 @@
 <script>
 // ── Set mobile shell heights (avoids dvh issues on Android) ──
 function setMobHomeHeight() {
+  // Phone layer: the member home flows with the page (no fixed height).
   const shell = document.getElementById('mob-home-shell');
-  if (!shell) return;
-  const nav = document.getElementById('mob-bottom-nav');
-  const navH = nav ? nav.offsetHeight : 64;
-  shell.style.height = (window.innerHeight - navH) + 'px';
+  if (shell) { shell.style.height = ''; shell.style.maxHeight = ''; shell.style.minHeight = ''; }
 }
 function setAdmMobHeight() {
   const shell = document.getElementById('adm-mob-shell');
@@ -5689,12 +5631,9 @@ function setAdmMobHeight() {
   shell.style.height = h; shell.style.maxHeight = h; shell.style.minHeight = h;
 }
 function setFinMobHeight() {
+  // Phone layer: Money flows with the page; only the body class is managed.
   const shell = document.getElementById('fin-mob-shell');
-  if (!shell) return;
-  const nav = document.getElementById('mob-bottom-nav');
-  const navH = (nav && nav.offsetHeight) ? nav.offsetHeight : 64;
-  const h = (window.innerHeight - navH) + 'px';
-  shell.style.height = h; shell.style.maxHeight = h; shell.style.minHeight = h;
+  if (shell) { shell.style.height = ''; shell.style.maxHeight = ''; shell.style.minHeight = ''; }
   if (window.innerWidth <= 768) document.body.classList.add('finance-mob-active');
   else document.body.classList.remove('finance-mob-active');
 }
@@ -5734,53 +5673,8 @@ document.addEventListener('DOMContentLoaded', () => {
 setTimeout(setAllMobHeights, 100);
 setTimeout(setAllMobHeights, 500);
 
-// ── Finance mobile tab switcher ──
-function finMobSwitchTab(btn, panelId) {
-  document.querySelectorAll('.fin-mob-tab').forEach(t => t.classList.remove('active'));
-  btn.classList.add('active');
-  const src = document.getElementById(panelId);
-  const dest = document.getElementById('fin-mob-tab-content');
-  if (src && dest) {
-    dest.innerHTML = src.innerHTML;
-    // Re-bind sub-tab clicks inside mobile container
-    dest.querySelectorAll('.fin-sub-tab').forEach(st => {
-      st.addEventListener('click', function() {
-        dest.querySelectorAll('.fin-sub-tab').forEach(x => x.classList.remove('active'));
-        this.classList.add('active');
-        const match = this.getAttribute('onclick')?.match(/'([^']+)'/g);
-        const tid = match && match[0] ? match[0].replace(/'/g,'') : null;
-        if (tid) {
-          dest.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-          const tp = dest.querySelector('#' + tid);
-          if (tp) tp.classList.add('active');
-        }
-      });
-    });
-  }
-  // Keep desktop tab in sync so save/load functions target correct panel
-  const desktopBtn = document.querySelector(`.fin-tabs [onclick*="${panelId}"]`);
-  if (desktopBtn && typeof switchFinTab === 'function') switchFinTab(desktopBtn, panelId);
-}
-
-// ── Populate finance mobile values from loaded desktop data ──
-function populateFinMob() {
-  if (window.innerWidth > 768) return;
-  const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  const syncEl = (srcId, destId) => { const s = document.getElementById(srcId); const d = document.getElementById(destId); if (s && d) d.textContent = s.textContent; };
-  setEl('fin-mob-org', currentOrg?.name || '');
-  const bal = currentOrg?.bank_balance || 0;
-  setEl('fin-mob-bank-balance', 'Ksh ' + bal.toLocaleString());
-  setEl('fin-mob-bank-meta', currentOrg?.bank_balance_updated ? 'Updated ' + currentOrg.bank_balance_updated : 'Set in Settings');
-  const wLabel = document.getElementById('withdraw-status-label');
-  setEl('fin-mob-withdraw-status', 'Withdraw: ' + (wLabel ? wLabel.textContent : 'Closed'));
-  syncEl('fin-total-contrib', 'fin-mob-contrib');
-  syncEl('fin-total-income', 'fin-mob-income');
-  syncEl('fin-total-exp', 'fin-mob-exp');
-  syncEl('fin-net', 'fin-mob-net');
-  const firstTabBtn = document.querySelector('.fin-mob-tab');
-  if (firstTabBtn) finMobSwitchTab(firstTabBtn, 'tab-transactions');
-  setFinMobHeight();
-}
+// Phone Money screen lives in js/finance.js (renderFinMob / setFinMobView).
+function populateFinMob() { if (window.innerWidth <= 768 && typeof renderFinMob === 'function') renderFinMob(); }
 </script>
 
 <!-- Print-only member statement target - populated by printMemberStatement()
