@@ -19,7 +19,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { message, recipients, org_id } = await req.json();
+    const { message, recipients, org_id, platform } = await req.json();
 
     if (!message || !recipients?.length) {
       return new Response(
@@ -27,7 +27,10 @@ serve(async (req: Request) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    if (!org_id) {
+    // platform: true = a message from EPH itself (superadmin only, checked
+    // below), e.g. welcoming people who signed up but have no group yet.
+    // It belongs to no group, so no org_id and no group label.
+    if (!org_id && platform !== true) {
       return new Response(
         JSON.stringify({ sent: 0, failed: 0, error: 'Missing org_id' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -65,12 +68,12 @@ serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    const { data: membership } = await supabase
+    const { data: membership } = org_id ? await supabase
       .from('user_orgs')
       .select('role')
       .eq('user_id', callerUser.id)
       .eq('org_id', org_id)
-      .maybeSingle();
+      .maybeSingle() : { data: null };
 
     let isSuperadmin = false;
     if (!membership) {
@@ -79,6 +82,12 @@ serve(async (req: Request) => {
       isSuperadmin = callerProfile?.role === 'superadmin';
     }
 
+    if (platform === true && !isSuperadmin) {
+      return new Response(
+        JSON.stringify({ sent: 0, failed: 0, error: 'Forbidden: platform messages are superadmin only' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     if (!membership && !isSuperadmin) {
       return new Response(
         JSON.stringify({ sent: 0, failed: 0, error: 'Forbidden — not a member of this organisation' }),
@@ -111,8 +120,8 @@ serve(async (req: Request) => {
     // blank until SA sets one - see HANDOVER), and skipped if the message
     // already mentions the label, so it's never duplicated.
     let outgoingMessage = message;
-    const { data: orgRow } = await supabase
-      .from('organisations').select('sms_label').eq('id', org_id).maybeSingle();
+    const { data: orgRow } = org_id ? await supabase
+      .from('organisations').select('sms_label').eq('id', org_id).maybeSingle() : { data: null };
     const label = orgRow?.sms_label?.trim();
     if (label && !message.toLowerCase().includes(label.toLowerCase())) {
       outgoingMessage = `${label}:\n\n${message}`;

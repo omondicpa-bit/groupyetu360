@@ -1040,18 +1040,26 @@ async function loadSAMembers() {
   allSAOrgsMap = {};
   (orgsRes.data||[]).forEach(o => allSAOrgsMap[o.id] = o);
   window._saOrgMap = allSAOrgsMap;
-  renderSAUsers(allSAUsers);
+  // When each person was last sent a platform SMS (so nobody is chased twice)
+  _sauMessaged = {};
+  try {
+    const { data: logs } = await sb.from('activity_log').select('target_id,created_at')
+      .eq('action', 'PLATFORM SMS').eq('target_type', 'user').order('created_at', { ascending: false }).limit(2000);
+    (logs || []).forEach(l => { if (l.target_id && !_sauMessaged[l.target_id]) _sauMessaged[l.target_id] = l.created_at; });
+  } catch (e) {}
+  _sauSelected = new Set();
+  applySAUserFilters();
 }
 
 function renderSAUsers(list) {
   const tbody = document.getElementById('sa-all-members');
   if (!tbody) return;
   const head = document.getElementById('sa-users-head');
-  if (head) head.innerHTML = '<tr><th>Person</th><th>Phone</th><th>Registered</th><th>Groups and roles</th><th>Account</th><th><span class="ds-sr">Actions</span></th></tr>';
+  if (head) head.innerHTML = '<tr><th style="width:44px"><input type="checkbox" id="sau-check-all" aria-label="Select everyone shown" onchange="sauSelectVisible(this.checked)"/></th><th>Person</th><th>Phone</th><th>Registered</th><th>Groups and roles</th><th>Account</th><th><span class="ds-sr">Actions</span></th></tr>';
   const count = document.getElementById('sa-users-count');
-  if (count) count.textContent = `${list.length} account${list.length !== 1 ? 's' : ''}, newest first`;
+  if (count) count.textContent = `${list.length} account${list.length !== 1 ? 's' : ''} shown, newest first`;
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="6">${aqEmpty('members', 'No users found', 'Try another name, email or phone.')}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7">${aqEmpty('members', 'No users found', 'Try another filter, name, email or phone.')}</td></tr>`;
     return;
   }
   const fmtDT = d => {
@@ -1076,9 +1084,11 @@ function renderSAUsers(list) {
       : u.role === 'admin' ? '<span class="badge badge-green">Admin</span>' : '<span class="badge badge-grey">Member</span>';
     const dt = fmtDT(u.created_at);
     const isNew = u.created_at && (Date.now() - new Date(u.created_at).getTime()) < 7 * 86400000;
+    const messaged = _sauMessaged[u.id];
     return `<tr>
+      <td><input type="checkbox" class="sau-check" data-id="${u.id}" ${_sauSelected.has(u.id) ? 'checked' : ''} ${phone ? '' : 'disabled title="No phone number"'} aria-label="Select ${h(u.full_name || 'user')}" onchange="sauToggle('${u.id}', this.checked)"/></td>
       <td><div class="ds-person"><span class="ds-avatar" style="background:var(--tt-bg);color:var(--tt-fg)" data-tone="${['teal','maroon','gold','navy'][i % 4]}">${h(aqInitials(u.full_name))}</span>
-        <span class="ds-person-text"><span class="ds-person-name">${h(u.full_name || 'No name')}${isFounder ? ' <span class="ds-founder">Founder</span>' : ''}${isNew ? ' <span class="badge badge-green">New</span>' : ''}</span><span class="ds-person-sub">${h(u.email || 'No email')}</span></span></div></td>
+        <span class="ds-person-text"><span class="ds-person-name">${h(u.full_name || 'No name')}${isFounder ? ' <span class="ds-founder">Founder</span>' : ''}${isNew ? ' <span class="badge badge-green">New</span>' : ''}</span><span class="ds-person-sub">${h(u.email || 'No email')}</span>${messaged ? `<span class="sau-messaged">Messaged ${aqAgo(messaged)}</span>` : ''}</span></div></td>
       <td class="ds-strong" style="white-space:nowrap">${phone ? h(phone) : '<span class="ds-muted">None</span>'}</td>
       <td style="white-space:nowrap"><div class="ds-strong">${dt.main}</div><div class="ds-muted" style="font-size:12px">${dt.sub}</div></td>
       <td>${groups}</td>
@@ -1089,15 +1099,127 @@ function renderSAUsers(list) {
   tbody.querySelectorAll('[data-tone]').forEach(el => el.classList.add('t-' + el.dataset.tone));
 }
 
-function filterSAMembers(q) {
-  if (!q || q.length < 2) { renderSAUsers(allSAUsers); return; }
-  const ql = q.toLowerCase();
-  const f = allSAUsers.filter(u =>
-    (u.full_name||'').toLowerCase().includes(ql) ||
-    (u.email||'').toLowerCase().includes(ql) ||
-    (u.phone||'').includes(q)
-  );
-  renderSAUsers(f);
+let _sauFilter = 'all';
+let _sauSelected = new Set();
+let _sauMessaged = {};
+let _sauVisible = [];
+
+function sauOrgIds(u) {
+  return [...new Set([...allSAUserOrgs.filter(uo => uo.user_id === u.id).map(uo => uo.org_id), ...allSAMemberRows.filter(m => m.user_id === u.id).map(m => m.org_id)])].filter(id => allSAOrgsMap[id]);
+}
+function sauPhone(u) { return u.phone || allSAMemberRows.find(m => m.user_id === u.id && m.phone)?.phone || ''; }
+function sauIsNew(u) { return u.created_at && (Date.now() - new Date(u.created_at).getTime()) < 7 * 86400000; }
+
+function setSAUserFilter(f) {
+  _sauFilter = f;
+  document.querySelectorAll('#sau-filters .mf-pill').forEach(b => b.classList.toggle('active', b.dataset.f === f));
+  applySAUserFilters();
+}
+
+function applySAUserFilters() {
+  const q = (document.getElementById('sau-search')?.value || '').trim().toLowerCase();
+  const users = (allSAUsers || []).filter(u => u.role !== 'superadmin');
+  const set = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = n; };
+  set('sau-n-all', users.length);
+  set('sau-n-nogroup', users.filter(u => !sauOrgIds(u).length).length);
+  set('sau-n-new', users.filter(sauIsNew).length);
+  let list = users;
+  if (_sauFilter === 'nogroup') list = list.filter(u => !sauOrgIds(u).length);
+  if (_sauFilter === 'new') list = list.filter(sauIsNew);
+  if (q.length >= 2) list = list.filter(u => (u.full_name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q) || sauPhone(u).includes(q));
+  _sauVisible = list;
+  renderSAUsers(list);
+  sauUpdateSelection();
+}
+
+function filterSAMembers() { applySAUserFilters(); }
+
+function sauToggle(id, on) { if (on) _sauSelected.add(id); else _sauSelected.delete(id); sauUpdateSelection(); }
+function sauSelectVisible(on) {
+  _sauVisible.forEach(u => { if (on && sauPhone(u)) _sauSelected.add(u.id); else if (!on) _sauSelected.delete(u.id); });
+  document.querySelectorAll('.sau-check').forEach(c => { c.checked = _sauSelected.has(c.dataset.id); });
+  sauUpdateSelection();
+}
+function sauUpdateSelection() {
+  const n = _sauSelected.size;
+  const btn = document.getElementById('sau-sms-btn');
+  if (btn) { btn.disabled = !n; btn.lastChild.textContent = n ? `Send SMS to ${n}` : 'Send SMS'; }
+  const bar = document.getElementById('sau-selbar');
+  if (bar) bar.hidden = false;
+  const t = document.getElementById('sau-sel-text');
+  if (t) t.textContent = n ? `${n} selected` : 'Tick people to message them. Only people with a phone number can be selected.';
+  const all = document.getElementById('sau-check-all');
+  if (all) all.checked = _sauVisible.length > 0 && _sauVisible.filter(u => sauPhone(u)).every(u => _sauSelected.has(u.id));
+}
+
+const SAU_DEFAULT_SMS = "Hi {name}, thank you for creating your GroupYetu360 account. You can start your group for free today at app.groupyetu.org. Need help setting up? Call or WhatsApp us on 0702 903 544. EPH Technologies";
+
+function openSAUserSms() {
+  if (!_sauSelected.size) return;
+  const ta = document.getElementById('sau-sms-text');
+  if (ta && !ta.value.trim()) ta.value = SAU_DEFAULT_SMS;
+  const people = [...allSAUsers].filter(u => _sauSelected.has(u.id));
+  const to = document.getElementById('sau-sms-to');
+  if (to) to.textContent = `To ${people.length} ${people.length === 1 ? 'person' : 'people'}: ${people.slice(0, 3).map(u => (u.full_name || '').split(' ')[0]).join(', ')}${people.length > 3 ? ' and ' + (people.length - 3) + ' more' : ''}`;
+  sauSmsCount();
+  showModal('saUserSms');
+}
+
+function sauPersonalise(text, u) {
+  const first = ((u?.full_name || '').trim().split(/\s+/)[0] || 'there');
+  const nice = first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
+  return text.replace(/\{name\}/g, nice);
+}
+
+function sauSmsCount() {
+  const text = document.getElementById('sau-sms-text')?.value || '';
+  const sample = [...allSAUsers].find(u => _sauSelected.has(u.id));
+  const out = sauPersonalise(text, sample);
+  const len = out.length;
+  const parts = len <= 160 ? 1 : Math.ceil(len / 153);
+  const c = document.getElementById('sau-sms-count');
+  if (c) c.textContent = `${len} characters · ${parts} SMS part${parts !== 1 ? 's' : ''} each`;
+  const p = document.getElementById('sau-sms-preview');
+  if (p) p.textContent = out;
+}
+
+async function sendSAUserSms(testOnly) {
+  const text = (document.getElementById('sau-sms-text')?.value || '').trim();
+  if (!text) { toast('Write a message first.'); return; }
+  const people = testOnly
+    ? [{ id: null, full_name: currentProfile?.full_name, phone: currentProfile?.phone }]
+    : [...allSAUsers].filter(u => _sauSelected.has(u.id)).map(u => ({ ...u, phone: sauPhone(u) })).filter(u => u.phone);
+  if (testOnly && !people[0].phone) { toast('Add a phone number to your own account to receive a test.'); return; }
+  if (!testOnly && !confirm(`Send this SMS to ${people.length} ${people.length === 1 ? 'person' : 'people'}?`)) return;
+  const btn = document.getElementById('sau-sms-send');
+  if (btn) btn.disabled = true;
+  const { data: { session } } = await sb.auth.getSession();
+  let sent = 0, failed = 0;
+  for (const u of people) {
+    const phone = formatPhone(u.phone);
+    if (!phone) { failed++; continue; }
+    try {
+      const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/send-sms-celcom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ message: sauPersonalise(text, u), recipients: [phone], platform: true }),
+      });
+      const r = await res.json();
+      if (r.sent) {
+        sent++;
+        if (u.id) {
+          _sauMessaged[u.id] = new Date().toISOString();
+          try { await sb.from('activity_log').insert({ org_id: null, user_id: currentUser.id, user_name: currentProfile?.full_name || 'Superadmin', user_role: 'superadmin', action: 'PLATFORM SMS', details: `SMS to ${u.full_name || phone}: ${text.slice(0, 120)}`, target_type: 'user', target_id: u.id, created_at: new Date().toISOString() }); } catch (e) {}
+        }
+      } else failed++;
+    } catch (e) { failed++; }
+  }
+  if (btn) btn.disabled = false;
+  if (testOnly) { toast(sent ? 'Test sent to your phone.' : 'The test did not send. Check SMS settings.'); return; }
+  toast(`Sent to ${sent}${failed ? `, ${failed} failed` : ''}.`);
+  closeModal('saUserSms');
+  _sauSelected = new Set();
+  applySAUserFilters();
 }
 
 // ── SA USER DETAIL MODAL ──
