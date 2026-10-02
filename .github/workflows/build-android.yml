@@ -43,6 +43,27 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
 
+      # Bubblewrap's SDK check (both 1.24 and 1.25) requires a "tools"
+      # folder inside the SDK - the legacy SDK Tools location. Newer GitHub
+      # runner images no longer ship it, which is what started failing the
+      # build in Oct 2026 with "The provided androidSdk isn't correct"
+      # (nothing in our repo changed). Pointing "tools" at the modern
+      # command-line tools satisfies the check, and installing the build
+      # pieces explicitly means Gradle never has to fetch them mid-build.
+      - name: Prepare Android SDK for Bubblewrap
+        run: |
+          SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          echo "SDK at: $SDK"
+          ls "$SDK" || true
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;35.0.0"
+          if [ ! -e "$SDK/tools" ]; then
+            if [ -d "$SDK/cmdline-tools/latest" ]; then ln -s "$SDK/cmdline-tools/latest" "$SDK/tools";
+            else mkdir -p "$SDK/tools"; fi
+          fi
+          echo "After preparing:"
+          ls "$SDK"
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
