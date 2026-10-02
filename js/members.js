@@ -398,6 +398,17 @@ async function openMemberDetail(memberId) {
   const isSuperAdmin = currentProfile?.role === 'superadmin';
 
   document.getElementById('md-name').textContent = m.full_name;
+  const avatarEl = document.getElementById('md-avatar');
+  if (avatarEl) avatarEl.textContent = (m.full_name || '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  const statusPill = document.getElementById('md-status-pill');
+  if (statusPill) statusPill.innerHTML = memberStatusBadge(m);
+  const recBtn = document.getElementById('md-record-pay-btn');
+  if (recBtn) recBtn.style.display = (!isSelf && canDo('recordPayment')) ? '' : 'none';
+  // Always open on payment history; the edit form is one tap away.
+  const histTab = document.getElementById('md-tabbtn-history');
+  if (histTab) switchTab(histTab, 'md-tab-history');
+  const yearEl = document.getElementById('md-year-paid');
+  if (yearEl) yearEl.textContent = '…';
   document.getElementById('md-number').textContent =
     `Member #${displayNum}` +
     (m.display_number && m.internal_number ? ` · Internal #${internalNum}` : '') +
@@ -413,7 +424,7 @@ async function openMemberDetail(memberId) {
     if (modalHeader) modalHeader.appendChild(founderBadge);
   }
   if (isFounder) {
-    founderBadge.innerHTML = 'Founding Member · Group Admin';
+    founderBadge.innerHTML = 'Founding member';
     founderBadge.style.display = '';
   } else {
     founderBadge.style.display = 'none';
@@ -447,15 +458,15 @@ async function openMemberDetail(memberId) {
     const sharesLabel = document.getElementById('md-shares-label');
     const savingsLabel = document.getElementById('md-savings-label');
     const totalLabel = document.getElementById('md-total-label');
-    if (sharesLabel) sharesLabel.textContent = fp.sharesLabel || 'Shares Balance';
-    if (savingsLabel) savingsLabel.textContent = fp.savingsLabel || 'Savings Balance';
+    if (sharesLabel) sharesLabel.textContent = fp.sharesLabel || 'Shares';
+    if (savingsLabel) savingsLabel.textContent = fp.savingsLabel || 'Savings';
     // Total card: only show if BOTH shares and savings exist
     if (totalCard) totalCard.style.display = (fp.hasShares && fp.hasSavings) ? '' : 'none';
-    if (totalLabel) totalLabel.textContent = 'Total Holdings';
+    if (totalLabel) totalLabel.textContent = 'Total holdings';
     // Adjust grid columns
     if (balRow) {
       const visibleCount = (fp.hasShares ? 1 : 0) + (fp.hasSavings ? 1 : 0) + (fp.hasShares && fp.hasSavings ? 1 : 0);
-      balRow.style.gridTemplateColumns = `repeat(${visibleCount}, 1fr)`;
+      balRow.style.gridTemplateColumns = `repeat(${visibleCount + 1}, minmax(0, 1fr))`;
     }
   } else {
     // Welfare / admin income only — replace with "Total Contributed"
@@ -467,7 +478,7 @@ async function openMemberDetail(memberId) {
         if (savingsCard) savingsCard.style.display = 'none';
         if (totalCard) {
           totalCard.style.display = '';
-          totalCard.style.gridColumn = '1 / -1';
+          totalCard.style.gridColumn = ''; if (balRow) balRow.style.gridTemplateColumns = 'repeat(2, minmax(0, 1fr))';
         }
         const totalLabel = document.getElementById('md-total-label');
         if (totalLabel) totalLabel.textContent = 'Total Contributed';
@@ -570,7 +581,7 @@ async function openMemberDetail(memberId) {
   const debitCreditTab = document.getElementById('debit-credit-tab');
   if (debitCreditTab) debitCreditTab.style.display = isSelf ? 'none' : '';
   const modalTitle = document.querySelector('#modal-memberDetail .modal-title');
-  if (modalTitle) modalTitle.textContent = isSelf ? 'My Member Record' : 'Member Details';
+  if (modalTitle) modalTitle.textContent = isSelf ? 'My member record' : 'Member record';
 
   // Dynamic Debit/Credit account options based on org type
   populateMemberAdjOptions();
@@ -599,20 +610,26 @@ async function loadMemberHistory(memberId) {
   const adjs = adjRes.data||[];
   const combined = [
     ...txns.map(t=>({date:t.transaction_date||t.created_at?.split('T')[0], type:'payment', label:t.contribution_types?.name||'Payment', amount:t.amount, direction:'credit', notes:t.mpesa_ref||t.notes||'—'})),
-    ...adjs.map(a=>({date:a.created_at?.split('T')[0], type:'adjustment', label:a.adjustment_type==='shares'?'Shares Adj':'Savings Adj', amount:a.amount, direction:a.direction, notes:a.reason||'—'}))
+    ...adjs.map(a=>({date:a.created_at?.split('T')[0], type:'adjustment', label:a.adjustment_type==='shares'?'Shares adjustment':'Savings adjustment', amount:a.amount, direction:a.direction, notes:a.reason||'—'}))
   ].sort((a,b)=>new Date(b.date)-new Date(a.date));
   _lastMemberHistory = combined;
+  const yr = String(new Date().getFullYear());
+  const paidThisYear = txns.filter(t => String(t.transaction_date || t.created_at || '').startsWith(yr)).reduce((sum, t) => sum + Number(t.amount || 0), 0);
+  const yearEl = document.getElementById('md-year-paid');
+  if (yearEl) yearEl.textContent = 'Ksh ' + paidThisYear.toLocaleString();
+  const fmt = d => { if (!d) return '—'; const x = new Date(d); return isNaN(x) ? d : x.toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }); };
   document.getElementById('md-history-list').innerHTML = combined.length ? `
-    <table>
-      <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>+/−</th><th>Notes</th></tr></thead>
-      <tbody>${combined.map(r=>`<tr>
-        <td>${r.date||'—'}</td>
-        <td><span class="badge ${r.type==='payment'?'badge-green':r.direction==='credit'?'badge-maroon':'badge-red'}">${r.label}</span></td>
-        <td>Ksh ${Number(r.amount).toLocaleString()}</td>
-        <td style="color:${r.direction==='credit'?'var(--success)':'var(--danger)'};font-weight:600">${r.direction==='credit'?'+':'−'}</td>
-        <td style="font-size:.75rem">${h(r.notes)}</td>
-      </tr>`).join('')}</tbody>
-    </table>` : '<div style="padding:2rem;text-align:center;color:var(--ink-faint);font-size:.82rem">No history yet</div>';
+    <div class="md-hist-summary">${txns.length} payment${txns.length !== 1 ? 's' : ''}${adjs.length ? ' · ' + adjs.length + ' adjustment' + (adjs.length !== 1 ? 's' : '') : ''}</div>
+    <ul class="md-hist">${combined.map(r => {
+      const isIn = r.direction === 'credit';
+      const icon = r.type === 'payment' ? 'receipt' : 'activity';
+      const note = r.notes && r.notes !== '—' ? h(r.notes) : '';
+      return `<li class="md-hist-row">
+        <span class="md-hist-icon ${r.type === 'payment' ? 'pay' : (isIn ? 'adj-in' : 'adj-out')}">${gyIcon(icon, 16)}</span>
+        <span class="md-hist-text"><span class="md-hist-label">${h(r.label)}</span><span class="md-hist-sub">${fmt(r.date)}${note ? ' · ' + note : ''}</span></span>
+        <span class="md-hist-amt ${isIn ? 'in' : 'out'}">${isIn ? '+' : '−'}Ksh ${Number(r.amount).toLocaleString()}</span>
+      </li>`;
+    }).join('')}</ul>` : `<div class="ds-empty"><div class="ds-empty-icon">${gyIcon('receipt', 28)}</div><div class="ds-empty-title">No payments yet</div><div class="ds-empty-sub">Payments and balance adjustments for this member will appear here.</div></div>`;
 }
 
 // Builds a clean, printable statement for the currently-open member using
@@ -1140,6 +1157,7 @@ function populateMemberAdjOptions() {
   // Opening balances — only show relevant ones
   if (openingRow) {
     openingRow.style.display = hasMemberBalance ? '' : 'none';
+    const openingSub = document.getElementById('md-opening-subhead'); if (openingSub) openingSub.style.display = hasMemberBalance ? '' : 'none';
     // Show only shares column if no savings
     const sharesInput = document.getElementById('md-edit-opening-shares');
     const savingsInput = document.getElementById('md-edit-opening-savings');

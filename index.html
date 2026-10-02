@@ -24,7 +24,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026100114">
+  <link rel="stylesheet" href="style.css?v=2026100115">
 </head>
 <body>
 
@@ -3261,7 +3261,7 @@
             <div class="card-header"><div class="card-title">Change Password</div></div>
             <div class="card-body">
               <div class="alert alert-info" id="acct-msg" style="display:none"></div>
-              <div class="form-group"><label class="form-label">New Password</label><input class="form-input" type="password" id="acct-new-pass" placeholder="Minimum 6 characters"/></div>
+              <div class="form-group"><label class="form-label">New password</label><input class="form-input" type="password" id="acct-new-pass" placeholder="Minimum 6 characters"/></div>
               <div class="form-group"><label class="form-label">Confirm Password</label><input class="form-input" type="password" id="acct-confirm-pass" placeholder="Repeat new password"/></div>
               <div class="form-actions"><button class="btn btn-primary" onclick="saveNewPassword()">Update Password</button></div>
             </div>
@@ -4030,14 +4030,14 @@
       <!-- Join Date + Status -->
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Join Date</label>
+          <label class="form-label">Date joined</label>
           <input class="form-input" type="date" id="nm-date"/>
         </div>
         <div class="form-group">
           <label class="form-label">Status</label>
           <select class="form-select" id="nm-status">
             <option value="active">Active</option>
-            <option value="arrears">Arrears</option>
+            <option value="arrears">Behind on payments</option>
             <option value="inactive">Inactive</option>
           </select>
         </div>
@@ -4397,68 +4397,78 @@
 
 <!-- MEMBER DETAIL MODAL -->
 <div class="modal-overlay" id="modal-memberDetail">
-  <div class="modal" style="max-width:640px">
-    <div class="modal-header">
-      <div>
-        <div class="modal-title" id="md-name">Member Detail</div>
-        <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.15rem" id="md-number"></div>
-        <div id="md-founder-badge" class="md-founder-badge" style="display:none"></div>
-      </div>
-      <div style="display:flex;align-items:center;gap:.5rem">
-        <button class="btn btn-secondary btn-sm" onclick="printMemberStatement()" title="Print or save as PDF">Print Statement</button>
+  <div class="modal md-modal">
+    <div class="md-top">
+      <div class="md-top-bar">
+        <div class="modal-title md-eyebrow">Member record</div>
         <button class="modal-close" onclick="closeModal('memberDetail')" aria-label="Close"><svg class="gy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
+      <div class="md-profile">
+        <span class="md-avatar" id="md-avatar" aria-hidden="true">?</span>
+        <div class="md-id">
+          <h2 class="md-name" id="md-name">Member</h2>
+          <div class="md-meta" id="md-number"></div>
+          <div class="md-pills"><span id="md-status-pill"></span><div id="md-founder-badge" class="md-founder-badge" style="display:none"></div></div>
+        </div>
+        <div class="md-actions">
+          <button class="btn btn-secondary btn-sm" onclick="printMemberStatement()" title="Print or save as PDF"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/></svg>Statement</button>
+          <button class="btn btn-primary btn-sm ds-btn-auto" id="md-record-pay-btn" onclick="closeModal('memberDetail');openRecordPaymentModal(currentMemberId)"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12.5" r="2.5"/></svg>Record payment</button>
+        </div>
+      </div>
+
+      <!-- Balance summary - dynamic based on org type -->
+      <div class="md-figures" id="md-bal-cards">
+        <div class="md-fig" id="md-shares-card"><div class="md-fig-label" id="md-shares-label">Shares</div><div class="md-fig-val" id="md-shares-bal">—</div></div>
+        <div class="md-fig" id="md-savings-card"><div class="md-fig-label" id="md-savings-label">Savings</div><div class="md-fig-val" id="md-savings-bal">—</div></div>
+        <div class="md-fig" id="md-total-card"><div class="md-fig-label" id="md-total-label">Total</div><div class="md-fig-val" id="md-total-bal">—</div></div>
+        <div class="md-fig" id="md-year-card"><div class="md-fig-label">Paid this year</div><div class="md-fig-val" id="md-year-paid">—</div></div>
+      </div>
+
+      <div class="tabs md-tabs" id="md-tabs">
+        <div class="tab active" id="md-tabbtn-history" onclick="switchTab(this,'md-tab-history')">Payment history</div>
+        <div class="tab" id="md-tabbtn-info" onclick="switchTab(this,'md-tab-info')">Profile</div>
+        <div class="tab" id="debit-credit-tab" onclick="switchTab(this,'md-tab-adjust')">Adjust balance</div>
+      </div>
     </div>
-    <div class="modal-body">
-      <!-- Balance Summary - dynamic based on org type -->
-      <div class="stats-row" id="md-bal-cards" style="grid-template-columns:repeat(3,1fr);margin-bottom:1.25rem">
-        <div class="stat-card" id="md-shares-card"><div class="stat-label" id="md-shares-label">Shares Balance</div><div class="stat-value" id="md-shares-bal" style="font-size:1.3rem;color:var(--maroon)">—</div></div>
-        <div class="stat-card gold" id="md-savings-card"><div class="stat-label" id="md-savings-label">Savings Balance</div><div class="stat-value" id="md-savings-bal" style="font-size:1.3rem">—</div></div>
-        <div class="stat-card green" id="md-total-card"><div class="stat-label" id="md-total-label">Total Balance</div><div class="stat-value" id="md-total-bal" style="font-size:1.3rem">—</div></div>
-      </div>
-
-      <!-- Tabs -->
-      <div class="tabs">
-        <div class="tab active" onclick="switchTab(this,'md-tab-info')">Details</div>
-        <div class="tab" id="debit-credit-tab" onclick="switchTab(this,'md-tab-adjust')">Debit / Credit</div>
-        <div class="tab" onclick="switchTab(this,'md-tab-history')">History</div>
-      </div>
-
+    <div class="modal-body md-body">
       <!-- Details Tab -->
-      <div class="tab-panel active" id="md-tab-info">
+      <div class="tab-panel" id="md-tab-info">
+        <div class="md-subhead">Personal details</div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="md-edit-name"/></div>
+          <div class="form-group"><label class="form-label">Full name</label><input class="form-input" id="md-edit-name"/></div>
           <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="md-edit-phone"/></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">ID Number</label><input class="form-input" id="md-edit-id"/></div>
-          <div class="form-group"><label class="form-label">Join Date</label><input class="form-input" type="date" id="md-edit-date"/></div>
+          <div class="form-group"><label class="form-label">ID number</label><input class="form-input" id="md-edit-id"/></div>
+          <div class="form-group"><label class="form-label">Date joined</label><input class="form-input" type="date" id="md-edit-date"/></div>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Member Number (Your Records)</label>
+            <label class="form-label">Member number (your records)</label>
             <input class="form-input" id="md-edit-display-number" placeholder="e.g. 007, M-2024-001 - leave blank to use system number"/>
             <div class="field-hint">Overrides the display number shown on lists and cards. Our internal system number is always preserved.</div>
           </div>
         </div>
+        <div class="md-subhead">Membership</div>
         <div class="form-row">
-          <div class="form-group" id="md-savings-tier-row"><label class="form-label">Savings/mo (Ksh)</label>
+          <div class="form-group" id="md-savings-tier-row"><label class="form-label">Monthly savings (Ksh)</label>
             <input class="form-input" type="number" id="md-edit-savings" placeholder="Monthly savings amount"/>
           </div>
           <div class="form-group"><label class="form-label">Status</label>
             <select class="form-select" id="md-edit-status">
               <option value="active">Active</option>
-              <option value="arrears">Arrears</option>
+              <option value="arrears">Behind on payments</option>
               <option value="inactive">Inactive</option>
               <option value="deregistered">Deregistered</option>
             </select>
           </div>
         </div>
+        <div class="md-subhead" id="md-opening-subhead">Opening balances</div>
         <div class="form-row" id="md-opening-balances-row">
           <div class="form-group"><label class="form-label" id="md-opening-shares-label">Opening Shares Balance</label><input class="form-input" type="number" id="md-edit-opening-shares"/></div>
           <div class="form-group"><label class="form-label" id="md-opening-savings-label">Opening Savings Balance</label><input class="form-input" type="number" id="md-edit-opening-savings"/></div>
         </div>
-        <div class="form-group"><label class="form-label">Registration Fee</label>
+        <div class="form-group"><label class="form-label">Registration fee</label>
           <select class="form-select" id="md-edit-reg">
             <option value="true">Paid</option>
             <option value="false">Pending</option>
@@ -4466,7 +4476,7 @@
         </div>
         <!-- Portal Access - hidden for founder (managed via their own account) -->
         <div id="md-portal-access-section">
-          <div style="font-size:.72rem;font-weight:600;color:var(--ink-faint);margin:.75rem 0 .5rem">Portal Access</div>
+          <div class="md-subhead">Portal access</div>
           <!-- Normal members: show email + invite -->
           <div id="md-portal-normal">
             <div class="form-row">
@@ -4488,28 +4498,28 @@
 
         <!-- Superadmin Account Management - always visible to superadmin only -->
         <div id="md-sa-account-section" style="display:none;margin-top:.85rem;padding:.85rem 1rem;background:var(--maroon-pale);border:1.5px solid var(--maroon);border-radius:8px">
-          <div style="font-size:.72rem;font-weight:700;color:var(--maroon);margin-bottom:.6rem">Superadmin - Account Management</div>
+          <div style="font-size:.72rem;font-weight:700;color:var(--maroon);margin-bottom:.6rem">Superadmin: account management</div>
           <div style="font-size:.75rem;color:var(--ink-faint);margin-bottom:.75rem">Update this member's auth account directly. Changes take effect immediately.</div>
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">New Email Address</label>
+              <label class="form-label">New email</label>
               <input class="form-input" type="email" id="md-sa-email" placeholder="Leave blank to keep current"/>
             </div>
             <div class="form-group">
-              <label class="form-label">New Password</label>
+              <label class="form-label">New password</label>
               <input class="form-input" type="password" id="md-sa-password" placeholder="Leave blank to keep current" autocomplete="new-password"/>
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:.75rem;margin-top:.35rem">
-            <button class="btn btn-primary btn-sm" onclick="saUpdateMemberAccount()" style="font-size:.78rem">Apply Changes</button>
+            <button class="btn btn-primary btn-sm" onclick="saUpdateMemberAccount()" style="font-size:.78rem">Apply changes</button>
             <span id="md-sa-account-status" style="font-size:.75rem"></span>
           </div>
         </div>
 
         <div class="form-actions">
           <button class="btn btn-primary" onclick="saveMemberDetail()">Save changes</button>
-          <button class="btn btn-secondary btn-sm" onclick="promoteToAdmin()" id="promote-btn" style="margin-left:.5rem">Set Portal Role</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteMember()" id="delete-member-btn" style="margin-left:auto;display:none">Delete Member</button>
+          <button class="btn btn-secondary btn-sm" onclick="promoteToAdmin()" id="promote-btn" style="margin-left:.5rem">Set portal role</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteMember()" id="delete-member-btn" style="margin-left:auto;display:none">Delete member</button>
         </div>
       </div>
 
@@ -4517,7 +4527,7 @@
       <div class="tab-panel" id="md-tab-adjust">
         <div class="alert alert-info" id="adj-info-text">Use this to manually adjust a member's balance - for withdrawals, corrections, or transfers.</div>
         <div id="md-no-balances-msg" style="display:none;padding:1.25rem;text-align:center;color:var(--ink-faint);font-size:.85rem">
-          This organisation does not track individual member balances. Use Finance → Record Payment to record contributions.
+          This organisation does not track individual member balances. Use Record payment to record contributions.
         </div>
         <div id="md-adj-form">
           <div class="form-row">
@@ -4529,8 +4539,8 @@
             </div>
             <div class="form-group"><label class="form-label">Action</label>
               <select class="form-select" id="adj-direction">
-                <option value="credit">Credit (Add funds ↑)</option>
-                <option value="debit">Debit (Deduct funds ↓)</option>
+                <option value="credit">Credit (add funds)</option>
+                <option value="debit">Debit (deduct funds)</option>
               </select>
             </div>
           </div>
@@ -4539,16 +4549,16 @@
             <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="adj-date"/></div>
           </div>
           <div class="form-row single">
-            <div class="form-group"><label class="form-label">Reason / Notes</label><input class="form-input" id="adj-reason" placeholder="e.g. Welfare deduction - member death, Partial withdrawal, Correction…"/></div>
+            <div class="form-group"><label class="form-label">Reason</label><input class="form-input" id="adj-reason" placeholder="e.g. Welfare deduction - member death, Partial withdrawal, Correction…"/></div>
           </div>
           <div class="form-actions">
-            <button class="btn btn-primary" onclick="saveAdjustment()">Apply Adjustment</button>
+            <button class="btn btn-primary" onclick="saveAdjustment()">Apply adjustment</button>
           </div>
         </div>
       </div>
 
       <!-- History Tab -->
-      <div class="tab-panel" id="md-tab-history">
+      <div class="tab-panel active" id="md-tab-history">
         <div id="md-history-list"><div class="loading"><div class="spinner"></div>Loading…</div></div>
       </div>
     </div>
@@ -5581,16 +5591,16 @@
         <div style="font-size:.75rem;color:var(--ink-faint);margin-bottom:.65rem">Update this user's login credentials. Changes take effect immediately across all their groups.</div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">New Email Address</label>
+            <label class="form-label">New email</label>
             <input class="form-input" type="email" id="sau-sa-email" placeholder="Leave blank to keep current"/>
           </div>
           <div class="form-group">
-            <label class="form-label">New Password</label>
+            <label class="form-label">New password</label>
             <input class="form-input" type="password" id="sau-sa-password" placeholder="Leave blank to keep current" autocomplete="new-password"/>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:.75rem;margin-top:.25rem">
-          <button class="btn btn-primary btn-sm" onclick="saUpdateUserAccount()" style="font-size:.78rem">Apply Changes</button>
+          <button class="btn btn-primary btn-sm" onclick="saUpdateUserAccount()" style="font-size:.78rem">Apply changes</button>
           <button class="btn btn-secondary btn-sm" onclick="saResendPortalInvite(document.getElementById('sau-email').textContent, document.getElementById('sau-name').textContent)" style="font-size:.75rem">Resend Invite</button>
           <span id="sau-sa-status" style="font-size:.75rem"></span>
         </div>
@@ -5741,16 +5751,16 @@
 
 
   <!-- GroupYetu360 Scripts - load order matters -->
-  <script src="js/icons.js?v=2026100114"></script>
-  <script src="js/auth.js?v=2026100114"></script>
-  <script src="js/utils.js?v=2026100114"></script>
-  <script src="js/dashboard.js?v=2026100114"></script>
-  <script src="js/members.js?v=2026100114"></script>
-  <script src="js/finance.js?v=2026100114"></script>
-  <script src="js/settings.js?v=2026100114"></script>
-  <script src="js/portal.js?v=2026100114"></script>
-  <script src="js/modules.js?v=2026100114"></script>
-  <script src="js/taya.js?v=2026100114"></script>
+  <script src="js/icons.js?v=2026100115"></script>
+  <script src="js/auth.js?v=2026100115"></script>
+  <script src="js/utils.js?v=2026100115"></script>
+  <script src="js/dashboard.js?v=2026100115"></script>
+  <script src="js/members.js?v=2026100115"></script>
+  <script src="js/finance.js?v=2026100115"></script>
+  <script src="js/settings.js?v=2026100115"></script>
+  <script src="js/portal.js?v=2026100115"></script>
+  <script src="js/modules.js?v=2026100115"></script>
+  <script src="js/taya.js?v=2026100115"></script>
   <script>
     // Bootstrap - runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —

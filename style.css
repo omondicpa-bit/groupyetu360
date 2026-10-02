@@ -3309,3 +3309,48 @@ body.mob-dark .theme-toggle .gy-moon{display:none}body.mob-dark .theme-toggle .g
   .rp-mc-bal{width:100%;justify-content:flex-start}
   .rp-mc-bal > span{align-items:flex-start}
 }
+
+/* ── Member record window (design system v1) ── */
+.md-modal{max-width:720px;width:100%;display:flex;flex-direction:column;max-height:92vh;padding:0;overflow:hidden}
+.md-top{padding:16px 24px 0;border-bottom:1px solid var(--border);background:var(--surface)}
+.md-top-bar{display:flex;align-items:center;justify-content:space-between}
+.md-eyebrow{font-size:12.5px !important;font-weight:700 !important;color:var(--ink-faint) !important;letter-spacing:0}
+.md-profile{display:flex;align-items:center;gap:16px;margin-top:6px;flex-wrap:wrap}
+.md-avatar{width:56px;height:56px;border-radius:999px;background:var(--maroon-pale);color:var(--maroon);font-size:19px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.md-id{flex:1;min-width:200px}
+.md-name{margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em;color:var(--ink);line-height:1.2}
+.md-meta{font-size:13px;color:var(--ink-faint);margin-top:2px}
+.md-pills{display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap}
+.md-founder-badge{font-size:12px;font-weight:700;color:var(--navy);background:var(--navy-pale);padding:3px 9px;border-radius:999px}
+.md-actions{display:flex;gap:8px;flex-wrap:wrap}
+.md-figures{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0 6px}
+.md-fig{background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px}
+.md-fig-label{font-size:12px;font-weight:600;color:var(--ink-faint)}
+.md-fig-val{font-size:18px;font-weight:800;letter-spacing:-.01em;color:var(--ink);margin-top:2px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.md-tabs{margin:10px -4px 0;border-bottom:0}
+.md-body{overflow-y:auto;padding:20px 24px}
+.md-subhead{font-size:13px;font-weight:800;color:var(--ink);margin:18px 0 10px;padding-top:14px;border-top:1px solid var(--border-soft)}
+#md-tab-info > .md-subhead:first-child{margin-top:0;padding-top:0;border-top:0}
+.md-hist-summary{font-size:12.5px;color:var(--ink-faint);font-weight:600;margin-bottom:6px}
+.md-hist{list-style:none;margin:0;padding:0}
+.md-hist-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border-soft)}
+.md-hist-row:last-child{border-bottom:0}
+.md-hist-icon{width:34px;height:34px;border-radius:var(--radius);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.md-hist-icon.pay{background:var(--teal-pale);color:var(--teal-dk)}
+.md-hist-icon.adj-in{background:var(--navy-pale);color:var(--navy)}
+.md-hist-icon.adj-out{background:var(--danger-pale);color:var(--danger)}
+.md-hist-text{flex:1;min-width:0;display:flex;flex-direction:column}
+.md-hist-label{font-size:14px;font-weight:700;color:var(--ink)}
+.md-hist-sub{font-size:12.5px;color:var(--ink-faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.md-hist-amt{font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.md-hist-amt.in{color:var(--teal-dk)}
+.md-hist-amt.out{color:var(--danger)}
+@media(max-width:640px){
+  #modal-memberDetail{align-items:flex-end}
+  .md-modal{max-width:none;border-radius:var(--radius-xl) var(--radius-xl) 0 0}
+  .md-top{padding:14px 16px 0}
+  .md-body{padding:16px}
+  .md-figures{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
+  .md-actions{width:100%}
+  .md-actions .btn{flex:1}
+}
