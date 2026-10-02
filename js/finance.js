@@ -353,6 +353,35 @@ var _payLines = []; // [{type_id, name, income_type, amount}]
 function onPayMemberChange() {
   // Auto-add first line when member is selected
   if (!_payLines.length) addPaymentLine();
+  renderPayMemberCard();
+}
+
+// Context for the person recording: who this member is and where they
+// stand, so a payment is never recorded against the wrong person.
+async function renderPayMemberCard() {
+  const card = document.getElementById('rp-member-card');
+  const id = document.getElementById('modal-pay-member')?.value;
+  if (!card) return;
+  if (!id) { card.hidden = true; card.innerHTML = ''; return; }
+  let m = (typeof allMembers !== 'undefined' && Array.isArray(allMembers)) ? allMembers.find(x => x.id === id) : null;
+  if (!m) {
+    const { data } = await sb.from('members').select('id,full_name,phone,status,shares_balance,savings_balance,total_contributed').eq('id', id).maybeSingle();
+    m = data;
+  }
+  if (!m) { card.hidden = true; return; }
+  const fp = (typeof orgFinProfile !== 'undefined' && orgFinProfile) ? orgFinProfile : {};
+  const initials = (m.full_name || '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  const bal = [];
+  if (fp.hasShares) bal.push([fp.sharesLabel || 'Shares', m.shares_balance]);
+  if (fp.hasSavings) bal.push([fp.savingsLabel || 'Savings', m.savings_balance]);
+  if (!bal.length) bal.push(['Total contributed', m.total_contributed]);
+  const badge = typeof memberStatusBadge === 'function' ? memberStatusBadge(m) : '';
+  card.innerHTML = `
+    <span class="ds-avatar" style="background:var(--maroon-pale);color:var(--maroon)">${h(initials)}</span>
+    <span class="rp-mc-text"><span class="rp-mc-name">${h(m.full_name)}</span><span class="rp-mc-sub">${h(m.phone || '') || 'No phone on record'}</span></span>
+    <span class="rp-mc-bal">${bal.map(([l, v]) => `<span><span class="rp-mc-bal-l">${h(l)}</span><span class="rp-mc-bal-v">Ksh ${Number(v || 0).toLocaleString()}</span></span>`).join('')}</span>
+    ${badge}`;
+  card.hidden = false;
 }
 
 function addPaymentLine() {
@@ -383,23 +412,21 @@ function renderPayLines() {
         `<option value="${p.id}" data-kind="tb">${h(p.name||'Pool')}</option>`).join('') + '</optgroup>'
     : '';
   container.innerHTML = _payLines.map((line, i) => `
-    <div style="display:flex;align-items:center;gap:.5rem;background:var(--surface-2);border-radius:8px;padding:.5rem .65rem">
-      <select class="form-select" style="flex:1;font-size:.82rem" onchange="setPayLineType(${i},this)"
-        data-idx="${i}">
-        <option value="">Select type…</option>
+    <div class="rp-line">
+      <select class="form-select rp-line-type" onchange="setPayLineType(${i},this)" data-idx="${i}" aria-label="Payment for">
+        <option value="">Choose what it's for…</option>
         ${typeOptions}
         ${welfareOptions}
         ${tbOptions}
       </select>
-      <input class="form-input" type="number" placeholder="Amount"
-        style="width:110px;font-size:.82rem;text-align:right"
-        value="${line.amount||''}"
-        oninput="setPayLineAmount(${i},this.value)"
-        min="0"/>
+      <label class="rp-amount">
+        <span class="rp-amount-cur">Ksh</span>
+        <input class="rp-amount-input" type="number" inputmode="decimal" placeholder="0" min="0"
+          value="${line.amount||''}" oninput="setPayLineAmount(${i},this.value)" aria-label="Amount"/>
+      </label>
       ${_payLines.length > 1
-        ? `<button type="button" onclick="removePayLine(${i})"
-            style="background:none;border:none;color:var(--ink-faint);cursor:pointer;font-size:1rem;padding:0 .2rem;line-height:1" title="Remove" aria-label="Remove"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`
-        : '<span style="width:1.4rem"></span>'}
+        ? `<button type="button" class="ds-icon-btn ds-icon-btn-danger" onclick="removePayLine(${i})" aria-label="Remove item">${gyIcon('trash', 16)}</button>`
+        : '<span class="rp-line-spacer"></span>'}
     </div>`).join('');
   // Restore selected type values
   _payLines.forEach((line, i) => {
@@ -438,6 +465,8 @@ function updatePayTotal() {
   const total = _payLines.reduce((s, l) => s + (parseFloat(l.amount)||0), 0);
   const el = document.getElementById('modal-pay-total');
   if (el) el.textContent = 'Ksh ' + total.toLocaleString();
+  const btn = document.getElementById('rp-save-btn');
+  if (btn) btn.textContent = total > 0 ? 'Save Ksh ' + total.toLocaleString() : 'Save payment';
 }
 
 // Caches for the Record Payment modal's welfare/TB options - populated by
@@ -455,6 +484,10 @@ async function openRecordPaymentModal(prefillMemberId) {
   if (container) container.innerHTML = '';
   const totalEl = document.getElementById('modal-pay-total');
   if (totalEl) totalEl.textContent = 'Ksh 0';
+  const saveBtn = document.getElementById('rp-save-btn');
+  if (saveBtn) saveBtn.textContent = 'Save payment';
+  const mcard = document.getElementById('rp-member-card');
+  if (mcard) { mcard.hidden = true; mcard.innerHTML = ''; }
   const errEl = document.getElementById('modal-pay-error');
   if (errEl) errEl.textContent = '';
   const ref = document.getElementById('modal-pay-ref');
@@ -463,7 +496,7 @@ async function openRecordPaymentModal(prefillMemberId) {
   if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
   if (prefillMemberId) {
     const sel = document.getElementById('modal-pay-member');
-    if (sel) sel.value = prefillMemberId;
+    if (sel) { sel.value = prefillMemberId; renderPayMemberCard(); }
   }
 
   const [welRes, tbRes] = await Promise.all([
@@ -491,12 +524,12 @@ async function saveModalTransaction() {
   const txDate = document.getElementById('modal-pay-date').value || null;
   const mpesaRef = document.getElementById('modal-pay-ref').value.trim() || null;
 
-  if (!memberId) { if (errEl) errEl.textContent = 'Please select a member'; return; }
+  if (!memberId) { if (errEl) errEl.textContent = 'Choose the member who paid.'; return; }
   // Previously required type_id specifically, which silently dropped any
   // welfare/TB line (they use eventId/poolId instead) even after they were
   // selectable in the dropdown - they'd just vanish with no error.
   const validLines = _payLines.filter(l => (l.type_id || l.eventId || l.poolId) && parseFloat(l.amount) > 0);
-  if (!validLines.length) { if (errEl) errEl.textContent = 'Add at least one payment line with type and amount'; return; }
+  if (!validLines.length) { if (errEl) errEl.textContent = 'Add at least one item with what it is for and an amount.'; return; }
 
   // Fetch current member balances once
   const { data: member } = await sb.from('members').select('shares_balance,savings_balance').eq('id', memberId).single();
