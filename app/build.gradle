@@ -22,7 +22,7 @@ plugins {
 
 def twaManifest = [
     applicationId: 'com.ephtechnologies.groupyetu360',
-    hostName: 'app.groupyetu.org.', // The domain being opened in the TWA.
+    hostName: 'app.groupyetu.org', // The domain being opened in the TWA.
     launchUrl: '/', // The start path for the TWA. Must be relative to the domain.
     name: 'GroupYetu360', // The application name.
     launcherName: 'GroupYetu', // The name shown on the Android Launcher.
@@ -57,8 +57,8 @@ android {
         applicationId "com.ephtechnologies.groupyetu360"
         minSdkVersion 23
         targetSdkVersion 36
-        versionCode 9
-        versionName "8"
+        versionCode 10
+        versionName "9"
 
         // The name for the application
         resValue "string", "appName", twaManifest.name

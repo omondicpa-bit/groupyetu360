@@ -1,6 +1,6 @@
 {
   "packageId": "com.ephtechnologies.groupyetu360",
-  "host": "app.groupyetu.org.",
+  "host": "app.groupyetu.org",
   "name": "GroupYetu360",
   "launcherName": "GroupYetu",
   "display": "standalone",
@@ -21,8 +21,8 @@
     "path": "./signing.keystore",
     "alias": "my-key-alias"
   },
-  "appVersionName": "7",
-  "appVersionCode": 8,
+  "appVersionName": "9",
+  "appVersionCode": 10,
   "shortcuts": [
     {
       "name": "Dashboard",
@@ -63,5 +63,5 @@
   "fileHandlers": [],
   "launchHandlerClientMode": "",
   "displayOverride": [],
-  "appVersion": "7"
+  "appVersion": "9"
 }
