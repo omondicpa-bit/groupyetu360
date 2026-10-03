@@ -456,9 +456,11 @@ async function loadWelfare() {
     const dateStr = e.event_date ? new Date(e.event_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : 'Date not set';
     const cardClass = isClosed ? 'closed' : isGeneral ? 'general' : '';
     const txns = txnsByEvent[e.id] || [];
-    const paidIds = new Set(txns.map(t=>t.member_id));
+    // Households and current members only (see welfareHouseholds)
+    const _wh = welfareHouseholds();
+    const paidIds = new Set(txns.map(t => _wh.unitOf[t.member_id] || t.member_id));
     const paidCount = paidIds.size;
-    const totalMembers = allMembers?.length || 0;
+    const totalMembers = _wh.units.length;
     const collectedPool = txns.reduce((s,t)=>s+Number(t.amount||0),0);
     const expectedPool = isOpenEnded ? null : Number(e.contribution_per_member||0) * totalMembers;
     const paidPct = (!isOpenEnded && totalMembers) ? Math.round((paidCount/totalMembers)*100) : null;
@@ -727,10 +729,26 @@ function updateWelfareTotal() {
   if (memEl) memEl.textContent = memberCount;
 }
 
+// Welfare is tracked per household: a member linked to a principal
+// (members.household_principal_id) is listed under the principal, and any
+// payment either of them made counts for the household. Only current
+// members (Active or Behind) are expected to give.
+function welfareHouseholds() {
+  const members = allMembers || [];
+  const current = m => m.status === 'active' || m.status === 'arrears';
+  const deps = {};
+  members.forEach(m => { if (m.household_principal_id) (deps[m.household_principal_id] = deps[m.household_principal_id] || []).push(m); });
+  const units = members.filter(m => !m.household_principal_id && (current(m) || (deps[m.id] || []).some(current)))
+    .map(m => ({ principal: m, dependants: deps[m.id] || [] }));
+  const unitOf = {};
+  units.forEach(u => { unitOf[u.principal.id] = u.principal.id; u.dependants.forEach(d => { unitOf[d.id] = u.principal.id; }); });
+  return { units, unitOf };
+}
+
 async function openWelfareContribs(eventId, eventLabel, amtPerMember) {
   document.getElementById('wc-modal-title').textContent = eventLabel;
   const isOpenEnded = !amtPerMember || amtPerMember <= 0;
-  document.getElementById('wc-modal-sub').textContent = isOpenEnded ? 'Open contribution — any amount' : 'Ksh '+amtPerMember.toLocaleString()+' per member';
+  document.getElementById('wc-modal-sub').textContent = isOpenEnded ? 'Open contribution, any amount' : 'Ksh '+amtPerMember.toLocaleString()+' per member or household';
   document.getElementById('wc-member-list').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   showModal('welfareContribs');
   window._wcCurrentEvent = { eventId, eventLabel, amtPerMember };
@@ -741,11 +759,14 @@ async function openWelfareContribs(eventId, eventLabel, amtPerMember) {
     .select('member_id,amount,transaction_date')
     .eq('org_id', currentOrg.id)
     .eq('welfare_event_id', eventId);
-  const amountByMember = {};
-  (txns||[]).forEach(t => { amountByMember[t.member_id] = (amountByMember[t.member_id]||0) + Number(t.amount||0); });
+  const { units, unitOf } = welfareHouseholds();
+  const amountByMember = {};   // keyed by household principal
+  (txns||[]).forEach(t => { const k = unitOf[t.member_id] || t.member_id; amountByMember[k] = (amountByMember[k]||0) + Number(t.amount||0); });
   const paidIds = new Set(Object.keys(amountByMember));
   const collected = (txns||[]).reduce((s,t)=>s+Number(t.amount||0),0);
-  const members = allMembers || [];
+  const members = units.map(u => u.principal);
+  const depNames = {}; units.forEach(u => { if (u.dependants.length) depNames[u.principal.id] = u.dependants.map(d => (d.full_name || '').split(' ')[0]).join(', '); });
+  const unitWord = units.some(u => u.dependants.length) ? 'households' : 'members';
   const expected = isOpenEnded ? null : amtPerMember * members.length;
   const outstanding = isOpenEnded ? null : Math.max(0, expected - collected);
   const pct = (!isOpenEnded && expected) ? Math.round((collected/expected)*100) : null;
@@ -763,7 +784,7 @@ async function openWelfareContribs(eventId, eventLabel, amtPerMember) {
     document.getElementById('wc-expected').textContent = 'Ksh '+expected.toLocaleString();
     document.getElementById('wc-outstanding').textContent = 'Ksh '+outstanding.toLocaleString();
     document.getElementById('wc-progress-bar').style.width = pct+'%';
-    document.getElementById('wc-progress-label').textContent = pct+'% collected ('+paidIds.size+' of '+members.length+' members)';
+    document.getElementById('wc-progress-label').textContent = pct+'% collected ('+members.filter(m=>paidIds.has(m.id)).length+' of '+members.length+' '+unitWord+')';
   }
 
   const listEl = document.getElementById('wc-member-list');
@@ -773,14 +794,14 @@ async function openWelfareContribs(eventId, eventLabel, amtPerMember) {
     ...paid.map(m=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:.6rem 1.25rem;border-bottom:1px solid var(--border)">
       <div style="display:flex;align-items:center;gap:.6rem">
         <div style="width:8px;height:8px;border-radius:50%;background:var(--teal);flex-shrink:0"></div>
-        <span style="font-size:.82rem">${h(m.full_name)}</span>
+        <span style="font-size:.82rem">${h(m.full_name)}${depNames[m.id] ? `<span style="display:block;font-size:.7rem;color:var(--ink-faint)">Household: ${h(depNames[m.id])}</span>` : ''}</span>
       </div>
       <span class="badge badge-green">Paid Ksh ${amountByMember[m.id].toLocaleString()}</span>
     </div>`),
     ...(isOpenEnded ? [] : unpaid.map(m=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:.6rem 1.25rem;border-bottom:1px solid var(--border)">
       <div style="display:flex;align-items:center;gap:.6rem">
         <div style="width:8px;height:8px;border-radius:50%;background:var(--border);flex-shrink:0"></div>
-        <span style="font-size:.82rem;color:var(--ink-soft)">${h(m.full_name)}</span>
+        <span style="font-size:.82rem;color:var(--ink-soft)">${h(m.full_name)}${depNames[m.id] ? `<span style="display:block;font-size:.7rem;color:var(--ink-faint)">Household: ${h(depNames[m.id])}</span>` : ''}</span>
       </div>
       <span class="badge badge-warn" style="font-size:.65rem">Pending</span>
     </div>`))
@@ -801,11 +822,13 @@ function shareWelfareContribsToWhatsApp() {
     .eq('org_id', currentOrg.id)
     .eq('welfare_event_id', ctx.eventId)
     .then(({ data: txns }) => {
+      const { units, unitOf } = welfareHouseholds();
       const amountByMember = {};
-      (txns||[]).forEach(t => { amountByMember[t.member_id] = (amountByMember[t.member_id]||0) + Number(t.amount||0); });
+      (txns||[]).forEach(t => { const k = unitOf[t.member_id] || t.member_id; amountByMember[k] = (amountByMember[k]||0) + Number(t.amount||0); });
       const collected = Object.values(amountByMember).reduce((s,a)=>s+a,0);
-      const paid = members.filter(m=>amountByMember[m.id]);
-      const unpaid = members.filter(m=>!amountByMember[m.id]);
+      const principals = units.map(u => u.principal);
+      const paid = principals.filter(m=>amountByMember[m.id]);
+      const unpaid = principals.filter(m=>!amountByMember[m.id]);
 
       let text = `*${ctx.eventLabel}*\n${currentOrg.name}\n\n*Collected: Ksh ${collected.toLocaleString()}*\n\n✅ *Paid (${paid.length}):*\n`;
       text += paid.map(m => `${m.full_name} — Ksh ${amountByMember[m.id].toLocaleString()}`).join('\n');
