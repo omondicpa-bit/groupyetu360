@@ -1040,6 +1040,13 @@ async function loadSAMembers() {
   allSAOrgsMap = {};
   (orgsRes.data||[]).forEach(o => allSAOrgsMap[o.id] = o);
   window._saOrgMap = allSAOrgsMap;
+  // Last sign-in per account (superadmin-only database function)
+  window._sauLastSeen = {};
+  try {
+    const { data: seen, error: seenErr } = await sb.rpc('sa_user_last_seen');
+    if (seenErr) console.warn('[GY360] last seen unavailable:', seenErr.message);
+    (seen || []).forEach(r => { window._sauLastSeen[r.id] = r.last_sign_in_at; });
+  } catch (e) {}
   // When each person was last sent a platform SMS (so nobody is chased twice)
   _sauMessaged = {};
   try {
@@ -1055,11 +1062,11 @@ function renderSAUsers(list) {
   const tbody = document.getElementById('sa-all-members');
   if (!tbody) return;
   const head = document.getElementById('sa-users-head');
-  if (head) head.innerHTML = '<tr><th style="width:44px"><input type="checkbox" id="sau-check-all" aria-label="Select everyone shown" onchange="sauSelectVisible(this.checked)"/></th><th>Person</th><th>Phone</th><th>Registered</th><th>Groups and roles</th><th>Account</th><th><span class="ds-sr">Actions</span></th></tr>';
+  if (head) head.innerHTML = '<tr><th style="width:44px"><input type="checkbox" id="sau-check-all" aria-label="Select everyone shown" onchange="sauSelectVisible(this.checked)"/></th><th>Person</th><th>Phone</th><th>Registered</th><th>Last seen</th><th>Groups and roles</th><th>Account</th><th><span class="ds-sr">Actions</span></th></tr>';
   const count = document.getElementById('sa-users-count');
   if (count) count.textContent = `${list.length} account${list.length !== 1 ? 's' : ''} shown, newest first`;
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="7">${aqEmpty('members', 'No users found', 'Try another filter, name, email or phone.')}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8">${aqEmpty('members', 'No users found', 'Try another filter, name, email or phone.')}</td></tr>`;
     return;
   }
   const fmtDT = d => {
@@ -1091,6 +1098,7 @@ function renderSAUsers(list) {
         <span class="ds-person-text"><span class="ds-person-name">${h(u.full_name || 'No name')}${isFounder ? ' <span class="ds-founder">Founder</span>' : ''}${isNew ? ' <span class="badge badge-green">New</span>' : ''}</span><span class="ds-person-sub">${h(u.email || 'No email')}</span>${messaged ? `<span class="sau-messaged">Messaged ${aqAgo(messaged)}</span>` : ''}</span></div></td>
       <td class="ds-strong" style="white-space:nowrap">${phone ? h(phone) : '<span class="ds-muted">None</span>'}</td>
       <td style="white-space:nowrap"><div class="ds-strong">${dt.main}</div><div class="ds-muted" style="font-size:12px">${dt.sub}</div></td>
+      <td style="white-space:nowrap">${(() => { const ls = (window._sauLastSeen || {})[u.id]; if (!ls) return '<span class="ds-muted">Never signed in</span>'; const d = new Date(ls); const recent = Date.now() - d.getTime() < 7 * 86400000; return `<div class="${recent ? 'sau-seen-recent' : 'ds-strong'}">${aqAgo(ls)}</div><div class="ds-muted" style="font-size:12px">${d.toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}, ${d.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' })}</div>`; })()}</td>
       <td>${groups}</td>
       <td>${roleBadge}</td>
       <td class="ds-actions"><button class="btn btn-secondary btn-sm" onclick="saViewUser('${u.id}')">View</button></td>

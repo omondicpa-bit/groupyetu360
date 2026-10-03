@@ -867,7 +867,7 @@ function selectPickerPlan(el) {
 
   const prompt = document.getElementById('picker-payment-prompt');
   const detailsEl = document.getElementById('picker-payment-details');
-  const btn = document.getElementById('picker-create-btn');
+  const btn = document.getElementById('picker-create-submit');
   if (!prompt) return;
 
   if (plan !== 'starter' && !isPromoActive()) {
@@ -875,11 +875,11 @@ function selectPickerPlan(el) {
     const s = _platformSettings || {};
     prompt.style.display = '';
     if (detailsEl) detailsEl.innerHTML = 'Pay Ksh ' + price.toLocaleString() + ' to activate ' + plan.toUpperCase() + ':<br><strong>' + h(s.bank_name||'KCB Bank') + '</strong> · Account: <strong>' + h(s.bank_account||'—') + '</strong>' + (s.paybill ? ' · Paybill: <strong>' + h(s.paybill) + '</strong>' : '');
-    if (btn) btn.textContent = 'Create Group & Submit Payment →';
+    if (btn) btn.textContent = 'Create group and submit payment';
   } else {
     prompt.style.display = 'none';
     const label = typeof PLAN_LABELS !== 'undefined' ? (PLAN_LABELS[plan]||plan) : plan;
-    if (btn) btn.textContent = plan === 'starter' ? 'Create Group →' : 'Create Group & Activate ' + label + ' Free →';
+    if (btn) btn.textContent = plan === 'starter' ? 'Create group' : 'Create group with ' + label + ' free';
   }
 }
 
@@ -910,68 +910,45 @@ async function pickerCreateOrg() {
   // Double-submit guard: a fast double-click/double-tap (very plausible on
   // mobile) previously fired this twice before the first call returned,
   // creating two identical orgs. See CHANGELOG.md, 7 Jul 2026 entry.
-  const createBtn = document.getElementById('picker-create-btn');
+  const createBtn = document.getElementById('picker-create-submit');
   if (createBtn) { if (createBtn.disabled) return; createBtn.disabled = true; }
-
-  if (sucEl) { sucEl.textContent = 'Creating group…'; sucEl.style.display = 'block'; }
 
   const isPaidPlan = plan !== 'starter';
   const promoOn    = isPromoActive();
   const promoDays  = parseInt(_platformSettings['promo_days'] || '60');
   const payRef     = document.getElementById('picker-pay-ref')?.value?.trim();
 
-  // Always create org on Starter first
-  const nameInput = document.getElementById('new-org-name');
-  const planInput = document.getElementById('new-org-plan');
-  const roleInput = document.getElementById('new-org-role');
-  if (nameInput) nameInput.value = orgName;
-  if (planInput) planInput.value = 'starter'; // always start on starter
-  if (roleInput) roleInput.value = 'admin';
-
-  await registerNewOrg();
-
-  // After org created, handle paid plan activation
-  if (isPaidPlan && currentOrg?.id) {
-    if (promoOn) {
-      // Promo ON: activate free trial immediately
-      const expires = new Date();
-      expires.setDate(expires.getDate() + promoDays);
-      const expiresStr = expires.toISOString().split('T')[0];
-      try {
-        await sb.from('organisations').update({
-          plan,
-          subscription_status: 'trial',
-          subscription_expires: expiresStr,
-          trial_used: true,
-          trial_start_date: new Date().toISOString().split('T')[0]
-        }).eq('id', currentOrg.id);
-        Object.assign(currentOrg, { plan, subscription_status:'trial', subscription_expires: expiresStr, trial_used: true });
-        buildSidebar();
-        toast('' + (typeof PLAN_LABELS!=='undefined'?PLAN_LABELS[plan]:plan) + ' plan activated free until ' + expires.toLocaleDateString('en-KE',{day:'numeric',month:'long',year:'numeric'}));
-      } catch(e) { console.error('Trial activation failed:', e); }
-    } else if (payRef) {
-      // Promo OFF + ref provided: submit payment request
-      const price = (typeof PLAN_PRICES!=='undefined' && PLAN_PRICES[plan]) || 0;
-      try {
+  // The paid plan / trial is applied to the NEW group's id inside
+  // afterCreate, before switching. (Previously it used currentOrg right after
+  // registerNewOrg returned - which was still the PREVIOUS group, so a trial
+  // could be applied to the wrong group.)
+  const org = await registerNewOrg({
+    name: orgName, errEl, sucEl,
+    afterCreate: async (newOrg) => {
+      if (!isPaidPlan) return;
+      if (promoOn) {
+        const expires = new Date();
+        expires.setDate(expires.getDate() + promoDays);
+        const expiresStr = expires.toISOString().split('T')[0];
+        const { error } = await sb.from('organisations').update({
+          plan, subscription_status: 'trial', subscription_expires: expiresStr,
+          trial_used: true, trial_start_date: new Date().toISOString().split('T')[0],
+        }).eq('id', newOrg.id);
+        if (error) console.error('Trial activation failed:', error.message);
+        else setTimeout(() => toast((typeof PLAN_LABELS !== 'undefined' ? PLAN_LABELS[plan] : plan) + ' plan free until ' + expires.toLocaleDateString('en-KE', { day: 'numeric', month: 'long', year: 'numeric' })), 1500);
+      } else if (payRef) {
+        const price = (typeof PLAN_PRICES !== 'undefined' && PLAN_PRICES[plan]) || 0;
         await sb.from('payment_requests').insert({
-          org_id: currentOrg.id,
-          user_id: currentUser.id,
-          payment_type: 'subscription_' + plan,
-          amount: price,
-          mpesa_ref: payRef,
-          status: 'pending',
-          notes: 'New group registration payment'
+          org_id: newOrg.id, user_id: currentUser.id, payment_type: 'subscription_' + plan,
+          amount: price, mpesa_ref: payRef, status: 'pending', notes: 'New group registration payment',
         });
-        toast('Group created on Starter. Payment submitted - ' + (typeof PLAN_LABELS!=='undefined'?PLAN_LABELS[plan]:plan) + ' will be activated after verification.');
-      } catch(e) { console.error('Payment request failed:', e); }
-    } else {
-      // Promo OFF + no ref: just notify them
-      setTimeout(() => {
-        showBanner('Your group is on Starter. Visit Billing & SMS to upgrade to ' + plan.toUpperCase() + '.', 'info');
-      }, 1500);
-    }
-  }
+      }
+    },
+  });
   if (createBtn) createBtn.disabled = false;
+  if (!org) return;
+  const picker = document.getElementById('org-picker-screen');
+  if (picker) picker.style.display = 'none';
 }
 
 async function pickerJoinOrg() {
@@ -1069,7 +1046,7 @@ async function showOrgPicker() {
   const nameEl = document.getElementById('org-picker-user-name');
   if (nameEl) nameEl.textContent = currentProfile?.full_name || currentUser?.email || 'there';
   const greetEl = document.getElementById('picker-greet');
-  if (greetEl) greetEl.textContent = gyGreeting() + ', ' + ((currentProfile?.full_name || '').split(' ')[0] || 'karibu');
+  if (greetEl) { const first = (currentProfile?.full_name || '').split(' ')[0]; greetEl.textContent = first ? `Jambo, ${first}` : 'Jambo!'; }
 
   // Phone number is now load-bearing for real features - SMS confirmations,
   // and specifically MGR settlement payouts route directly to a receiver's
@@ -1357,79 +1334,78 @@ function showOrgPickerRegister() {
   showModal('registerNewOrg');
 }
 
-async function registerNewOrg() {
-  const name = document.getElementById('new-org-name').value.trim();
-  const plan = document.getElementById('new-org-plan').value;
-  const smsLabel = document.getElementById('new-org-sms-label')?.value.trim() || null;
-  const errEl = document.getElementById('new-org-error');
-  const sucEl = document.getElementById('new-org-success');
-  errEl.classList.remove('show'); sucEl.classList.remove('show');
+// Creates a group, makes the current user its admin and founder member, then
+// (unless opts.noSwitch) switches into it. Returns the new org, or null.
+// opts.errEl / opts.sucEl let the picker show progress and errors in its own
+// form; by default the in-app "Register organisation" window is used.
+async function registerNewOrg(opts = {}) {
+  const name = (opts.name ?? document.getElementById('new-org-name')?.value ?? '').trim();
+  const smsLabel = (opts.smsLabel ?? document.getElementById('new-org-sms-label')?.value ?? '').trim() || null;
+  const errEl = opts.errEl || document.getElementById('new-org-error');
+  const sucEl = opts.sucEl || document.getElementById('new-org-success');
+  const show = (el, text) => { if (!el) return; el.textContent = text; el.classList.add('show'); el.style.display = 'block'; };
+  const hide = el => { if (!el) return; el.classList.remove('show'); if (opts.errEl || opts.sucEl) el.style.display = 'none'; };
+  hide(errEl); hide(sucEl);
 
-  if (!name) { errEl.textContent='Please enter an organisation name'; errEl.classList.add('show'); return; }
+  if (!name) { show(errEl, 'Please enter a group name'); return null; }
 
-  // Double-submit guard, at the source rather than per-button: this function
-  // has two independent entry points (pickerCreateOrg() and a direct "Create
-  // Organisation" button elsewhere in the app) - a flag here protects both at
-  // once, regardless of which UI triggered it. This is what actually caused
-  // the duplicate "Hills" orgs - see CHANGELOG.md, 7 Jul 2026 entry.
-  if (window._registeringOrg) return;
+  // Double-submit guard, at the source rather than per-button (two entry
+  // points share this function). See CHANGELOG.md, 7 Jul 2026. The flag is
+  // now always released in finally: a stuck flag (left behind by an earlier
+  // failed attempt) made every later "Create group" silently do nothing and
+  // the picker sat on "Creating group…" forever (Oct 2026).
+  if (window._registeringOrg) { show(errEl, 'A group is already being created. Please wait a moment.'); return null; }
   window._registeringOrg = true;
+  try {
+    show(sucEl, 'Creating group…');
+    const orgCode = 'GY' + Math.random().toString(36).toUpperCase().slice(2, 6);
+    // Always create on Starter; a paid plan or trial is applied by the caller
+    const { data: org, error: orgErr } = await sb.from('organisations')
+      .insert({ name, plan: 'starter', status: 'active', org_code: orgCode, subscription_status: 'active', sms_bundle: 0, sms_label: smsLabel })
+      .select().single();
+    if (orgErr || !org) { hide(sucEl); show(errEl, 'Could not create the group: ' + (orgErr?.message || 'no response')); return null; }
 
-  const orgCode = 'GY' + Math.random().toString(36).toUpperCase().slice(2,6);
-  // Always create on Starter - pickerCreateOrg handles paid plan activation separately
-  const { data: org, error: orgErr } = await sb.from('organisations')
-    .insert({ name, plan: 'starter', status:'active', org_code: orgCode, subscription_status:'active', sms_bundle: 0, sms_label: smsLabel })
-    .select().single();
+    // Founder is always admin of their own group (per-group role lives in user_orgs)
+    const { error: uoErr } = await sb.from('user_orgs').upsert({ user_id: currentUser.id, org_id: org.id, role: 'admin' });
+    if (uoErr) console.error('[GY360] user_orgs upsert failed:', uoErr.message);
+    // profiles.role is the platform-wide status: only lift a plain member/pending account
+    const profUpd = { org_id: org.id };
+    if (!['admin', 'superadmin'].includes(currentProfile?.role)) profUpd.role = 'admin';
+    await sb.from('profiles').update(profUpd).eq('id', currentUser.id);
 
-  if (orgErr) { errEl.textContent='Error: '+orgErr.message; errEl.classList.add('show'); window._registeringOrg = false; return; }
+    const founderName = currentProfile?.full_name || currentUser?.email?.split('@')[0] || 'Founder';
+    const { data: founderMember, error: founderErr } = await sb.rpc('insert_founder_member', {
+      p_org_id: org.id, p_user_id: currentUser.id, p_full_name: founderName,
+      p_phone: currentProfile?.phone || null, p_email: currentUser.email,
+      p_join_date: new Date().toISOString().split('T')[0],
+    });
+    if (founderErr) {
+      console.error('[GY360] Founder member insert failed:', founderErr.message);
+      show(errEl, 'Group created, but adding you as member #001 failed: ' + founderErr.message);
+    } else {
+      window._myMemberId = founderMember || null;
+    }
 
-  // Founder always gets admin role in their own org regardless of form selection
-  await sb.from('user_orgs').upsert({ user_id: currentUser.id, org_id: org.id, role: 'admin' });
+    try { await logActivity('ORG CREATED', `New organisation created: ${name}`); } catch (e) {}
+    if (typeof opts.afterCreate === 'function') { try { await opts.afterCreate(org); } catch (e) { console.error('[GY360] afterCreate:', e); } }
 
-  // Update profile role for this new org
-  await sb.from('profiles').upsert({
-    id: currentUser.id, org_id: org.id, role: 'admin',
-    full_name: currentProfile?.full_name || ''
-  });
-
-  // Auto-create founder as Member #001 with full founder rule fields
-  const founderName = currentProfile?.full_name || currentUser?.email?.split('@')[0] || 'Founder';
-  const founderPhone = currentProfile?.phone || null;
-  // Auto-create founder as Member #001 via SECURITY DEFINER function (bypasses RLS)
-  const { data: founderMember, error: founderErr } = await sb.rpc('insert_founder_member', {
-    p_org_id: org.id,
-    p_user_id: currentUser.id,
-    p_full_name: founderName,
-    p_phone: founderPhone,
-    p_email: currentUser.email,
-    p_join_date: new Date().toISOString().split('T')[0]
-  });
-
-  if (founderErr) {
-    console.error('[GY360] Founder member insert failed:', founderErr.message);
-    errEl.textContent = 'Group created but member auto-enrol failed: ' + founderErr.message;
-    errEl.classList.add('show');
-  } else {
-    window._myMemberId = founderMember || null;
-    console.log('[GY360] Founder member created:', founderMember);
-  }
-
-  sucEl.textContent = 'Organisation created! Switching to it now…';
-  sucEl.classList.add('show');
-
-  // Log activity
-  await logActivity('ORG CREATED', `New organisation created: ${name}`);
-
-  setTimeout(async () => {
-    closeModal('registerNewOrg');
-    // Reload user orgs and switch to new one
-    await loadUserOrgs();
-    buildOrgSwitcherDropdown();
-    await selectOrg(org.id);
-    showPage('dashboard');
-    toast(`Welcome to ${name}!`);
+    show(sucEl, 'Group created. Opening it now…');
+    if (!opts.noSwitch) {
+      try { closeModal('registerNewOrg'); } catch (e) {}
+      await loadUserOrgs();
+      try { buildOrgSwitcherDropdown(); } catch (e) {}
+      await selectOrg(org.id);
+      showPage('dashboard');
+      toast(`Karibu, ${name}!`);
+    }
+    return org;
+  } catch (e) {
+    console.error('[GY360] registerNewOrg:', e);
+    hide(sucEl); show(errEl, 'Something went wrong: ' + (e.message || e));
+    return null;
+  } finally {
     window._registeringOrg = false;
-  }, 1200);
+  }
 }
 
 function toggleSidebar() {

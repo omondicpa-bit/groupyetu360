@@ -4039,3 +4039,29 @@ body.mob-dark .t-grey{--tt-bg:#222a31;--tt-fg:#94a1ac}
   .opi-icon{width:46px;height:46px;border-radius:14px;font-size:15px}
 }
 body.mob-dark .org-picker-item,body.mob-dark .opi-empty,body.mob-dark #picker-my-account,body.mob-dark .btn-new-org:not(.primary){background:var(--surface)}
+
+/* ── Group picker, round 2: simpler copy, calmer phone layout ── */
+.opr-bell{position:relative;width:44px;height:44px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--ink-soft);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.opr-bell:hover{color:var(--ink);border-color:var(--border-dk)}
+.org-picker-left .opl-headline{font-size:clamp(34px,3.6vw,48px)}
+@media(max-width:768px){
+  .org-picker-left{flex-direction:column !important;align-items:flex-start !important;justify-content:flex-start !important;padding:calc(16px + env(safe-area-inset-top,0px)) 20px 26px !important}
+  .opl-brand{margin-bottom:18px}
+  .org-picker-left .opl-headline{font-size:28px;margin-bottom:4px}
+  .opl-sub{display:block !important;font-size:14.5px;color:#f3dde3}
+  .opl-sub-more{display:none}
+  .org-picker-screen{position:fixed}
+  .org-picker-right{position:static}
+  .opr-head{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:16px;z-index:5}
+  .opr-head > div:first-child{display:none}
+  .opr-head .opr-bell{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.25);color:#fff}
+  .org-picker-label{margin-top:4px}
+  .org-picker-item{padding:12px 12px 12px 14px;border-radius:18px}
+  .opi-name{font-size:15px}
+  .org-picker-divider{display:none}
+  .btn-new-org{min-height:50px}
+}
+@media(max-width:768px){
+  body:has(#org-picker-screen[style*="flex"]) #support-fab{display:none !important}
+}
+.sau-seen-recent{font-weight:800;color:var(--teal-dk)}
