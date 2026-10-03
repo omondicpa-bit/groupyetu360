@@ -124,6 +124,13 @@ async function loadMyProfile() {
 
   let myRecord = null;
 
+  // 0. The record linked to this account (claim_my_member_records links it)
+  {
+    const { data: mine } = await sb.from('members').select('*')
+      .eq('org_id', currentOrg.id).eq('user_id', currentUser.id).maybeSingle();
+    if (mine) myRecord = mine;
+  }
+
   // 1. Try portal_email match
   if (currentUser?.email) {
     const { data: byEmail } = await sb.from('members')
@@ -143,24 +150,8 @@ async function loadMyProfile() {
     }
   }
 
-  // 3. Fallback: load all org members, match by phone or name
-  if (!myRecord) {
-    const { data: members } = await sb.from('members').select('*').eq('org_id', currentOrg.id);
-    const allOrgMembers = members || [];
-    // Phone match (normalised)
-    const myPhone = (currentProfile?.phone || currentUser?.phone || '').replace(/[^0-9]/g,'');
-    if (myPhone.length >= 9) {
-      myRecord = allOrgMembers.find(m => m.phone?.replace(/[^0-9]/g,'') === myPhone);
-    }
-    // Name match (trimmed, lowercased)
-    if (!myRecord && currentProfile?.full_name) {
-      const myName = currentProfile.full_name.toLowerCase().trim();
-      myRecord = allOrgMembers.find(m =>
-        m.full_name?.toLowerCase().trim() === myName ||
-        m.full_name?.toLowerCase().includes(myName.split(' ')[0]) // first name match
-      );
-    }
-  }
+  // (A phone or first-name guess used to run here. It could attach someone
+  // to another member's record, so it was removed in the Oct 2026 audit.)
 
   // 4. If still not found but admin is viewing their own record — try member_number or email
   if (!myRecord && currentUser?.email) {
@@ -801,9 +792,9 @@ async function openMemberPaymentModal() {
     // Org member list for "pay for another member" search — loaded once per
     // modal open. Small enough per-org that a full list is fine; no need for
     // server-side search on every keystroke.
-    const { data: orgMembers } = await sb.from('members')
-      .select('id,full_name').eq('org_id', currentOrg.id).order('full_name');
-    _mpOrgMembers = orgMembers || [];
+    // Names only, from the server (members cannot read others' records)
+    const { data: orgMembers } = await sb.rpc('group_directory', { p_org: currentOrg.id });
+    _mpOrgMembers = (orgMembers || []).map(m => ({ id: m.id, full_name: m.full_name }));
 
     _mpOpenSearchRowId = null;
     initBeneficiaryRows(window._myMemberId, myRecord?.full_name || 'Myself');
@@ -2111,15 +2102,15 @@ async function populateMobileProfile(myRecord, fp) {
     const { data: orgData } = await sb.from('organisations')
       .select('bank_balance,bank_balance_updated,show_balance_to_members,name')
       .eq('id', currentOrg.id).maybeSingle();
-    const { data: memberCount } = await sb.from('members')
-      .select('id', { count: 'exact', head: true }).eq('org_id', currentOrg.id).eq('status','active');
+    const { data: dir } = await sb.rpc('group_directory', { p_org: currentOrg.id });
+    const memberCount = (dir || []).filter(m => m.status === 'active').length;
 
     if (orgData?.show_balance_to_members && orgData?.bank_balance) {
       { const gb = Number(orgData.bank_balance); set('mob-sc-group-main', gb >= 1000000 ? 'Ksh ' + (gb / 1e6).toFixed(1) + 'M' : gb >= 10000 ? 'Ksh ' + Math.round(gb / 1000) + 'K' : 'Ksh ' + gb.toLocaleString()); }
       set('mob-sc-group-meta', 'Group balance');
       set('mob-sc-group-footer', orgData.bank_balance_updated ? 'As of ' + orgData.bank_balance_updated : 'Active group');
     } else {
-      const count = memberCount?.count || '—';
+      const count = memberCount || '—';
       set('mob-sc-group-main', String(count));
       set('mob-sc-group-meta', 'Active members');
       set('mob-sc-group-footer', currentOrg?.name || '—');
