@@ -166,14 +166,10 @@ async function _loadProfileAndOrgInner() {
     // never set. This silently breaks "Set Role" later (members.js promoteToAdmin
     // falls back to a fragile phone/name match). Fix it here, once, cheaply —
     // by matching on portal_email if a member row exists with no user_id yet.
+    // Done on the server (claim_my_member_records): members may no longer
+    // update member records directly (access rules, phase 2, Oct 2026).
     (async () => {
-      try {
-        const { data: unlinked } = await sb.from('members')
-          .select('id').eq('portal_email', profile.email).is('user_id', null).limit(1).maybeSingle();
-        if (unlinked?.id) {
-          await sb.from('members').update({ user_id: currentUser.id }).eq('id', unlinked.id);
-        }
-      } catch(e) { /* non-critical, never block login on this */ }
+      try { await sb.rpc('claim_my_member_records'); } catch(e) { /* non-critical, never block login on this */ }
     })();
   }
   if (!profile) {
@@ -186,14 +182,14 @@ async function _loadProfileAndOrgInner() {
       let inviteOrgId = meta.invite_org_id || null;
       let inviteMemberId = meta.invite_member_id || null;
 
-      // Priority 2: fallback - look up members table by portal_email
-      if (!inviteOrgId) {
-        const { data: memberRow } = await sb.from('members')
-          .select('id,org_id,portal_email').eq('portal_email', email).maybeSingle();
-        if (memberRow?.org_id) {
-          inviteOrgId = memberRow.org_id;
-          inviteMemberId = memberRow.id;
-        }
+      // Link any member records carrying this email (server-side), which
+      // also adds the person to those groups as a member.
+      let claimed = [];
+      try { const { data } = await sb.rpc('claim_my_member_records'); claimed = data || []; } catch (e) {}
+      // Priority 2: fallback - the group of a member record with this email
+      if (!inviteOrgId && claimed.length) {
+        inviteOrgId = claimed[0].org_id;
+        inviteMemberId = claimed[0].member_id;
       }
 
       if (inviteOrgId) {
@@ -211,9 +207,7 @@ async function _loadProfileAndOrgInner() {
           org_id: inviteOrgId,
           role
         });
-        if (inviteMemberId) {
-          await sb.from('members').update({ user_id: currentUser.id }).eq('id', inviteMemberId);
-        }
+        // (member record already linked by claim_my_member_records above)
         const { data: newProfile } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
         currentProfile = newProfile;
         currentOrg = orgData;
