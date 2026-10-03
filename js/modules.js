@@ -737,8 +737,9 @@ function welfareHouseholds() {
   const members = allMembers || [];
   const current = m => m.status === 'active' || m.status === 'arrears';
   const deps = {};
-  members.forEach(m => { if (m.household_principal_id) (deps[m.household_principal_id] = deps[m.household_principal_id] || []).push(m); });
-  const units = members.filter(m => !m.household_principal_id && (current(m) || (deps[m.id] || []).some(current)))
+  const useHH = gyFeature('households');
+  members.forEach(m => { if (useHH && m.household_principal_id) (deps[m.household_principal_id] = deps[m.household_principal_id] || []).push(m); });
+  const units = members.filter(m => !(useHH && m.household_principal_id) && (current(m) || (deps[m.id] || []).some(current)))
     .map(m => ({ principal: m, dependants: deps[m.id] || [] }));
   const unitOf = {};
   units.forEach(u => { unitOf[u.principal.id] = u.principal.id; u.dependants.forEach(d => { unitOf[d.id] = u.principal.id; }); });

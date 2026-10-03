@@ -1357,3 +1357,45 @@ function timeAgo(isoString) {
 
 
 
+
+// ════════════════════════════════════════════════════════════════════
+// FEATURES (per-group switches, Oct 2026). Off = hidden from the app; data is
+// kept. Plan limits still apply separately (planHasFeature / locked links).
+// organisations.features is a jsonb map {key: true|false}; a missing key
+// uses `def`. Changes go through the set_org_feature() database function,
+// which stops admins switching off a feature that already holds records.
+// ════════════════════════════════════════════════════════════════════
+const FEATURE_DEFS = [
+  { key: 'contribution_rules', label: 'Contribution rules', icon: 'receipt', tone: 'teal', def: false, soon: true,
+    desc: 'Monthly amounts per member or household, free months, and when someone counts as behind.' },
+  { key: 'households', label: 'Households', icon: 'link', tone: 'maroon', def: false,
+    desc: 'Spouses or dependants contribute through a household head. Welfare is tracked per household.' },
+  { key: 'welfare', label: 'Welfare funds', icon: 'welfare', tone: 'gold', def: true, plan: 'basic',
+    desc: 'Bereavement, celebrations and other funds members give to.' },
+  { key: 'meetings', label: 'Meetings and attendance', icon: 'meetings', tone: 'navy', def: true,
+    desc: 'Schedule meetings, take attendance and file minutes.' },
+  { key: 'mgr', label: 'Merry-go-round', icon: 'rotate', tone: 'teal', def: true,
+    desc: 'Rounds, turns and payouts.' },
+  { key: 'table_banking', label: 'Table banking', icon: 'bank', tone: 'navy', def: true, plan: 'basic',
+    desc: 'Pools, loans and repayments with interest.' },
+  { key: 'projects', label: 'Projects and investments', icon: 'projects', tone: 'maroon', def: true, plan: 'basic',
+    desc: 'Land, livestock and group businesses.' },
+  { key: 'fines', label: 'Fines', icon: 'alert', tone: 'gold', def: true,
+    desc: 'Issue fines for lateness or absence and track who has paid.' },
+  { key: 'taya', label: 'Taya assistant', icon: 'sparkle', tone: 'maroon', def: true,
+    desc: 'Draft minutes, reminders and reports.' },
+];
+function gyFeature(key, org) {
+  const o = org || (typeof currentOrg !== 'undefined' ? currentOrg : null);
+  const f = (o && o.features) || {};
+  if (Object.prototype.hasOwnProperty.call(f, key)) return f[key] !== false;
+  const d = FEATURE_DEFS.find(x => x.key === key);
+  return d ? d.def : true;
+}
+
+// Body classes "feat-off-<key>" let CSS hide a switched-off feature's bits
+// in screens that are not built from the menu (tiles, tabs, buttons).
+function gyApplyFeatureClasses() {
+  if (!document.body) return;
+  FEATURE_DEFS.forEach(d => document.body.classList.toggle('feat-off-' + d.key, !gyFeature(d.key)));
+}

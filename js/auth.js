@@ -1792,7 +1792,7 @@ function buildNav() {
     nav += section('My group')
       + link('my_profile', 'overview', 'Home')
       + link('my_contributions', 'receipt', 'My payments')
-      + link('my_meetings', 'meetings', 'Meetings')
+      + (gyFeature('meetings') ? link('my_meetings', 'meetings', 'Meetings') : '')
       + link('my_notices', 'messages', 'Notices')
       + section('Help')
       + link('faq', 'help', 'Help & FAQs');
@@ -1808,20 +1808,23 @@ function buildNav() {
       + link('dashboard', 'overview', 'Overview')
       + (canDo('viewApprovals') ? link('approvals', 'approvals', 'Approvals', '<span class="nav-badge" id="approvals-badge" style="display:none">0</span>') : '');
 
+    // Features switched off on the Features page are left out entirely;
+    // switched-on features above the group's plan still show, locked.
     nav += section('Money')
       + link('finance', 'money', 'Contributions')
-      + (canDo('manageMGR') ? link('mgr', 'rotate', 'Merry-go-round') : '')
-      + (canDo('manageMGR') ? gatedLink('welfare', 'welfare', 'Welfare', hasBasic) : '')
-      + (canDo('manageMGR') ? gatedLink('table_banking', 'bank', 'Table banking', hasBasic) : '')
+      + (canDo('manageMGR') && gyFeature('mgr') ? link('mgr', 'rotate', 'Merry-go-round') : '')
+      + (canDo('manageMGR') && gyFeature('welfare') ? gatedLink('welfare', 'welfare', 'Welfare', hasBasic) : '')
+      + (canDo('manageMGR') && gyFeature('table_banking') ? gatedLink('table_banking', 'bank', 'Table banking', hasBasic) : '')
       + link('settlements', 'payouts', 'Payouts');
 
     nav += section('People')
       + link('members', 'members', 'Members')
-      + link('meetings', 'meetings', 'Meetings')
+      + (gyFeature('meetings') ? link('meetings', 'meetings', 'Meetings') : '')
       + (canDo('sendSms') ? link('messages', 'messages', 'Messages') : '');
 
     const groupLinks =
-        (canDo('manageProjects') ? gatedLink('projects', 'projects', 'Projects', hasBasic) : '')
+        (canDo('manageProjects') && gyFeature('projects') ? gatedLink('projects', 'projects', 'Projects', hasBasic) : '')
+      + (currentOrgRole === 'admin' ? link('features', 'sparkle', 'Features') : '')
       + (canDo('editSettings') ? link('settings', 'settings', 'Settings') : '')
       + (canDo('viewBilling') ? link('billing', 'billing', 'Plan & billing') : '');
     if (groupLinks) nav += section('Group') + groupLinks;
@@ -1833,6 +1836,7 @@ function buildNav() {
   }
 
   document.getElementById('sidebar-nav').innerHTML = nav;
+  if (typeof gyApplyFeatureClasses === 'function') gyApplyFeatureClasses();
   const firstNav = document.querySelector('#sidebar-nav .nav-item:not(.nav-item-locked)');
   if (firstNav) firstNav.classList.add('active');
   buildMobileNav();
@@ -1898,6 +1902,7 @@ function populateSelects() {
 // ── NAVIGATION ──
 const pageTitles = {
   mob_more: ['More', ''],
+  features: ['Features', ''],
   
   dashboard: ['Dashboard', ''],
   table_banking: ['Table Banking', 'Pool contributions and member loans'],
@@ -1987,7 +1992,7 @@ function buildMobileNav() {
       { icon:'home', label:'Home', page:'my_profile' },
       { icon:'receipt', label:'Payments', page:'my_contributions' },
       { fab:true, icon:'phone', label:'Pay', action:"openMemberPaymentModal();showModal('memberPayment')" },
-      { icon:'meetings', label:'Meetings', page:'my_meetings' },
+      gyFeature('meetings') ? { icon:'meetings', label:'Meetings', page:'my_meetings' } : { icon:'messages', label:'Notices', page:'my_notices' },
       { icon:'menu', label:'More', page:'mob_more' },
     ]);
   } else if (isAdmin) {
@@ -2030,28 +2035,29 @@ function buildMobMore() {
   const tile = (page, icon, label, tone, badgeId) => `<button type="button" class="ph-more-tile t-${tone}" onclick="showPage('${page}')"><span class="ph-more-ic">${gyIcon(icon, 19)}</span><span class="ph-more-l">${label}</span>${badgeId ? `<span class="ph-more-badge" id="${badgeId}" hidden></span>` : ''}</button>`;
   const group = (title, tiles) => tiles.filter(Boolean).length ? `<div class="ph-more-group"><div class="ph-more-gt">${title}</div><div class="ph-more-grid">${tiles.filter(Boolean).join('')}</div></div>` : '';
   let html = '';
-  if (!isSA && canDo('useTaya')) {
+  if (!isSA && canDo('useTaya') && gyFeature('taya')) {
     html += `<button type="button" class="ph-taya" onclick="toggleTayaPanel()"><span class="ph-taya-ic">${gyIcon('sparkle', 22)}</span><span class="ph-taya-t"><span>Ask Taya</span><span>Draft minutes, reminders and reports</span></span>${gyIcon('chevron', 20)}</button>`;
   }
   if (isSA) {
     html += group('Platform', [tile('sa_members', 'members', 'All members', 'teal'), tile('sa_finance', 'revenue', 'Revenue', 'maroon'), tile('sa_billing', 'billing', 'Billing', 'gold'), tile('sa_activity', 'activity', 'Activity log', 'navy'), tile('sa_support', 'settings', 'Platform settings', 'teal')]);
   } else if (isMember) {
-    html += group('My group', [tile('my_notices', 'messages', 'Notices', 'gold'), tile('my_contributions', 'receipt', 'My payments', 'teal'), tile('my_meetings', 'meetings', 'Meetings', 'navy'), tile('faq', 'help', 'Help & FAQs', 'maroon')]);
+    html += group('My group', [tile('my_notices', 'messages', 'Notices', 'gold'), tile('my_contributions', 'receipt', 'My payments', 'teal'), gyFeature('meetings') ? tile('my_meetings', 'meetings', 'Meetings', 'navy') : '', tile('faq', 'help', 'Help & FAQs', 'maroon')]);
   } else {
     const fp = (typeof orgFinProfile !== 'undefined' && orgFinProfile) || {};
     html += group('Money', [
-      canDo('manageMGR') ? tile('welfare', 'welfare', 'Welfare', 'maroon') : '',
-      canDo('manageMGR') ? tile('mgr', 'rotate', 'Merry-go-round', 'teal') : '',
-      canDo('manageMGR') ? tile('table_banking', 'bank', 'Table banking', 'navy') : '',
+      canDo('manageMGR') && gyFeature('welfare') ? tile('welfare', 'welfare', 'Welfare', 'maroon') : '',
+      canDo('manageMGR') && gyFeature('mgr') ? tile('mgr', 'rotate', 'Merry-go-round', 'teal') : '',
+      canDo('manageMGR') && gyFeature('table_banking') ? tile('table_banking', 'bank', 'Table banking', 'navy') : '',
       tile('settlements', 'payouts', 'Payouts', 'gold'),
     ]);
     html += group('People', [
       canDo('viewApprovals') ? tile('approvals', 'approvals', 'Approvals', 'teal', 'mob-more-approvals') : '',
-      tile('meetings', 'meetings', 'Meetings', 'navy'),
+      gyFeature('meetings') ? tile('meetings', 'meetings', 'Meetings', 'navy') : '',
       canDo('sendSms') ? tile('messages', 'messages', 'Messages', 'gold') : '',
     ]);
     html += group('Group', [
-      canDo('manageProjects') ? tile('projects', 'projects', 'Projects', 'maroon') : '',
+      canDo('manageProjects') && gyFeature('projects') ? tile('projects', 'projects', 'Projects', 'maroon') : '',
+      currentOrgRole === 'admin' ? tile('features', 'sparkle', 'Features', 'gold') : '',
       canDo('editSettings') ? tile('settings', 'settings', 'Settings', 'teal') : '',
       canDo('viewBilling') ? tile('billing', 'billing', 'Plan & billing', 'navy') : '',
     ]);
@@ -2130,6 +2136,7 @@ function showPage(id) {
   const loaders = { members: loadMembers, finance: loadFinance, meetings: loadMeetings, welfare: loadWelfare, projects: loadProjects, mgr: loadMGR, table_banking: loadTableBanking, messages: loadMessages, settings: ()=>typeof loadSettings==='function'&&loadSettings(), superadmin: ()=>typeof loadSuperAdmin==='function'&&loadSuperAdmin(), sa_org_detail: ()=>{}, sa_members: ()=>typeof loadSAMembers==='function'&&loadSAMembers(), sa_finance: ()=>typeof loadSAFinance==='function'&&loadSAFinance(), sa_organisations: ()=>typeof loadSAOrganisations==='function'&&loadSAOrganisations(), my_profile: ()=>typeof loadMyProfile==='function'&&loadMyProfile(), my_contributions: ()=>typeof loadMyContributions==='function'&&loadMyContributions(), approvals: ()=>typeof loadApprovals==='function'&&loadApprovals(), my_account: ()=>typeof loadMyAccount==='function'&&loadMyAccount(), billing: ()=>typeof loadBilling==='function'&&loadBilling(), support: ()=>typeof loadSupport==='function'&&loadSupport(), sa_billing: ()=>typeof loadSABilling==='function'&&loadSABilling(), sa_support: ()=>typeof loadSASupport==='function'&&loadSASupport(), sa_activity: ()=>typeof loadSAActivity==='function'&&loadSAActivity(), sa_payouts: ()=>typeof loadSAPayouts==='function'&&loadSAPayouts(), my_meetings: ()=>typeof loadMyMeetings==='function'&&loadMyMeetings(), my_notices: ()=>typeof loadMyNotices==='function'&&loadMyNotices(), settlements: ()=>typeof loadOrgSettlements==='function'&&loadOrgSettlements() };
   if (loaders[id]) loaders[id]();
   if (id === 'mob_more') buildMobMore();
+  if (id === 'features' && typeof renderFeaturesPage === 'function') renderFeaturesPage('features-body', currentOrg?.id, false);
   gyNavTrack(id);
   updateTopbarActions(id);
 }

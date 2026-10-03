@@ -695,6 +695,7 @@ async function saveContribType() {
 var _saOrgs = [], _saMemberCount = {};
 
 async function loadSuperAdmin() {
+  if (typeof loadFeatureRequestsAlert === 'function') loadFeatureRequestsAlert();
   if (typeof loadCollectionRequestsQueue === 'function') loadCollectionRequestsQueue();
   // ── Fetch all platform data in parallel ──
   const today = new Date().toISOString().split('T')[0];
@@ -4259,4 +4260,124 @@ async function saToggleInstantPay(orgId, turnOn) {
   try { logActivity(turnOn ? 'INSTANT PAY ON' : 'INSTANT PAY OFF', `Instant M-Pesa payments switched ${turnOn ? 'on' : 'off'} by superadmin`, 'org', orgId); } catch (e) {}
   toast(turnOn ? 'Instant pay is on for this group' : 'Instant pay is off for this group');
   renderSAInstantPay(orgId);
+}
+
+// ════════════════════════════════════════════════════════════════════
+// FEATURES PAGE (group admin) and Features tab (superadmin, group detail)
+// ════════════════════════════════════════════════════════════════════
+let _fxFilter = 'all';
+let _fxState = { containerId: null, orgId: null, isSA: false, org: null, usage: {} };
+
+function setFeatureFilter(f) {
+  _fxFilter = f;
+  document.querySelectorAll('#fx-filter .mf-pill').forEach(b => b.classList.toggle('active', b.dataset.f === f));
+  renderFeatureCards();
+}
+
+async function renderFeaturesPage(containerId, orgId, isSA) {
+  const host = document.getElementById(containerId);
+  if (!host || !orgId) return;
+  host.innerHTML = '<div class="loading"><div class="spinner"></div>Loading features…</div>';
+  const { data: org } = await sb.from('organisations').select('id,name,plan,features').eq('id', orgId).maybeSingle();
+  const usage = {};
+  await Promise.all(FEATURE_DEFS.map(async d => {
+    try { const { data } = await sb.rpc('gy360_feature_usage', { p_org: orgId, p_key: d.key }); usage[d.key] = Number(data || 0); }
+    catch (e) { usage[d.key] = 0; }
+  }));
+  let pending = [];
+  try { const { data } = await sb.from('feature_requests').select('feature').eq('org_id', orgId).eq('status', 'pending'); pending = (data || []).map(r => r.feature); } catch (e) {}
+  _fxState = { containerId, orgId, isSA, org: org || { id: orgId, features: {} }, usage, pending };
+  renderFeatureCards();
+}
+
+function featureUsageText(key, n) {
+  const one = { welfare: 'welfare fund', households: 'member linked to a household', mgr: 'merry-go-round cycle',
+    table_banking: 'table banking record', fines: 'fine', meetings: 'meeting', projects: 'project', contribution_rules: 'saved rule set' };
+  const many = { welfare: 'welfare funds', households: 'members linked to households', mgr: 'merry-go-round cycles',
+    table_banking: 'table banking records', fines: 'fines', meetings: 'meetings', projects: 'projects', contribution_rules: 'saved rule sets' };
+  return `${n} ${n === 1 ? (one[key] || 'record') : (many[key] || 'records')}`;
+}
+
+function renderFeatureCards() {
+  const { containerId, orgId, isSA, org, usage, pending } = _fxState;
+  const host = document.getElementById(containerId);
+  if (!host) return;
+  const on = d => gyFeature(d.key, org);
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('fx-n-all', FEATURE_DEFS.length); set('fx-n-on', FEATURE_DEFS.filter(on).length); set('fx-n-off', FEATURE_DEFS.filter(d => !on(d)).length);
+  const list = FEATURE_DEFS.filter(d => _fxFilter === 'all' || (_fxFilter === 'on' ? on(d) : !on(d)));
+  host.innerHTML = `<div class="fx-grid">${list.map(d => {
+    const isOn = on(d);
+    const used = usage[d.key] || 0;
+    const lockedForAdmin = !isSA && isOn && used > 0;
+    const planNote = d.plan && !planHasFeature(org, d.plan) ? `<span class="fx-badge">${d.plan.charAt(0).toUpperCase() + d.plan.slice(1)} and above</span>` : '';
+    const soon = d.soon ? '<span class="fx-badge fx-badge-soon">Next update</span>' : '';
+    let foot = '';
+    if (d.soon) foot = `<div class="fx-foot muted">The rules editor arrives in the next update.</div>`;
+    else if (used > 0) foot = `<div class="fx-foot">In use: ${h(featureUsageText(d.key, used))}</div>`;
+    if (lockedForAdmin) {
+      const requested = (pending || []).includes(d.key);
+      foot += `<div class="fx-foot fx-lock">${gyIcon('lock', 14)}<span>To switch this off, ask GroupYetu360.</span>${requested ? '<span class="fx-req-done">Request sent</span>' : `<button type="button" class="fx-req" onclick="requestFeatureOff('${d.key}')">Request switch-off</button>`}</div>`;
+    }
+    const disabled = d.soon || lockedForAdmin;
+    return `<div class="fx-card t-${d.tone}${isOn ? ' on' : ''}">
+      <div class="fx-top">
+        <span class="fx-ic">${gyIcon(d.icon, 20)}</span>
+        <div class="fx-text"><div class="fx-title">${h(d.label)} ${planNote}${soon}</div><div class="fx-desc">${h(d.desc)}</div></div>
+        <button type="button" class="fx-switch${isOn ? ' on' : ''}" role="switch" aria-checked="${isOn}" aria-label="${h(d.label)}" ${disabled ? 'disabled' : ''} onclick="toggleFeature('${d.key}', ${!isOn})"><span></span></button>
+      </div>
+      ${foot}
+    </div>`;
+  }).join('')}</div>`;
+}
+
+async function toggleFeature(key, turnOn) {
+  const { orgId, isSA, usage } = _fxState;
+  const d = FEATURE_DEFS.find(x => x.key === key);
+  if (!turnOn && isSA && (usage[key] || 0) > 0) {
+    if (!confirm(`Switch off ${d.label} for this group?\n\nIt holds ${featureUsageText(key, usage[key])}. Nothing is deleted; it is hidden until switched back on.`)) return;
+  }
+  const { data, error } = await sb.rpc('set_org_feature', { p_org: orgId, p_key: key, p_on: !!turnOn });
+  if (error) {
+    if (String(error.message).includes('IN_USE')) toast(`${d.label} already holds records, so only GroupYetu360 can switch it off.`);
+    else toast('Could not change it: ' + error.message);
+    return;
+  }
+  _fxState.org.features = data || Object.assign({}, _fxState.org.features, { [key]: !!turnOn });
+  if (currentOrg && currentOrg.id === orgId) {
+    currentOrg.features = _fxState.org.features;
+    if (typeof buildNav === 'function') buildNav();
+    const fx = document.querySelector('#sidebar-nav .nav-item[onclick*="\'features\'"]');
+    document.querySelectorAll('#sidebar-nav .nav-item').forEach(n => n.classList.remove('active'));
+    if (fx) fx.classList.add('active');
+  }
+  toast(`${d.label} switched ${turnOn ? 'on' : 'off'}`);
+  renderFeatureCards();
+}
+
+async function requestFeatureOff(key) {
+  const { orgId } = _fxState;
+  const d = FEATURE_DEFS.find(x => x.key === key);
+  const note = prompt(`Why would you like ${d.label} switched off? (optional)`) ;
+  if (note === null) return;
+  const { error } = await sb.from('feature_requests').insert({ org_id: orgId, feature: key, requested_by: currentUser.id, note: note || null });
+  if (error) { toast('Could not send the request: ' + error.message); return; }
+  toast('Request sent. GroupYetu360 will switch it off for you.');
+  _fxState.pending = [...(_fxState.pending || []), key];
+  renderFeatureCards();
+}
+
+// Superadmin overview: switch-off requests waiting
+async function loadFeatureRequestsAlert() {
+  const el = document.getElementById('sa-feature-alert');
+  if (!el) return;
+  try {
+    const { data } = await sb.from('feature_requests').select('id,feature,org_id,organisations(name)').eq('status', 'pending').order('created_at');
+    const list = data || [];
+    el.style.display = list.length ? '' : 'none';
+    const t = document.getElementById('sa-feature-alert-title');
+    if (t) t.textContent = `${list.length} feature switch-off request${list.length !== 1 ? 's' : ''}`;
+    const sub = document.getElementById('sa-feature-alert-text');
+    if (sub) sub.innerHTML = list.map(r => `<a href="#" onclick="event.preventDefault();openOrgDetail('${r.org_id}')">${h(r.organisations?.name || 'Group')}: ${h((FEATURE_DEFS.find(d => d.key === r.feature) || {}).label || r.feature)}</a>`).join(' · ');
+  } catch (e) {}
 }

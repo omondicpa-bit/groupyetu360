@@ -4076,3 +4076,36 @@ body.mob-dark .org-picker-item,body.mob-dark .opi-empty,body.mob-dark #picker-my
 .ds-covered{display:inline-flex;flex-direction:column;align-items:flex-end;color:var(--ink-faint);font-weight:600}
 .ds-covered small{font-size:11px;font-weight:700;color:var(--teal-dk)}
 .ds-hh{display:block;margin-top:2px;font-size:12px;font-weight:700;color:var(--teal-dk)}
+
+/* ── Feature switches: hide what a group has switched off ── */
+body.feat-off-fines .fin-tab[onclick*="tab-fines"],body.feat-off-fines .fin-tab[onclick*="tab-fine-record"],body.feat-off-fines #fin-mob-chips [data-view="fines"]{display:none !important}
+body.feat-off-taya #taya-fab,body.feat-off-taya #adm-mob-shell .ph-glass-btn[onclick*="toggleTayaPanel"]{display:none !important}
+body.feat-off-welfare .ph-tile:has(#adm-sc-welfare),body.feat-off-welfare .ph-mini:has(#mob-sc-welfare),body.feat-off-welfare #mp-welfare-list{display:none !important}
+body.feat-off-projects .ph-tile:has(#adm-sc-projects){display:none !important}
+body.feat-off-meetings #adm-q-meet,body.feat-off-meetings .ph-mini:has(#mob-sc-mtg-date){display:none !important}
+
+/* ── Features page (design system v1) ── */
+.fx-filter{margin:4px 0 18px}
+.fx-intro{font-size:14px;color:var(--ink-soft);margin-bottom:14px}
+.fx-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.fx-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:10px;box-shadow:0 2px 10px rgba(16,40,32,.04);transition:border-color .2s}
+.fx-card.on{border-color:#cfe3da}
+.fx-top{display:flex;align-items:flex-start;gap:12px}
+.fx-ic{width:42px;height:42px;border-radius:13px;background:var(--tt-bg);color:var(--tt-fg);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.fx-text{flex:1;min-width:0}
+.fx-title{font-size:15px;font-weight:800;color:var(--ink);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.fx-desc{font-size:13px;color:var(--ink-faint);margin-top:3px;line-height:1.45}
+.fx-badge{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;background:var(--surface-2);color:var(--ink-soft)}
+.fx-badge-soon{background:var(--warning-pale);color:var(--warning)}
+.fx-switch{width:48px;height:28px;flex-shrink:0;border-radius:999px;border:0;background:var(--border-dk);position:relative;cursor:pointer;transition:background .2s}
+.fx-switch span{position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
+.fx-switch.on{background:var(--action)}
+.fx-switch.on span{transform:translateX(20px)}
+.fx-switch:disabled{opacity:.5;cursor:not-allowed}
+.fx-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-top:1px solid var(--border-soft);padding-top:10px;font-size:12.5px;font-weight:700;color:var(--teal-dk)}
+.fx-foot.muted{color:var(--ink-faint);font-weight:600}
+.fx-lock{color:var(--ink-soft);font-weight:600}
+.fx-req{margin-left:auto;border:1px solid var(--border-dk);background:var(--surface);border-radius:10px;padding:5px 10px;font:inherit;font-size:12.5px;font-weight:800;color:var(--ink);cursor:pointer}
+.fx-req-done{margin-left:auto;font-size:12px;font-weight:800;color:var(--warning);background:var(--warning-pale);padding:3px 9px;border-radius:999px}
+@media(max-width:1100px){.fx-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:768px){.fx-grid{grid-template-columns:minmax(0,1fr)}.fx-card{border:0;box-shadow:0 2px 10px rgba(16,40,32,.05)}}

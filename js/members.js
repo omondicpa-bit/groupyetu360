@@ -243,10 +243,10 @@ function memberStatusBadge(m) {
 
 // Households: a member linked to a principal shows the household's figures
 function memberHousehold(m) {
-  if (!m?.household_principal_id) return null;
+  if (!m?.household_principal_id || !gyFeature('households')) return null;
   return (allMembers || []).find(x => x.id === m.household_principal_id) || null;
 }
-function memberDependants(m) { return (allMembers || []).filter(x => x.household_principal_id === m.id); }
+function memberDependants(m) { return gyFeature('households') ? (allMembers || []).filter(x => x.household_principal_id === m.id) : []; }
 function memberYearFigure(m, key) {
   const p = memberHousehold(m);
   const t = (window._memberYearTotals || {})[(p || m).id] || {};
@@ -604,6 +604,7 @@ async function openMemberDetail(memberId) {
   document.getElementById('md-edit-savings').value = m.savings_tier||500;
   document.getElementById('md-edit-status').value = m.status||'active';
   // Household: who this member contributes through (principals only, same group)
+  { const hhRow = document.getElementById('md-household-row'); if (hhRow) hhRow.style.display = gyFeature('households') ? '' : 'none'; }
   {
     const sel = document.getElementById('md-edit-household');
     if (sel) {
