@@ -4071,3 +4071,8 @@ body.mob-dark .org-picker-item,body.mob-dark .opi-empty,body.mob-dark #picker-my
 .ds-sort:hover{color:var(--ink)}
 .ds-zero{display:inline-block;font-size:12px;font-weight:800;color:var(--warning);background:var(--warning-pale);padding:2px 9px;border-radius:999px}
 .ph-mrow-year{display:block;margin-top:3px;font-size:12px;font-weight:700;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── Households: members covered by another member's payments ── */
+.ds-covered{display:inline-flex;flex-direction:column;align-items:flex-end;color:var(--ink-faint);font-weight:600}
+.ds-covered small{font-size:11px;font-weight:700;color:var(--teal-dk)}
+.ds-hh{display:block;margin-top:2px;font-size:12px;font-weight:700;color:var(--teal-dk)}

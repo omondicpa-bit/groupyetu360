@@ -1,5 +1,5 @@
 // GroupYetu360 Service Worker v5.30 — groupyetu.org
-const CACHE_NAME = 'gy360-v6.06';
+const CACHE_NAME = 'gy360-v6.07';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

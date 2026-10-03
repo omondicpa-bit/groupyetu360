@@ -212,7 +212,8 @@ function renderMemberPhone(list) {
       <span class="ph-av ph-av-lg t-${PH_TONES[i % 4]}">${h(phInitials(m.full_name))}</span>
       <span class="ph-row-text"><span class="ph-row-name">${h(m.full_name)}</span>
         <span class="ph-mrow-meta"><span class="ph-pill ${tone}">${label}</span><span>${h(m.phone || '')}</span></span>
-        ${(() => { const yc = window._memberYearCols || {}; const t = (window._memberYearTotals || {})[m.id] || {}; const bits = []; if (yc.contrib) bits.push(`${yc.year}: ${t.contrib ? 'Ksh ' + Number(t.contrib).toLocaleString() : 'nil'}`); if (yc.welfare) bits.push(`Welfare: ${t.welfare ? 'Ksh ' + Number(t.welfare).toLocaleString() : 'nil'}`); return bits.length ? `<span class="ph-mrow-year">${bits.join(' · ')}</span>` : ''; })()}</span>
+        ${(() => { const hh = memberHousehold(m); if (hh) return `<span class="ph-mrow-year">Covered by ${h(hh.full_name)}</span>`; return ''; })()}
+        ${memberHousehold(m) ? '' : (() => { const yc = window._memberYearCols || {}; const t = (window._memberYearTotals || {})[m.id] || {}; const bits = []; if (yc.contrib) bits.push(`${yc.year}: ${t.contrib ? 'Ksh ' + Number(t.contrib).toLocaleString() : 'nil'}`); if (yc.welfare) bits.push(`Welfare: ${t.welfare ? 'Ksh ' + Number(t.welfare).toLocaleString() : 'nil'}`); return bits.length ? `<span class="ph-mrow-year">${bits.join(' · ')}</span>` : ''; })()}</span>
       <span class="ph-mrow-bal"><span>${bal.toLocaleString()}</span><span>${(fp.hasShares || fp.hasSavings) ? 'balance' : 'paid'}</span></span>
     </button>`;
   }).join('');
@@ -240,6 +241,18 @@ function memberStatusBadge(m) {
   return '<span class="badge badge-grey">' + h((m.status || 'inactive').replace(/^./, c => c.toUpperCase())) + '</span>';
 }
 
+// Households: a member linked to a principal shows the household's figures
+function memberHousehold(m) {
+  if (!m?.household_principal_id) return null;
+  return (allMembers || []).find(x => x.id === m.household_principal_id) || null;
+}
+function memberDependants(m) { return (allMembers || []).filter(x => x.household_principal_id === m.id); }
+function memberYearFigure(m, key) {
+  const p = memberHousehold(m);
+  const t = (window._memberYearTotals || {})[(p || m).id] || {};
+  return Number(t[key] || 0);
+}
+
 // Sorting the member table by any money column (click the header; click
 // again to flip). Ascending puts the lowest payers on top.
 let _memberSort = { key: null, dir: 'asc' };
@@ -265,8 +278,8 @@ function renderMemberList(list) {
   if (!fp.hasShares && !fp.hasSavings) balCols.push({ label: 'Total contributed', val: m => m.total_contributed });
   const yc = window._memberYearCols || {};
   const yt = window._memberYearTotals || {};
-  if (yc.contrib) balCols.push({ key: 'contrib', label: `Contributions ${yc.year}`, val: m => (yt[m.id] || {}).contrib || 0, year: true });
-  if (yc.welfare) balCols.push({ key: 'welfare', label: `Welfare ${yc.year}`, val: m => (yt[m.id] || {}).welfare || 0, year: true });
+  if (yc.contrib) balCols.push({ key: 'contrib', label: `Contributions ${yc.year}`, val: m => memberYearFigure(m, 'contrib'), year: true });
+  if (yc.welfare) balCols.push({ key: 'welfare', label: `Welfare ${yc.year}`, val: m => memberYearFigure(m, 'welfare'), year: true });
   balCols.forEach((c, i) => { if (!c.key) c.key = 'bal' + i; });
   const sortMark = k => _memberSort.key === k ? (_memberSort.dir === 'asc' ? ' ↑' : ' ↓') : '';
   if (thead) thead.innerHTML = `<tr><th><button type="button" class="ds-sort" onclick="sortMembersBy('name')">Member${sortMark('name')}</button></th><th>No.</th>${balCols.map(c => `<th class="ds-num"><button type="button" class="ds-sort" onclick="sortMembersBy('${c.key}')" title="Sort by ${h(c.label)}">${h(c.label)}${sortMark(c.key)}</button></th>`).join('')}<th>Last paid</th><th>Status</th><th><span class="ds-sr">Actions</span></th></tr>`;
@@ -296,10 +309,12 @@ function renderMemberList(list) {
       <td><div class="ds-person">
         <span class="ds-avatar" style="background:${bg};color:${ink}">${h(initials)}</span>
         <span class="ds-person-text"><span class="ds-person-name">${h(m.full_name)}${m.is_founder ? ' <span class="ds-founder" title="Founding member">Founder</span>' : ''}</span>
-        <span class="ds-person-sub">${h(m.phone || m.email) || '—'}${regNote}</span></span>
+        <span class="ds-person-sub">${h(m.phone || m.email) || '—'}${regNote}</span>${(() => { const hh = memberHousehold(m); if (hh) return `<span class="ds-hh">Covered by ${h(hh.full_name)}</span>`; const deps = memberDependants(m); return deps.length ? `<span class="ds-hh">Household: ${deps.map(d => h((d.full_name || '').split(' ')[0])).join(', ')}</span>` : ''; })()}</span>
       </div></td>
       <td class="ds-muted">#${h(String(dispNum))}</td>
-      ${balCols.map(c => { const v = Number(c.val(m) || 0); return c.year && !v ? `<td class="ds-num"><span class="ds-zero">Nil</span></td>` : `<td class="ds-num ${c.year ? '' : 'ds-strong'}">Ksh ${v.toLocaleString()}</td>`; }).join('')}
+      ${balCols.map(c => { const v = Number(c.val(m) || 0); const hh = c.year && memberHousehold(m);
+        if (hh) return `<td class="ds-num"><span class="ds-covered" title="Paid through ${h(hh.full_name)}">Ksh ${v.toLocaleString()}<small>via ${h((hh.full_name || '').split(' ')[0])}</small></span></td>`;
+        return c.year && !v ? `<td class="ds-num"><span class="ds-zero">Nil</span></td>` : `<td class="ds-num ${c.year ? '' : 'ds-strong'}">Ksh ${v.toLocaleString()}</td>`; }).join('')}
       <td class="ds-muted">${lastC ? `${h(lastC.date)} · Ksh ${Number(lastC.amount).toLocaleString()}` : 'No payments yet'}</td>
       <td>${memberStatusBadge(m)}</td>
       <td class="ds-actions"><button class="ds-icon-btn" onclick="event.stopPropagation();openMemberDetail('${m.id}')" aria-label="Open ${h(m.full_name)}">${gyIcon('chevron', 16)}</button></td>
@@ -352,7 +367,8 @@ function renderMemberGrid(list) {
 
     // This year's contributions and welfare (same figures as the table)
     {
-      const yc = window._memberYearCols || {}; const t = (window._memberYearTotals || {})[m.id] || {};
+      const yc = window._memberYearCols || {}; const hhP = memberHousehold(m); const t = (window._memberYearTotals || {})[(hhP || m).id] || {};
+      if (hhP) balanceCols += `<div class="mc-bal" style="grid-column:1/-1"><div class="mc-bal-label">Covered by</div><div class="mc-bal-value" style="color:var(--teal-dk);font-size:13px">${h(hhP.full_name)}</div></div>`;
       if (yc.contrib) balanceCols += `<div class="mc-bal"><div class="mc-bal-label">Contributions ${yc.year}</div><div class="mc-bal-value" style="color:${t.contrib ? 'var(--ink)' : 'var(--ink-faint)'}">${t.contrib ? 'Ksh ' + Number(t.contrib).toLocaleString() : 'Nil'}</div></div>`;
       if (yc.welfare) balanceCols += `<div class="mc-bal"><div class="mc-bal-label">Welfare ${yc.year}</div><div class="mc-bal-value" style="color:${t.welfare ? 'var(--ink)' : 'var(--ink-faint)'}">${t.welfare ? 'Ksh ' + Number(t.welfare).toLocaleString() : 'Nil'}</div></div>`;
     }
@@ -587,6 +603,19 @@ async function openMemberDetail(memberId) {
   document.getElementById('md-edit-date').value = m.join_date||'';
   document.getElementById('md-edit-savings').value = m.savings_tier||500;
   document.getElementById('md-edit-status').value = m.status||'active';
+  // Household: who this member contributes through (principals only, same group)
+  {
+    const sel = document.getElementById('md-edit-household');
+    if (sel) {
+      const options = (allMembers || []).filter(x => x.id !== m.id && !x.household_principal_id && x.status !== 'deregistered')
+        .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
+      sel.innerHTML = '<option value="">Pays for themselves</option>' + options.map(x => `<option value="${x.id}">${h(x.full_name)}${x.display_number ? ' (#' + h(x.display_number) + ')' : ''}</option>`).join('');
+      sel.value = m.household_principal_id || '';
+      const dependants = (allMembers || []).filter(x => x.household_principal_id === m.id);
+      sel.disabled = dependants.length > 0;
+      sel.title = dependants.length ? 'Others contribute through this member, so they cannot be linked to someone else.' : '';
+    }
+  }
   document.getElementById('md-edit-opening-shares').value = m.opening_shares||0;
   document.getElementById('md-edit-opening-savings').value = m.opening_savings||0;
   document.getElementById('md-edit-reg').value = m.registration_paid?'true':'false';
@@ -814,6 +843,8 @@ async function saveMemberDetail() {
     savings_balance: (current.savings_balance||0) + savingsDiff,
     display_number: document.getElementById('md-edit-display-number')?.value?.trim() || null
   };
+  const hhSel = document.getElementById('md-edit-household');
+  if (hhSel && !hhSel.disabled) updates.household_principal_id = hhSel.value || null;
   const portalEmail = document.getElementById('md-edit-email')?.value?.trim();
   if (portalEmail) updates.portal_email = portalEmail;
   const { error } = await sb.from('members').update(updates).eq('id', currentMemberId);
