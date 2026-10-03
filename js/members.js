@@ -611,6 +611,9 @@ async function openMemberDetail(memberId) {
         .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
       sel.innerHTML = '<option value="">Pays for themselves</option>' + options.map(x => `<option value="${x.id}">${h(x.full_name)}${x.display_number ? ' (#' + h(x.display_number) + ')' : ''}</option>`).join('');
       sel.value = m.household_principal_id || '';
+      const stHint = document.getElementById('md-status-hint');
+      const pr = m.household_principal_id ? (allMembers || []).find(x => x.id === m.household_principal_id) : null;
+      if (stHint) stHint.textContent = pr ? `Active or Behind follows ${pr.full_name}. Set Inactive if not officially joined.` : (allMembers || []).some(x => x.household_principal_id === m.id) ? 'Participating household members follow this status (Active or Behind).' : '';
       const dependants = (allMembers || []).filter(x => x.household_principal_id === m.id);
       sel.disabled = dependants.length > 0;
       sel.title = dependants.length ? 'Others contribute through this member, so they cannot be linked to someone else.' : '';
@@ -845,10 +848,24 @@ async function saveMemberDetail() {
   };
   const hhSel = document.getElementById('md-edit-household');
   if (hhSel && !hhSel.disabled) updates.household_principal_id = hhSel.value || null;
+  // Households: a participating spouse (Active/Behind) carries the principal's
+  // Active/Behind status. Inactive (not officially joined) is left alone.
+  const isParticipating = st => st === 'active' || st === 'arrears';
+  if (updates.household_principal_id && isParticipating(updates.status)) {
+    const principal = (allMembers || []).find(x => x.id === updates.household_principal_id);
+    if (principal && isParticipating(principal.status)) updates.status = principal.status;
+  }
   const portalEmail = document.getElementById('md-edit-email')?.value?.trim();
   if (portalEmail) updates.portal_email = portalEmail;
   const { error } = await sb.from('members').update(updates).eq('id', currentMemberId);
   if (error) { toast('Error: '+error.message); return; }
+  // A principal's Active/Behind status flows to their participating spouses
+  if (isParticipating(updates.status)) {
+    const deps = (allMembers || []).filter(x => x.household_principal_id === currentMemberId && isParticipating(x.status) && x.status !== updates.status);
+    if (deps.length) {
+      await sb.from('members').update({ status: updates.status }).in('id', deps.map(d => d.id)).eq('org_id', currentOrg.id);
+    }
+  }
   toast('Member updated successfully');
 
   await logActivity('UPDATE MEMBER', `Updated member details for ${updates.full_name}${portalEmail?' (portal: '+portalEmail+')':''}`, 'member', currentMemberId);
