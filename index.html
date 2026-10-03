@@ -24,7 +24,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026100134">
+  <link rel="stylesheet" href="style.css?v=2026100135">
 </head>
 <body>
 
@@ -663,7 +663,7 @@
         <div class="ph-body ph-body-flow">
           <label class="ph-search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" id="mem-mob-search" placeholder="Search name or phone" aria-label="Search members" oninput="filterMembers(this.value)"/></label>
           <div class="ph-chips" id="mem-mob-chips">
-            <button type="button" class="ph-chip active" data-status="all" onclick="filterByStatus('all',null)">All <span class="ph-chip-n" id="mem-mob-n-all"></span></button>
+            <button type="button" class="ph-chip" data-status="all" onclick="filterByStatus('all',null)">All <span class="ph-chip-n" id="mem-mob-n-all"></span></button>
             <button type="button" class="ph-chip" data-status="active" onclick="filterByStatus('active',null)">Active <span class="ph-chip-n" id="mem-mob-n-active"></span></button>
             <button type="button" class="ph-chip" data-status="arrears" onclick="filterByStatus('arrears',null)">Behind <span class="ph-chip-n" id="mem-mob-n-arrears"></span></button>
             <button type="button" class="ph-chip" data-status="inactive" onclick="filterByStatus('inactive',null)">Inactive <span class="ph-chip-n" id="mem-mob-n-inactive"></span></button>
@@ -700,11 +700,11 @@
 
       <!-- Status filter tabs + search + view switch -->
       <div class="ds-toolbar">
-        <div class="ds-segmented" id="member-status-filters" role="tablist" aria-label="Filter members">
-          <button class="mf-pill active" role="tab" onclick="filterByStatus('all',this)">All <span class="ds-count" id="mf-count-all"></span></button>
-          <button class="mf-pill" role="tab" onclick="filterByStatus('active',this)">Active <span class="ds-count" id="mf-count-active"></span></button>
-          <button class="mf-pill" role="tab" onclick="filterByStatus('arrears',this)">Behind <span class="ds-count" id="mf-count-arrears"></span></button>
-          <button class="mf-pill" role="tab" onclick="filterByStatus('inactive',this)">Inactive <span class="ds-count" id="mf-count-inactive"></span></button>
+        <div class="ds-segmented" id="member-status-filters" role="group" aria-label="Show members by status (tap more than one to combine)">
+          <button class="mf-pill" data-status="all" onclick="filterByStatus('all',this)">All <span class="ds-count" id="mf-count-all"></span></button>
+          <button class="mf-pill" data-status="active" onclick="filterByStatus('active',this)">Active <span class="ds-count" id="mf-count-active"></span></button>
+          <button class="mf-pill" data-status="arrears" onclick="filterByStatus('arrears',this)">Behind <span class="ds-count" id="mf-count-arrears"></span></button>
+          <button class="mf-pill" data-status="inactive" onclick="filterByStatus('inactive',this)">Inactive <span class="ds-count" id="mf-count-inactive"></span></button>
         </div>
         <label class="ds-search">
           <svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -5670,16 +5670,16 @@
 
 
   <!-- GroupYetu360 Scripts - load order matters -->
-  <script src="js/icons.js?v=2026100134"></script>
-  <script src="js/auth.js?v=2026100134"></script>
-  <script src="js/utils.js?v=2026100134"></script>
-  <script src="js/dashboard.js?v=2026100134"></script>
-  <script src="js/members.js?v=2026100134"></script>
-  <script src="js/finance.js?v=2026100134"></script>
-  <script src="js/settings.js?v=2026100134"></script>
-  <script src="js/portal.js?v=2026100134"></script>
-  <script src="js/modules.js?v=2026100134"></script>
-  <script src="js/taya.js?v=2026100134"></script>
+  <script src="js/icons.js?v=2026100135"></script>
+  <script src="js/auth.js?v=2026100135"></script>
+  <script src="js/utils.js?v=2026100135"></script>
+  <script src="js/dashboard.js?v=2026100135"></script>
+  <script src="js/members.js?v=2026100135"></script>
+  <script src="js/finance.js?v=2026100135"></script>
+  <script src="js/settings.js?v=2026100135"></script>
+  <script src="js/portal.js?v=2026100135"></script>
+  <script src="js/modules.js?v=2026100135"></script>
+  <script src="js/taya.js?v=2026100135"></script>
   <script>
     // Bootstrap - runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —

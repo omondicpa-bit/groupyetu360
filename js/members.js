@@ -146,24 +146,38 @@ function remindArrearsMembers() {
   }, 300);
 }
 
-// Track current member filter state
-let _memberStatusFilter = 'all';
+// Member list filter: statuses combine (Active, Behind, Inactive, any mix);
+// "All" shows everyone including deregistered. Default is current members
+// (Active + Behind). Sorting always works on what the filter shows.
+let _memberStatuses = new Set(['active', 'arrears']);
+let _memberStatusFilter = 'set';   // kept for older callers
 
-function filterByStatus(status, btn) {
-  _memberStatusFilter = status;
-  document.querySelectorAll('.mf-pill').forEach(p => p.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  const q = document.getElementById('member-search-input')?.value || '';
-  applyMemberFilters(q, status);
+function filterByStatus(status, btn, exclusive) {
+  if (status === 'all') _memberStatuses = null;
+  else if (exclusive || !_memberStatuses) _memberStatuses = new Set([status]);
+  else if (_memberStatuses.has(status)) { if (_memberStatuses.size > 1) _memberStatuses.delete(status); }
+  else _memberStatuses.add(status);
+  syncMemberStatusChips();
+  const q = document.getElementById('member-search-input')?.value || document.getElementById('mem-mob-search')?.value || '';
+  applyMemberFilters(q);
+}
+
+function syncMemberStatusChips() {
+  document.querySelectorAll('#member-status-filters .mf-pill, #mem-mob-chips .ph-chip').forEach(p => {
+    const st = p.dataset.status;
+    const on = _memberStatuses ? _memberStatuses.has(st) : st === 'all';
+    p.classList.toggle('active', on);
+    p.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
 }
 
 function filterMembers(q) {
-  applyMemberFilters(q, _memberStatusFilter);
+  applyMemberFilters(q);
 }
 
-function applyMemberFilters(q, status) {
-  let list = allMembers;
-  if (status && status !== 'all') list = list.filter(m => m.status === status);
+function applyMemberFilters(q) {
+  syncMemberStatusChips();
+  let list = _memberStatuses ? allMembers.filter(m => _memberStatuses.has(m.status)) : allMembers;
   if (q && q.length >= 1) {
     const ql = q.toLowerCase();
     list = list.filter(m =>
@@ -185,7 +199,6 @@ function applyMemberFilters(q, status) {
 function renderMemberPhone(list) {
   const el = document.getElementById('mem-mob-list');
   if (!el) return;
-  document.querySelectorAll('#mem-mob-chips .ph-chip').forEach(c => c.classList.toggle('active', c.dataset.status === _memberStatusFilter));
   if (!list.length) {
     el.innerHTML = `<div class="ph-empty">${allMembers.length ? 'No members match' : 'No members yet. Tap + to add your first member.'}</div>`;
     return;
@@ -216,7 +229,7 @@ function setMembersView(mode) {
   if (list) list.style.display = _membersViewMode === 'list' ? '' : 'none';
   document.getElementById('members-view-list')?.classList.toggle('active', _membersViewMode === 'list');
   document.getElementById('members-view-grid')?.classList.toggle('active', _membersViewMode === 'grid');
-  applyMemberFilters(document.getElementById('member-search-input')?.value || '', _memberStatusFilter);
+  applyMemberFilters(document.getElementById('member-search-input')?.value || '');
 }
 function toggleMembersView() { setMembersView(_membersViewMode === 'grid' ? 'list' : 'grid'); }
 
@@ -232,7 +245,7 @@ function memberStatusBadge(m) {
 let _memberSort = { key: null, dir: 'asc' };
 function sortMembersBy(key) {
   _memberSort = { key, dir: _memberSort.key === key && _memberSort.dir === 'asc' ? 'desc' : 'asc' };
-  if (typeof applyMemberFilters === 'function') applyMemberFilters();
+  if (typeof applyMemberFilters === 'function') applyMemberFilters(document.getElementById('member-search-input')?.value || document.getElementById('mem-mob-search')?.value || '');
 }
 function sortMemberList(list, cols) {
   const k = _memberSort.key, dir = _memberSort.dir === 'asc' ? 1 : -1;

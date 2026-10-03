@@ -643,7 +643,7 @@ async function populateMobileAdminHome(orgId) {
     const behind = mems.filter(m => m.status === 'arrears').length;
     setEl('adm-sc-members', String(mems.length));
     setEl('adm-sc-members-meta', `${mems.filter(m => m.status === 'active').length} active · ${behind} behind`);
-    if (behind) attn.push({ tone: 'maroon', kicker: 'Behind', title: `${behind} member${behind !== 1 ? 's' : ''} behind on payments`, sub: 'Tap to send a reminder', go: "showPage('members');setTimeout(()=>{const b=[...document.querySelectorAll('#member-status-filters .mf-pill')].find(x=>x.textContent.includes('Behind'));if(b)b.click()},300)" });
+    if (behind) attn.push({ tone: 'maroon', kicker: 'Behind', title: `${behind} member${behind !== 1 ? 's' : ''} behind on payments`, sub: 'Tap to send a reminder', go: "showPage('members');setTimeout(()=>{if(typeof filterByStatus==='function')filterByStatus('arrears',null,true)},300)" });
 
     const yearTx = all.filter(t => !t.welfare_event_id && (t.transaction_date || '').startsWith(thisYear));
     setEl('adm-sc-year-total', kshShort(yearTx.reduce((sum, t) => sum + Number(t.amount || 0), 0)));
