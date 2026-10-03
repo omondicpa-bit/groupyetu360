@@ -4,6 +4,11 @@
 //    files, so this single definition is safely available to settings.js, auth.js,
 //    dashboard.js, finance.js, members.js, portal.js, modules.js) ──
 // Use h() on ALL user-supplied strings before interpolating into innerHTML.
+// Safe value for an inline handler argument, e.g. onclick="fn(${jsArg(name)})".
+// JSON-quotes the value (so quotes and backslashes cannot end the JS string)
+// and HTML-escapes it (so it cannot end the attribute). Includes the quotes.
+function jsArg(v) { return h(JSON.stringify(v == null ? '' : String(v))); }
+
 function h(str) {
   if (!str && str !== 0) return '';
   return String(str)
@@ -328,7 +333,7 @@ async function loadSABilling() {
       <table>
         <thead><tr><th>Organisation</th><th>Type</th><th>Amount</th><th>Reference</th><th>Date</th><th>Action</th></tr></thead>
         <tbody>${pending.map(p=>`<tr>
-          <td><strong>${p.organisations?.name||'—'}</strong></td>
+          <td><strong>${h(p.organisations?.name||'—')}</strong></td>
           <td>${p.payment_type?.replace(/_/g,' ')}</td>
           <td><strong>Ksh ${Number(p.amount).toLocaleString()}</strong></td>
           <td style="font-family:monospace">${p.reference||'—'}</td>
@@ -353,7 +358,7 @@ async function loadSABilling() {
           const daysLeft = expires ? Math.ceil((new Date(expires)-new Date())/(1000*60*60*24)) : null;
           const expClass = daysLeft===null?'':daysLeft<0?'badge-red':daysLeft<30?'badge-warn':'badge-green';
           return `<tr>
-            <td><strong>${o.name}</strong></td>
+            <td><strong>${h(o.name)}</strong></td>
             <td><span class="badge ${o.plan==='pro'?'badge-gold':o.plan==='standard'?'badge-maroon':o.plan==='basic'?'badge-green':'badge-grey'}">${o.plan}</span></td>
             <td><span class="badge ${o.subscription_status==='active'?'badge-green':'badge-red'}">${o.subscription_status||'active'}</span></td>
             <td><span class="badge ${expClass}">${expires?new Date(expires).toDateString()+(daysLeft!==null?` (${daysLeft}d)`:''): 'Not set'}</span></td>
@@ -851,7 +856,7 @@ function renderMemberBalanceCards(myRecord, totalContributed) {
 
   container.innerHTML = cards.map((c, i) => `
     <div class="mp-bal-card" style="animation-delay:${c.delay}s">
-      <div class="mp-bal-label">${c.label}</div>
+      <div class="mp-bal-label">${h(c.label)}</div>
       <div class="mp-bal-value" style="color:${i===0?'var(--maroon)':i===1?'var(--teal)':'var(--gold)'}">${c.value}</div>
       <div class="mp-bal-meta">${c.meta}</div>
     </div>`).join('');

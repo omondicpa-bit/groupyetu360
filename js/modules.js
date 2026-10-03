@@ -83,10 +83,10 @@ async function loadMeetings() {
           <div class="mtg-cal-day">${d.getDate()}</div>
         </div>
         <div style="flex:1;min-width:0">
-          <div class="mtg-title">${m.agenda ? m.agenda.slice(0,40)+(m.agenda.length>40?'…':'') : (isPast ? 'Past Meeting' : 'General Meeting')}</div>
+          <div class="mtg-title">${m.agenda ? h(m.agenda.slice(0,40)+(m.agenda.length>40?'…':'')) : (isPast ? 'Past Meeting' : 'General Meeting')}</div>
           <div class="mtg-meta">
             <span class="ds-inline-icon">${gyIcon('clock', 14)}${m.meeting_time||'Time TBA'}</span>
-            <span class="ds-inline-icon">${gyIcon('pin', 14)}${m.venue||'Venue TBA'}</span>
+            <span class="ds-inline-icon">${gyIcon('pin', 14)}${h(m.venue||'Venue TBA')}</span>
           </div>
           ${!isPast && countdownText ? `<div class="mtg-countdown ${countdownClass}">${countdownText}</div>` : ''}
           ${isPast ? `<div style="margin-top:.3rem"><span class="badge ${m.minutes?'badge-green':'badge-grey'}" style="font-size:.62rem">${m.minutes?'Minutes filed':'Pending minutes'}</span></div>` : ''}
@@ -286,7 +286,7 @@ async function sendMeetingReminders() {
   } catch(e) {
     if (statusEl) {
       statusEl.style.display = 'block';
-      statusEl.innerHTML = `<div class="alert alert-warn">Failed to send reminders: ${e.message}</div>`;
+      statusEl.innerHTML = `<div class="alert alert-warn">Failed to send reminders: ${h(e.message)}</div>`;
     }
   }
 
@@ -373,7 +373,7 @@ async function loadWelfare() {
     if (_welTypes.length) {
       pillsEl.innerHTML = _welTypes.map(t => `
         <div class="wel-rate-pill">
-          <span class="wel-rate-pill-label">${t.name}</span>
+          <span class="wel-rate-pill-label">${h(t.name)}</span>
           <span class="wel-rate-pill-val">Ksh ${Number(t.default_amount||0).toLocaleString()}</span>
         </div>`).join('');
     } else {
@@ -503,11 +503,11 @@ async function loadWelfare() {
         <div class="wel-event-notes">${h(e.notes) || 'No notes'}</div>
         <div style="display:flex;gap:.4rem">
           <button class="btn btn-secondary btn-sm" style="font-size:.7rem"
-            onclick="openWelfareContribs('${e.id}','${label.replace(/'/g,"\\'")}',${isOpenEnded ? 0 : Number(e.contribution_per_member)})">
+            onclick="openWelfareContribs('${e.id}',${jsArg(label)},${isOpenEnded ? 0 : Number(e.contribution_per_member)})">
             Track payments
           </button>
           ${!isClosed ? `<button class="btn btn-secondary btn-sm" style="font-size:.7rem"
-            onclick="openCloseWelfareModal('${e.id}','${label.replace(/'/g,"\\'")}',${collectedPool})">
+            onclick="openCloseWelfareModal('${e.id}',${jsArg(label)},${collectedPool})">
             Close &amp; disburse
           </button>` : `<button class="btn btn-secondary btn-sm" style="font-size:.7rem"
             onclick="reopenWelfareEvent('${e.id}')">
@@ -876,7 +876,7 @@ function renderProjectCard(p, idx) {
       <div style="display:flex;align-items:flex-start;gap:.75rem;margin-bottom:.75rem">
         <div class="proj-type-icon ${isActive?'':'completed'}">${icon}</div>
         <div style="flex:1;min-width:0">
-          <div class="farm-name">${p.name}</div>
+          <div class="farm-name">${h(p.name)}</div>
           <div class="farm-location ds-inline-icon">${gyIcon('pin', 14)}${p.location||'Location not set'}</div>
           <span class="badge ${isActive?'badge-green':'badge-grey'}" style="font-size:.6rem">${p.status}</span>
         </div>
@@ -897,7 +897,7 @@ function renderProjectCard(p, idx) {
         <span class="farm-stat-label">ROI</span>
         <span class="farm-stat-val ${parseFloat(roi)>=0?'pos':'neg'}">${roi}%</span>
       </div>` : ''}
-      ${p.notes ? `<div style="font-size:.72rem;color:var(--ink-faint);margin-top:.6rem;line-height:1.5">${p.notes}</div>` : ''}
+      ${p.notes ? `<div style="font-size:.72rem;color:var(--ink-faint);margin-top:.6rem;line-height:1.5">${h(p.notes)}</div>` : ''}
     </div>
     <div class="farm-card-footer">
       <button class="btn btn-secondary btn-sm" style="font-size:.7rem"
@@ -905,7 +905,7 @@ function renderProjectCard(p, idx) {
         ${isActive ? 'Mark complete' : 'Reactivate'}
       </button>
       <button class="btn btn-danger btn-sm" style="font-size:.7rem"
-        onclick="deleteProject('${p.id}','${p.name.replace(/'/g,"&apos;")}')">Delete</button>
+        onclick="deleteProject('${p.id}',${jsArg(p.name)})">Delete</button>
     </div>
   </div>`;
 }
@@ -977,7 +977,7 @@ async function loadProjects() {
   filterProjects('all', document.querySelector('.proj-filter-bar .mf-pill'));
 
   // Populate project dropdowns in finance forms
-  const projOpts = '<option value="">None</option>' + allProjects.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+  const projOpts = '<option value="">None</option>' + allProjects.map(p => `<option value="${h(p.name)}">${h(p.name)}</option>`).join('');
   ['exp-project','inc-project'].forEach(id => { const el=document.getElementById(id); if(el) el.innerHTML=projOpts; });
 }
 
@@ -1230,7 +1230,7 @@ async function loadMessages() {
             <span style="font-size:.78rem;font-weight:600;color:var(--ink)">${l.recipient_type==='all'?'All Members':l.recipient_type==='active'?'Active Members':'Arrears Members'}</span>
             <span class="badge badge-green" style="font-size:.58rem">${l.recipient_count||0} sent</span>
           </div>
-          <div class="msg-history-body">${(l.body||'').substring(0,100)}${(l.body||'').length>100?'…':''}</div>
+          <div class="msg-history-body">${h((l.body||'').substring(0,100))}${(l.body||'').length>100?'…':''}</div>
           <div class="msg-history-meta">${l.sent_at ? new Date(l.sent_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</div>
         </div>
       </div>`).join('') :
@@ -1422,7 +1422,7 @@ function renderPaymentMethods(org, containerId, compact) {
   el.innerHTML = items.map(item => compact ? `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem .65rem;border:1px solid var(--border);margin-bottom:.4rem;border-radius:4px;background:var(--surface-2)">
       <div>
-        <div style="font-size:.78rem;font-weight:600;color:var(--ink)">${item.icon} ${item.label}: <span style="color:var(--maroon)">${item.value}</span></div>
+        <div style="font-size:.78rem;font-weight:600;color:var(--ink)">${item.icon} ${h(item.label)}: <span style="color:var(--maroon)">${item.value}</span></div>
         ${item.sub ? `<div style="font-size:.65rem;color:var(--ink-faint)">${item.sub}</div>` : ''}
       </div>
       <button onclick="navigator.clipboard.writeText('${item.copy}').then(()=>toast('Copied: ${item.copy}'))"
@@ -1430,7 +1430,7 @@ function renderPaymentMethods(org, containerId, compact) {
     </div>` : `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem .85rem;border:1px solid var(--border);margin-bottom:.5rem;background:var(--surface)">
       <div>
-        <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${item.icon} ${item.label}</div>
+        <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${item.icon} ${h(item.label)}</div>
         <div style="font-size:.95rem;font-weight:700;color:var(--maroon);margin:.15rem 0">${item.value}</div>
         ${item.sub ? `<div style="font-size:.7rem;color:var(--ink-faint)">${item.sub}</div>` : ''}
       </div>
@@ -1800,7 +1800,7 @@ async function loadMGRCycleDetail(roundId) {
     return `<div class="slot-card ${cardClass}">
       <div class="slot-header">
         <div class="slot-num ${numClass}">${s.slot_number}</div>
-        <div class="slot-name">${s.members?.full_name || '—'}</div>
+        <div class="slot-name">${h(s.members?.full_name || '—')}</div>
         ${isActive ? '<span class="badge badge-green" style="font-size:.58rem">Current</span>' : ''}
         ${s.received ? '<span class="badge badge-grey">Received</span>' : ''}
       </div>
@@ -1832,9 +1832,9 @@ async function loadMGRCycleDetail(roundId) {
         <span class="mgr-method-pill ${methodClass}">${methodLabel}</span>
         <span class="badge ${r.status === 'active' ? 'badge-green' : 'badge-grey'}">${r.status}</span>
         ${r.status === 'active'
-          ? `<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="closeMGRCycle('${r.id}','${r.name.replace(/'/g,"&apos;")}')">Close cycle</button>`
-          : `<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="reopenMGRCycle('${r.id}','${r.name.replace(/'/g,"&apos;")}')">Reopen cycle</button>
-             <button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteRound('${r.id}','${r.name.replace(/'/g,"&apos;")}')">Delete cycle</button>`}
+          ? `<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="closeMGRCycle('${r.id}',${jsArg(r.name)})">Close cycle</button>`
+          : `<button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="reopenMGRCycle('${r.id}',${jsArg(r.name)})">Reopen cycle</button>
+             <button class="btn btn-danger btn-sm" style="font-size:.68rem" onclick="deleteRound('${r.id}',${jsArg(r.name)})">Delete cycle</button>`}
       </div>
     </div>
     <div class="slot-grid">${slotCards || '<div style="padding:1rem;color:var(--ink-faint);font-size:.8rem">No members in this cycle yet</div>'}</div>
@@ -1852,9 +1852,9 @@ async function showModal_createRound_prep() {
   if (!members.length) { pickerEl.innerHTML='<div style="color:var(--ink-faint);font-size:.8rem;padding:.5rem">No active members found</div>'; return; }
   pickerEl.innerHTML = members.map(m => `
     <label class="member-picker-row" style="display:flex;align-items:center;gap:.6rem;padding:.3rem .4rem;border-radius:4px;cursor:pointer;transition:background .1s" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''">
-      <input type="checkbox" class="mgr-member-cb" data-id="${m.id}" data-name="${m.full_name}" data-num="${m.member_number||''}" checked
+      <input type="checkbox" class="mgr-member-cb" data-id="${m.id}" data-name="${h(m.full_name)}" data-num="${m.member_number||''}" checked
         onchange="mgrUpdateSelection()" style="accent-color:var(--teal);width:15px;height:15px;flex-shrink:0"/>
-      <span style="font-size:.82rem;flex:1">${m.full_name}</span>
+      <span style="font-size:.82rem;flex:1">${h(m.full_name)}</span>
       <span style="font-size:.7rem;color:var(--ink-faint)">#${m.member_number||'—'}</span>
       ${m.status==='arrears'?'<span class="badge badge-warn" style="font-size:.6rem">arrears</span>':''}
     </label>`).join('');
@@ -1866,7 +1866,7 @@ async function showModal_createRound_prep() {
       <label class="member-picker-row" style="display:flex;align-items:center;gap:.6rem;padding:.3rem .4rem;border-radius:4px;cursor:pointer;transition:background .1s" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''">
         <input type="checkbox" class="tb-member-cb" data-id="${m.id}" checked
           onchange="tbUpdateSelection()" style="accent-color:var(--teal);width:15px;height:15px;flex-shrink:0"/>
-        <span style="font-size:.82rem;flex:1">${m.full_name}</span>
+        <span style="font-size:.82rem;flex:1">${h(m.full_name)}</span>
         <span style="font-size:.7rem;color:var(--ink-faint)">#${m.member_number||'—'}</span>
         ${m.status==='arrears'?'<span class="badge badge-warn" style="font-size:.6rem">arrears</span>':''}
       </label>`).join('');
@@ -1966,7 +1966,7 @@ async function loadRoundSlotsForRecord(roundId) {
     .order('slot_number');
 
   slotSel.innerHTML = '<option value="">Select receiving member…</option>' +
-    (slots || []).map(s => `<option value="${s.id}">Round ${s.slot_number} — ${s.members?.full_name || '—'}</option>`).join('');
+    (slots || []).map(s => `<option value="${s.id}">Round ${s.slot_number} — ${h(s.members?.full_name || '—')}</option>`).join('');
 
   // Set default amount from round
   const round = allRounds.find(r => r.id === roundId);
@@ -1977,7 +1977,7 @@ async function loadRoundSlotsForRecord(roundId) {
   const memberSel = document.getElementById('mgr-rec-member');
   if (memberSel) {
     memberSel.innerHTML = '<option value="">Select contributing member…</option>' +
-      allMembers.map(m => `<option value="${m.id}">${m.full_name}</option>`).join('');
+      allMembers.map(m => `<option value="${m.id}">${h(m.full_name)}</option>`).join('');
   }
 
   // Set today
@@ -2024,7 +2024,7 @@ async function loadContribStatusForSlot(slotId) {
         const contrib = (contribs || []).find(c => c.contributor_member_id === m.id);
         return `<div class="mgr-contrib-item ${paid ? 'paid' : 'pending'}">
           <div>
-            <div class="mgr-contrib-name">${m.full_name?.split(' ')[0] || '—'}</div>
+            <div class="mgr-contrib-name">${h(m.full_name?.split(' ')[0] || '—')}</div>
             ${paid ? `<div style="font-size:.62rem;color:var(--teal-dk)">Ksh ${Number(contrib?.amount||0).toLocaleString()}</div>` : ''}
           </div>
           <div class="mgr-contrib-status ${paid ? 'paid' : 'pending'}">${paid ? 'Paid' : 'Pending'}</div>
@@ -2290,7 +2290,7 @@ async function loadMGRCycleHistory(roundId) {
       : '—';
     return `<tr>
       <td style="text-align:center">#${s.slot_number}</td>
-      <td><strong>${s.members?.full_name || '—'}</strong></td>
+      <td><strong>${h(s.members?.full_name || '—')}</strong></td>
       <td>${dateStr}</td>
       <td>Ksh ${pot}</td>
       <td>${methodLabel}</td>
@@ -2395,7 +2395,7 @@ async function openTBNewPool() {
     <label class="member-picker-row" style="display:flex;align-items:center;gap:.6rem;padding:.3rem .4rem;border-radius:4px;cursor:pointer;transition:background .1s" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''">
       <input type="checkbox" class="tb-member-cb" data-id="${m.id}" checked
         onchange="tbUpdateSelection()" style="accent-color:var(--teal);width:15px;height:15px;flex-shrink:0"/>
-      <span style="font-size:.82rem;flex:1">${m.full_name}</span>
+      <span style="font-size:.82rem;flex:1">${h(m.full_name)}</span>
       <span style="font-size:.7rem;color:var(--ink-faint)">#${m.member_number||'—'}</span>
       ${m.status==='arrears'?'<span class="badge badge-warn" style="font-size:.6rem">arrears</span>':''}
     </label>`).join('');
@@ -2499,7 +2499,7 @@ function openTBPoolDetail(poolId) {
 
   // Member pickers for this pool's forms (org members — same pool as before)
   const memberOpts = '<option value="">Select member…</option>' +
-    allMembers.map(m => `<option value="${m.id}">${m.full_name}</option>`).join('');
+    allMembers.map(m => `<option value="${m.id}">${h(m.full_name)}</option>`).join('');
   const recMemberEl = document.getElementById('tb-rec-member');
   if (recMemberEl) recMemberEl.innerHTML = memberOpts;
 
@@ -2691,7 +2691,7 @@ async function loadTBDetailLoans(poolId) {
       const overdue = l.due_date && new Date(l.due_date) < new Date() && l.status === 'active';
       const badgeClass = l.status==='repaid'?'badge-green':overdue?'badge-red':'badge-warn';
       return `<tr>
-        <td><strong>${l.members?.full_name||'—'}</strong></td>
+        <td><strong>${h(l.members?.full_name||'—')}</strong></td>
         <td>Ksh ${Number(l.principal).toLocaleString()}</td>
         <td>${l.interest_rate}%/mo</td>
         <td>${l.due_date||'—'}</td>
@@ -2716,7 +2716,7 @@ async function populateTBRepayLoanSelect(poolId) {
   const loanOpts = '<option value="">Select loan…</option>' +
     (activeLoans||[]).map(l => {
       const bal = Number(l.principal||0) - Number(l.total_repaid||0);
-      return `<option value="${l.id}">${l.members?.full_name||'—'} — Ksh ${bal.toLocaleString()} outstanding</option>`;
+      return `<option value="${l.id}">${h(l.members?.full_name||'—')} — Ksh ${bal.toLocaleString()} outstanding</option>`;
     }).join('');
   repayLoanEl.innerHTML = loanOpts;
 }
@@ -2728,7 +2728,7 @@ function openTBNewLoan() {
   document.getElementById('tb-loan-pool').value = _currentTBDetailPoolId;
   document.getElementById('tb-loan-pool-display').value = pool ? pool.name : '—';
   const memberOpts = '<option value="">Select member…</option>' +
-    allMembers.map(m => `<option value="${m.id}">${m.full_name}</option>`).join('');
+    allMembers.map(m => `<option value="${m.id}">${h(m.full_name)}</option>`).join('');
   const loanMemberEl = document.getElementById('tb-loan-member');
   if (loanMemberEl) loanMemberEl.innerHTML = memberOpts;
   const dateEl = document.getElementById('tb-loan-date');
@@ -3003,15 +3003,15 @@ async function loadWelfareTypes() {
   listEl.innerHTML = types.map(t => `
     <div style="display:flex;align-items:center;padding:.75rem 1.25rem;border-bottom:1px solid var(--border)">
       <div style="flex:1">
-        <div style="font-size:.84rem;font-weight:600;color:var(--ink)">${t.name}</div>
+        <div style="font-size:.84rem;font-weight:600;color:var(--ink)">${h(t.name)}</div>
         <div style="font-size:.7rem;color:var(--ink-faint);margin-top:.1rem">
-          <span style="color:${catColors[t.category]||'var(--ink-faint)'}">${t.category||'other'}</span>
+          <span style="color:${catColors[t.category]||'var(--ink-faint)'}">${h(t.category||'other')}</span>
           · ${t.scope==='general'?'General / Community':'Member-specific'}
         </div>
       </div>
       <div style="font-size:.9rem;font-weight:700;color:var(--maroon);margin-right:1rem">Ksh ${Number(t.default_amount||0).toLocaleString()}</div>
       <div style="display:flex;gap:.35rem">
-        <button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="editWelfareType('${t.id}','${t.name.replace(/'/g,"\'")}',${t.default_amount||0},'${t.category||'bereavement'}','${t.scope||'member_specific'}')">Edit</button>
+        <button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="editWelfareType('${t.id}','${t.name.replace(/'/g,"\'")}',${t.default_amount||0},${jsArg(t.category||'bereavement')},'${t.scope||'member_specific'}')">Edit</button>
         <button class="ds-icon-btn ds-icon-btn-danger" aria-label="Delete" onclick="deleteWelfareType('${t.id}','${t.name.replace(/'/g,"\'")}')">${gyIcon('trash', 16)}</button>
       </div>
     </div>`).join('');
@@ -3076,7 +3076,7 @@ function populateWelfareTypeSelect() {
   if (!sel) return;
   sel.innerHTML = '<option value="">Select event type…</option>';
   _welTypes.forEach(t => {
-    sel.innerHTML += `<option value="${t.id}">${t.name} — Ksh ${Number(t.default_amount||0).toLocaleString()}</option>`;
+    sel.innerHTML += `<option value="${t.id}">${h(t.name)} — Ksh ${Number(t.default_amount||0).toLocaleString()}</option>`;
   });
   sel.innerHTML += '<option value="__custom__">Custom / Other</option>';
 }

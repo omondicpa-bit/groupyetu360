@@ -131,7 +131,7 @@ async function loadDashboard() {
         const bal = Number(m.shares_balance||0) + Number(m.savings_balance||0);
         return `<tr onclick="openMemberDetail('${m.id}')" style="cursor:pointer">
           <td style="font-weight:600;color:var(--maroon)">#${m.member_number||'—'}</td>
-          <td><strong>${m.full_name}</strong></td>
+          <td><strong>${h(m.full_name)}</strong></td>
           <td style="font-size:.78rem">${m.phone||'—'}</td>
           <td style="font-weight:600">Ksh ${bal.toLocaleString()}</td>
           <td><span class="badge ${m.status==='active'?'badge-green':m.status==='arrears'?'badge-warn':'badge-grey'}">${m.status}</span></td>
@@ -161,7 +161,7 @@ async function loadDashboard() {
           <div class="dash-txn-avatar">${initials}</div>
           <div style="flex:1;min-width:0">
             <div class="dash-txn-name">${name}</div>
-            <div class="dash-txn-meta">${t.contribution_types?.name||'Payment'} · ${ds}${t.mpesa_ref?' · '+t.mpesa_ref:''}</div>
+            <div class="dash-txn-meta">${h(t.contribution_types?.name||'Payment')} · ${ds}${t.mpesa_ref?' · '+t.mpesa_ref:''}</div>
           </div>
           <div class="dash-txn-amt">+Ksh ${Number(t.amount).toLocaleString()}</div>
         </div>`;
@@ -277,7 +277,7 @@ async function loadDashboard() {
           </div>`;
         }).join('');
         const labelsEl = document.getElementById('dash-monthly-labels');
-        if (labelsEl) labelsEl.innerHTML = monthData.map(m=>`<div style="flex:1;text-align:center">${m.label}</div>`).join('');
+        if (labelsEl) labelsEl.innerHTML = monthData.map(m=>`<div style="flex:1;text-align:center">${h(m.label)}</div>`).join('');
         const totalEl = document.getElementById('dash-monthly-total');
         if (totalEl) totalEl.textContent = 'Total (6 months): Ksh ' + monthData.reduce((s,m)=>s+m.total,0).toLocaleString();
       }
@@ -307,10 +307,10 @@ async function loadDashboard() {
             </div>
             <div>
               <div style="font-size:.85rem;font-weight:700;color:var(--ink)">${dayLabel}</div>
-              <div style="font-size:.72rem;color:var(--ink-faint)">${m.meeting_time||'Time TBA'} · ${m.venue||'Venue TBA'}</div>
+              <div style="font-size:.72rem;color:var(--ink-faint)">${m.meeting_time||'Time TBA'} · ${h(m.venue||'Venue TBA')}</div>
             </div>
           </div>
-          ${m.agenda?`<div style="font-size:.75rem;color:var(--ink-soft);line-height:1.65;padding:.5rem .6rem;background:var(--surface-2);border-left:2px solid var(--maroon)">${m.agenda}</div>`:''}`;
+          ${m.agenda?`<div style="font-size:.75rem;color:var(--ink-soft);line-height:1.65;padding:.5rem .6rem;background:var(--surface-2);border-left:2px solid var(--maroon)">${h(m.agenda)}</div>`:''}`;
       } else {
         nmEl.innerHTML = `<div style="text-align:center;padding:.5rem 0">
           <div style="display:flex;justify-content:center;color:var(--ink-faint);margin-bottom:.4rem">${gyIcon('meetings', 26)}</div>
@@ -496,7 +496,7 @@ async function loadDashboardModuleCards(orgId) {
       </div>
       ${activeRound ? `
       <div style="padding:0 1.25rem 1rem;font-size:.72rem;color:var(--ink-soft)">
-        ${activeRound.name} · Ksh ${amtPerMember.toLocaleString()} per member · <a onclick="showPage('mgr')" style="color:var(--teal);cursor:pointer">View →</a>
+        ${h(activeRound.name)} · Ksh ${amtPerMember.toLocaleString()} per member · <a onclick="showPage('mgr')" style="color:var(--teal);cursor:pointer">View →</a>
       </div>` : `<div style="padding:0 1.25rem 1rem;font-size:.75rem;color:var(--ink-faint)">No active cycle — <a onclick="showPage('mgr')" style="color:var(--teal);cursor:pointer">start one →</a></div>`}`;
     container.appendChild(card);
   }

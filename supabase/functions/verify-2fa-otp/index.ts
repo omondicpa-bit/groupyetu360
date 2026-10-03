@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
 
     // Find a valid, unused OTP for this email
     const { data: otpRow, error } = await sb.from('otp_codes')
-      .select('id, code, expires_at, used')
+      .select('id, code, expires_at, used, attempts')
       .eq('email', normalizedEmail)
       .eq('used', false)
       .order('created_at', { ascending: false })
@@ -59,6 +59,16 @@ Deno.serve(async (req) => {
     const submitted = String(code).trim();
     const stored = String(otpRow.code).trim();
     if (submitted !== stored) {
+      // Five wrong tries and the code is burnt, so a 6-digit code cannot be
+      // guessed by brute force within its lifetime (audit, Oct 2026).
+      const tries = Number(otpRow.attempts || 0) + 1;
+      await sb.from('otp_codes').update({ attempts: tries, used: tries >= 5 }).eq('id', otpRow.id);
+      if (tries >= 5) {
+        return new Response(
+          JSON.stringify({ valid: false, error: 'Too many wrong codes. Please sign in again to get a new code.' }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       return new Response(
         JSON.stringify({ valid: false, error: 'Incorrect code. Please try again.' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

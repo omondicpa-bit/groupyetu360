@@ -150,9 +150,9 @@ async function loadSettings() {
         <td>${t.is_member_income===false?'<span class="badge badge-maroon" title="Goes to group funds only">Admin</span>':'<span class="badge badge-green" title="Adds to member balances">Member</span>'}</td>
         <td style="display:flex;gap:.4rem">
           ${t.is_active===false
-            ? `<button class="btn btn-secondary btn-sm" onclick="restoreContribType('${t.id}','${t.name.replace(/'/g,"&apos;")}')">Restore</button>`
+            ? `<button class="btn btn-secondary btn-sm" onclick="restoreContribType('${t.id}',${jsArg(t.name)})">Restore</button>`
             : `<button class="btn btn-secondary btn-sm" onclick="editContribType('${t.id}')">Edit</button>
-               <button class="ds-icon-btn ds-icon-btn-danger" aria-label="Delete type" onclick="deleteContribType('${t.id}','${t.name.replace(/'/g,"&apos;")}')">${gyIcon('trash', 16)}</button>`}
+               <button class="ds-icon-btn ds-icon-btn-danger" aria-label="Delete type" onclick="deleteContribType('${t.id}',${jsArg(t.name)})">${gyIcon('trash', 16)}</button>`}
         </td>
       </tr>`).join('')}</tbody></table></div>
       <div style="padding:.75rem 1.25rem"><button class="btn btn-secondary btn-sm" onclick="showModal('addContribType')">+ Add Contribution Type</button></div>` :
@@ -325,7 +325,7 @@ function updateShareoutPreview() {
     </tr></thead>
     <tbody>${rows.map(r=>`<tr style="border-bottom:1px solid var(--border)">
       <td style="padding:.3rem .5rem;font-size:.72rem;color:var(--ink-faint)">#${r.num||'—'}</td>
-      <td style="padding:.3rem .5rem;font-size:.78rem;font-weight:600">${r.name}</td>
+      <td style="padding:.3rem .5rem;font-size:.78rem;font-weight:600">${h(r.name)}</td>
       ${inclSav?`<td style="text-align:right;padding:.3rem .5rem;font-size:.75rem;color:var(--maroon)">Ksh ${Math.round(r.savDeduct).toLocaleString()}</td>`:''}
       ${inclShr?`<td style="text-align:right;padding:.3rem .5rem;font-size:.75rem;color:var(--maroon)">Ksh ${Math.round(r.shrDeduct).toLocaleString()}</td>`:''}
       ${inclDiv?`<td style="text-align:right;padding:.3rem .5rem;font-size:.75rem;color:var(--teal)">+Ksh ${Math.round(r.dividend).toLocaleString()}</td>`:''}
@@ -825,7 +825,7 @@ async function loadSuperAdmin() {
       return `<div class="sa-bar-wrap">
         <div class="sa-bar-val">${p.count > 0 ? p.count + ' org' + (p.count > 1 ? 's' : '') : ''}</div>
         <div class="sa-bar" style="height:${Math.max(pct, 2)}px;background:${p.color}"></div>
-        <div class="sa-bar-label">${p.label}</div>
+        <div class="sa-bar-label">${h(p.label)}</div>
       </div>`;
     }).join('');
   }
@@ -852,7 +852,7 @@ async function loadSuperAdmin() {
   }
   if (legendEl) {
     legendEl.innerHTML = planData.map(p =>
-      `<div class="sa-donut-leg-item"><div class="sa-donut-dot" style="background:${donutColors[p.label.toLowerCase()]}"></div><span style="flex:1">${p.label}</span><strong>${p.count}</strong></div>`
+      `<div class="sa-donut-leg-item"><div class="sa-donut-dot" style="background:${donutColors[p.label.toLowerCase()]}"></div><span style="flex:1">${h(p.label)}</span><strong>${p.count}</strong></div>`
     ).join('');
   }
 
@@ -1278,7 +1278,7 @@ async function saViewUser(userId) {
       `<div style="padding:1rem;text-align:center;color:var(--ink-faint);font-size:.82rem">
         No group memberships found.
         <div style="margin-top:.5rem">
-          <button class="btn btn-secondary btn-sm" onclick="saResendPortalInvite('${u.email}','${u.full_name||''}')">Resend portal invite</button>
+          <button class="btn btn-secondary btn-sm" onclick="saResendPortalInvite(${jsArg(u.email)},${jsArg(u.full_name||'')})">Resend portal invite</button>
         </div>
       </div>`
     );
@@ -1293,7 +1293,7 @@ async function saViewUser(userId) {
       const isFounder = memberRecord?.is_founder;
       return `<div style="display:flex;align-items:center;gap:.75rem;padding:.65rem .85rem;border-bottom:0.5px solid var(--border)">
         <div style="flex:1;min-width:0">
-          <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${org.name||'Unknown'}</div>
+          <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${h(org.name||'Unknown')}</div>
           <div style="font-size:.68rem;color:var(--ink-faint)">${uo.role||'member'} · Member #${dispNum}${isFounder?' <span class="ds-founder">Founder</span>':''}</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
@@ -1311,7 +1311,7 @@ async function saViewUser(userId) {
       const bal = Number(m.shares_balance||0) + Number(m.savings_balance||0);
       rows.push(`<div style="display:flex;align-items:center;gap:.75rem;padding:.65rem .85rem;border-bottom:0.5px solid var(--border);opacity:.75">
         <div style="flex:1;min-width:0">
-          <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${org.name||'Unknown'} <span style="font-size:.62rem;color:var(--ink-faint)">(email-linked)</span></div>
+          <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${h(org.name||'Unknown')} <span style="font-size:.62rem;color:var(--ink-faint)">(email-linked)</span></div>
           <div style="font-size:.68rem;color:var(--ink-faint)">member · #${dispNum}${m.is_founder?' <span class="ds-founder">Founder</span>':''}</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
@@ -1482,7 +1482,7 @@ async function loadSAFinance() {
       return `<div class="sa-bar-wrap">
         <div class="sa-bar-val">${p.count > 0 ? p.count + ' org' + (p.count > 1 ? 's' : '') : ''}</div>
         <div class="sa-bar" style="height:${Math.max(pct, 2)}px;background:${p.color}"></div>
-        <div class="sa-bar-label">${p.label}</div>
+        <div class="sa-bar-label">${h(p.label)}</div>
       </div>`;
     }).join('');
   }
@@ -1709,7 +1709,7 @@ async function openOrgDetail(orgId) {
     adminsEl.innerHTML = admins.length ? admins.map(p=>`
       <div style="display:flex;align-items:center;gap:.65rem;padding:.5rem 0;border-bottom:1px solid var(--border)">
         <div style="width:32px;height:32px;border-radius:50%;background:var(--maroon-pale);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:var(--maroon)">${(p.full_name||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}</div>
-        <div style="flex:1"><div style="font-size:.82rem;font-weight:600">${p.full_name||'—'}</div><div style="font-size:.7rem;color:var(--ink-faint)">${p.role} · ${p.email||'no email'}</div></div>
+        <div style="flex:1"><div style="font-size:.82rem;font-weight:600">${h(p.full_name||'—')}</div><div style="font-size:.7rem;color:var(--ink-faint)">${p.role} · ${h(p.email||'no email')}</div></div>
         <button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="document.getElementById('od-reset-email').value='${p.email||''}';switchSAOrgTab(document.querySelector('[onclick*=sa-od-tab-support]'),'sa-od-tab-support')">Reset PW</button>
       </div>`).join('') : '<div style="color:var(--ink-faint);font-size:.8rem">No admin users linked</div>';
   }
@@ -1741,8 +1741,8 @@ async function loadODActivity(orgId) {
       <tbody>${logs.map(l => `<tr>
         <td style="font-size:.68rem;color:var(--ink-faint);white-space:nowrap">${new Date(l.created_at).toLocaleString('en-KE',{dateStyle:'short',timeStyle:'short'})}</td>
         <td><span class="badge badge-grey" style="font-size:.6rem">${l.action||'—'}</span></td>
-        <td style="font-size:.75rem">${l.user_name||l.user_id?.slice(0,8)||'system'}</td>
-        <td style="font-size:.72rem;color:var(--ink-soft);max-width:300px;word-break:break-word">${l.details||'—'}</td>
+        <td style="font-size:.75rem">${h(l.user_name||l.user_id?.slice(0,8)||'system')}</td>
+        <td style="font-size:.72rem;color:var(--ink-soft);max-width:300px;word-break:break-word">${h(l.details||'—')}</td>
       </tr>`).join('')}</tbody>
     </table></div>`;
   } catch(e) {
@@ -1804,7 +1804,7 @@ async function loadODFinance() {
     </tbody></table></div>` : '<div style="padding:1.5rem;text-align:center;color:var(--ink-faint);font-size:.82rem">No transactions</div>';
   if (ctEl) ctEl.innerHTML = cts.length ? cts.map(ct=>`
     <div style="display:flex;justify-content:space-between;padding:.5rem 1.25rem;border-bottom:1px solid var(--border);font-size:.8rem">
-      <span>${ct.name}</span><span style="color:var(--ink-faint)">${ct.income_type||'—'}</span>
+      <span>${h(ct.name)}</span><span style="color:var(--ink-faint)">${ct.income_type||'—'}</span>
     </div>`).join('') : '<div style="padding:1rem 1.25rem;color:var(--ink-faint);font-size:.8rem">No contribution types</div>';
 }
 
@@ -1921,7 +1921,7 @@ function renderODMembers(members) {
     const dispNum = m.display_number || (m.internal_number ? String(m.internal_number).padStart(3,'0') : m.member_number) || '—';
     return `<tr>
       <td style="font-weight:700;color:var(--maroon)">${dispNum}${m.is_founder ? ' <span class="ds-founder">Founder</span>' : ''}</td>
-      <td><strong>${m.full_name}</strong><div style="font-size:.68rem;color:var(--ink-faint)">${m.email||''}</div></td>
+      <td><strong>${h(m.full_name)}</strong><div style="font-size:.68rem;color:var(--ink-faint)">${h(m.email||'')}</div></td>
       <td style="font-size:.78rem">${m.phone||'—'}</td>
       <td><span class="badge ${m.status==='active'?'badge-green':m.status==='arrears'?'badge-warn':m.status==='deregistered'?'badge-red':'badge-grey'}" style="font-size:.62rem">${m.status}</span></td>
       <td style="font-weight:600">Ksh ${bal.toLocaleString()}</td>
@@ -2188,7 +2188,7 @@ async function loadApprovals() {
       </div>
       <div class="aq-when">Asked to join ${aqAgo(r.requested_at)}</div>
       <div class="aq-actions">
-        <button class="btn btn-primary btn-sm ds-btn-auto" onclick="openApproveModal('${r.id}','${r.user_id}','${(r.full_name||'').replace(/'/g,"&apos;")}','${r.phone||''}','${r.email||''}')">Review request</button>
+        <button class="btn btn-primary btn-sm ds-btn-auto" onclick="openApproveModal('${r.id}','${r.user_id}',${jsArg((r.full_name||''))},${jsArg(r.phone||'')},${jsArg(r.email||'')})">Review request</button>
       </div>
     </div>`).join('')
     : aqEmpty('approvals', 'No one is waiting', 'New join requests from your members will appear here.');
@@ -2341,7 +2341,7 @@ async function checkPendingApprovals() {
     document.getElementById('pending-approvals-preview').innerHTML = pending.slice(0,3).map(r => `
       <div style="display:flex;justify-content:space-between;align-items:center;padding:.75rem 1.25rem;border-bottom:1px solid var(--border)">
         <div>
-          <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${r.full_name}</div>
+          <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${h(r.full_name)}</div>
           <div style="font-size:.7rem;color:var(--ink-faint)">${r.phone||'No phone'} · Requested ${new Date(r.requested_at).toDateString()}</div>
         </div>
         <button class="btn btn-primary btn-sm" onclick="showPage('approvals')">Review</button>
@@ -2515,7 +2515,7 @@ async function loadSAPayouts() {
         <td style="text-transform:capitalize">${h(r.fund_type)}</td>
         <td>Ksh ${Number(r.amount).toLocaleString('en-KE')}</td>
         <td style="font-size:.75rem;color:var(--ink-faint)">${h(payoutDestinationLabel(r, org))}${unverified ? '<div style="margin-top:.2rem;font-size:.66rem;font-weight:700;color:#8a4b00">Not verified</div>' : ''}</td>
-        <td><span class="sa-status" style="background:${style.bg};color:${style.color}">${style.label}</span></td>
+        <td><span class="sa-status" style="background:${style.bg};color:${style.color}">${h(style.label)}</span></td>
         <td style="font-size:.72rem;color:var(--ink-faint)">${new Date(r.created_at).toLocaleString('en-KE', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}</td>
         <td style="white-space:nowrap">
           <button class="btn btn-secondary btn-sm" style="padding:.25rem .5rem;font-size:.68rem" onclick="viewPayoutDetails('${r.id}')">View</button>
@@ -2623,7 +2623,7 @@ async function loadSAActivity() {
       <td class="ds-muted">${h(r.organisations?.name)||r.org_id?.slice(0,8)||'—'}</td>
     </tr>`).join('');
   } catch(e) {
-    tbody.innerHTML = `<tr><td colspan="5" style="color:var(--danger);padding:1rem">${e.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="color:var(--danger);padding:1rem">${h(e.message)}</td></tr>`;
   }
 }
 
@@ -3823,7 +3823,7 @@ async function loadSASettlements() {
             <div style="display:flex;align-items:center;gap:1rem;margin-left:auto">
               <div style="font-weight:700;font-size:.9rem;font-variant-numeric:tabular-nums">Ksh ${Number(b.amount).toLocaleString()}</div>
               ${settlementStatusPill(b.status)}
-              <button class="btn btn-secondary btn-sm" onclick="viewSettlementDetails('${b.org_id}','${b.provider}','${b.settlement_date}','${b.line_type}','${(b.organisations?.name||'').replace(/'/g,"")}','${b.round_slot_id||''}')">Details</button>
+              <button class="btn btn-secondary btn-sm" onclick="viewSettlementDetails('${b.org_id}','${b.provider}','${b.settlement_date}','${b.line_type}',${jsArg((b.organisations?.name||''))},'${b.round_slot_id||''}')">Details</button>
               ${b.status === 'pending' ? `<button class="btn btn-primary btn-sm" onclick="openMarkPaidForm('${b.id}')">Mark paid</button>` : ''}
             </div>
           </div>`).join('')}
@@ -4208,7 +4208,7 @@ async function loadOrgSettlements() {
             <div style="display:flex;align-items:center;gap:1rem">
               <div style="font-weight:700;font-size:.92rem;font-variant-numeric:tabular-nums">Ksh ${Number(b.amount).toLocaleString()}</div>
               ${settlementStatusPill(b.allPaid ? 'paid' : 'pending')}
-              <button class="btn btn-secondary btn-sm" onclick="viewSettlementDetails('${b.org_id}','','${b.settlement_date}','${b.line_type||''}','${(currentOrg.name||'').replace(/'/g,"")}','${b.round_slot_id||''}')">Details</button>
+              <button class="btn btn-secondary btn-sm" onclick="viewSettlementDetails('${b.org_id}','','${b.settlement_date}','${b.line_type||''}',${jsArg((currentOrg.name||''))},'${b.round_slot_id||''}')">Details</button>
             </div>
           </div>`).join('')}
       </div>`;
@@ -4380,4 +4380,23 @@ async function loadFeatureRequestsAlert() {
     const sub = document.getElementById('sa-feature-alert-text');
     if (sub) sub.innerHTML = list.map(r => `<a href="#" onclick="event.preventDefault();openOrgDetail('${r.org_id}')">${h(r.organisations?.name || 'Group')}: ${h((FEATURE_DEFS.find(d => d.key === r.feature) || {}).label || r.feature)}</a>`).join(' · ');
   } catch (e) {}
+}
+
+
+// Superadmin: onboard a group from the "Onboard new organisation" window.
+// (The button called saveOrg(), which did not exist; audit, Oct 2026.)
+async function saveOrg() {
+  const v = id => (document.getElementById(id)?.value || '').trim();
+  const name = v('ao-name');
+  if (!name) { toast('Enter the organisation name.'); return; }
+  const code = 'GY' + Math.random().toString(36).toUpperCase().slice(2, 6);
+  const { data, error } = await sb.from('organisations').insert({
+    name, reg_number: v('ao-reg') || null, plan: v('ao-plan') || 'starter',
+    status: v('ao-status') || 'active', subscription_status: 'active', org_code: code, sms_bundle: 0,
+  }).select('id').single();
+  if (error) { toast('Could not onboard the group: ' + error.message); return; }
+  try { await logActivity('ORG CREATED', `Superadmin onboarded ${name} (${code})`, 'org', data.id); } catch (e) {}
+  closeModal('addOrg');
+  toast(`${name} onboarded. Group code ${code}. Share it with the group admin to join.`);
+  if (typeof loadSuperAdmin === 'function') loadSuperAdmin();
 }

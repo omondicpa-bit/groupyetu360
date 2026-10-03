@@ -70,7 +70,7 @@ async function loadFinance() {
   // Update income project dropdown
   const incProj = document.getElementById('inc-project');
   if (incProj) {
-    incProj.innerHTML = '<option value="">None</option>' + allProjects.map(p=>`<option value="${p.name}">${p.name}</option>`).join('');
+    incProj.innerHTML = '<option value="">None</option>' + allProjects.map(p=>`<option value="${h(p.name)}">${h(p.name)}</option>`).join('');
   }
   const [txnRes, expRes] = await Promise.all([
     sb.from('transactions').select('*,members(full_name),contribution_types(name)').eq('org_id', currentOrg.id).order('created_at',{ascending:false}),
@@ -193,7 +193,7 @@ async function loadFinance() {
       <td class="ds-num ds-strong">Ksh ${Number(e.amount).toLocaleString()}</td>
       <td>${h(e.mpesa_ref)||'—'}</td>
       <td>${h(e.project)||'—'}</td>
-      <td><button class="ds-icon-btn ds-icon-btn-danger" aria-label="Delete" onclick="deleteExpenseEntry('${e.id}','${(e.description||e.category||'income entry').replace(/'/g,"&apos;")}',${Number(e.amount)},'income')">${gyIcon('trash', 16)}</button></td>
+      <td><button class="ds-icon-btn ds-icon-btn-danger" aria-label="Delete" onclick="deleteExpenseEntry('${e.id}',${jsArg((e.description||e.category||'income entry'))},${Number(e.amount)},'income')">${gyIcon('trash', 16)}</button></td>
     </tr>`).join('') : '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--ink-faint)">No income recorded yet</td></tr>';
 
   // Expenses table
@@ -206,7 +206,7 @@ async function loadFinance() {
       <td class="ds-num ds-strong">Ksh ${Number(e.amount).toLocaleString()}</td>
       <td>${h(e.mpesa_ref)||'—'}</td>
       <td>${h(e.project)||'—'}</td>
-      <td><button class="ds-icon-btn ds-icon-btn-danger" aria-label="Delete" onclick="deleteExpenseEntry('${e.id}','${(e.description||e.category||'expense entry').replace(/'/g,"&apos;")}',${Number(e.amount)},'expense')">${gyIcon('trash', 16)}</button></td>
+      <td><button class="ds-icon-btn ds-icon-btn-danger" aria-label="Delete" onclick="deleteExpenseEntry('${e.id}',${jsArg((e.description||e.category||'expense entry'))},${Number(e.amount)},'expense')">${gyIcon('trash', 16)}</button></td>
     </tr>`).join('') : '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--ink-faint)">No expenses yet</td></tr>';
 
   // Populate mobile finance shell
@@ -1230,7 +1230,7 @@ async function loadWithdrawalRequests() {
           const bal = Number(mem.savings_balance||0) + Number(mem.shares_balance||0);
           const canPay = r.amount <= bal;
           return `<tr style="border-bottom:.5px solid var(--border);font-size:.78rem">
-            <td style="padding:.6rem 1.25rem;font-weight:600">${mem.full_name||'—'} <span style="color:var(--ink-faint);font-weight:400">#${mem.member_number||'?'}</span></td>
+            <td style="padding:.6rem 1.25rem;font-weight:600">${h(mem.full_name||'—')} <span style="color:var(--ink-faint);font-weight:400">#${mem.member_number||'?'}</span></td>
             <td style="padding:.6rem .5rem;font-weight:700;color:var(--maroon)">Ksh ${Number(r.amount).toLocaleString()}</td>
             <td style="padding:.6rem .5rem;color:var(--ink-soft)">${r.note||'—'}</td>
             <td style="padding:.6rem .5rem;color:${canPay?'var(--teal)':'var(--danger)'};font-weight:600">Ksh ${bal.toLocaleString()}${!canPay?' ⚠':''}</td>

@@ -189,7 +189,7 @@ async function loadMyProfile() {
     document.getElementById('mp-reg-status').innerHTML = myRecord.registration_paid ?
       '<span class="badge badge-green">Paid ✓</span>' : '<span class="badge badge-warn">Pending</span>';
     document.getElementById('mp-details').innerHTML = `
-      <tr><td style="padding:.5rem 0;font-size:.78rem;color:var(--ink-faint);width:130px">Full Name</td><td style="font-size:.85rem;font-weight:600">${myRecord.full_name}</td></tr>
+      <tr><td style="padding:.5rem 0;font-size:.78rem;color:var(--ink-faint);width:130px">Full Name</td><td style="font-size:.85rem;font-weight:600">${h(myRecord.full_name)}</td></tr>
       <tr><td style="padding:.5rem 0;font-size:.78rem;color:var(--ink-faint)">Phone</td><td style="font-size:.85rem">${myRecord.phone||'—'}</td></tr>
       <tr><td style="padding:.5rem 0;font-size:.78rem;color:var(--ink-faint)">ID Number</td><td style="font-size:.85rem">${myRecord.id_number||'—'}</td></tr>
       <tr><td style="padding:.5rem 0;font-size:.78rem;color:var(--ink-faint)">Join Date</td><td style="font-size:.85rem">${myRecord.join_date||'—'}</td></tr>`;
@@ -260,7 +260,7 @@ async function loadMyProfile() {
       ? `<tr><td style="padding:.45rem 0;font-size:.75rem;color:var(--ink-faint)">Savings/mo</td><td><strong style="color:var(--teal)">Ksh ${Number(myRecord.savings_tier||0).toLocaleString()}</strong></td></tr>`
       : '';
     document.getElementById('mp-details').innerHTML = `
-      <tr><td style="padding:.45rem 0;font-size:.75rem;color:var(--ink-faint);width:110px">Full Name</td><td style="font-size:.85rem;font-weight:600">${myRecord.full_name}</td></tr>
+      <tr><td style="padding:.45rem 0;font-size:.75rem;color:var(--ink-faint);width:110px">Full Name</td><td style="font-size:.85rem;font-weight:600">${h(myRecord.full_name)}</td></tr>
       <tr><td style="padding:.45rem 0;font-size:.75rem;color:var(--ink-faint)">Phone</td><td style="font-size:.85rem">${myRecord.phone||'—'}</td></tr>
       <tr><td style="padding:.45rem 0;font-size:.75rem;color:var(--ink-faint)">ID Number</td><td style="font-size:.85rem">${myRecord.id_number||'—'}</td></tr>
       <tr><td style="padding:.45rem 0;font-size:.75rem;color:var(--ink-faint)">Joined</td><td style="font-size:.85rem">${joinDate}</td></tr>
@@ -416,7 +416,7 @@ async function loadMyContributions() {
         <div style="width:100%;background:${m.total>0?'var(--maroon)':'var(--border)'};height:${h||3}px;border-radius:2px 2px 0 0;min-height:3px"></div>
       </div>`;
     }).join('');
-    if (labelsEl) labelsEl.innerHTML = monthTotals.map(m=>`<div style="flex:1;text-align:center">${m.label}</div>`).join('');
+    if (labelsEl) labelsEl.innerHTML = monthTotals.map(m=>`<div style="flex:1;text-align:center">${h(m.label)}</div>`).join('');
   }
 
   // ── By category ──
@@ -501,7 +501,7 @@ async function loadMyContributions() {
     return `
     <div style="margin-bottom:1.25rem">
       <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 1.25rem;background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
-        <div style="font-size:.72rem;font-weight:700;color:var(--ink-soft)">${group.label}</div>
+        <div style="font-size:.72rem;font-weight:700;color:var(--ink-soft)">${h(group.label)}</div>
         <div style="font-size:.75rem;font-weight:700;color:var(--maroon)">Ksh ${monthTotal.toLocaleString()}</div>
       </div>
       ${group.entries.map(e => {
@@ -513,7 +513,7 @@ async function loadMyContributions() {
           <div style="flex:1;min-width:0">
             <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${e.type}</div>
             <div style="font-size:.7rem;color:var(--ink-faint);margin-top:.1rem">
-              ${dateFormatted}${e.ref ? ' · <span style="font-family:monospace">'+e.ref+'</span>' : ''}${e.notes&&e.notes!=='—'?' · '+e.notes:''}
+              ${dateFormatted}${e.ref ? ' · <span style="font-family:monospace">'+e.ref+'</span>' : ''}${e.notes&&e.notes!=='—'?' · '+h(e.notes):''}
             </div>
           </div>
           <div style="text-align:right;flex-shrink:0">
@@ -572,7 +572,7 @@ async function checkSubscriptionAccess() {
           lock.style.cssText = 'position:fixed;inset:0;background:rgba(90,0,22,.97);z-index:9998;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:var(--font);color:#fff;text-align:center;padding:2rem';
           lock.innerHTML = `
             <div style="display:flex;justify-content:center;color:var(--ink-faint);margin-bottom:1rem">${gyIcon('lock', 26)}</div>
-            <div style="font-size:1.3rem;font-weight:700;margin-bottom:.5rem">${org.name}</div>
+            <div style="font-size:1.3rem;font-weight:700;margin-bottom:.5rem">${h(org.name)}</div>
             <div style="font-size:.95rem;opacity:.85;margin-bottom:1.5rem">Your group's subscription expired on<br><strong>${expDate.toDateString()}</strong></div>
             <div style="font-size:.82rem;opacity:.7;max-width:340px;line-height:1.7">Please ask your group admin to renew the GroupYetu360 subscription to restore access.</div>
             <div style="margin-top:2rem;display:flex;gap:1rem;flex-wrap:wrap;justify-content:center">
@@ -707,8 +707,8 @@ async function openMemberPaymentModal() {
             style="width:15px;height:15px;accent-color:var(--maroon);flex-shrink:0"
             onchange="updateWelfareAmount(this)"/>
           <div style="flex:1">
-            <div style="font-size:.8rem;font-weight:600">${e.event_type||'Welfare Event'}</div>
-            ${e.notes ? `<div style="font-size:.7rem;color:var(--ink-soft);margin-top:.15rem">${e.notes}</div>` : ''}
+            <div style="font-size:.8rem;font-weight:600">${h(e.event_type||'Welfare Event')}</div>
+            ${e.notes ? `<div style="font-size:.7rem;color:var(--ink-soft);margin-top:.15rem">${h(e.notes)}</div>` : ''}
             <div style="font-size:.67rem;color:var(--ink-faint);margin-top:.1rem">Suggested: Ksh ${Number(e.contribution_per_member||0).toLocaleString()} per member</div>
           </div>
           <input type="number" class="form-input mp-item-input" id="mp-welfare-amt-${e.id}"
@@ -1474,7 +1474,7 @@ async function loadMemberMGRObligations(memberId, sectionId, listId) {
           <div style="display:flex;justify-content:center;color:var(--ink-faint)">${gyIcon('check', 24)}</div>
           <div style="flex:1">
             <div style="font-size:.85rem;font-weight:700;color:var(--teal-dk)">You are the current receiver!</div>
-            <div style="font-size:.75rem;color:var(--ink-soft);margin-top:.15rem">${o.cycle.name} · Round ${o.currentSlot.slot_number} · Due ${o.dueDate}</div>
+            <div style="font-size:.75rem;color:var(--ink-soft);margin-top:.15rem">${h(o.cycle.name)} · Round ${o.currentSlot.slot_number} · Due ${o.dueDate}</div>
             <div style="font-size:.72rem;color:var(--ink-faint);margin-top:.1rem">Other members will pay Ksh ${Number(o.cycle.amount_per_member||0).toLocaleString()} each directly to you${o.cycle.collection_method === 'group_account' ? ' via the group account' : o.cycle.collection_method === 'treasurer' ? ' via the treasurer' : ' to you directly'}.</div>
           </div>
         </div>`;
@@ -1484,7 +1484,7 @@ async function loadMemberMGRObligations(memberId, sectionId, listId) {
         return `<div style="display:flex;align-items:center;gap:.75rem;padding:.55rem .85rem;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;opacity:.75">
           <div style="display:flex;justify-content:center;color:var(--ink-faint)">${gyIcon('check', 22)}</div>
           <div style="flex:1">
-            <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${o.cycle.name} — Round ${o.currentSlot.slot_number}</div>
+            <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${h(o.cycle.name)} — Round ${o.currentSlot.slot_number}</div>
             <div style="font-size:.72rem;color:var(--teal-dk);margin-top:.1rem">You have paid for this round. Receiver: ${h(o.receiverName)}</div>
           </div>
           <span class="badge badge-green" style="font-size:.62rem;flex-shrink:0">Paid</span>
@@ -1883,8 +1883,8 @@ async function loadMyMeetings() {
           <div style="font-family:var(--font);font-size:1.3rem;font-weight:700;color:var(--teal-dk);line-height:1">${d.getDate()}</div>
         </div>
         <div>
-          <div style="font-size:.85rem;font-weight:700;color:var(--ink)">${m.agenda||'General Meeting'}</div>
-          <div style="font-size:.7rem;color:var(--ink-faint)">${m.meeting_time||'TBA'} · ${m.venue||'TBA'}</div>
+          <div style="font-size:.85rem;font-weight:700;color:var(--ink)">${h(m.agenda||'General Meeting')}</div>
+          <div style="font-size:.7rem;color:var(--ink-faint)">${m.meeting_time||'TBA'} · ${h(m.venue||'TBA')}</div>
           <div style="margin-top:.25rem;font-size:.68rem;font-weight:600;color:${days<=1?'var(--maroon)':days<=3?'var(--gold)':'var(--teal)'}">${days===0?'Today!':days===1?'Tomorrow':'In '+days+' days'}</div>
         </div>
       </div>
@@ -1922,7 +1922,7 @@ async function loadMyMeetings() {
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div>
           <div style="font-size:.82rem;font-weight:600;color:var(--ink)">${d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
-          <div style="font-size:.7rem;color:var(--ink-faint)">${m.venue||'Online'}</div>
+          <div style="font-size:.7rem;color:var(--ink-faint)">${h(m.venue||'Online')}</div>
         </div>
         <span class="badge ${m.minutes?'badge-green':'badge-grey'}" style="font-size:.62rem">${m.minutes?'Minutes':'Pending'}</span>
       </div>
@@ -1952,7 +1952,7 @@ async function loadMyNotices() {
     const dateStr = l.sent_at ? new Date(l.sent_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
     return `<div class="mp-notice-card" style="animation-delay:${i*0.04}s">
       <div class="mp-notice-date">${dateStr} · ${l.recipient_type==='all'?'All Members':l.recipient_type==='active'?'Active Members':'Members'}</div>
-      <div class="mp-notice-body">${l.body||'—'}</div>
+      <div class="mp-notice-body">${h(l.body||'—')}</div>
     </div>`;
   }).join('') : `<div style="padding:3rem;text-align:center">
     <div style="display:flex;justify-content:center;color:var(--ink-faint);margin-bottom:.75rem">${gyIcon('messages', 30)}</div>
@@ -1966,7 +1966,7 @@ async function loadMyNotices() {
       const dateStr = l.sent_at ? new Date(l.sent_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
       return `<div class="mh-notice-card" style="animation:portalFadeUp .3s ease ${i*0.05}s both">
         <div class="mh-notice-date">${dateStr}</div>
-        <div class="mh-notice-text">${l.body||'—'}</div>
+        <div class="mh-notice-text">${h(l.body||'—')}</div>
       </div>`;
     }).join('') : `<div style="text-align:center;padding:2.5rem 1rem">
       <div style="display:flex;justify-content:center;color:var(--ink-faint);margin-bottom:.75rem">${gyIcon('inbox', 30)}</div>
@@ -2229,7 +2229,7 @@ function populateMobileContributions(txns, mem, fp) {
       return `<div class="mh-txn">
         <div class="mh-txn-dot cr">↓</div>
         <div style="flex:1">
-          <div class="mh-txn-name">${t.contribution_types?.name||'Payment'}</div>
+          <div class="mh-txn-name">${h(t.contribution_types?.name||'Payment')}</div>
           <div class="mh-txn-date">${dateStr}</div>
         </div>
         <div class="mh-txn-amt cr">+Ksh ${Number(t.amount||0).toLocaleString()}</div>
@@ -2257,7 +2257,7 @@ function populateMobileMeetings(upcoming, past, attendanceSummary) {
       const badge = daysAway !== null ? (daysAway === 0 ? 'Today' : daysAway === 1 ? 'Tomorrow' : 'In ' + daysAway + ' days') : '';
       return `<div class="mh-meeting">
         <div class="mh-meeting-date">${dateStr}</div>
-        <div class="mh-meeting-name">${m.title||'Meeting'}</div>
+        <div class="mh-meeting-name">${h(m.title||'Meeting')}</div>
         <div class="mh-meeting-meta">${m.time||''} ${m.location ? '· ' + m.location : ''}</div>
         ${badge ? `<div class="mh-meeting-badge upcoming">${badge}</div>` : ''}
       </div>`;
@@ -2281,7 +2281,7 @@ function populateMobileMeetings(upcoming, past, attendanceSummary) {
       const dateStr = d ? d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
       const attended = m._attended;
       return `<div class="mh-meeting" style="border-left-color:${attended===true?'var(--teal)':attended===false?'var(--danger)':'var(--border)'}">
-        <div class="mh-meeting-name">${m.title||'Meeting'}</div>
+        <div class="mh-meeting-name">${h(m.title||'Meeting')}</div>
         <div class="mh-meeting-meta">${dateStr}${m.location ? ' · ' + m.location : ''}</div>
         ${attended===true ? '<div class="mh-meeting-badge past-ok">Attended</div>' : attended===false ? '<div class="mh-meeting-badge past-no">Absent</div>' : ''}
       </div>`;

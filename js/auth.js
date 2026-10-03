@@ -351,8 +351,8 @@ async function searchOrgsForJoin(q) {
       return;
     }
     resultsEl.innerHTML = '<div class="org-select-list">' + data.map(o => `
-      <div class="org-option" onclick="selectJoinOrg('${o.id}','${o.name.replace(/'/g,"&apos;")}')">
-        <div class="org-option-name">${o.name}</div>
+      <div class="org-option" onclick="selectJoinOrg('${o.id}',${jsArg(o.name)})">
+        <div class="org-option-name">${h(o.name)}</div>
         <div class="org-option-meta">${o.reg_number||''} · ${o.plan} plan</div>
       </div>`).join('') + '</div>';
   } catch(e) {
@@ -1706,7 +1706,7 @@ function updateTopbarActions(page) {
   const memberPages = ['my_profile','my_contributions','my_meetings','my_notices','my_account','faq'];
   if (memberPages.includes(page) || role === 'member') {
     topbar.innerHTML = `
-      <span style="font-size:.75rem;color:var(--ink-soft);font-weight:500;padding:.35rem .75rem;background:var(--surface);border:1px solid var(--border);border-radius:4px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle" title="${currentOrg?.name||''}">${(currentOrg?.name||'').replace(/\b\w/g,c=>c.toUpperCase()).toLowerCase().replace(/\b\w/g,c=>c.toUpperCase())}</span>
+      <span style="font-size:.75rem;color:var(--ink-soft);font-weight:500;padding:.35rem .75rem;background:var(--surface);border:1px solid var(--border);border-radius:4px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle" title="${h(currentOrg?.name||'')}">${h((currentOrg?.name||'').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()))}</span>
       <button class="topbar-btn" onclick="openMemberPaymentModal();showModal('memberPayment')" style="margin-left:.75rem">Make payment</button>`;
     return;
   }
@@ -1852,7 +1852,7 @@ function buildNav() {
   } else {
     // member portal
     topbar.innerHTML = `
-      <span style="font-size:.75rem;color:var(--maroon);font-weight:600;padding:.4rem .75rem;background:var(--maroon-pale);border:1px solid var(--maroon-muted)">${currentOrg?.name||'My Organisation'}</span>
+      <span style="font-size:.75rem;color:var(--maroon);font-weight:600;padding:.4rem .75rem;background:var(--maroon-pale);border:1px solid var(--maroon-muted)">${h(currentOrg?.name||'My Organisation')}</span>
       <button class="topbar-btn" onclick="showModal('memberPayment')" style="margin-left:.75rem">Make payment</button>`;
   }
 }
@@ -1893,9 +1893,9 @@ async function prefetchData() {
 }
 
 function populateSelects() {
-  const memberOpts = '<option value="">Select member…</option>' + allMembers.map(m => `<option value="${m.id}">${m.full_name}</option>`).join('');
+  const memberOpts = '<option value="">Select member…</option>' + allMembers.map(m => `<option value="${m.id}">${h(m.full_name)}</option>`).join('');
   ['modal-pay-member', 'wel-member', 'fine-member'].forEach(id => { const el=document.getElementById(id); if(el) el.innerHTML=memberOpts; });
-  const projOpts = '<option value="">None</option>' + allProjects.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+  const projOpts = '<option value="">None</option>' + allProjects.map(p => `<option value="${h(p.name)}">${h(p.name)}</option>`).join('');
   const ep = document.getElementById('exp-project'); if(ep) ep.innerHTML = projOpts;
 }
 
@@ -2015,11 +2015,11 @@ function buildMobNavItems(items) {
   return items.map(item => {
     if (item.fab) {
       // Raised centre action (design system v1 phone layer)
-      return `<div class="mob-nav-fab-wrap"><button type="button" class="mob-nav-fab" onclick="${item.action}" aria-label="${item.label}">${gyIcon(item.icon, 26)}</button><span class="mob-nav-fab-label">${item.label}</span></div>`;
+      return `<div class="mob-nav-fab-wrap"><button type="button" class="mob-nav-fab" onclick="${item.action}" aria-label="${h(item.label)}">${gyIcon(item.icon, 26)}</button><span class="mob-nav-fab-label">${h(item.label)}</span></div>`;
     }
     return `<button class="mob-nav-item" onclick="showPage('${item.page}');closeMobileMenu()" id="mob-nav-${item.page}">
       <span class="mob-nav-icon">${gyIcon(item.icon, 22)}</span>
-      <span class="mob-nav-label">${item.label}</span>
+      <span class="mob-nav-label">${h(item.label)}</span>
     </button>`;
   }).join('');
 }
