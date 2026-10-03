@@ -4065,3 +4065,9 @@ body.mob-dark .org-picker-item,body.mob-dark .opi-empty,body.mob-dark #picker-my
   body:has(#org-picker-screen[style*="flex"]) #support-fab{display:none !important}
 }
 .sau-seen-recent{font-weight:800;color:var(--teal-dk)}
+
+/* ── Members: year totals and sortable money columns ── */
+.ds-sort{border:0;background:none;padding:0;font:inherit;font-weight:inherit;color:inherit;cursor:pointer;text-align:inherit;white-space:nowrap}
+.ds-sort:hover{color:var(--ink)}
+.ds-zero{display:inline-block;font-size:12px;font-weight:800;color:var(--warning);background:var(--warning-pale);padding:2px 9px;border-radius:999px}
+.ph-mrow-year{display:block;margin-top:3px;font-size:12px;font-weight:700;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

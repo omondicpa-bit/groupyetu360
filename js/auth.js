@@ -1358,17 +1358,15 @@ async function registerNewOrg(opts = {}) {
   window._registeringOrg = true;
   try {
     show(sucEl, 'Creating group…');
-    const orgCode = 'GY' + Math.random().toString(36).toUpperCase().slice(2, 6);
-    // Always create on Starter; a paid plan or trial is applied by the caller
-    const { data: org, error: orgErr } = await sb.from('organisations')
-      .insert({ name, plan: 'starter', status: 'active', org_code: orgCode, subscription_status: 'active', sms_bundle: 0, sms_label: smsLabel })
-      .select().single();
-    if (orgErr || !org) { hide(sucEl); show(errEl, 'Could not create the group: ' + (orgErr?.message || 'no response')); return null; }
+    // Created on the server (create_organisation): the group plus the caller's
+    // admin link in one step. Inserting from the browser and reading the row
+    // back failed row-level security, because the caller is not yet linked
+    // to the new group at that instant (Oct 2026).
+    const { data: newId, error: orgErr } = await sb.rpc('create_organisation', { p_name: name, p_sms_label: smsLabel });
+    if (orgErr || !newId) { hide(sucEl); show(errEl, 'Could not create the group: ' + (orgErr?.message || 'no response')); return null; }
+    const { data: orgRow } = await sb.from('organisations').select('*').eq('id', newId).maybeSingle();
+    const org = orgRow || { id: newId, name };
 
-    // Founder is always admin of their own group (per-group role lives in user_orgs)
-    const { error: uoErr } = await sb.from('user_orgs').upsert({ user_id: currentUser.id, org_id: org.id, role: 'admin' });
-    if (uoErr) console.error('[GY360] user_orgs upsert failed:', uoErr.message);
-    // profiles.role is the platform-wide status: only lift a plain member/pending account
     const profUpd = { org_id: org.id };
     if (!['admin', 'superadmin'].includes(currentProfile?.role)) profUpd.role = 'admin';
     await sb.from('profiles').update(profUpd).eq('id', currentUser.id);

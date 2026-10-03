@@ -30,12 +30,30 @@ async function loadMembers() {
   const addBtn = document.getElementById('add-member-btn');
   if (addBtn) addBtn.style.display = canDo('addMember') ? '' : 'none';
   // Always fetch fresh from DB — never use stale allMembers from previous org
-  const [{ data }, { data: lastTxns }] = await Promise.all([
+  const [{ data }, { data: lastTxns }, { data: ctypes }] = await Promise.all([
     sb.from('members').select('*').eq('org_id', currentOrg.id).order('internal_number,member_number'),
-    sb.from('transactions').select('member_id,amount,transaction_date,created_at')
+    sb.from('transactions').select('member_id,amount,transaction_date,created_at,mpesa_ref,type_id,welfare_event_id')
       .eq('org_id', currentOrg.id)
-      .order('created_at', { ascending: false })
+      .order('created_at', { ascending: false }),
+    sb.from('contribution_types').select('id,income_type').eq('org_id', currentOrg.id)
   ]);
+  // This year's totals per member, so management can see who is lagging:
+  // contributions (dues, levies, registration... anything that is not a
+  // member's own savings or shares) and welfare given.
+  {
+    const balanceTypes = new Set((ctypes || []).filter(t => t.income_type === 'member_savings' || t.income_type === 'member_shares').map(t => t.id));
+    const yr = String(new Date().getFullYear());
+    const yt = {};
+    let anyContrib = false, anyWelfare = false;
+    (lastTxns || []).forEach(t => {
+      if (!t.member_id || !String(t.transaction_date || t.created_at || '').startsWith(yr)) return;
+      const row = yt[t.member_id] || (yt[t.member_id] = { contrib: 0, welfare: 0 });
+      if (t.welfare_event_id) { row.welfare += Number(t.amount || 0); anyWelfare = true; }
+      else if (!balanceTypes.has(t.type_id)) { row.contrib += Number(t.amount || 0); anyContrib = true; }
+    });
+    window._memberYearTotals = yt;
+    window._memberYearCols = { contrib: anyContrib || (ctypes || []).some(t => !['member_savings','member_shares'].includes(t.income_type)), welfare: anyWelfare, year: yr };
+  }
   // Build last contribution map: member_id → { date, amount }
   // Group by mpesa_ref+date so split payments (shares+savings same ref) count as one payment
   const lastContribMap = {};
@@ -180,7 +198,8 @@ function renderMemberPhone(list) {
     return `<button type="button" class="ph-mrow" onclick="openMemberDetail('${m.id}')">
       <span class="ph-av ph-av-lg t-${PH_TONES[i % 4]}">${h(phInitials(m.full_name))}</span>
       <span class="ph-row-text"><span class="ph-row-name">${h(m.full_name)}</span>
-        <span class="ph-mrow-meta"><span class="ph-pill ${tone}">${label}</span><span>${h(m.phone || '')}</span></span></span>
+        <span class="ph-mrow-meta"><span class="ph-pill ${tone}">${label}</span><span>${h(m.phone || '')}</span></span>
+        ${(() => { const yc = window._memberYearCols || {}; const t = (window._memberYearTotals || {})[m.id] || {}; const bits = []; if (yc.contrib) bits.push(`${yc.year}: ${t.contrib ? 'Ksh ' + Number(t.contrib).toLocaleString() : 'nil'}`); if (yc.welfare) bits.push(`Welfare: ${t.welfare ? 'Ksh ' + Number(t.welfare).toLocaleString() : 'nil'}`); return bits.length ? `<span class="ph-mrow-year">${bits.join(' · ')}</span>` : ''; })()}</span>
       <span class="ph-mrow-bal"><span>${bal.toLocaleString()}</span><span>${(fp.hasShares || fp.hasSavings) ? 'balance' : 'paid'}</span></span>
     </button>`;
   }).join('');
@@ -208,6 +227,20 @@ function memberStatusBadge(m) {
   return '<span class="badge badge-grey">' + h((m.status || 'inactive').replace(/^./, c => c.toUpperCase())) + '</span>';
 }
 
+// Sorting the member table by any money column (click the header; click
+// again to flip). Ascending puts the lowest payers on top.
+let _memberSort = { key: null, dir: 'asc' };
+function sortMembersBy(key) {
+  _memberSort = { key, dir: _memberSort.key === key && _memberSort.dir === 'asc' ? 'desc' : 'asc' };
+  if (typeof applyMemberFilters === 'function') applyMemberFilters();
+}
+function sortMemberList(list, cols) {
+  const k = _memberSort.key, dir = _memberSort.dir === 'asc' ? 1 : -1;
+  const col = (cols || []).find(c => c.key === k);
+  const val = m => k === 'name' ? (m.full_name || '').toLowerCase() : col ? Number(col.val(m) || 0) : 0;
+  return list.slice().sort((a, b) => { const x = val(a), y = val(b); return x < y ? -dir : x > y ? dir : 0; });
+}
+
 function renderMemberList(list) {
   const tbody = document.getElementById('member-list-table');
   const thead = document.getElementById('member-list-head');
@@ -217,7 +250,15 @@ function renderMemberList(list) {
   if (fp.hasShares) balCols.push({ label: fp.sharesLabel || 'Shares', val: m => m.shares_balance });
   if (fp.hasSavings) balCols.push({ label: fp.savingsLabel || 'Savings', val: m => m.savings_balance });
   if (!fp.hasShares && !fp.hasSavings) balCols.push({ label: 'Total contributed', val: m => m.total_contributed });
-  if (thead) thead.innerHTML = `<tr><th>Member</th><th>No.</th>${balCols.map(c => `<th class="ds-num">${h(c.label)}</th>`).join('')}<th>Last paid</th><th>Status</th><th><span class="ds-sr">Actions</span></th></tr>`;
+  const yc = window._memberYearCols || {};
+  const yt = window._memberYearTotals || {};
+  if (yc.contrib) balCols.push({ key: 'contrib', label: `Contributions ${yc.year}`, val: m => (yt[m.id] || {}).contrib || 0, year: true });
+  if (yc.welfare) balCols.push({ key: 'welfare', label: `Welfare ${yc.year}`, val: m => (yt[m.id] || {}).welfare || 0, year: true });
+  balCols.forEach((c, i) => { if (!c.key) c.key = 'bal' + i; });
+  const sortMark = k => _memberSort.key === k ? (_memberSort.dir === 'asc' ? ' ↑' : ' ↓') : '';
+  if (thead) thead.innerHTML = `<tr><th><button type="button" class="ds-sort" onclick="sortMembersBy('name')">Member${sortMark('name')}</button></th><th>No.</th>${balCols.map(c => `<th class="ds-num"><button type="button" class="ds-sort" onclick="sortMembersBy('${c.key}')" title="Sort by ${h(c.label)}">${h(c.label)}${sortMark(c.key)}</button></th>`).join('')}<th>Last paid</th><th>Status</th><th><span class="ds-sr">Actions</span></th></tr>`;
+  window._memberSortCols = balCols;
+  if (_memberSort.key) list = sortMemberList(list, balCols);
   const cols = 5 + balCols.length;
   if (!list.length) {
     const none = !allMembers.length;
@@ -245,7 +286,7 @@ function renderMemberList(list) {
         <span class="ds-person-sub">${h(m.phone || m.email) || '—'}${regNote}</span></span>
       </div></td>
       <td class="ds-muted">#${h(String(dispNum))}</td>
-      ${balCols.map(c => `<td class="ds-num ds-strong">Ksh ${Number(c.val(m)||0).toLocaleString()}</td>`).join('')}
+      ${balCols.map(c => { const v = Number(c.val(m) || 0); return c.year && !v ? `<td class="ds-num"><span class="ds-zero">Nil</span></td>` : `<td class="ds-num ${c.year ? '' : 'ds-strong'}">Ksh ${v.toLocaleString()}</td>`; }).join('')}
       <td class="ds-muted">${lastC ? `${h(lastC.date)} · Ksh ${Number(lastC.amount).toLocaleString()}` : 'No payments yet'}</td>
       <td>${memberStatusBadge(m)}</td>
       <td class="ds-actions"><button class="ds-icon-btn" onclick="event.stopPropagation();openMemberDetail('${m.id}')" aria-label="Open ${h(m.full_name)}">${gyIcon('chevron', 16)}</button></td>
@@ -254,6 +295,7 @@ function renderMemberList(list) {
 }
 
 function renderMemberGrid(list) {
+  if (_memberSort.key && window._memberSortCols) list = sortMemberList(list, window._memberSortCols);
   const grid = document.getElementById('member-grid');
   if (!grid) return;
   if (!list.length) {
@@ -293,6 +335,13 @@ function renderMemberGrid(list) {
       // Welfare / subscription only — show total contributed from transactions
       balanceCols = `
         <div class="mc-bal" style="grid-column:1/-1"><div class="mc-bal-label">Total Contributed</div><div class="mc-bal-value" style="color:var(--teal)">Ksh ${Number(m.total_contributed||0).toLocaleString()}</div></div>`;
+    }
+
+    // This year's contributions and welfare (same figures as the table)
+    {
+      const yc = window._memberYearCols || {}; const t = (window._memberYearTotals || {})[m.id] || {};
+      if (yc.contrib) balanceCols += `<div class="mc-bal"><div class="mc-bal-label">Contributions ${yc.year}</div><div class="mc-bal-value" style="color:${t.contrib ? 'var(--ink)' : 'var(--ink-faint)'}">${t.contrib ? 'Ksh ' + Number(t.contrib).toLocaleString() : 'Nil'}</div></div>`;
+      if (yc.welfare) balanceCols += `<div class="mc-bal"><div class="mc-bal-label">Welfare ${yc.year}</div><div class="mc-bal-value" style="color:${t.welfare ? 'var(--ink)' : 'var(--ink-faint)'}">${t.welfare ? 'Ksh ' + Number(t.welfare).toLocaleString() : 'Nil'}</div></div>`;
     }
 
     // Footer — show last contribution date if available, else savings tier
