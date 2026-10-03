@@ -1111,6 +1111,7 @@ async function getActiveProviderConfig(org) {
   // members. Instant pay is "locked" (visible, unavailable) until superadmin
   // has verified the group's account AND switched instant pay on for it.
   if (!org?.id) return null;
+  if (typeof gyFeature === 'function' && !gyFeature('instant_mpesa', org)) return null;  // feature switched off: report-a-payment only
   const ready = org.instant_pay_enabled === true && org.disbursement_verified === true && !!org.disbursement_method;
   return {
     provider: 'daraja', accountRef: null,
@@ -1382,6 +1383,12 @@ const FEATURE_DEFS = [
     desc: 'Land, livestock and group businesses.' },
   { key: 'fines', label: 'Fines', icon: 'alert', tone: 'gold', def: true,
     desc: 'Issue fines for lateness or absence and track who has paid.' },
+  { key: 'instant_mpesa', label: 'Instant M-Pesa collections', icon: 'phone', tone: 'teal', def: true,
+    desc: 'Members pay with an M-Pesa prompt and payments record themselves. Collections are settled to your approved account (Settlements).' },
+  { key: 'withdrawals', label: 'Member withdrawals', icon: 'payouts', tone: 'navy', def: true,
+    desc: 'Open a window for members to request withdrawals from their savings, for the admin to approve.' },
+  { key: 'messages', label: 'Bulk SMS and messages', icon: 'messages', tone: 'gold', def: true,
+    desc: 'Send SMS to all members or those behind, with reminders and templates.' },
   { key: 'taya', label: 'Taya assistant', icon: 'sparkle', tone: 'maroon', def: true,
     desc: 'Draft minutes, reminders and reports.' },
 ];

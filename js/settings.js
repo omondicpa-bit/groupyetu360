@@ -2544,7 +2544,7 @@ async function processPayoutRow(id, btnEl, uncertain) {
       body: JSON.stringify({ settlement_id: id, confirmed_not_sent: confirmedNotSent }),
     });
     const result = await res.json();
-    if (result.outcome === 'sent') toast('Payout sent, waiting for Safaricom to confirm.');
+    if (result.outcome === 'sent') toast('Settlement sent, waiting for Safaricom to confirm.');
     else if (result.outcome === 'blocked') toast('Blocked: ' + (result.reason || 'failed a safety check'));
     else if (result.error) toast('Could not send: ' + result.error);
     else toast('Outcome: ' + (result.outcome || 'unknown'));
@@ -3195,7 +3195,7 @@ function ipFromOrg(o) {
 async function loadInstantPayCard() {
   const card = document.getElementById('ip-card');
   if (!card || !currentOrg) return;
-  if (!canDo('editSettings')) { card.style.display = 'none'; return; }
+  if (!canDo('editSettings') || !gyFeature('instant_mpesa')) { card.style.display = 'none'; return; }
   card.style.display = '';
   const { data: org } = await sb.from('organisations').select('*').eq('id', currentOrg.id).maybeSingle();
   const { data: reqs } = await sb.from('collection_activation_requests').select('*').eq('org_id', currentOrg.id)
@@ -4291,9 +4291,9 @@ async function renderFeaturesPage(containerId, orgId, isSA) {
 }
 
 function featureUsageText(key, n) {
-  const one = { welfare: 'welfare fund', households: 'member linked to a household', mgr: 'merry-go-round cycle',
+  const one = { instant_mpesa: 'M-Pesa payment received', withdrawals: 'withdrawal request', messages: 'message sent', welfare: 'welfare fund', households: 'member linked to a household', mgr: 'merry-go-round cycle',
     table_banking: 'table banking record', fines: 'fine', meetings: 'meeting', projects: 'project', contribution_rules: 'saved rule set' };
-  const many = { welfare: 'welfare funds', households: 'members linked to households', mgr: 'merry-go-round cycles',
+  const many = { instant_mpesa: 'M-Pesa payments received', withdrawals: 'withdrawal requests', messages: 'messages sent', welfare: 'welfare funds', households: 'members linked to households', mgr: 'merry-go-round cycles',
     table_banking: 'table banking records', fines: 'fines', meetings: 'meetings', projects: 'projects', contribution_rules: 'saved rule sets' };
   return `${n} ${n === 1 ? (one[key] || 'record') : (many[key] || 'records')}`;
 }

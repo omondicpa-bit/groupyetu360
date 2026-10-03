@@ -1782,7 +1782,7 @@ function buildNav() {
       + section('Money')
       + link('sa_finance', 'revenue', 'Revenue')
       + link('sa_billing', 'billing', 'Billing')
-      + link('sa_payouts', 'payouts', 'Payouts')
+      + link('sa_payouts', 'payouts', 'Settlements')
       + section('System')
       + link('sa_activity', 'activity', 'Activity log')
       + link('sa_support', 'settings', 'Platform settings')
@@ -1815,12 +1815,12 @@ function buildNav() {
       + (canDo('manageMGR') && gyFeature('mgr') ? link('mgr', 'rotate', 'Merry-go-round') : '')
       + (canDo('manageMGR') && gyFeature('welfare') ? gatedLink('welfare', 'welfare', 'Welfare', hasBasic) : '')
       + (canDo('manageMGR') && gyFeature('table_banking') ? gatedLink('table_banking', 'bank', 'Table banking', hasBasic) : '')
-      + link('settlements', 'payouts', 'Payouts');
+      + (gyFeature('instant_mpesa') ? link('settlements', 'payouts', 'Settlements') : '');
 
     nav += section('People')
       + link('members', 'members', 'Members')
       + (gyFeature('meetings') ? link('meetings', 'meetings', 'Meetings') : '')
-      + (canDo('sendSms') ? link('messages', 'messages', 'Messages') : '');
+      + (canDo('sendSms') && gyFeature('messages') ? link('messages', 'messages', 'Messages') : '');
 
     const groupLinks =
         (canDo('manageProjects') && gyFeature('projects') ? gatedLink('projects', 'projects', 'Projects', hasBasic) : '')
@@ -1918,12 +1918,12 @@ const pageTitles = {
   sa_org_detail: ['Organisation Detail', 'Platform management'],
   sa_support: ['Platform Settings', 'Contact details, payment info & Daraja'],
   sa_activity: ['Activity Log', 'Audit trail of all admin actions'],
-  sa_payouts: ['Payouts', 'Automated Safaricom settlements - money owed to groups'],
+  sa_payouts: ['Settlements', 'Automated Safaricom settlements - money owed to groups'],
   my_meetings: ['Meetings', 'Scheduled meetings and attendance'],
   my_notices: ['Notices', 'Messages from your group admin'],
   my_contributions: ['My Contributions', 'Your payment history'],
   approvals: ['Member Approvals', 'Review and approve access requests'],
-  settlements: ['Settlements', 'Daily settlement status for your collections'],
+  settlements: ['Settlements', 'Money collected for your group, settled to your account'],
   members: ['Members', 'Member register'],
   finance: ['Finance', 'Transactions & expenses'],
   meetings: ['Meetings', 'Schedule & attendance'],
@@ -1984,7 +1984,7 @@ function buildMobileNav() {
     nav.innerHTML = buildMobNavItems([
       { icon:'overview', label:'Overview', page:'superadmin' },
       { icon:'building', label:'Groups', page:'sa_organisations' },
-      { icon:'payouts', label:'Payouts', page:'sa_payouts' },
+      { icon:'payouts', label:'Settlements', page:'sa_payouts' },
       { icon:'menu', label:'More', page:'mob_more' },
     ]);
   } else if (isMember) {
@@ -2002,7 +2002,7 @@ function buildMobileNav() {
       { icon:'money', label:'Money', page:'finance' },
       canRecord
         ? { fab:true, icon:'plus', label:'Record', action:'openRecordPaymentModal()' }
-        : { icon:'messages', label:'Messages', page:'messages' },
+        : (gyFeature('messages') ? { icon:'messages', label:'Messages', page:'messages' } : { icon:'meetings', label:'Meetings', page:'meetings' }),
       { icon:'members', label:'Members', page:'members' },
       { icon:'menu', label:'More', page:'mob_more' },
     ]);
@@ -2048,12 +2048,12 @@ function buildMobMore() {
       canDo('manageMGR') && gyFeature('welfare') ? tile('welfare', 'welfare', 'Welfare', 'maroon') : '',
       canDo('manageMGR') && gyFeature('mgr') ? tile('mgr', 'rotate', 'Merry-go-round', 'teal') : '',
       canDo('manageMGR') && gyFeature('table_banking') ? tile('table_banking', 'bank', 'Table banking', 'navy') : '',
-      tile('settlements', 'payouts', 'Payouts', 'gold'),
+      gyFeature('instant_mpesa') ? tile('settlements', 'payouts', 'Settlements', 'gold') : '',
     ]);
     html += group('People', [
       canDo('viewApprovals') ? tile('approvals', 'approvals', 'Approvals', 'teal', 'mob-more-approvals') : '',
       gyFeature('meetings') ? tile('meetings', 'meetings', 'Meetings', 'navy') : '',
-      canDo('sendSms') ? tile('messages', 'messages', 'Messages', 'gold') : '',
+      canDo('sendSms') && gyFeature('messages') ? tile('messages', 'messages', 'Messages', 'gold') : '',
     ]);
     html += group('Group', [
       canDo('manageProjects') && gyFeature('projects') ? tile('projects', 'projects', 'Projects', 'maroon') : '',
