@@ -654,41 +654,17 @@ function isValidKenyanPhone(phone) {
 
 // Track SMS usage: logs to sms_usage, deducts from sms_bundle, auto-disables 2FA if balance hits 0
 async function trackSmsUsage(orgId, count) {
+  // SMS credit is now checked and used up by the send-sms-celcom server
+  // function (audit, Oct 2026). Here we only refresh the figures on screen.
   if (!orgId || !count) return;
   try {
-    const month = new Date().toISOString().slice(0, 7);
-    // Upsert monthly usage log
-    const { data: existing } = await sb.from('sms_usage')
-      .select('id, messages_sent').eq('org_id', orgId).eq('month', month).maybeSingle();
-    if (existing) {
-      await sb.from('sms_usage').update({
-        messages_sent: (existing.messages_sent || 0) + count
-      }).eq('id', existing.id);
-    } else {
-      await sb.from('sms_usage').insert({ org_id: orgId, month, messages_sent: count });
+    const { data: org } = await sb.from('organisations').select('sms_bundle, sms_used, two_fa_enabled').eq('id', orgId).maybeSingle();
+    if (org && currentOrg?.id === orgId) {
+      currentOrg.sms_bundle = org.sms_bundle;
+      currentOrg.sms_used = org.sms_used;
+      currentOrg.two_fa_enabled = org.two_fa_enabled;
     }
-    // Deduct from sms_bundle + increment sms_used total
-    const { data: org } = await sb.from('organisations')
-      .select('sms_bundle, sms_used, two_fa_enabled').eq('id', orgId).single();
-    if (org) {
-      const newBundle = Math.max(0, (org.sms_bundle || 0) - count);
-      const newUsed   = (org.sms_used || 0) + count;
-      const updates   = { sms_bundle: newBundle, sms_used: newUsed };
-      // Auto-disable 2FA when bundle runs out
-      if (newBundle === 0 && org.two_fa_enabled) {
-        updates.two_fa_enabled = false;
-        console.warn('[trackSmsUsage] SMS bundle exhausted — 2FA auto-disabled for org', orgId);
-      }
-      await sb.from('organisations').update(updates).eq('id', orgId);
-      if (currentOrg?.id === orgId) {
-        currentOrg.sms_bundle = newBundle;
-        currentOrg.sms_used   = newUsed;
-        if (updates.two_fa_enabled === false) currentOrg.two_fa_enabled = false;
-      }
-    }
-  } catch(e) {
-    console.log('trackSmsUsage error:', e.message);
-  }
+  } catch (e) { /* display only */ }
 }
 
 // Unified SMS sender.

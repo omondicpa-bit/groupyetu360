@@ -471,7 +471,7 @@ async function loadWelfare() {
         <div class="wel-event-icon ${isGeneral?'general':''}">${icon}</div>
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.2rem">
-            <div class="wel-event-type">${label}</div>
+            <div class="wel-event-type">${h(label)}</div>
             <span class="badge ${isClosed?'badge-grey':'badge-green'}" style="font-size:.6rem">${isClosed?'Closed':'Open'}</span>
             ${isGeneral?'<span class="badge badge-grey" style="font-size:.6rem;background:var(--teal-pale);color:var(--teal-dk)">General</span>':''}
             ${isOpenEnded?'<span class="badge badge-grey" style="font-size:.6rem;background:var(--gold-pale);color:var(--warning)">Open Contribution</span>':''}
@@ -3011,8 +3011,8 @@ async function loadWelfareTypes() {
       </div>
       <div style="font-size:.9rem;font-weight:700;color:var(--maroon);margin-right:1rem">Ksh ${Number(t.default_amount||0).toLocaleString()}</div>
       <div style="display:flex;gap:.35rem">
-        <button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="editWelfareType('${t.id}','${t.name.replace(/'/g,"\'")}',${t.default_amount||0},${jsArg(t.category||'bereavement')},'${t.scope||'member_specific'}')">Edit</button>
-        <button class="ds-icon-btn ds-icon-btn-danger" aria-label="Delete" onclick="deleteWelfareType('${t.id}','${t.name.replace(/'/g,"\'")}')">${gyIcon('trash', 16)}</button>
+        <button class="btn btn-secondary btn-sm" style="font-size:.68rem" onclick="editWelfareType('${t.id}',${jsArg(t.name)},${t.default_amount||0},${jsArg(t.category||'bereavement')},'${t.scope||'member_specific'}')">Edit</button>
+        <button class="ds-icon-btn ds-icon-btn-danger" aria-label="Delete" onclick="deleteWelfareType('${t.id}',${jsArg(t.name)})">${gyIcon('trash', 16)}</button>
       </div>
     </div>`).join('');
 }

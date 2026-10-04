@@ -94,6 +94,27 @@ serve(async (req: Request) => {
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    // Only officials send group SMS (audit, Oct 2026: any member could call
+    // this directly and spend the group's credit).
+    if (!isSuperadmin && !['admin', 'treasurer', 'officer'].includes(String(membership?.role || ''))) {
+      return new Response(
+        JSON.stringify({ sent: 0, failed: 0, error: 'Only group officials can send SMS.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    // Credit is checked and used up here, on the server. The browser can no
+    // longer change sms_bundle upwards (plan guard), and treasurers/officers
+    // cannot update the organisation row at all, so deduction must live here.
+    const billOrg = !!org_id && platform !== true && !isSuperadmin;
+    if (billOrg) {
+      const { data: bal } = await supabase.from('organisations').select('sms_bundle').eq('id', org_id).maybeSingle();
+      if (Number(bal?.sms_bundle || 0) < recipients.length) {
+        return new Response(
+          JSON.stringify({ sent: 0, failed: 0, error: `Not enough SMS credit: ${Number(bal?.sms_bundle || 0)} left for ${recipients.length} recipients. Buy a bundle in Plan & billing.` }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
     // NOTE: this confirms membership only, not remaining sms_bundle balance.
     // The client still calls trackSmsUsage() separately, after the fact, to
     // deduct — sending and deduction are not yet one atomic server-side step.
@@ -166,6 +187,23 @@ serve(async (req: Request) => {
       sent = recipients.length;
     } else {
       failed = recipients.length;
+    }
+
+    if (billOrg && sent > 0) {
+      try {
+        const { data: org } = await supabase.from('organisations')
+          .select('sms_bundle, sms_used, two_fa_enabled').eq('id', org_id).maybeSingle();
+        if (org) {
+          const newBundle = Math.max(0, Number(org.sms_bundle || 0) - sent);
+          const upd: Record<string, unknown> = { sms_bundle: newBundle, sms_used: Number(org.sms_used || 0) + sent };
+          if (newBundle === 0 && org.two_fa_enabled) upd.two_fa_enabled = false;  // never lock admins out
+          await supabase.from('organisations').update(upd).eq('id', org_id);
+        }
+        const month = new Date().toISOString().slice(0, 7);
+        const { data: usage } = await supabase.from('sms_usage').select('id, messages_sent').eq('org_id', org_id).eq('month', month).maybeSingle();
+        if (usage) await supabase.from('sms_usage').update({ messages_sent: Number(usage.messages_sent || 0) + sent }).eq('id', usage.id);
+        else await supabase.from('sms_usage').insert({ org_id, month, messages_sent: sent });
+      } catch (e) { console.error('[send-sms-celcom] usage update failed:', (e as Error).message); }
     }
 
     return new Response(
