@@ -959,9 +959,17 @@ async function pickerJoinOrg() {
     return;
   }
 
-  // Submit a pending member request
+  // Already in this group?
+  if ((_userOrgs || []).some(o => o.id === org.id)) {
+    if (sucEl) { sucEl.textContent = `You are already a member of ${org.name}.`; sucEl.style.display = 'block'; }
+    return;
+  }
+  // One request per person per group: the database refuses a second pending
+  // request (join_requests_dedupe_2026-10-05.sql); say so kindly.
+  const joinBtn = document.querySelector('#picker-join-form .btn-primary');
+  if (joinBtn) { if (joinBtn.disabled) return; joinBtn.disabled = true; }
   try {
-    await sb.from('pending_members').insert({
+    const { error: reqErr } = await sb.from('pending_members').insert({
       org_id: org.id,
       user_id: currentUser.id,
       full_name: currentProfile?.full_name || currentUser.email,
@@ -969,10 +977,22 @@ async function pickerJoinOrg() {
       phone: currentProfile?.phone || null,
       status: 'pending'
     });
+    if (joinBtn) joinBtn.disabled = false;
+    if (reqErr) {
+      const already = reqErr.code === '23505' || /duplicate key/i.test(reqErr.message || '');
+      const member = /ALREADY_MEMBER/.test(reqErr.message || '');
+      const msg = member ? `You are already a member of ${org.name}.`
+        : already ? `Your request to join ${org.name} is already waiting for the admin's approval.`
+        : 'Could not send the request: ' + reqErr.message;
+      if (already || member) { if (sucEl) { sucEl.textContent = msg; sucEl.style.display = 'block'; } }
+      else if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+      return;
+    }
     if (sucEl) { sucEl.textContent = `Request sent to ${org.name}. Your admin will approve you shortly.`; sucEl.style.display = 'block'; }
     if (errEl) errEl.style.display = 'none';
     if (document.getElementById('picker-org-code')) document.getElementById('picker-org-code').value = '';
   } catch(e) {
+    if (joinBtn) joinBtn.disabled = false;
     if (errEl) { errEl.textContent = 'Error: ' + e.message; errEl.style.display = 'block'; }
   }
 }

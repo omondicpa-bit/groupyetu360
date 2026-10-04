@@ -2139,7 +2139,18 @@ async function loadApprovals() {
     .eq('org_id', currentOrg.id)
     .order('requested_at', { ascending: false });
 
-  const pending = (all||[]).filter(r => r.status === 'pending');
+  // One card per person: if the same person asked more than once (before
+  // the database guard existed), show only their earliest request.
+  const _seen = new Set();
+  const pending = (all||[]).filter(r => r.status === 'pending')
+    .sort((a, b) => new Date(a.requested_at || 0) - new Date(b.requested_at || 0))
+    .filter(r => {
+      const keys = [r.user_id, (r.email || '').trim().toLowerCase()].filter(Boolean);
+      if (keys.some(k => _seen.has(k))) return false;
+      keys.forEach(k => _seen.add(k));
+      return true;
+    })
+    .reverse();
   const approved = (all||[]).filter(r => r.status === 'approved');
   const declined = (all||[]).filter(r => r.status === 'declined');
 
