@@ -4113,3 +4113,11 @@ body.feat-off-withdrawals #fin-withdraw-pill,body.feat-off-withdrawals #fin-mob-
 body.feat-off-messages #adm-q-sms,body.feat-off-messages #mem-mob-behind button,body.feat-off-messages #members-arrears-btn{display:none !important}
 body.feat-off-instant_mpesa #ip-card{display:none !important}
 .att-inactive{font-size:.85em;font-weight:600;color:var(--ink-faint)}
+
+/* Approve join request: searchable member list */
+.am-search{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;border:1px solid var(--border-dk);border-radius:var(--radius);background:var(--surface);color:var(--ink-faint);margin-bottom:6px}
+.am-search input{border:0;outline:0;background:transparent;font:inherit;font-size:15px;color:var(--ink);width:100%}
+.am-search:focus-within{border-color:var(--action);box-shadow:0 0 0 3px var(--action-ring)}
+.am-search-meta{font-size:12px;font-weight:700;color:var(--teal-dk);min-height:16px;margin-bottom:6px}
+#approve-link-member[size]{height:auto;min-height:200px;padding:4px}
+#approve-link-member option{padding:6px 8px;border-radius:6px}

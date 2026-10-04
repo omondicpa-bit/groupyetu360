@@ -2214,15 +2214,17 @@ async function loadApprovals() {
   document.getElementById('rejected-list').innerHTML = declined.length ? reviewedRows(declined, 'Declined') : aqEmpty('inbox', 'Nothing declined', 'Declined join requests will be listed here.');
 }
 
+let _approveCandidate = { name: '', phone: '', email: '' };
+
 async function openApproveModal(pendingId, userId, name, phone, email) {
   currentPendingId = pendingId;
   currentPendingUserId = userId;
+  _approveCandidate = { name: name || '', phone: phone || '', email: email || '' };
   document.getElementById('approve-member-info').innerHTML =
-    `<strong>${name}</strong> · ${phone||'No phone'} · ${email||'No email'}`;
-  // Populate existing members dropdown
-  const memberOpts = '<option value="">- Create as new member -</option>' +
-    allMembers.map(m => `<option value="${m.id}">${h(m.full_name)} (#${m.member_number||'—'})</option>`).join('');
-  document.getElementById('approve-link-member').innerHTML = memberOpts;
+    `<strong>${h(name)}</strong> · ${h(phone || 'No phone')} · ${h(email || 'No email')}`;
+  const search = document.getElementById('approve-link-search');
+  if (search) search.value = '';
+  filterApproveLinkOptions();
   // Pre-fill member number
   document.getElementById('approve-member-num').value = String(allMembers.length + 1).padStart(3,'0');
   document.getElementById('approve-notes').value = '';
@@ -2230,7 +2232,47 @@ async function openApproveModal(pendingId, userId, name, phone, email) {
   document.getElementById('approve-link-member').onchange = function() {
     document.getElementById('approve-new-member-fields').style.display = this.value ? 'none' : 'block';
   };
+  document.getElementById('approve-new-member-fields').style.display = 'block';
   showModal('approveMember');
+  setTimeout(() => search?.focus(), 150);
+}
+
+// Searchable list for "Link to existing member". Likely matches (same phone
+// or email, or sharing a name) are listed first; typing filters by name,
+// member number or phone. Existing selection is kept when still listed.
+function filterApproveLinkOptions() {
+  const sel = document.getElementById('approve-link-member');
+  if (!sel) return;
+  const keep = sel.value;
+  const q = (document.getElementById('approve-link-search')?.value || '').trim().toLowerCase();
+  const digits = x => String(x || '').replace(/\D/g, '').slice(-9);
+  const words = x => String(x || '').toLowerCase().split(/\s+/).filter(w => w.length > 2);
+  const cand = _approveCandidate;
+  const candWords = words(cand.name);
+  const num = m => m.display_number || m.member_number || '';
+  const score = m => {
+    if (cand.phone && digits(m.phone) && digits(m.phone) === digits(cand.phone)) return 3;
+    if (cand.email && m.portal_email && m.portal_email.toLowerCase() === cand.email.toLowerCase()) return 3;
+    const mw = words(m.full_name);
+    return candWords.filter(w => mw.includes(w)).length;
+  };
+  const list = (allMembers || []).filter(m => m.status !== 'deregistered' && !m.user_id);
+  const matches = q
+    ? list.filter(m => (m.full_name || '').toLowerCase().includes(q) || String(num(m)).includes(q) || (q.replace(/\D/g, '').length >= 3 && digits(m.phone).includes(q.replace(/\D/g, ''))))
+    : list;
+  const byName = (a, b) => (a.full_name || '').localeCompare(b.full_name || '');
+  const likely = q ? [] : matches.filter(m => score(m) > 0).sort((a, b) => score(b) - score(a) || byName(a, b)).slice(0, 5);
+  const likelyIds = new Set(likely.map(m => m.id));
+  const rest = matches.filter(m => !likelyIds.has(m.id)).sort(byName);
+  const opt = m => `<option value="${m.id}">${h(m.full_name)}${num(m) ? ' (#' + h(String(num(m))) + ')' : ''}${m.phone ? ' · ' + h(m.phone) : ''}</option>`;
+  sel.innerHTML = '<option value="">- Create as new member -</option>'
+    + (likely.length ? `<optgroup label="Likely matches">${likely.map(opt).join('')}</optgroup>` : '')
+    + (rest.length ? `<optgroup label="${q ? 'Matching members' : 'All members without an account'}">${rest.map(opt).join('')}</optgroup>` : '');
+  if (keep && [...sel.options].some(o => o.value === keep)) sel.value = keep; else sel.value = '';
+  const meta = document.getElementById('approve-link-meta');
+  if (meta) meta.textContent = q ? `${matches.length} match${matches.length !== 1 ? 'es' : ''}` : (likely.length ? `${likely.length} likely match${likely.length !== 1 ? 'es' : ''} shown first` : '');
+  const fields = document.getElementById('approve-new-member-fields');
+  if (fields) fields.style.display = sel.value ? 'none' : 'block';
 }
 
 async function approveMember() {
