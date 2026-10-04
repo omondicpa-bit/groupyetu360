@@ -2144,6 +2144,8 @@ async function loadApprovals() {
   const _seen = new Set();
   const pending = (all||[]).filter(r => r.status === 'pending')
     .sort((a, b) => new Date(a.requested_at || 0) - new Date(b.requested_at || 0))
+    // Already linked to a member record here? Nothing to approve.
+    .filter(r => !(r.user_id && (allMembers || []).some(m => m.user_id === r.user_id)))
     .filter(r => {
       const keys = [r.user_id, (r.email || '').trim().toLowerCase()].filter(Boolean);
       if (keys.some(k => _seen.has(k))) return false;
