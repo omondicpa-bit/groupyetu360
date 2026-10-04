@@ -2989,19 +2989,12 @@ async function activateFreeTrialFromCart_impl() {
   if (!plan) return;
   if (statusEl) { statusEl.textContent = 'Activating…'; statusEl.style.color = 'var(--ink-faint)'; }
 
-  const promoDays = parseInt(_platformSettings['promo_days'] || '60');
-  const expires = new Date(); expires.setDate(expires.getDate() + promoDays);
-  const expiresStr = expires.toISOString().split('T')[0];
-
   try {
-    const { error } = await sb.from('organisations').update({
-      plan,
-      subscription_status: 'trial',
-      subscription_expires: expiresStr,
-      trial_used: true,
-      trial_start_date: new Date().toISOString().split('T')[0]
-    }).eq('id', currentOrg.id);
+    // Checked and applied on the server (start_free_trial): promotion on,
+    // trial not used before, a real upgrade. (Audit, Oct 2026.)
+    const { data: expiresStr, error } = await sb.rpc('start_free_trial', { p_org: currentOrg.id, p_plan: plan });
     if (error) throw new Error(error.message);
+    const expires = new Date(expiresStr);
     Object.assign(currentOrg, { plan, subscription_status:'trial', subscription_expires: expiresStr, trial_used: true });
     await logActivity('PLAN UPGRADE', `Free trial activated: ${plan} until ${expiresStr}`);
     if (typeof buildNav === 'function') buildNav();

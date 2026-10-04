@@ -921,13 +921,8 @@ async function pickerCreateOrg() {
     afterCreate: async (newOrg) => {
       if (!isPaidPlan) return;
       if (promoOn) {
-        const expires = new Date();
-        expires.setDate(expires.getDate() + promoDays);
-        const expiresStr = expires.toISOString().split('T')[0];
-        const { error } = await sb.from('organisations').update({
-          plan, subscription_status: 'trial', subscription_expires: expiresStr,
-          trial_used: true, trial_start_date: new Date().toISOString().split('T')[0],
-        }).eq('id', newOrg.id);
+        const { data: expiresStr, error } = await sb.rpc('start_free_trial', { p_org: newOrg.id, p_plan: plan });
+        const expires = new Date(expiresStr || Date.now());
         if (error) console.error('Trial activation failed:', error.message);
         else setTimeout(() => toast((typeof PLAN_LABELS !== 'undefined' ? PLAN_LABELS[plan] : plan) + ' plan free until ' + expires.toLocaleDateString('en-KE', { day: 'numeric', month: 'long', year: 'numeric' })), 1500);
       } else if (payRef) {
