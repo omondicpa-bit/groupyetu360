@@ -4112,3 +4112,4 @@ body.feat-off-meetings #adm-q-meet,body.feat-off-meetings .ph-mini:has(#mob-sc-m
 body.feat-off-withdrawals #fin-withdraw-pill,body.feat-off-withdrawals #fin-mob-withdraw-btn,body.feat-off-withdrawals #fin-withdrawal-panel,body.feat-off-withdrawals #mp-withdraw-card,body.feat-off-withdrawals .ph-tile[onclick*="toggleWithdrawWindow"]{display:none !important}
 body.feat-off-messages #adm-q-sms,body.feat-off-messages #mem-mob-behind button,body.feat-off-messages #members-arrears-btn{display:none !important}
 body.feat-off-instant_mpesa #ip-card{display:none !important}
+.att-inactive{font-size:.85em;font-weight:600;color:var(--ink-faint)}

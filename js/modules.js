@@ -39,13 +39,14 @@ async function loadMeetings() {
 
   // Avg attendance from past meetings
   let attRate = '—';
-  if (past.length && allMembers.length) {
+  const currentCount = (allMembers || []).filter(m => m.status === 'active' || m.status === 'arrears').length;
+  if (past.length && currentCount) {
     const { data: attData } = await sb.from('attendance')
       .select('status')
       .in('meeting_id', past.map(m=>m.id))
       .eq('status','present');
     const present = attData?.length || 0;
-    const total = past.length * allMembers.length;
+    const total = past.length * currentCount;
     attRate = total > 0 ? Math.round((present/total)*100) + '%' : '—';
   }
   setEl('mtg-stat-rate', attRate);
@@ -129,10 +130,21 @@ async function deleteMeeting(id) {
   loadMeetings();
 }
 
+// The attendance register lists current members only (Active and Behind).
+// Inactive or deregistered people appear only on a meeting where they were
+// already marked present or apology, so past records are never hidden.
+let _attRegister = [];
+function attendanceRegister() {
+  const current = m => m.status === 'active' || m.status === 'arrears';
+  return (allMembers || [])
+    .filter(m => current(m) || (attState[m.id] && attState[m.id] !== 'absent'))
+    .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
+}
+
 function exportAttendance() {
-  if (!selectedMeetingId || !allMembers.length) return;
+  if (!selectedMeetingId || !_attRegister.length) return;
   const rows = [['Member','Status']];
-  allMembers.forEach(m => rows.push([m.full_name, attState[m.id] || 'absent']));
+  _attRegister.forEach(m => rows.push(['"' + String(m.full_name || '').replace(/"/g, '""') + '"', attState[m.id] || 'absent']));
   const csv = rows.map(r => r.join(',')).join('\n');
   const blob = new Blob([csv], {type:'text/csv'});
   const a = document.createElement('a');
@@ -152,11 +164,12 @@ async function selectMeeting(meetingId, dateStr) {
   const { data: existing } = await sb.from('attendance').select('*').eq('meeting_id', meetingId);
   attState = {};
   existing?.forEach(a => { attState[a.member_id] = a.status; });
-  grid.innerHTML = allMembers.map(m => {
+  _attRegister = attendanceRegister();
+  grid.innerHTML = _attRegister.map(m => {
     const s = attState[m.id] || 'absent';
     const label = s === 'present' ? 'Present' : s === 'apology' ? 'Apology' : 'Absent';
     return `<button class="att-btn ${s}" onclick="cycleAtt('${m.id}',this)">
-      <span class="att-btn-name">${h(m.full_name)}</span>
+      <span class="att-btn-name">${h(m.full_name)}${m.status === 'active' || m.status === 'arrears' ? '' : ' <span class="att-inactive">(inactive)</span>'}</span>
       <span class="att-btn-status">${label}</span>
     </button>`;
   }).join('');
@@ -176,7 +189,7 @@ function cycleAtt(memberId, btn) {
 }
 
 function updateAttCounts() {
-  const vals = Object.values(attState);
+  const vals = _attRegister.map(m => attState[m.id] || 'absent');
   document.getElementById('att-present-count').textContent = vals.filter(v=>v==='present').length;
   document.getElementById('att-apology-count').textContent = vals.filter(v=>v==='apology').length;
   document.getElementById('att-absent-count').textContent = vals.filter(v=>v==='absent').length;
@@ -184,7 +197,7 @@ function updateAttCounts() {
 
 async function saveAttendance() {
   if (!selectedMeetingId) return;
-  const records = allMembers.map(m => ({ meeting_id: selectedMeetingId, member_id: m.id, status: attState[m.id] || 'absent' }));
+  const records = _attRegister.map(m => ({ meeting_id: selectedMeetingId, member_id: m.id, status: attState[m.id] || 'absent' }));
   const { error } = await sb.from('attendance').upsert(records, { onConflict: 'meeting_id,member_id' });
   if (error) { toast('Error saving: ' + error.message); return; }
   toast('Attendance saved successfully');
@@ -213,7 +226,7 @@ async function sendMeetingReminders() {
       return;
     }
 
-    const activeMembers = allMembers.filter(m => m.phone && m.status === 'active');
+    const activeMembers = allMembers.filter(m => m.phone && (m.status === 'active' || m.status === 'arrears'));
     const meetingSummary = meetings.map(m =>
       `• ${new Date(m.meeting_date).toDateString()} at ${m.meeting_time||'8:30 PM'} (${m.venue||'Online'})`
     ).join('\n');
