@@ -1387,3 +1387,31 @@ function gyApplyFeatureClasses() {
   if (!document.body) return;
   FEATURE_DEFS.forEach(d => document.body.classList.toggle('feat-off-' + d.key, !gyFeature(d.key)));
 }
+
+
+// ── Hide balances (members, per device) ──────────────────────────────
+// A member can hide their balances from people looking over their shoulder.
+// Remembered on this phone or computer only. Figures marked .gy-money are
+// blurred; tapping a hidden figure does not reveal it (use the eye button).
+const GY_HIDE_BAL_KEY = 'gy360-hide-balances';
+const GY_MONEY_IDS = ['mob-sc-balance', 'mob-sc-shares-tag', 'mob-sc-savings-tag', 'mob-recent-txns',
+  'mc-total', 'mc-year', 'mc-shares-bal', 'mc-savings-bal', 'mc-timeline', 'mc-by-category',
+  'mp-shares-bal-display', 'mp-savings-bal-display', 'mp-total-bal-display', 'mp-contrib-summary'];
+function gyApplyHideBalance() {
+  let on = false;
+  try { on = localStorage.getItem(GY_HIDE_BAL_KEY) === '1'; } catch (e) {}
+  document.body.classList.toggle('gy-hide-bal', on);
+  GY_MONEY_IDS.forEach(id => document.getElementById(id)?.classList.add('gy-money'));
+  document.querySelectorAll('.gy-eye-btn').forEach(b => {
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    const l = b.querySelector('.gy-eye-label'); if (l) l.textContent = on ? 'Show balances' : 'Hide balances';
+  });
+}
+function gyToggleHideBalance() {
+  let on = false;
+  try { on = localStorage.getItem(GY_HIDE_BAL_KEY) === '1'; localStorage.setItem(GY_HIDE_BAL_KEY, on ? '0' : '1'); } catch (e) {}
+  gyApplyHideBalance();
+  if (typeof toast === 'function') toast(on ? 'Balances shown' : 'Balances hidden on this device');
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', gyApplyHideBalance);
+else gyApplyHideBalance();

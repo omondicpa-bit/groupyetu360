@@ -4121,3 +4121,23 @@ body.feat-off-instant_mpesa #ip-card{display:none !important}
 .am-search-meta{font-size:12px;font-weight:700;color:var(--teal-dk);min-height:16px;margin-bottom:6px}
 #approve-link-member[size]{height:auto;min-height:200px;padding:4px}
 #approve-link-member option{padding:6px 8px;border-radius:6px}
+
+/* ── Hide balances (members) ── */
+.gy-eye-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:34px;height:34px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--ink-soft);cursor:pointer;flex-shrink:0}
+.gy-eye-btn:hover{color:var(--ink)}
+.gy-eye-btn .gy-eye-off{display:none}
+body.gy-hide-bal .gy-eye-btn .gy-eye-on{display:none}
+body.gy-hide-bal .gy-eye-btn .gy-eye-off{display:inline}
+.gy-eye-btn-text{width:auto;padding:0 12px;font:inherit;font-size:13px;font-weight:700}
+.gy-eye-row{display:flex;justify-content:flex-end;margin:0 0 8px}
+.ph-hero-label-row{display:flex;align-items:center;gap:8px}
+.ph-hero-label-row .gy-eye-btn{width:30px;height:30px;background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.25);color:#fff}
+body.gy-hide-bal .gy-money{filter:blur(9px);user-select:none;-webkit-user-select:none;pointer-events:none;transition:filter .2s}
+.gy-money{transition:filter .2s}
+@media print{body.gy-hide-bal .gy-money{filter:none}}
+
+/* ── Group picker on phones: bell on the right, notifications as a proper sheet ── */
+@media(max-width:768px){
+  .opr-head{left:auto !important;width:auto !important;max-width:none !important;justify-content:flex-end !important}
+  #notif-panel{position:fixed !important;top:calc(64px + env(safe-area-inset-top,0px)) !important;left:12px !important;right:12px !important;width:auto !important;max-height:70vh !important;overflow:auto;z-index:1000}
+}
