@@ -1390,11 +1390,11 @@ function gyApplyFeatureClasses() {
 
 
 // ── Hide balances (members, per device) ──────────────────────────────
-// A member can hide their balances from people looking over their shoulder.
+// Anyone (member or admin) can hide balances from people looking over their shoulder.
 // Remembered on this phone or computer only. Figures marked .gy-money are
 // blurred; tapping a hidden figure does not reveal it (use the eye button).
 const GY_HIDE_BAL_KEY = 'gy360-hide-balances';
-const GY_MONEY_IDS = ['mob-sc-balance', 'mob-sc-shares-tag', 'mob-sc-savings-tag', 'mob-recent-txns',
+const GY_MONEY_IDS = ['adm-sc-bank', 'adm-mob-month-val', 'dash-balance', 'dash-balance-meta', 'dash-welfare-meta', 'mob-sc-balance', 'mob-sc-shares-tag', 'mob-sc-savings-tag', 'mob-recent-txns',
   'mc-total', 'mc-year', 'mc-shares-bal', 'mc-savings-bal', 'mc-timeline', 'mc-by-category',
   'mp-shares-bal-display', 'mp-savings-bal-display', 'mp-total-bal-display', 'mp-contrib-summary'];
 function gyApplyHideBalance() {

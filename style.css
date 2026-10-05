@@ -4141,3 +4141,5 @@ body.gy-hide-bal .gy-money{filter:blur(9px);user-select:none;-webkit-user-select
   .opr-head{left:auto !important;width:auto !important;max-width:none !important;justify-content:flex-end !important}
   #notif-panel{position:fixed !important;top:calc(64px + env(safe-area-inset-top,0px)) !important;left:12px !important;right:12px !important;width:auto !important;max-height:70vh !important;overflow:auto;z-index:1000}
 }
+.gy-eye-btn-sm{width:26px;height:26px}
+.ds-stat-icon + .gy-eye-btn-sm{margin-left:auto}
