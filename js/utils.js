@@ -686,7 +686,7 @@ async function sendSMS(to, message, orgIdOverride) {
     provider = psPublic?.sms_provider || 'celcom';
   } catch(e) {}
 
-  const SUPABASE_FUNCTIONS_URL = 'https://eengldzvvgplgzvbutal.supabase.co/functions/v1';
+  const SUPABASE_FUNCTIONS_URL = FUNCTIONS_URL;
 
   // ── CELCOM AFRICA (via Supabase Edge Function — credentials read server-side) ──
   if (provider === 'celcom') {

@@ -275,7 +275,7 @@ async function sendMeetingReminders() {
       const meetingRecipientUserIds = activeMembers.filter(m => m.user_id).map(m => m.user_id);
       if (meetingRecipientUserIds.length) {
         sb.auth.getSession().then(({ data: { session } }) => {
-          fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/send-group-notification', {
+          fetch(`${FUNCTIONS_URL}/send-group-notification`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
             body: JSON.stringify({
@@ -1349,7 +1349,7 @@ async function sendSms(opts = {}) {
     // is purely additive.
     if (recipientUserIds.length) {
       sb.auth.getSession().then(({ data: { session } }) => {
-        fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/send-group-notification', {
+        fetch(`${FUNCTIONS_URL}/send-group-notification`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
           body: JSON.stringify({

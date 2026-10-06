@@ -1233,7 +1233,7 @@ async function saUpdateMemberAccount() {
     if (newEmail) body.email = newEmail;
     if (newPassword) body.password = newPassword;
 
-    const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/admin-user-update', {
+    const res = await fetch(`${FUNCTIONS_URL}/admin-user-update`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

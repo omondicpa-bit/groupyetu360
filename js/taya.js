@@ -722,7 +722,7 @@ async function tayaGenerateDraft(message) {
     const jwt = session?.data?.session?.access_token;
     if (!jwt) throw new Error("your session has expired, refresh the page and try again");
 
-    const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/taya-assistant', {
+    const res = await fetch(`${FUNCTIONS_URL}/taya-assistant`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${jwt}` },
       body: JSON.stringify({
@@ -856,7 +856,7 @@ async function tayaRefineDraft(cardId, instruction) {
     const session = await sb.auth.getSession();
     const jwt = session?.data?.session?.access_token;
     if (!jwt) throw new Error("your session has expired, refresh the page and try again");
-    const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/taya-assistant', {
+    const res = await fetch(`${FUNCTIONS_URL}/taya-assistant`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${jwt}` },
       body: JSON.stringify({ org_id: currentOrg.id, mode: mode || 'chat', message: instruction, history: [], context: { ...tayaCardContext(cardId), refine_instruction: instruction, previous_draft: previousText } }),

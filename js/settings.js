@@ -1215,7 +1215,7 @@ async function sendSAUserSms(testOnly) {
     const phone = formatPhone(u.phone);
     if (!phone) { failed++; continue; }
     try {
-      const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/send-sms-celcom', {
+      const res = await fetch(`${FUNCTIONS_URL}/send-sms-celcom`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
         body: JSON.stringify({ message: sauPersonalise(text, u), recipients: [phone], platform: true }),
@@ -1398,7 +1398,7 @@ async function saUpdateUserAccount() {
     const body = { user_id: userId };
     if (newEmail) body.email = newEmail;
     if (newPassword) body.password = newPassword;
-    const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/admin-user-update', {
+    const res = await fetch(`${FUNCTIONS_URL}/admin-user-update`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${jwt}` },
       body: JSON.stringify(body)
@@ -2596,7 +2596,7 @@ async function processPayoutRow(id, btnEl, uncertain) {
   if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Sending...'; }
   try {
     const { data: { session } } = await sb.auth.getSession();
-    const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/daraja-payout', {
+    const res = await fetch(`${FUNCTIONS_URL}/daraja-payout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
       body: JSON.stringify({ settlement_id: id, confirmed_not_sent: confirmedNotSent }),
@@ -2972,7 +2972,7 @@ async function submitCartPaystack_impl() {
       : subscriptionProvider === 'daraja' ? 'daraja-charge'
       : 'paystack-charge';
 
-    const res = await fetch(`https://eengldzvvgplgzvbutal.supabase.co/functions/v1/${chargeFunctionName}`, {
+    const res = await fetch(`${FUNCTIONS_URL}/${chargeFunctionName}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
       body: JSON.stringify({ org_id: currentOrg.id, amount: total, phone, email: currentUser.email, payment_type: paymentType, notes, member_id: memberId })
@@ -3013,7 +3013,7 @@ async function submitCartPaystack_impl() {
         // timeout even though they paid. Paystack and SasaPay are untouched.
         if (subscriptionProvider === 'daraja' && polls >= 3 && polls % 2 === 1) {
           try {
-            await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/daraja-verify', {
+            await fetch(`${FUNCTIONS_URL}/daraja-verify`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
               body: JSON.stringify({ payment_request_id: result.payment_request_id })
@@ -3715,7 +3715,7 @@ async function sendBroadcast() {
 
   try {
     const { data: { session } } = await sb.auth.getSession();
-    const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/send-broadcast', {
+    const res = await fetch(`${FUNCTIONS_URL}/send-broadcast`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
       body: JSON.stringify({ title, body, target_type: targetType, target_ids: targetIds })
@@ -3790,7 +3790,7 @@ async function syncSettlementBatches() {
     const jwt = session?.data?.session?.access_token;
     if (!jwt) { console.warn('syncSettlementBatches: no active session'); return; }
 
-    const res = await fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/sync-settlement-batches', {
+    const res = await fetch(`${FUNCTIONS_URL}/sync-settlement-batches`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${jwt}` },
     });

@@ -3,9 +3,10 @@
 // globals: window.sb, window.currentOrg, window.currentUser, window.currentProfile etc.
 
 // ── SUPABASE ──
-const SUPABASE_URL = 'https://eengldzvvgplgzvbutal.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_YMCrMAvAeQEhVV3dC-8jjw_pVzFDyPH';
-const FUNCTIONS_URL = 'https://eengldzvvgplgzvbutal.supabase.co/functions/v1';
+// Live or staging is decided in js/env.js (by web address)
+const SUPABASE_URL = window.GY_ENV.supabaseUrl;
+const SUPABASE_KEY = window.GY_ENV.supabaseKey;
+const FUNCTIONS_URL = SUPABASE_URL + '/functions/v1';
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 

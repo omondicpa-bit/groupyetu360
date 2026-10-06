@@ -1181,7 +1181,7 @@ async function payInstantContribution() {
 
   try {
     const { data: { session } } = await sb.auth.getSession();
-    const res = await fetch(`https://eengldzvvgplgzvbutal.supabase.co/functions/v1/${functionName}`, {
+    const res = await fetch(`${FUNCTIONS_URL}/${functionName}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
       body: JSON.stringify(requestBody)
@@ -1294,7 +1294,7 @@ function listenForContributionConfirmation(paymentRequestId, netAmount, provider
         // less likely to matter.
         _mpNudgeSent = true;
         sb.auth.getSession().then(({ data: { session } }) => {
-          fetch('https://eengldzvvgplgzvbutal.supabase.co/functions/v1/sasapay-verify', {
+          fetch(`${FUNCTIONS_URL}/sasapay-verify`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
             body: JSON.stringify({ payment_request_id: paymentRequestId })
@@ -1313,7 +1313,7 @@ function listenForContributionConfirmation(paymentRequestId, netAmount, provider
     }
     try {
       const { data: { session } } = await sb.auth.getSession();
-      const res = await fetch(`https://eengldzvvgplgzvbutal.supabase.co/functions/v1/${verifyFunctionName}`, {
+      const res = await fetch(`${FUNCTIONS_URL}/${verifyFunctionName}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
         body: JSON.stringify({ payment_request_id: paymentRequestId })
