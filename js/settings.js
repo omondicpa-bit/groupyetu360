@@ -1094,7 +1094,7 @@ function renderSAUsers(list) {
     const isNew = u.created_at && (Date.now() - new Date(u.created_at).getTime()) < 7 * 86400000;
     const messaged = _sauMessaged[u.id];
     return `<tr>
-      <td><input type="checkbox" class="sau-check" data-id="${u.id}" ${_sauSelected.has(u.id) ? 'checked' : ''} ${phone ? '' : 'disabled title="No phone number"'} aria-label="Select ${h(u.full_name || 'user')}" onchange="sauToggle('${u.id}', this.checked)"/></td>
+      <td><input type="checkbox" class="sau-check" data-id="${u.id}" ${_sauSelected.has(u.id) ? 'checked' : ''} ${phone ? '' : 'title="No phone number: notifications only"'} aria-label="Select ${h(u.full_name || 'user')}" onchange="sauToggle('${u.id}', this.checked)"/></td>
       <td><div class="ds-person"><span class="ds-avatar" style="background:var(--tt-bg);color:var(--tt-fg)" data-tone="${['teal','maroon','gold','navy'][i % 4]}">${h(aqInitials(u.full_name))}</span>
         <span class="ds-person-text"><span class="ds-person-name">${h(u.full_name || 'No name')}${isFounder ? ' <span class="ds-founder">Founder</span>' : ''}${isNew ? ' <span class="badge badge-green">New</span>' : ''}</span><span class="ds-person-sub">${h(u.email || 'No email')}</span>${messaged ? `<span class="sau-messaged">Messaged ${aqAgo(messaged)}</span>` : ''}</span></div></td>
       <td class="ds-strong" style="white-space:nowrap">${phone ? h(phone) : '<span class="ds-muted">None</span>'}</td>
@@ -1145,20 +1145,23 @@ function filterSAMembers() { applySAUserFilters(); }
 
 function sauToggle(id, on) { if (on) _sauSelected.add(id); else _sauSelected.delete(id); sauUpdateSelection(); }
 function sauSelectVisible(on) {
-  _sauVisible.forEach(u => { if (on && sauPhone(u)) _sauSelected.add(u.id); else if (!on) _sauSelected.delete(u.id); });
+  _sauVisible.forEach(u => { if (on) _sauSelected.add(u.id); else _sauSelected.delete(u.id); });
   document.querySelectorAll('.sau-check').forEach(c => { c.checked = _sauSelected.has(c.dataset.id); });
   sauUpdateSelection();
 }
 function sauUpdateSelection() {
   const n = _sauSelected.size;
   const btn = document.getElementById('sau-sms-btn');
-  if (btn) { btn.disabled = !n; btn.lastChild.textContent = n ? `Send SMS to ${n}` : 'Send SMS'; }
+  const withPhone = [...allSAUsers].filter(u => _sauSelected.has(u.id) && sauPhone(u)).length;
+  if (btn) { btn.disabled = !withPhone; btn.lastChild.textContent = withPhone ? `Send SMS to ${withPhone}` : 'Send SMS'; }
+  const pbtn = document.getElementById('sau-push-btn');
+  if (pbtn) { pbtn.disabled = !n; pbtn.lastChild.textContent = n ? `Send notification to ${n}` : 'Send notification'; }
   const bar = document.getElementById('sau-selbar');
   if (bar) bar.hidden = false;
   const t = document.getElementById('sau-sel-text');
-  if (t) t.textContent = n ? `${n} selected` : 'Tick people to message them. Only people with a phone number can be selected.';
+  if (t) t.textContent = n ? `${n} selected${withPhone < n ? ` · ${withPhone} with a phone for SMS` : ''}` : 'Tick people to message them by SMS or app notification.';
   const all = document.getElementById('sau-check-all');
-  if (all) all.checked = _sauVisible.length > 0 && _sauVisible.filter(u => sauPhone(u)).every(u => _sauSelected.has(u.id));
+  if (all) all.checked = _sauVisible.length > 0 && _sauVisible.every(u => _sauSelected.has(u.id));
 }
 
 const SAU_DEFAULT_SMS = "Hi {name}, we noticed you recently created your GroupYetu360 account. You can start your group for free today at app.groupyetu.org. Need help setting up? Call or WhatsApp us on 0702 903 544. EPH Technologies";
@@ -4447,4 +4450,60 @@ async function saveOrg() {
   closeModal('addOrg');
   toast(`${name} onboarded. Group code ${code}. Share it with the group admin to join.`);
   if (typeof loadSuperAdmin === 'function') loadSuperAdmin();
+}
+
+
+// ── Superadmin: app notification (push) to the people ticked on All users ──
+// Uses the send-broadcast Edge Function (superadmin only) with target
+// "members" = the selected profile ids. Free; reaches people who allowed
+// notifications on a device. Logged in broadcast_log by the function.
+function openSAUserPush() {
+  if (!_sauSelected.size) return;
+  const people = [...allSAUsers].filter(u => _sauSelected.has(u.id));
+  const to = document.getElementById('sau-push-to');
+  if (to) to.textContent = `To ${people.length} ${people.length === 1 ? 'person' : 'people'}: ${people.slice(0, 3).map(u => (u.full_name || u.email || '').split(' ')[0]).join(', ')}${people.length > 3 ? ' and ' + (people.length - 3) + ' more' : ''}`;
+  sauPushPreview();
+  showModal('saUserPush');
+}
+
+function sauPushPreview() {
+  const t = (document.getElementById('sau-push-title')?.value || '').trim();
+  const b = (document.getElementById('sau-push-body')?.value || '').trim();
+  const pt = document.getElementById('sau-push-prev-title'); if (pt) pt.textContent = t || 'Title';
+  const pb = document.getElementById('sau-push-prev-body'); if (pb) pb.textContent = b || 'Message';
+  const c = document.getElementById('sau-push-count'); if (c) c.textContent = `${b.length} / 200`;
+}
+
+async function sendSAUserPush(testOnly) {
+  const title = (document.getElementById('sau-push-title')?.value || '').trim();
+  const body = (document.getElementById('sau-push-body')?.value || '').trim();
+  const url = document.getElementById('sau-push-url')?.value || '/';
+  if (!title || !body) { toast('Write a title and a message first.'); return; }
+  const ids = testOnly ? [currentUser.id] : [..._sauSelected];
+  if (!ids.length) return;
+  if (!testOnly && !confirm(`Send this notification to ${ids.length} ${ids.length === 1 ? 'person' : 'people'}?`)) return;
+  const btn = document.getElementById('sau-push-send');
+  if (btn) btn.disabled = true;
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const res = await fetch(`${FUNCTIONS_URL}/send-broadcast`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ title, body, url, target_type: 'members', target_ids: ids })
+    });
+    const r = await res.json();
+    if (!res.ok || r.error) throw new Error(r.error || 'Could not send');
+    if (testOnly) {
+      toast(r.sent ? 'Test sent to your devices' : 'No device of yours has notifications switched on');
+    } else {
+      toast(`Delivered to ${r.sent} device${r.sent !== 1 ? 's' : ''} for ${r.recipient_count} ${r.recipient_count === 1 ? 'person' : 'people'}${r.failed ? ` (${r.failed} failed)` : ''}`);
+      closeModal('saUserPush');
+      document.getElementById('sau-push-title').value = '';
+      document.getElementById('sau-push-body').value = '';
+    }
+  } catch (e) {
+    toast('Notification not sent: ' + e.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
