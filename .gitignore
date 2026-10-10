@@ -2,3 +2,10 @@
 signing.keystore
 
 .gradle/
+
+# Database dumps and local secrets: never commit
+live_schema.sql
+*_dump.sql
+*.dump
+.env
+.env.*
