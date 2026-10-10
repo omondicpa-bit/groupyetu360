@@ -12,8 +12,8 @@
   };
   const STAGING = {
     name: 'staging',
-    supabaseUrl: '',   // filled in when the staging Supabase project exists
-    supabaseKey: '',
+    supabaseUrl: 'https://zrjctzauufromazxrpvb.supabase.co',   // groupyetu360-staging
+    supabaseKey: 'sb_publishable_P3HhidhXpV4p9sBZlr02wg_69Em0csz',
   };
   const host = (location.hostname || '').toLowerCase();
   const isStaging = host.startsWith('staging.') || host === 'localhost' || host === '127.0.0.1' || host.endsWith('.pages.dev');
