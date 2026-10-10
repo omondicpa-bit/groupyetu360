@@ -21,6 +21,12 @@ $url = (Read-Host).Trim()
 $url = $url -replace ':\[YOUR-PASSWORD\]@', '@'
 $url = $url -replace '^(postgres(?:ql)?://[^:/@]+):[^@]*@', '$1@'
 
+if ($url -match '@db\.[a-z0-9]+\.supabase\.co') {
+  Write-Host "That is the 'Direct connection' address, which most home networks cannot reach." -ForegroundColor Yellow
+  Write-Host "In Supabase > Connect > Direct, change Method to 'Session pooler' and copy that one instead." -ForegroundColor Yellow
+  Write-Host "It contains 'pooler.supabase.com'. Then run this script again." -ForegroundColor Yellow
+  exit 1
+}
 if ($url -notmatch 'eengldzvvgplgzvbutal') {
   Write-Host "That is not the live project's address (eengldzvvgplgzvbutal). Stopping." -ForegroundColor Red
   exit 1
