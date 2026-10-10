@@ -19,8 +19,8 @@ kept instead.
 
 | Item | Where |
 |---|---|
-| Live database, sign-in and Edge Functions | Supabase project `eengldzvvgplgzvbutal` |
-| Staging database (test data only) | Supabase project `zrjctzauufromazxrpvb` (groupyetu360-staging, free plan, Europe) |
+| Live database, sign-in and Edge Functions | Supabase project `eengldzvvgplgzvbutal` (region eu-west-1, Ireland; session pooler `aws-0-eu-west-1.pooler.supabase.com`) |
+| Staging database (test data only) | Supabase project `zrjctzauufromazxrpvb` (groupyetu360-staging, free plan, Europe); built by `sql/staging/staging_setup.sql` |
 | Live / staging switch in the app | `js/env.js` (chosen by web address; staging never falls back to live) |
 | Edge Function secrets (Daraja, Celcom SMS, Resend, VAPID, Anthropic) | Supabase dashboard > Edge Functions > Secrets |
 | Android app | Google Play, package `com.ephtechnologies.groupyetu360`; built by `.github/workflows/build-android.yml`; upload key in GitHub Actions secrets (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_PASSWORD`) |
