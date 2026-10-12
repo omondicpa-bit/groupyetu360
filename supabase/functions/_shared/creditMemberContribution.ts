@@ -21,6 +21,7 @@
 // call.
 
 import { sendPushNotification } from './sendPushNotification.ts';
+import { filterSmsRecipients } from './smsAllowlist.ts';
 
 export async function creditMemberContribution(supabase: any, pr: any, reference: string) {
   const orgId = pr.org_id;
@@ -57,6 +58,7 @@ export async function creditMemberContribution(supabase: any, pr: any, reference
       console.warn('[GY360] Skipping confirmation SMS — Celcom not configured');
       return;
     }
+    if (filterSmsRecipients([phone]).allowed.length === 0) return; // staging allowlist (no-op on live)
     try {
       const payload = {
         apikey: celcomCreds.celcom_api_key,

@@ -7,6 +7,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { filterSmsRecipients } from '../_shared/smsAllowlist.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -156,7 +157,15 @@ serve(async (req: Request) => {
       outgoingMessage = `${label}:\n\n${message}`;
     }
 
-    const mobile = recipients.join(',');
+    // Staging only: drop any number not on SMS_ALLOWLIST (no-op on live).
+    const { allowed: sendTo, blocked: stagingBlocked } = filterSmsRecipients(recipients);
+    if (sendTo.length === 0) {
+      return new Response(
+        JSON.stringify({ sent: 0, failed: 0, blocked: stagingBlocked, error: 'Staging: no recipients on the SMS allowlist. Nothing was sent.' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const mobile = sendTo.join(',');
 
     const payload = {
       apikey: ps.celcom_api_key,
