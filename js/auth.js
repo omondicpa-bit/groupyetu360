@@ -1904,7 +1904,7 @@ async function prefetchData() {
 
 function populateSelects() {
   const memberOpts = '<option value="">Select member…</option>' + allMembers.map(m => `<option value="${m.id}">${h(m.full_name)}</option>`).join('');
-  ['modal-pay-member', 'wel-member', 'fine-member'].forEach(id => { const el=document.getElementById(id); if(el) el.innerHTML=memberOpts; });
+  ['modal-pay-member', 'wel-member', 'fine-member'].forEach(id => { const el=document.getElementById(id); if(el) { el.innerHTML=memberOpts; gySelectSnapshot(el); } });
   const projOpts = '<option value="">None</option>' + allProjects.map(p => `<option value="${h(p.name)}">${h(p.name)}</option>`).join('');
   const ep = document.getElementById('exp-project'); if(ep) ep.innerHTML = projOpts;
 }

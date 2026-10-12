@@ -495,6 +495,11 @@ async function openRecordPaymentModal(prefillMemberId) {
   if (ref) ref.value = '';
   const dateEl = document.getElementById('modal-pay-date');
   if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+  // Fresh search each time the modal opens: full member list, box empty.
+  const paySel = document.getElementById('modal-pay-member');
+  const paySearch = document.getElementById('modal-pay-member-search');
+  if (paySel && paySearch && paySearch.value) { paySearch.value = ''; gySelectFilter(paySearch, 'modal-pay-member'); }
+  if (paySel) paySel.value = '';
   if (prefillMemberId) {
     const sel = document.getElementById('modal-pay-member');
     if (sel) { sel.value = prefillMemberId; renderPayMemberCard(); }

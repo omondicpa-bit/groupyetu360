@@ -24,7 +24,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="/icon152x152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icon192x192.png">
 
-  <link rel="stylesheet" href="style.css?v=2026100153">
+  <link rel="stylesheet" href="style.css?v=2026101201">
 </head>
 <body>
 
@@ -948,7 +948,7 @@
             <input class="form-input" id="fine-reason" placeholder="Or type a custom reason…"/>
           </div>
           <div class="form-row">
-            <div class="form-group"><label class="form-label">Member</label><select class="form-select" id="fine-member"><option value="">Select member…</option></select></div>
+            <div class="form-group"><label class="form-label">Member</label><label class="am-search"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" id="fine-member-search" data-gy-search-for="fine-member" placeholder="Search by name, number or phone" autocomplete="off" oninput="gySelectFilter(this,'fine-member')" onkeydown="gySelectSearchKey(event,'fine-member')"/></label><select class="form-select" id="fine-member"><option value="">Select member…</option></select></div>
             <div class="form-group"><label class="form-label">Date issued</label><input class="form-input" type="date" id="fine-date"/></div>
           </div>
           <div class="form-row">
@@ -4042,6 +4042,7 @@
 
       <section class="rp-step">
         <div class="rp-step-head"><span class="rp-step-num">1</span><span class="rp-step-title">Who paid?</span></div>
+        <label class="am-search"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" id="modal-pay-member-search" data-gy-search-for="modal-pay-member" placeholder="Search by name, number or phone" autocomplete="off" oninput="gySelectFilter(this,'modal-pay-member')" onkeydown="gySelectSearchKey(event,'modal-pay-member')"/></label>
         <select class="form-select rp-member" id="modal-pay-member" onchange="onPayMemberChange()" aria-label="Member"><option value="">Choose a member…</option></select>
         <div id="rp-member-card" class="rp-member-card" hidden></div>
       </section>
@@ -4131,6 +4132,7 @@
       <!-- Affected member -->
       <div id="wel-member-row" class="form-group">
         <label class="form-label">Affected member</label>
+        <label class="am-search"><svg class="gy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" id="wel-member-search" data-gy-search-for="wel-member" placeholder="Search by name, number or phone" autocomplete="off" oninput="gySelectFilter(this,'wel-member')" onkeydown="gySelectSearchKey(event,'wel-member')"/></label>
         <select class="form-select" id="wel-member"><option value="">Select member…</option></select>
       </div>
 
@@ -5739,17 +5741,17 @@
 
 
   <!-- GroupYetu360 Scripts - load order matters -->
-  <script src="js/env.js?v=2026100153"></script>
-  <script src="js/icons.js?v=2026100153"></script>
-  <script src="js/auth.js?v=2026100153"></script>
-  <script src="js/utils.js?v=2026100153"></script>
-  <script src="js/dashboard.js?v=2026100153"></script>
-  <script src="js/members.js?v=2026100153"></script>
-  <script src="js/finance.js?v=2026100153"></script>
-  <script src="js/settings.js?v=2026100153"></script>
-  <script src="js/portal.js?v=2026100153"></script>
-  <script src="js/modules.js?v=2026100153"></script>
-  <script src="js/taya.js?v=2026100153"></script>
+  <script src="js/env.js?v=2026101201"></script>
+  <script src="js/icons.js?v=2026101201"></script>
+  <script src="js/auth.js?v=2026101201"></script>
+  <script src="js/utils.js?v=2026101201"></script>
+  <script src="js/dashboard.js?v=2026101201"></script>
+  <script src="js/members.js?v=2026101201"></script>
+  <script src="js/finance.js?v=2026101201"></script>
+  <script src="js/settings.js?v=2026101201"></script>
+  <script src="js/portal.js?v=2026101201"></script>
+  <script src="js/modules.js?v=2026101201"></script>
+  <script src="js/taya.js?v=2026101201"></script>
   <script>
     // Bootstrap - runs after all JS files are loaded.
     // handleAuthRedirect() used to run here first and could skip init() entirely —

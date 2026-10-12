@@ -19,6 +19,50 @@ function h(str) {
     .replace(/'/g, '&#39;');
 }
 
+// ── SEARCHABLE MEMBER DROPDOWNS ──
+// A search box sits above a long <select>. gySelectSnapshot() remembers the
+// full option list each time the select is (re)filled; gySelectFilter()
+// rebuilds the list from that snapshot, matching name, member number or
+// phone. Rebuilding (not hiding) works the same on Android, iPhone and PC.
+// One match is picked automatically; Enter picks the first match.
+function gySelectSnapshot(sel) {
+  if (typeof sel === 'string') sel = document.getElementById(sel);
+  if (!sel) return;
+  sel._gyAll = Array.from(sel.options).map(o => ({ value: o.value, text: o.textContent }));
+  const box = document.querySelector(`[data-gy-search-for="${sel.id}"]`);
+  if (box) box.value = '';
+}
+function gySelectFilter(input, selectId, pickFirst) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  if (!sel._gyAll) gySelectSnapshot(sel);
+  const q = String(input.value || '').trim().toLowerCase();
+  const qDigits = q.replace(/\D/g, '');
+  const members = (typeof allMembers !== 'undefined' && Array.isArray(allMembers)) ? allMembers : [];
+  const byId = new Map(members.map(m => [m.id, m]));
+  const keep = sel.value;
+  const blank = sel._gyAll.filter(o => !o.value);
+  const hits = sel._gyAll.filter(o => {
+    if (!o.value) return false;
+    if (!q) return true;
+    if (o.text.toLowerCase().includes(q)) return true;
+    const m = byId.get(o.value);
+    if (!m) return false;
+    const num = String(m.display_number || m.member_number || '').toLowerCase();
+    if (num && num.includes(q)) return true;
+    return qDigits.length >= 3 && String(m.phone || '').replace(/\D/g, '').includes(qDigits);
+  });
+  const placeholder = q ? [{ value: '', text: hits.length ? `${hits.length} match${hits.length === 1 ? '' : 'es'} - choose…` : 'No member matches' }] : blank;
+  sel.innerHTML = placeholder.concat(hits).map(o => `<option value="${h(o.value)}">${h(o.text)}</option>`).join('');
+  let pick = hits.some(o => o.value === keep) ? keep : '';
+  if (q && (hits.length === 1 || (pickFirst && hits.length))) pick = hits[0].value;
+  sel.value = pick;
+  if (pick !== keep) sel.dispatchEvent(new Event('change'));
+}
+function gySelectSearchKey(e, selectId) {
+  if (e.key === 'Enter') { e.preventDefault(); gySelectFilter(e.target, selectId, true); }
+}
+
 // ── CSV EXPORT (canonical — same reasoning as h() above: utils.js loads
 //    first, so this one definition is available everywhere a table needs
 //    an Export button, instead of every page re-implementing it) ──
